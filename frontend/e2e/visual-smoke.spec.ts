@@ -65,8 +65,12 @@
 // right now" check answers "no" during the 50ms delay before the daily-open
 // entrance starts, which is the same race by a shorter name.
 //
-// NO axe RULE IS EXCLUDED ANYWHERE IN THIS FILE. `assertContrastRuleRan()`
-// proves it for the one rule most likely to be switched off under pressure.
+// NO axe RULE IS EXCLUDED ANYWHERE IN THIS FILE — no `disableRules`, no
+// `withRules`, no `exclude`. `runAxe()` proves it for the rule most likely to be
+// switched off under pressure: if `color-contrast` ever stops appearing in any
+// of axe's four buckets it was turned off, and that fails before the violation
+// count is read. `visualSmokeContract.test.js` asserts the three exclusion APIs
+// are absent from this file's source.
 //
 // ── THE FALSE RECEIPT ────────────────────────────────────────────────────────
 //

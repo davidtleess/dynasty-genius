@@ -18,6 +18,16 @@ import { DESTINATIONS } from "../shell/destinations";
 const VISUAL_SMOKE_SPEC = resolve(process.cwd(), "e2e", "visual-smoke.spec.ts");
 const source = readFileSync(VISUAL_SMOKE_SPEC, "utf8");
 
+// The spec's own prose is part of what this file pins — it is where the coverage
+// boundary is stated — so most checks read the whole file. The "no rule was
+// excluded" check must not, because the sentence PROMISING no rule is excluded
+// names the three APIs and would fail itself. Comment lines are dropped for that
+// one check, and it looks for a CALL (the open paren), not a mention.
+const code = source
+  .split("\n")
+  .filter((line) => !/^\s*(\/\/|\*|\/\*)/.test(line))
+  .join("\n");
+
 describe("visual smoke evidence contract", () => {
   it("gates every view of every nav destination", () => {
     const missing = DESTINATIONS.flatMap((destination) =>
@@ -77,7 +87,7 @@ describe("visual smoke evidence contract", () => {
     // 21, because axe blends ancestor opacity and getComputedStyle does not.
     expect(source).toContain("contrast_readings");
     expect(source).toContain('exercisedRules.has("color-contrast")');
-    expect(source).not.toMatch(/disableRules|withRules|\.exclude\(/);
+    expect(code).not.toMatch(/disableRules\(|withRules\(|\.exclude\(/);
   });
 
   it("states which motion path is gated, in the spec's own words", () => {
