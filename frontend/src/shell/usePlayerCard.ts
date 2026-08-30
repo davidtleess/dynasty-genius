@@ -8,11 +8,25 @@
 //
 // So the card pushes a history entry at the SAME url. Back then pops that entry
 // and the card closes, while nothing about the address bar changes and no
-// bookmark of an open card is created. Every close path funnels through here,
-// and `popstate` is the only place the flag is cleared, so the entry and the
-// card can never disagree about whether they are open.
+// bookmark of an open card is created. Every close path funnels through the one
+// flag below, so the entry and the card agree for every close a person can
+// perform. The one gap, stated rather than claimed away: `history.back()` is
+// asynchronous, so an `open()` that landed inside the popstate delivery window
+// would re-push and then be closed by the in-flight pop. That window is
+// sub-frame — a reviewer tried and could not reach it by hand — and closing it
+// properly needs the pop to be awaited, which is not something this hook can do
+// without a second state machine.
 import { useCallback, useEffect, useRef, useState } from "react";
 
+/**
+ * `label` is the name the press carried. NOTHING RENDERS IT TODAY: the drawer's
+ * bar reads "Player card" and the card's own header carries name, position,
+ * team and age, so repeating the name 60px above it would be furniture. The
+ * cost of that choice, stated plainly because a reviewer raised it: while the
+ * fetch is in flight, and if it fails, the sheet does not say WHO it is about.
+ * Putting the name on the bar is a one-line change here and in
+ * PlayerCardDrawer, and it is a design call for David rather than a review fix.
+ */
 export type SelectedPlayer = { sleeperId: string; label: string };
 
 export type PlayerCardState = {

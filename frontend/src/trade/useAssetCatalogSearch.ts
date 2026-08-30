@@ -13,7 +13,10 @@ import type { CatalogEntry } from "./tradeState";
 // currently in the box. One in-flight request at a time — deliberately no
 // caching, no retry.
 const DEBOUNCE_MS = 200;
-const MIN_QUERY_LENGTH = 3;
+// Exported so a caller can SAY the rule rather than leave a short query looking
+// like a search that found nothing (DG-114: the palette is the phone's only
+// player finder, and silence there reads as absence).
+export const MIN_QUERY_LENGTH = 3;
 
 // The server sorts matches by xVAR descending and cuts the list here, so a
 // broad query silently returns a top-N. We send the cap explicitly rather than

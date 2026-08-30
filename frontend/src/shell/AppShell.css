@@ -12,9 +12,21 @@
 .dg-shell {
   /* The phone tab bar's height, named once because two rules depend on it: the
      bar's own minimum, and the bottom padding the main column needs so its last
-     row is not sitting underneath the bar. 52px touch target + 4px above and
-     below. */
-  --dg-shell-tabbar: 3.75rem;
+     row is not sitting underneath the bar.
+     61px = 1px top border + 4px padding + a 52px touch target + 4px padding.
+
+     IT IS THE BORDER-BOX HEIGHT, and the bar is declared `box-sizing:
+     border-box` below so the number is the whole bar rather than its content.
+     The first cut named 60px and left the bar content-box, so it RENDERED
+     60+4+4+1 = 69px while main reserved 60 — measured in Chromium at 320/360/
+     390/430/600/768, identical every time, and the last 9px of every surface
+     sat under an opaque bar. On the front page that was the whole of "Report
+     built Aug 30, 2026, 9:00 AM EDT." The unit check could not see it: it
+     asserted that `padding-block-end` EXISTS, which was true while the product
+     did the wrong thing — the same failure the 52px row rule already taught
+     this file once. Both rules now read this one token, and the token is the
+     measured total. */
+  --dg-shell-tabbar: 3.8125rem;
 
   display: grid;
   grid-template-columns: 14rem minmax(0, 1fr);
@@ -290,6 +302,10 @@
     flex-direction: row;
     align-items: stretch;
     gap: 0;
+    /* There is no global border-box reset in this codebase, so say it here:
+       without it the padding and the border are ADDED to the minimum and the
+       bar renders taller than the number main reserves for it. */
+    box-sizing: border-box;
     min-block-size: var(--dg-shell-tabbar);
     padding: var(--dg-space-1);
     background: var(--dg-bg);
@@ -315,7 +331,10 @@
   .dg-shell__main {
     padding: var(--dg-space-3);
     /* The tab bar is fixed, so it is out of flow and does not push anything.
-       Without this the last row of every surface sits underneath it. */
+       Without this the last row of every surface sits underneath it — and with
+       a token that is smaller than the bar it renders, part of it still does.
+       Same token as the bar's own border-box height, which is the only way the
+       two cannot disagree. */
     padding-block-end: var(--dg-shell-tabbar);
   }
 

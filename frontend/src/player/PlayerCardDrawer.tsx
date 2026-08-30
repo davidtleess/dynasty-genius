@@ -44,6 +44,12 @@ export function PlayerCardDrawer({
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
+        // This listener is on `document`, so it is the LAST thing a keydown
+        // reaches. A layer above the card (the ⌘K palette can open over it)
+        // stops the event before it gets here — CommandPalette's Escape branch
+        // calls stopPropagation for exactly that reason — so one press closes
+        // one layer. stopPropagation here is for anything listening beyond
+        // document, and cannot un-run a handler that already fired.
         event.stopPropagation();
         onClose();
         return;
@@ -51,6 +57,12 @@ export function PlayerCardDrawer({
       // A modal that lets Tab walk out behind its own scrim is a modal in
       // appearance only: the reader keeps tabbing and lands on controls they
       // cannot see and cannot reach with a mouse.
+      //
+      // KNOWN LIMIT, measured: while the palette is open OVER the card, focus
+      // is in the palette's input — outside this panel — and forward Tab is not
+      // caught by the branches below, so it walks out of both layers. Holding
+      // focus here in that state would fight the palette for it. A real layer
+      // stack is the fix and is not this ticket's.
       if (event.key !== "Tab") {
         return;
       }
@@ -79,13 +91,13 @@ export function PlayerCardDrawer({
 
   return (
     <div className="dg-player-drawer__layer">
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: the scrim is a
-          MOUSE convenience — a second, redundant path to a close button that
-          is already in the tab order and already bound to Escape. Giving it a
-          role would put a duplicate "close" stop in front of every keyboard
-          reader for no capability they do not already have. */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: same reason — the
-          keyboard path is Escape and the close button, not this element. */}
+      {/* The scrim is a MOUSE convenience — a second, redundant path to a close
+          button that is already in the tab order and already bound to Escape.
+          It carries no role and no key handler on purpose: giving it one would
+          put a duplicate "close" stop in front of every keyboard reader for no
+          capability they do not already have. (Two biome-ignore comments stood
+          here for rules that never fired on it — `biome check` reported them as
+          `suppressions/unused`, so they were suppressing nothing.) */}
       <div className="dg-player-drawer__scrim" aria-hidden="true" onClick={onClose} />
       <aside
         ref={panelRef}

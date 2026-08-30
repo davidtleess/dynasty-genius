@@ -39,7 +39,11 @@ export const DESTINATIONS: readonly Destination[] = [
   {
     // Spec §4.1: one roster place. The cut list is a different ORDER of the
     // same roster, not a second product, so it is a view here rather than its
-    // own rail item. (The two views still read two different producers —
+    // own rail item. "Cut list" is the spec's own label, and the surface it
+    // opens says in its own words what the order actually is — legality
+    // problems first, then scored players lowest-first, then the ones we cannot
+    // score — which is NOT a straight most-expendable-first sort, and the chip
+    // does not claim it is. (The two views still read two different producers —
     // /api/roster/audit and /api/roster/capacity — and each keeps its own
     // freshness and its own empty states. Merging them into literally one
     // table is a data-surface job, and this ticket does not claim it.)
@@ -77,8 +81,3 @@ export function destinationForSurface(surface: Surface): Destination | null {
     ) ?? null
   );
 }
-
-/** Every surface that has a rail item — used to keep the palette in step. */
-export const NAVIGABLE_SURFACES: readonly Surface[] = DESTINATIONS.flatMap(
-  (destination) => destination.views.map((view) => view.surface),
-);

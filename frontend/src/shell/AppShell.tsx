@@ -15,7 +15,10 @@ import { AssetSearch } from "../trade/AssetSearch";
 import { TradeLab } from "../trade/TradeLab";
 import { TradePartners } from "../trade/TradePartners";
 import type { CatalogEntry } from "../trade/tradeState";
-import { useAssetCatalogSearch } from "../trade/useAssetCatalogSearch";
+import {
+  MIN_QUERY_LENGTH,
+  useAssetCatalogSearch,
+} from "../trade/useAssetCatalogSearch";
 import { TrustConsole } from "../trust/TrustConsole";
 import { DailyWhatChanged } from "../what-changed/DailyWhatChanged";
 import "./AppShell.css";
@@ -43,6 +46,22 @@ function readSleeperId(entry: CatalogEntry): string | null {
 function isOpenablePlayer(entry: CatalogEntry): boolean {
   return entry.kind === "player" && readSleeperId(entry) !== null;
 }
+
+// The two facts the player finder must state about its own SCOPE, hoisted to
+// module constants so the rail's box and the command palette say them in the
+// same words and cannot drift apart.
+//
+// DG-114 REVIEW FIX: at 390 the rail's box is display:none and the palette is
+// the only finder on screen, so a scoping sentence that lives on the box alone
+// is a sentence David never sees on his phone — and a silent empty list reads
+// as "we do not track him", which is false for every unrostered player the
+// product names elsewhere (League Pulse prints them).
+const NO_ROSTERED_MATCH =
+  "No player on a roster in your league matches that. This box finds rostered players.";
+const ONLY_PICKS_MATCH =
+  "Only future picks match that. Picks are handled in Trade Lab.";
+const PLAYER_LIST_UNREADABLE =
+  "We could not read the player list, so no players are shown here. Surfaces still work.";
 
 const PARKED_SURFACE_NAMES = [
   "Rookie Board",
@@ -133,6 +152,30 @@ export function AppShell() {
       };
     });
 
+  // What to say when the palette's list is EMPTY. Each branch states a fact we
+  // actually hold: `status` separates a failed read from an answered one,
+  // `results` is what the catalog said, and the list is only empty when no
+  // surface and no openable player matched. Nothing here claims "no such
+  // player" while the answer is still in flight.
+  const paletteEmptyNotice = ((): string | undefined => {
+    // The read failed: `notice` already says so above the list, and saying it
+    // twice on one screen is furniture.
+    if (palettePlayers.status === "unavailable") {
+      return undefined;
+    }
+    const typed = paletteQuery.trim();
+    if (typed.length > 0 && typed.length < MIN_QUERY_LENGTH) {
+      return `Type at least ${MIN_QUERY_LENGTH} letters to search players.`;
+    }
+    if (palettePlayers.status !== "ready") {
+      return undefined;
+    }
+    // The catalog matched rows and the openable-player filter removed every one
+    // of them — a different fact from "nothing matched", and the same sentence
+    // the rail's box has been giving that case since DG-110.
+    return palettePlayers.results.length > 0 ? ONLY_PICKS_MATCH : NO_ROSTERED_MATCH;
+  })();
+
   return (
     <PlayerSelectionProvider value={selectPlayerById}>
       <div className="dg-shell">
@@ -152,8 +195,8 @@ export function AppShell() {
               // track matches that" over it was false for every unrostered
               // player the product names elsewhere (League Pulse), and for
               // every pick the filter drops.
-              emptyNotice="No player on a roster in your league matches that. This box finds rostered players."
-              filteredNotice="Only future picks match that. Picks are handled in Trade Lab."
+              emptyNotice={NO_ROSTERED_MATCH}
+              filteredNotice={ONLY_PICKS_MATCH}
             />
           </search>
           {/* ONE nav element for both breakpoints: at 390 CSS lays these five
@@ -260,10 +303,11 @@ export function AppShell() {
           // Same rule the search box follows: a failed read says it failed
           // rather than rendering a list with no players in it.
           notice={
-            palettePlayers.status === "unavailable"
-              ? "We could not read the player list, so no players are shown here. Surfaces still work."
-              : undefined
+            palettePlayers.status === "unavailable" ? PLAYER_LIST_UNREADABLE : undefined
           }
+          // The scope of what was searched, said out loud when the list comes
+          // back empty — see paletteEmptyNotice above.
+          emptyNotice={paletteEmptyNotice}
           open={paletteOpen}
           onOpenChange={setPaletteOpen}
           onQueryChange={setPaletteQuery}
