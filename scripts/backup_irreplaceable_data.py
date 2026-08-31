@@ -190,6 +190,79 @@ def _stage_stable_file(
     raise BackupError(f"unstable_file:{source.name}")
 
 
+_STAGING_RUN_ID_FORMAT = "%Y%m%dT%H%M%SZ"
+# 48h: a real run takes ~36 minutes, so nothing live can be this old, and a
+# concurrent run is protected by an enormous margin rather than a tight one.
+_STAGING_MAX_AGE_HOURS = 48.0
+
+
+def _dir_bytes(path: Path) -> int:
+    total = 0
+    for child in path.rglob("*"):
+        try:
+            if child.is_file() and not child.is_symlink():
+                total += child.stat().st_size
+        except OSError:
+            continue
+    return total
+
+
+def sweep_stale_staging(
+    staging_root: Path,
+    *,
+    current_run_id: str,
+    now: datetime,
+    max_age_hours: float = _STAGING_MAX_AGE_HOURS,
+) -> list[dict[str, Any]]:
+    """Reclaim staging scratch from runs that died before their own cleanup.
+
+    ``run_backup`` rmtree's its OWN staging directory on the way out and nothing has
+    ever swept the root, so a run killed mid-flight leaks its scratch permanently and
+    no check notices. Measured 2026-08-31: 4.3GB across two directories, from runs that
+    died 2026-08-01 (1.9G) and 2026-08-12 (2.4G). This module's own header records the
+    08-01 death — the event was documented, the disk it cost was not.
+
+    Three refusals, each deliberate:
+      - never the CURRENT run: a sweep that can delete the directory it is about to
+        fill is worse than the leak it fixes;
+      - never a directory younger than ``max_age_hours``, so a concurrent run is safe
+        without needing to detect one;
+      - never a name that is not a run id — something else put it there, and guessing
+        is how a sweep becomes a defect.
+
+    Never raises. This runs at the top of a backup, and a bookkeeping failure must not
+    cancel one — the same rule this module already states for its marker write.
+    """
+    reclaimed: list[dict[str, Any]] = []
+    try:
+        entries = sorted(staging_root.iterdir())
+    except OSError:
+        return reclaimed
+
+    for entry in entries:
+        try:
+            if entry.name == current_run_id:
+                continue
+            if entry.is_symlink() or not entry.is_dir():
+                continue
+            try:
+                started_at = datetime.strptime(
+                    entry.name, _STAGING_RUN_ID_FORMAT
+                ).replace(tzinfo=timezone.utc)
+            except ValueError:
+                continue
+            if (now - started_at).total_seconds() < max_age_hours * 3600.0:
+                continue
+            size = _dir_bytes(entry)
+            shutil.rmtree(entry)
+            reclaimed.append({"run_id": entry.name, "bytes": size})
+        except Exception:
+            # One undeletable directory must not stop the others, and must not
+            # stop the backup.
+            continue
+    return reclaimed
+
+
 def run_backup(
     *,
     repo_root: Path,
@@ -207,6 +280,18 @@ def run_backup(
     started = now_utc()
     run_id = started.strftime("%Y%m%dT%H%M%SZ")
     run_staging = staging_root / run_id
+    # Before any work that can die, and never fatal — see sweep_stale_staging.
+    staging_reclaimed = sweep_stale_staging(
+        staging_root, current_run_id=run_id, now=started
+    )
+    if staging_reclaimed:
+        freed = sum(item["bytes"] for item in staging_reclaimed)
+        print(
+            f"reclaimed {len(staging_reclaimed)} orphaned staging dir(s), "
+            f"{freed} bytes: "
+            + ", ".join(item["run_id"] for item in staging_reclaimed),
+            flush=True,
+        )
     run_prefix = f"{bucket_uri}/dynasty-genius/runs/{run_id}"
     inventory: list[dict[str, Any]] = []
     failures: list[str] = []
@@ -442,7 +527,14 @@ def run_backup(
         # that gate exists to withhold. Reset it with the rest of the verdict.
         marker["run_prefix"] = None
 
-    return {**marker, "exit_code": 0 if status == "completed" else 1}
+    return {
+        **marker,
+        "exit_code": 0 if status == "completed" else 1,
+        # Deliberately NOT added to `marker`: that file is backup_status.v1 and has
+        # health-layer consumers. Housekeeping is reported to the caller and the log,
+        # not smuggled into a versioned schema.
+        "staging_reclaimed": staging_reclaimed,
+    }
 
 
 # ── Real runners (bound only by main(); tests inject fakes) ───────────────────
