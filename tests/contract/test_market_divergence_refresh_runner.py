@@ -627,3 +627,52 @@ def test_status_marker_absent_or_too_old_is_degraded(tmp_path: Path) -> None:
     )
     assert ok["status"] == "ok"
     assert ok["decision_supported"] is False
+
+
+# ── --preflight: resolve paths WITHOUT running (DG follow-up, 2026-08-31) ──────
+# run_pvo_refresh, run_feature_refresh and run_what_changed_report all carry
+# --preflight. This runner was the only one of the four without it, and it has
+# FIVE publish-defaulting paths, so there was no way to see where a run would
+# write except by letting it write. That is how an operator redirects the flags
+# they can see, misses the one that matters, and publishes live believing they
+# sandboxed -- which happened on run_pvo_refresh on 2026-08-31.
+def _load_md_cli():
+    return importlib.import_module("scripts.run_market_divergence_refresh")
+
+
+def test_preflight_prints_resolved_paths_and_writes_nothing(tmp_path, monkeypatch, capsys):
+    cli = _load_md_cli()
+
+    def fail_refresh(*_args, **_kwargs):
+        raise AssertionError("--preflight must not run the refresh")
+
+    monkeypatch.setattr(cli, "run_market_divergence_refresh", fail_refresh)
+
+    latest = tmp_path / "latest.json"
+    marker = tmp_path / "marker.json"
+    report = tmp_path / "report.json"
+
+    rc = cli.main(
+        [
+            "--latest-path", str(latest),
+            "--marker-path", str(marker),
+            "--report-path", str(report),
+            "--preflight",
+        ]
+    )
+
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["preflight"] is True
+    assert out["latest_path"] == str(latest)
+    assert out["marker_path"] == str(marker)
+    assert out["report_path"] == str(report)
+    # The paths NOT overridden must show their production defaults, so an
+    # operator can see what they forgot to redirect.
+    assert out["coverage_latest_path"] == cli.DEFAULT_COVERAGE_LATEST_PATH
+    assert out["history_db_path"] == cli.DEFAULT_HISTORY_DB_PATH
+    assert out["pvo_runtime_dir"] == cli.DEFAULT_PVO_RUNTIME_DIR
+    # and nothing may be created
+    assert not latest.exists()
+    assert not marker.exists()
+    assert not report.exists()

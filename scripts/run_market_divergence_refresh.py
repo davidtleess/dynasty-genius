@@ -709,11 +709,47 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         help="Permit a seed-PVO refresh when no verified runtime is present. The output "
         "is explicitly NOT freshness-claimed (pvo_source_kind=seed).",
     )
+    parser.add_argument(
+        "--preflight",
+        action="store_true",
+        help="Print resolved config and exit; performs no refresh, capture, or write.",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+
+    # This runner carries FIVE publish-defaulting paths. Without a way to resolve
+    # them WITHOUT running, the only way to learn where a run writes is to let it
+    # write — which is how an operator redirects the flags they can see, misses
+    # the one that matters, and publishes live believing they sandboxed. Printing
+    # every resolved path, overridden or not, is what makes the forgotten one
+    # visible. Mirrors run_pvo_refresh / run_feature_refresh / run_what_changed_report.
+    if args.preflight:
+        print(
+            json.dumps(
+                {
+                    "preflight": True,
+                    "latest_path": args.latest_path,
+                    "coverage_latest_path": args.coverage_latest_path,
+                    "history_db_path": args.history_db_path,
+                    "marker_path": args.marker_path,
+                    "report_path": args.report_path,
+                    "market_cache_path": args.market_cache_path,
+                    "fc_forward_capture_db_path": args.fc_forward_capture_db_path,
+                    "fc_source": args.fc_source,
+                    "fc_settings_hash": args.fc_settings_hash,
+                    "pvo_seed_path": args.pvo_seed_path,
+                    "pvo_coverage_seed_path": args.pvo_coverage_seed_path,
+                    "pvo_runtime_dir": args.pvo_runtime_dir,
+                    "allow_seed": args.allow_seed,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return 0
     report = run_market_divergence_refresh(
         latest_path=Path(args.latest_path),
         coverage_latest_path=Path(args.coverage_latest_path),
