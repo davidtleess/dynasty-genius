@@ -16,15 +16,48 @@
 // are exempt, and the exemption is a DECLARATION a component has to make, never a
 // silent default:
 //
-//   [data-receipt]    the "where this comes from" layer. Spec §1 permits the raw
-//                     key here and only here — a receipt that renamed the artifact
-//                     it cites would stop being a receipt.
+//   [data-identifier] an ADDRESS: a file path, an artifact or run id, a hash, a
+//                     git sha, a schema version, a lookup key. Rewording an
+//                     address destroys the thing it names, so these bytes are
+//                     reproduced exactly and the rule stands aside for them.
 //   [data-user-text]  text the league's own people wrote (team names, player
 //                     names). "MDEF" is a manager's team name, not our vocabulary,
 //                     and a dictionary must not rewrite it.
+//   [data-quoted]     a document this product CITES, reproduced word for word —
+//                     the model card's own text, the backtest artifact's own
+//                     column vocabulary. Paraphrasing a quotation misquotes its
+//                     source. The narrowest of the three, and it carries a
+//                     condition: the source must be NAMED on screen beside it,
+//                     so a reader knows whose words they are reading. Two uses
+//                     in the product (ModelCardEssentials, FoldTable) and a
+//                     third needs that argument in hand.
 //
 // `title` attributes are the product's existing hover-receipt convention and are
 // likewise receipt layer (see copy.ts `receiptDetail`), so they are not audited.
+//
+// DG-120 — WHY `[data-receipt]` IS NO LONGER ONE OF THEM
+// It used to be, and the exemption was doing double duty. A receipt naming
+// `run_pvo_refresh.py` is real provenance a person may want to copy; that was
+// the argument, and it is still right. But "this subtree is a receipt" and
+// "these bytes are an address" are different claims, and skipping the whole
+// subtree granted the second on the strength of the first. Unreadable STATUS
+// MESSAGES rode in underneath it. Measured on the live product, 2026-08-30, one
+// click behind the header pill "Attention — details inside":
+//
+//     roster_capacity: live_precondition_not_ok:capture_health_ok=degraded
+//     2 of 3 stores degraded — model_forward_capture: missing 1 of 67 days (…)
+//     adapter_status:ok        mtime_fresh        core_substrate
+//
+// None of those is an address. Nothing in the product is reachable by
+// `live_precondition_not_ok`; it is a sentence someone declined to write, and a
+// rule built to catch exactly that shape was blind to it by construction.
+//
+// So the split is now the one that was always meant: IDENTIFIERS stay raw and
+// copyable, MESSAGES go through the dictionary like every other sentence. A
+// component can no longer buy silence by calling itself a receipt — it has to
+// point at the exact bytes that are an address. `[data-receipt]` remains as the
+// LAYER marker (it is what the health card's provenance rows are, and what
+// styling and the browser gate read), and it grants nothing.
 
 /** A pipeline key: word characters joined by underscores, in any case. */
 const RAW_KEY_PATTERN = /[A-Za-z0-9]+(?:_[A-Za-z0-9]+)+/g;
@@ -68,9 +101,9 @@ const ALLOWED_SHOUTS: ReadonlySet<string> = new Set<string>([
  *
  * Matched case-insensitively and only as a whole word, so a player named
  * "Xavier" and a receipt citing `asset_xvar` (already caught as a raw key) are
- * unaffected. The receipt layer keeps its exemption: `[data-receipt]` may cite
- * the artifact's own vocabulary, because a receipt that renamed what it cites
- * would stop being a receipt.
+ * unaffected. A declared identifier keeps its exemption: `[data-identifier]`
+ * may cite the artifact's own vocabulary, because an address that was renamed
+ * would stop being an address.
  */
 const JARGON_TERMS: readonly { term: string; use: string }[] = [
   // copy.ts VALUE_OVER_REPLACEMENT is the one name.
@@ -95,7 +128,14 @@ export function jargonReplacement(token: string): string | undefined {
   )?.use;
 }
 
-const EXEMPT_SUBTREE_SELECTOR = "[data-receipt],[data-user-text]";
+/**
+ * The three declarations that stand the rule down, and nothing else. Kept as
+ * one exported constant so the browser gate (e2e/visual-smoke.spec.ts) reads
+ * the same list rather than restating it — the two audits cannot drift about
+ * what is exempt.
+ */
+export const EXEMPT_SUBTREE_SELECTOR =
+  "[data-identifier],[data-user-text],[data-quoted]";
 const SKIPPED_TAGS: ReadonlySet<string> = new Set(["SCRIPT", "STYLE", "TEMPLATE"]);
 const AUDITED_ATTRIBUTES = ["aria-label", "alt", "placeholder"] as const;
 

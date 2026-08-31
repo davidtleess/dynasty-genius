@@ -139,6 +139,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 import { parseLiveFixture } from "../src/lib/__fixtures__/liveFixtureSchemas";
 import {
+  EXEMPT_SUBTREE_SELECTOR,
   findRawCopy,
   formatRawCopyFindings,
   jargonReplacement,
@@ -376,6 +377,45 @@ const GATED_SURFACES: GatedSurface[] = [
         page.getByRole("button", { name: /provenance for/i }).first(),
       artifact: "daily-open-primitive-focus-capture",
     },
+  },
+  {
+    // DG-120 — THE RECEIPT LAYER, OPENED.
+    //
+    // Every state above arrives with the receipts SHUT, and `checkVisibility()`
+    // is real layout, so the render rule in this file had never once read them.
+    // Two are one press from the first viewport and both were full of pipeline
+    // strings on 2026-08-30: the header pill "Attention — details inside"
+    // (`roster_capacity: live_precondition_not_ok:capture_health_ok=degraded`)
+    // and the front page's own "Details" sheet (`Feed status: degraded · market
+    // ok · model model_multi_vintage_ambiguous`). A gate that stops at the
+    // closed state is a gate over the half of the product nobody was worried
+    // about. This state presses all three disclosures and audits what appears.
+    surface: "Daily What-Changed",
+    name: "Today · every receipt open",
+    artifacts: "daily-receipts-open",
+    routes: {
+      "/api/league/what-changed": LIVE.whatChanged,
+      "/api/system/capture-health": LIVE.captureHealth,
+      "/api/system/model-provenance": LIVE.modelProvenance,
+    },
+    drive: async (page) => {
+      // The shell pill: the first affordance in the top bar.
+      const pill = page.locator(".dg-status-drawer__pill");
+      await pill.waitFor({ state: "visible", timeout: 15_000 });
+      await pill.click();
+      // Inside it, the report-freshness list is a shut <details> of its own.
+      const reports = page.locator(".dg-syshealth__details-summary");
+      await reports.waitFor({ state: "visible", timeout: 15_000 });
+      await reports.click();
+      // And the front page's own health sheet.
+      const sheet = page.getByTestId("wc-health-sheet-toggle");
+      await sheet.waitFor({ state: "visible", timeout: 15_000 });
+      await sheet.click();
+      await page.getByTestId("wc-health-sheet").waitFor({ state: "visible" });
+    },
+    ready: (page) => page.getByTestId("wc-provenance"),
+    content: { selector: "main section", min: 4 },
+    minMainText: 1200,
   },
   {
     surface: "Roster Audit",
@@ -678,12 +718,15 @@ async function expectContentPresent(page: Page, spec: GatedSurface): Promise<voi
  * what sees it, and this is where it is enforced on the shipped bundle.
  */
 async function expectNoRawCopy(page: Page, label: string): Promise<void> {
-  const strings = await page.evaluate(() => {
+  const strings = await page.evaluate((exempt: string) => {
     const SKIPPED_TAGS = new Set(["SCRIPT", "STYLE", "TEMPLATE"]);
-    // Same exemptions the module declares: the receipt layer may cite an
-    // artifact by its real name, and the league's own people may name their own
-    // teams. Both are DECLARATIONS in the markup, never silent defaults.
-    const EXEMPT = "[data-receipt],[data-user-text]";
+    // DG-120: the exemption list is now IMPORTED from renderRule.ts rather than
+    // restated here. It used to be a copy of the string, and a copy is a place
+    // for the two audits to drift about what is exempt — which is exactly the
+    // class of blindness this ticket exists to close. It arrives as a `const`
+    // argument to page.evaluate because the browser context cannot see the
+    // module scope.
+    const EXEMPT = exempt;
     const AUDITED_ATTRIBUTES = ["aria-label", "alt", "placeholder"];
     const collected: { text: string; where: string }[] = [];
 
@@ -725,7 +768,7 @@ async function expectNoRawCopy(page: Page, label: string): Promise<void> {
 
     visit(document.body);
     return collected;
-  });
+  }, EXEMPT_SUBTREE_SELECTOR);
 
   expect(
     strings.length,

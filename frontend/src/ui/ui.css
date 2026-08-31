@@ -461,3 +461,40 @@
 .dg-ui-spread[data-lane="market"] {
   --dg-spread-accent: var(--dg-market);
 }
+
+/* DG-120 — the receipt primitive. A human label, the sentence, and the address
+   beneath it. The address is mono and selectable because copying it is the
+   whole reason it is on screen; the label and sentence are the reading text.
+   Neutral chrome throughout: a receipt describes provenance and never carries
+   a verdict hue. */
+.dg-receipt__row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-1);
+  padding-block: var(--dg-space-1);
+}
+
+.dg-receipt__label {
+  font-size: var(--dg-text-sm);
+  font-weight: var(--dg-weight-semibold);
+  line-height: var(--dg-leading-snug);
+  color: var(--dg-chrome);
+}
+
+.dg-receipt__message {
+  font-size: var(--dg-text-sm);
+  line-height: var(--dg-leading-normal);
+  color: var(--dg-text);
+}
+
+.dg-receipt__id {
+  font-family: var(--dg-font-mono);
+  font-size: var(--dg-text-sm);
+  line-height: var(--dg-leading-snug);
+  color: var(--dg-text-muted);
+  /* An address is copied, so it must be able to break anywhere: a 62-character
+     artifact path in a 358px phone column is what took this layer sideways
+     before it was styled at all. */
+  overflow-wrap: anywhere;
+  user-select: all;
+}

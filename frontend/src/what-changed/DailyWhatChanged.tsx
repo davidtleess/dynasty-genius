@@ -14,7 +14,12 @@ import {
   zModelProvenanceResponse,
   zWhatChangedResponse,
 } from "../lib/api/zod.gen";
-import { describeToken, fieldLabel, formatCaptureTimestamp } from "../lib/copy";
+import {
+  describeToken,
+  fieldLabel,
+  formatCaptureTimestamp,
+  lookupToken,
+} from "../lib/copy";
 import { useEndpointResource } from "../lib/useEndpointResource";
 import {
   PlayerNameButton,
@@ -24,6 +29,7 @@ import {
 } from "../player/playerSelection";
 import { MetricCell } from "../ui/MetricCell";
 import { PlayerIdentity } from "../ui/PlayerIdentity";
+import { ReceiptRow } from "../ui/Receipt";
 import { ReceiptTrigger } from "../ui/ReceiptTrigger";
 import { SeriesSlot } from "../ui/SeriesSlot";
 import { type FeedHealth, feedHealth, freshnessLine } from "./feedHealth";
@@ -762,8 +768,17 @@ function HealthSheet({
           conditional, which meant the sheet lost the source entirely on any
           morning the window carried no dates. */}
       {market.market_source && (
+        // DG-120: the source key is an ADDRESS — it names which feed produced
+        // these prices — so it stays byte-exact and is now DECLARED as one,
+        // with the dictionary's sentence for it above. Before, the bare key was
+        // the whole line and the exemption came from the paragraph calling
+        // itself a receipt.
         <p className="dg-wc__sheet-line" data-receipt>
-          Market source: {market.market_source}.
+          <ReceiptRow
+            label="Market source"
+            message={[{ kind: "prose", text: sheetReason(market.market_source) }]}
+            identifier={market.market_source}
+          />
         </p>
       )}
       {modelWindow?.from_date && modelWindow?.to_date && (
@@ -778,11 +793,30 @@ function HealthSheet({
             : "Projection basis consistent across this window."}
         </p>
       )}
+      {/* DG-120. This line used to read
+              Feed status: degraded · market ok · model model_multi_vintage_ambiguous
+              · producer reasons, verbatim: model_multi_vintage_ambiguous
+          on the front page, one press behind "Details", and no test had ever
+          opened the sheet to see it. Every string in it is a MESSAGE — a status,
+          a reason — and none of them is an address: nothing in the product is
+          reachable by `model_multi_vintage_ambiguous`. So they go through the
+          dictionary, and the word "verbatim" goes with them, because it would
+          no longer be true. Nothing is lost: each token's sentence carries the
+          same fact the token did, and a reason the dictionary has no words for
+          still prints its own bytes rather than a paraphrase nobody wrote.
+
+          "producer reasons" became "from the producers" in the same pass, and
+          that is a correction, not a rewording. `producerReasons` collects
+          `staleness_caveat.basis` alongside the aborted reasons (see it below),
+          and a basis is a MEASUREMENT — "age measured from capture to report" —
+          not a reason for anything. It is written on a healthy morning too. The
+          old label called every one of them a reason and two of them never
+          were; you could only tell once they were in English. */}
       <p className="dg-wc__sheet-line" data-receipt data-testid="wc-provenance">
-        Feed status: {data.overall_status} · market {market.status} · model{" "}
-        {model.status}
+        Feed status: {sheetReason(data.overall_status)} · market{" "}
+        {sheetReason(market.status)} · model {sheetReason(model.status)}
         {rawReasons.length > 0
-          ? ` · producer reasons, verbatim: ${rawReasons.join(", ")}`
+          ? ` · from the producers: ${rawReasons.map(sheetReason).join(" ")}`
           : ""}
       </p>
     </div>
@@ -940,6 +974,21 @@ function WhereYouStandBlock({
 // uses to report `insufficient_history` — a state that carries NO
 // `aborted_reason` — so the one place the report recorded it verbatim did not
 // record it at all. Both lanes are read the same way now.
+/**
+ * DG-120 — one producer token, said in the health sheet.
+ *
+ * Mapped tokens become their sentence. An UNMAPPED one returns its own bytes,
+ * never `humanize`'s paraphrase: "Model multi vintage ambiguous" reads as
+ * broken English and can be mistaken for a claim (the DG-043 bug), and inside a
+ * receipt the producer's real string is the honest thing to show. The dictionary
+ * warns on the miss and `renderRule` fails on the raw key, so the gap is loud
+ * and David keeps seeing the true token until it is written.
+ */
+function sheetReason(token: string): string {
+  const note = lookupToken(token);
+  return note.mapped ? note.text : note.raw;
+}
+
 function producerReasons(data: WhatChangedResponse): string[] {
   const market = data.daily_diff.market;
   const model = data.daily_diff.model;

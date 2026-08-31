@@ -66,7 +66,13 @@ export function FoldTable({ folds }: { folds: TrustConsoleViewModel["folds"] }) 
           aria-label="Per-fold backtest results"
           data-receipt
         >
-          <thead>
+          {/* DG-120: the exemption narrows to the HEADER ROW, which is the part
+              that quotes the backtest artifact's own vocabulary — "RMSE" is the
+              statistic's real name and the reason a number here can be checked
+              against `eval/backtest_artifact.py`. The body cells are numbers and
+              the CI note is our sentence; both are audited like any other copy,
+              where before the whole table was waved through. */}
+          <thead data-quoted>
             <tr>
               {COLUMNS.map((col) => (
                 <th key={col} scope="col">

@@ -4,12 +4,16 @@ import type { z } from "zod";
 import { zSystemHealthErrorResponse, zSystemHealthResponse } from "../lib/api/zod.gen";
 import {
   artifactName,
+  disclosureSentence,
+  reportBasisMessage,
   reportCountLabel,
   reportStateLabel,
+  subsystemBasisMessage,
   subsystemName,
   subsystemStateLabel,
   tierName,
 } from "../lib/copy";
+import { ReceiptRow } from "../ui/Receipt";
 import "./SystemHealthCard.css";
 
 // The validated shape IS the generated Zod schema's output (validated at the SDK
@@ -272,13 +276,7 @@ function SubsystemList({ subsystems }: { subsystems: SubsystemRow[] }) {
               {subsystemStateLabel(row.status)}
             </span>
           </span>
-          {/* The disclosed receipt: the guard's own id and the basis string it
-              wrote. Both stay verbatim — a receipt that renamed what it cites
-              would stop being a receipt. */}
-          <span className="dg-syshealth__receipt dg-syshealth__meta" data-receipt>
-            <span>{row.subsystem_id}</span>
-            <span>{row.basis}</span>
-          </span>
+          <SubsystemReceipt row={row} />
         </li>
       ))}
       {missing.map((id) => (
@@ -294,6 +292,39 @@ function SubsystemList({ subsystems }: { subsystems: SubsystemRow[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+/**
+ * DG-120 — one guard's receipt.
+ *
+ * Two of the three guards write a COMPOUND basis: a summary followed by one
+ * entry per degraded store (system_health.py:139-141) or per not-ready surface
+ * (:66-69). Rendered as one string, five surfaces each repeating
+ * `live_precondition_not_ok:capture_health_ok=degraded` was 340 characters of
+ * unbroken machinery, and the fact inside it — every one of them is waiting on
+ * the SAME capture-health check — was invisible. Broken into rows, each entry
+ * keeps its own name and its own id, and the repetition reads as what it is.
+ */
+function SubsystemReceipt({ row }: { row: SubsystemRow }) {
+  const { summary, lines } = subsystemBasisMessage(row.basis);
+  return (
+    <span className="dg-syshealth__receipt dg-syshealth__meta" data-receipt>
+      <ReceiptRow label="Why it reads this way" message={summary} />
+      {lines.length > 0 && (
+        <span className="dg-syshealth__receipt-lines">
+          {lines.map((line) => (
+            <ReceiptRow
+              key={line.identifier}
+              label={line.label}
+              message={line.message}
+              identifier={line.identifier}
+            />
+          ))}
+        </span>
+      )}
+      <ReceiptRow label="Check id" identifier={row.subsystem_id} />
+    </span>
   );
 }
 
@@ -317,18 +348,35 @@ function ReportItem({ row, now }: { row: ReportRow; now: Date }) {
         </span>
         <ReportTimestamp row={row} now={now} />
       </span>
-      {/* Disclosed receipt — the raw producer/artifact/basis provenance stays
-          visible (never truncated, never hover-only); it just no longer sits
-          inline between the manager-prose status and the next row. */}
+      {/* DG-120. Every fact this receipt carried before, it carries now — the
+          basis, the tier, the artifact id, the producer, the path, every
+          disclosure. What changed is that the four MESSAGES among them are
+          sentences and the three ADDRESSES are labelled and byte-exact. Nothing
+          was dropped: `basis` was the one string here that no test could see,
+          and it is now the row a manager actually reads. */}
       <span className="dg-syshealth__receipt dg-syshealth__meta" data-receipt>
-        <span>{row.artifact_id}</span>
-        <span>{row.basis}</span>
-        <span>{row.tier}</span>
-        <span>{row.producer}</span>
-        <span>{row.artifact_path}</span>
+        <ReceiptRow
+          label="Why it reads this way"
+          message={reportBasisMessage(row.basis)}
+        />
         {row.disclosures.map((disclosure) => (
-          <span key={disclosure}>{disclosure}</span>
+          <ReceiptRow
+            key={disclosure}
+            label="Also"
+            message={disclosureSentence(disclosure)}
+          />
         ))}
+        {/* The tier is a CLASSIFICATION, not an address — nothing in the
+            product is reachable by `core_substrate`, and the row already
+            carries it raw on `data-tier` for CSS and for the tests. So it is
+            said in words, and no fact leaves with the underscore. */}
+        <ReceiptRow
+          label="Data group"
+          message={[{ kind: "prose", text: tierName(row.tier) }]}
+        />
+        <ReceiptRow label="Report id" identifier={row.artifact_id} />
+        <ReceiptRow label="Written by" identifier={row.producer} />
+        <ReceiptRow label="File" identifier={row.artifact_path} />
       </span>
     </li>
   );

@@ -183,7 +183,13 @@ describe("Surface-3 shell player selection state", () => {
     // DG-109: the Sleeper id is a lookup key, not information about the
     // player — it stays on screen, labelled, in the receipt layer. DG-114
     // retired the preview it used to live on; the fact moved to the card.
-    expect(within(card).getByText("Sleeper id: 13269")).toBeTruthy();
+    // DG-120 split the line into our label and the id itself, so the id can be
+    // declared an identifier. The rendered line is byte-identical.
+    expect(
+      [...card.querySelectorAll("p")].some(
+        (node) => node.textContent === "Sleeper id: 13269",
+      ),
+    ).toBe(true);
     // DG-114: the press asked for the card, so the card is what opens. There is
     // no second button to reach it.
     expect(

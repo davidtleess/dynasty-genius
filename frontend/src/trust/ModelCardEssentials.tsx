@@ -19,16 +19,22 @@ export function ModelCardEssentials({
   // deliberately never truncated. Paraphrasing a statistic inside it (its
   // caveats name fold-to-fold RMSE) would misquote the card, which is the same
   // reason a provenance receipt keeps the artifact's real name. So the quoted
-  // body is DECLARED as receipt and labelled as a quotation, rather than sitting
-  // silently outside a rule it was always exempt from. The heading a manager
-  // reads stays plain English.
+  // body is DECLARED as a quotation, rather than sitting silently outside a rule
+  // it was always exempt from. The heading a manager reads stays plain English.
+  //
+  // DG-120: the declaration is now `data-quoted` rather than `data-receipt`,
+  // which is a narrower and more accurate claim. "This is a receipt" was doing
+  // the work of three different arguments and hid pipeline messages behind the
+  // one true one. This block earns its exemption the hard way: it is somebody
+  // else's document, reproduced word for word, with the source named in the
+  // sentence directly above it.
   return (
     <section className="dg-trust-card" aria-label="Model card essentials">
       <p className="dg-trust-lede">
         The model's own card, quoted as written — what it is for, where it should not be
         used, and how it is known to fail.
       </p>
-      <div className="dg-trust-quoted" data-receipt>
+      <div className="dg-trust-quoted" data-quoted>
         <p className="dg-trust-card__use">{card.intended_use}</p>
 
         {/* DG-118: these three were <h4> under the shell's <h1> and nothing in
