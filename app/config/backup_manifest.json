@@ -182,6 +182,11 @@
       "kind": "directory"
     },
     {
+      "path": "app/data/identity_snapshots",
+      "required": true,
+      "kind": "directory"
+    },
+    {
       "path": "app/data/playerprofiler.db",
       "required": true,
       "kind": "sqlite"
