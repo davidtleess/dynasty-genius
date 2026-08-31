@@ -613,6 +613,46 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def _sandbox_illusion(argv: list[str] | None) -> Optional[str]:
+    """Refuse the one flag combination that reads as sandboxed and publishes live.
+
+    ``--pvo-artifact-path``/``--coverage-artifact-path`` steer the CANDIDATE pair. The
+    live publish target is ``--runtime-dir``, a differently-named flag that DEFAULTS to
+    the production runtime dir. So an operator who redirects every "artifact path" flag
+    they can find -- the careful thing to do -- still publishes into
+    ``app/data/valuation_runtime``. The more cautious the operator, the more certainly
+    they clobber serving state, which is exactly backwards.
+
+    Measured 2026-08-31: a lane redirected --pvo-artifact-path, --coverage-artifact-path,
+    --report-path, --capture-db-path and --capture-report-path at scratch, believed the
+    run was inert, and wrote all three real serving artifacts. Only an mtime guard caught
+    it.
+
+    Production never passes the candidate flags at all -- both the launchd plist and
+    run_daily_chain pass only --runtime-dir, --capture-db-path and the two report paths --
+    so this can never fire on a scheduled run. It fires only for a human or agent who
+    redirected the candidate and left the publish target at its production default.
+    """
+    raw = list(sys.argv[1:] if argv is None else argv)
+
+    def given(flag: str) -> bool:
+        return any(a == flag or a.startswith(flag + "=") for a in raw)
+
+    if not (given("--pvo-artifact-path") or given("--coverage-artifact-path")):
+        return None
+    if given("--runtime-dir"):
+        return None
+    return (
+        "refusing to run: this looks like a sandboxed run and is not.\n"
+        "  You redirected the candidate artifact path(s), but --runtime-dir was not "
+        f"given, so it defaults to {DEFAULT_RUNTIME_DIR} and this run would "
+        "publish LIVE serving artifacts there.\n"
+        "  To sandbox:  --runtime-dir <your scratch dir>\n"
+        "  To inspect resolved paths without writing anything:  --preflight\n"
+        "  To publish live deliberately, pass --runtime-dir explicitly."
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
 
@@ -635,6 +675,11 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
         return 0
+
+    trap = _sandbox_illusion(argv)
+    if trap is not None:
+        print(trap, file=sys.stderr)
+        return 2
 
     capture_fn = capture_model_pvo_snapshot if args.capture_db_path else None
     # Seed-split mode is the DEFAULT: a scheduled run publishes into the gitignored runtime

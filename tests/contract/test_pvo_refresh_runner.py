@@ -570,12 +570,18 @@ def test_success_refreshes_only_two_artifacts_reports_hashes_and_never_commits(
 
     # main() should print the same report shape and return zero on status=ok.
     monkeypatch.setattr(runner, "run_pvo_refresh", lambda **_kwargs: result)
+    # --runtime-dir is passed because production always passes it (plist and
+    # run_daily_chain both do) and because the sandbox-illusion guard refuses a
+    # candidate redirect that leaves the publish target at its production default.
+    # run_pvo_refresh is stubbed above, so this exercises main()'s plumbing only.
     assert runner.main(
         [
             "--pvo-artifact-path",
             str(pvo),
             "--coverage-artifact-path",
             str(coverage),
+            "--runtime-dir",
+            str(tmp_path / "runtime"),
             "--report-path",
             str(report_path),
         ]
@@ -927,3 +933,83 @@ def test_pvo_seed_pair_is_tracked_and_runtime_dir_is_gitignored() -> None:
             check=False,
         )
         assert ignored.returncode == 0, f"{runtime_path} must be gitignored"
+
+
+def test_candidate_redirect_without_runtime_dir_refuses_instead_of_publishing_live(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    """The sandbox illusion: the flags an operator would naturally redirect steer the
+    CANDIDATE pair, while the live publish target is the differently-named --runtime-dir,
+    which defaults to production. Redirecting the former and not the latter reads as a
+    sandboxed run and is not one. Refuse it."""
+    runner = _load_runner()
+    pvo, coverage = _write_pair(tmp_path)
+
+    rc = runner.main(
+        [
+            "--pvo-artifact-path",
+            str(pvo),
+            "--coverage-artifact-path",
+            str(coverage),
+            "--report-path",
+            str(tmp_path / "report.json"),
+        ]
+    )
+
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "refusing to run" in err
+    assert runner.DEFAULT_RUNTIME_DIR in err
+    assert "--preflight" in err
+    # and it refused BEFORE doing anything
+    assert not (tmp_path / "report.json").exists()
+
+
+def test_production_argv_shape_is_never_refused(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    """Production passes --runtime-dir and the report/capture paths and NEVER the
+    candidate flags -- verified against ops/launchd/com.davidleess.dynasty-model-pvo-refresh.plist
+    and run_daily_chain.py. The guard must be incapable of firing on a scheduled run."""
+    runner = _load_runner()
+    monkeypatch.setattr(runner, "run_pvo_refresh", lambda **_kwargs: {"status": "ok"})
+
+    rc = runner.main(
+        [
+            "--runtime-dir",
+            str(tmp_path / "valuation_runtime"),
+            "--report-path",
+            str(tmp_path / "refresh.json"),
+        ]
+    )
+
+    assert rc == 0
+    assert "refusing to run" not in capsys.readouterr().err
+
+
+def test_explicit_runtime_dir_redirect_is_allowed(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    """A genuinely sandboxed run -- candidate AND publish target redirected -- proceeds."""
+    runner = _load_runner()
+    pvo, coverage = _write_pair(tmp_path)
+    monkeypatch.setattr(runner, "run_pvo_refresh", lambda **_kwargs: {"status": "ok"})
+
+    rc = runner.main(
+        [
+            "--pvo-artifact-path",
+            str(pvo),
+            "--coverage-artifact-path",
+            str(coverage),
+            "--runtime-dir",
+            str(tmp_path / "scratch_runtime"),
+        ]
+    )
+
+    assert rc == 0
+    assert "refusing to run" not in capsys.readouterr().err
