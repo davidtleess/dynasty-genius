@@ -320,7 +320,10 @@ function SubsystemReceipt({ row }: { row: SubsystemRow }) {
   const { summary, lines } = subsystemBasisMessage(row.basis);
   return (
     <span className="dg-syshealth__receipt dg-syshealth__meta" data-receipt>
-      <ReceiptRow label="Why" message={summary} />
+      {/* A "Why" with nothing under it promises a reason and delivers none, and
+          an empty `basis` is a shape the boundary accepts (zod.gen.ts:1329 is a
+          bare `z.string()`). Absence renders nothing. */}
+      {summary.length > 0 && <ReceiptRow label="Why" message={summary} />}
       {lines.length > 0 && (
         <span className="dg-syshealth__receipt-lines">
           {lines.map((line) => (

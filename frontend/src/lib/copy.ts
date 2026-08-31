@@ -1056,9 +1056,32 @@ const identifier = (raw: string): ReceiptSegment => ({ kind: "identifier", raw }
  * should be loud, and David keeps seeing the true string in the meantime.
  */
 function unwrittenMessage(message: string): ReceiptSegment[] {
+  // `zSubsystemHealth.basis` is a bare `z.string()` (zod.gen.ts:1329) where
+  // `zSurfaceReadiness.basis` is `.min(1)`, so an empty basis is a shape the
+  // boundary accepts. Absence renders nothing (spec §6 rule 6) — a "Why" label
+  // standing over an empty span promises a reason and delivers none.
+  if (message.trim() === "") return [];
   if (findRawCopy(message).length === 0) return [prose(message)];
   console.warn("Copy dictionary: no sentence for receipt message", message);
   return [prose(message)];
+}
+
+/**
+ * One TOKEN inside a receipt sentence, with the same law as `unwrittenMessage`.
+ *
+ * `describeToken` humanizes an unmapped token, and outside the receipt layer
+ * that is right: DG-109 pairs it with a `TokenNotes` paragraph that prints the
+ * raw key alongside, so nothing is lost. Inside a receipt there is no such
+ * paragraph — the sentence IS the whole rendering — so a humanized miss would
+ * replace the producer's bytes with prose nobody wrote, and `findRawCopy` would
+ * see no underscores and let it through. Three refuters caught exactly that on
+ * this ticket's first build, in the two branches below. Returning the raw token
+ * keeps the address on screen AND keeps the render rule red, which is the whole
+ * point of §9: the fallback must not be able to buy silence.
+ */
+function receiptToken(token: string): string {
+  const note = lookupToken(token);
+  return note.mapped ? note.text : note.raw;
 }
 
 /**
@@ -1192,13 +1215,16 @@ const REPORT_BASIS_PATTERNS: {
   },
   {
     // :561-562 — `producer_failure:{fact.failure_reason or 'unreported'}`. The
-    // reason is the producer's own words; it goes through the token dictionary
-    // rather than being paraphrased here.
+    // reason is arbitrary producer bytes: `app/config/report_freshness.json`
+    // declares a free-text `failure_reason_field` on six of nine artifacts, two
+    // of them core_substrate. So it goes through the dictionary if the
+    // dictionary knows it, and through UNTOUCHED if it does not — never
+    // humanized, which would delete the producer's own words from the screen.
     match: /^producer_failure:(.+)$/,
     build: (m) =>
       m[1] === "unreported"
         ? [prose("The run reported that it failed, and gave no reason.")]
-        : [prose(`The run reported that it failed: ${describeToken(m[1] as string)}`)],
+        : [prose(`The run reported that it failed: ${receiptToken(m[1] as string)}`)],
   },
   {
     // :467 — the healthy input-provenance line, with the streams named.
@@ -1312,18 +1338,45 @@ export function disclosureSentence(token: string): ReceiptSegment[] {
  * the two overrides in system_tier_readiness.py:142 and :211).
  */
 const SURFACE_BASIS_SENTENCES: Record<string, string> = {
-  // :355 — the gate components pass but the surface has not been ratified.
-  awaiting_david_ratification: "Its checks pass; it is waiting on David's sign-off.",
-  // :358 — active, but a component reported `insufficient_data`.
+  // :352-354 — no `ratified_date` in app/config/tier_readiness.json. This
+  // branch sits AHEAD of the insufficient-data one in the same else-chain, so a
+  // surface can reach it with a check that was never gradeable; the earlier
+  // wording ("Its checks pass") claimed more than the branch entails.
+  awaiting_david_ratification: "It has not been signed off by David yet.",
+  // :357-358 — active, but a component reported `insufficient_data`.
   readiness_active_with_insufficient_data:
     "Running, with too little data behind one of its checks to grade it.",
-  // :361 — every gate component passed.
+  // :360-361 — every gate component passed.
   all_readiness_checks_passed: "Every readiness check passed.",
-  // :301 — a declared component had no state recorded at all (fail-closed).
-  component_state_missing: "One of its readiness checks recorded no state at all.",
   // system_tier_readiness.py:155 — the happy path of the evidence probe.
   "declared evidence files present": "Its declared evidence files are all present.",
 };
+
+/**
+ * The two bases the producer writes for a surface that IS graded ready.
+ *
+ * `_default_tier_readiness_status` (system_health.py:63-68) filters the surface
+ * list on `surface.tier_status != "ok"` — and "ok" is NOT a member of
+ * `TierStatus` (system_tier_readiness_models.py:25-30), whose four values are
+ * diagnostic_grade_active, diagnostic_grade_active_limited,
+ * preconditions_degraded and not_graduated. The comparison is therefore a
+ * tautology and the basis names EVERY surface whenever the rollup is degraded,
+ * ready ones included. The R8 overlay (system_tier_readiness.py:196-214)
+ * downgrades ONE surface whose own producer artifact is absent, and the five
+ * surfaces declare five different artifacts — so a list of one held-back
+ * surface and four passing ones is a live shape, not a hypothetical.
+ *
+ * Reading the docstring's intent instead of the filter's behaviour is how a
+ * heading saying "5 parts of the product are not graded ready" ends up printed
+ * over four rows that read "Every readiness check passed."  These two bases are
+ * the ones set alongside a tier_status inside `_ACTIVE_STATUSES` (:357-361), so
+ * they are what lets the frontend count the held-back surfaces itself rather
+ * than trusting a filter that filters nothing.
+ */
+const READY_SURFACE_BASES: ReadonlySet<string> = new Set([
+  "all_readiness_checks_passed",
+  "readiness_active_with_insufficient_data",
+]);
 
 function surfaceBasisMessage(basis: string): ReceiptSegment[] {
   const exact = SURFACE_BASIS_SENTENCES[basis];
@@ -1364,6 +1417,38 @@ function surfaceBasisMessage(basis: string): ReceiptSegment[] {
     return [...segments, prose(".")];
   }
 
+  // system_tier_readiness_models.py:301-320 — the FOUR bases a component defect
+  // actually writes onto a SURFACE. Every one of them is `{defect}:{component}`
+  // with the component name suffixed, and none was written until now: the
+  // entries this dictionary held for this area were `ComponentReadiness.basis`
+  // values, which the health payload never carries and this function is never
+  // called with. So the realistic broken morning — a gate component failing —
+  // printed raw machinery while four written sentences sat unreachable.
+  // The component name is an address into `_KNOWN_COMPONENTS` and stays exact.
+  const component = basis.match(
+    /^(component_failed|component_state_missing|unknown_component_status|required_component_not_applicable):(.+)$/,
+  );
+  if (component !== null) {
+    const sentence: Record<string, [string, string]> = {
+      // :319 — the component reported `fail`.
+      component_failed: ["Its readiness check ", " did not pass."],
+      // :301-303 — a declared component recorded no state at all (fail-closed).
+      component_state_missing: ["Its readiness check ", " recorded no state at all."],
+      // :306-309 — a status outside the four the registry allows.
+      unknown_component_status: [
+        "Its readiness check ",
+        " reported a status this product does not recognise.",
+      ],
+      // :311-315 — R6: `not_applicable` is legal only on an optional component.
+      required_component_not_applicable: [
+        "Its readiness check ",
+        " reported itself not applicable, and it is not optional.",
+      ],
+    };
+    const [head, tail] = sentence[component[1] as string] as [string, string];
+    return [prose(head), identifier(component[2] as string), prose(tail)];
+  }
+
   // system_tier_readiness.py:205-213 — a producer artifact the surface declares
   // is not on disk. The path is an address.
   const artifact = basis.match(/^producer_artifact_missing:(.+)$/);
@@ -1395,11 +1480,17 @@ function surfaceBasisMessage(basis: string): ReceiptSegment[] {
  * "missing 1 of 68 days (2026-08-12)", "stale since 2026-08-12", "3 days below
  * the 60% row floor" — so this passes it through rather than paraphrasing a
  * count. The one branch that can carry machinery is the store's own caveat
- * list (:103), and those go through the token dictionary.
+ * list (:103), and those go through the token dictionary — but through
+ * `receiptToken`, not `describeToken`. Class A is a closed two-token set
+ * (system_capture_health_models.py:400-404) and everything else degrades by
+ * default, so the caveats that can actually reach a DEGRADED store's reason are
+ * the class-B set, none of which the dictionary has a sentence for yet. Under
+ * `describeToken` every one of them would have reached David as invented prose
+ * with the producer's token nowhere in the document and the render rule green.
  */
 function storeReasonMessage(reason: string): ReceiptSegment[] {
   if (findRawCopy(reason).length === 0) return [prose(reason)];
-  const parts = reason.split("; ").map((part) => describeToken(part));
+  const parts = reason.split("; ").map((part) => receiptToken(part));
   return [prose(parts.join(" · "))];
 }
 
@@ -1467,10 +1558,14 @@ export function subsystemBasisMessage(basis: string): {
     // the promise would be empty — so fall through to the raw string rather
     // than print a heading over nothing.
     if (entries.length > 0) {
+      // One degraded store is the live shape for model_forward_capture today,
+      // and "1 of 3 … feeds are in a bad state" is the sentence David reads on
+      // that morning. The verb agrees, the way the surfaces branch already did.
+      const feedVerb = stores[1] === "1" ? "is" : "are";
       return {
         summary: [
           prose(
-            `${stores[1]} of ${stores[2]} daily capture feeds are in a bad state. Which, and why:`,
+            `${stores[1]} of ${stores[2]} daily capture feeds ${feedVerb} in a bad state. Which, and why:`,
           ),
         ],
         lines: entries.map(([id, reason]) => ({
@@ -1482,21 +1577,52 @@ export function subsystemBasisMessage(basis: string): {
     }
   }
 
-  // :66-69 — `{surface_id}: {surface basis}; …`, one entry per surface that is
-  // not ready. The surface's own basis is a message in its own right.
+  // :63-68 — `{surface_id}: {surface basis}; …`. NOT "one entry per surface
+  // that is not ready", which is what the producer's variable name and its
+  // docstring both say: the filter is `tier_status != "ok"` against a
+  // `TierStatus` with no "ok" member, so this is EVERY surface. See
+  // READY_SURFACE_BASES. The surface's own basis is the only thing on the line
+  // that says where that surface actually stands, so the count comes from the
+  // bases, never from the length of a list that was never filtered.
   const surfaces = splitLabelledEntries(basis);
-  if (surfaces.length > 0 && surfaces.every(([id]) => id in SURFACE_NAMES)) {
+  // One id the dictionary does not know used to send the WHOLE receipt back to
+  // the raw 400-character dump. `surfaceName` already warns and humanizes an
+  // unknown id, so one unknown surface now costs one row's label, not the other
+  // four rows' translations.
+  if (surfaces.length > 0 && surfaces.some(([id]) => id in SURFACE_NAMES)) {
+    const heldBack = surfaces.filter(
+      ([, surfaceBasis]) => !READY_SURFACE_BASES.has(surfaceBasis),
+    );
+    const rows = surfaces.map(([id, surfaceBasis]) => ({
+      label: surfaceName(id),
+      message: surfaceBasisMessage(surfaceBasis),
+      identifier: id,
+    }));
+
+    // Every surface on the list is graded ready. The rollup is still degraded —
+    // that is why this basis exists at all — but nothing here is what degraded
+    // it, and a heading claiming otherwise would be contradicted by its own
+    // rows. State what the list is and let each row speak.
+    if (heldBack.length === 0) {
+      return {
+        summary: [prose("Where each part of the product stands:")],
+        lines: rows,
+      };
+    }
+
+    const count = heldBack.length === 1 ? "One part" : `${heldBack.length} parts`;
+    const verb = heldBack.length === 1 ? "is" : "are";
+
     // ONE CAUSE, SAID ONCE. On 2026-08-30 all five surfaces carried the SAME
     // basis — every one of them waiting on capture health — and printing it
     // five times filled the drawer with 10 lines that said one thing. Worse, it
     // buried the fact worth having: this is not five problems, it is one. The
     // shared sentence moves into the summary and the rows keep their names and
-    // their ids. When the bases genuinely differ, each row still carries its
-    // own, because then they really are different problems.
-    const shared = new Set(surfaces.map(([, surfaceBasis]) => surfaceBasis));
-    const count = surfaces.length === 1 ? "One part" : `${surfaces.length} parts`;
-    const verb = surfaces.length === 1 ? "is" : "are";
-    if (shared.size === 1) {
+    // their ids. It collapses only when EVERY surface on the list is held back
+    // by the identical string; a ready surface in the list is a different fact
+    // and keeps its own line.
+    const shared = new Set(heldBack.map(([, surfaceBasis]) => surfaceBasis));
+    if (heldBack.length === surfaces.length && shared.size === 1) {
       return {
         summary: [
           prose(
@@ -1504,22 +1630,21 @@ export function subsystemBasisMessage(basis: string): {
           ),
           ...surfaceBasisMessage([...shared][0] as string),
         ],
-        lines: surfaces.map(([id]) => ({
-          label: surfaceName(id),
-          message: [],
-          identifier: id,
-        })),
+        lines: rows.map((row) => ({ ...row, message: [] })),
       };
     }
+
+    // Mixed, or several causes. The count is of the held-back surfaces; the
+    // rows are ALL of them, each saying for itself whether it passed.
     return {
       summary: [
-        prose(`${count} of the product ${verb} not graded ready. Which, and why:`),
+        prose(
+          heldBack.length === surfaces.length
+            ? `${count} of the product ${verb} not graded ready. Which, and why:`
+            : `${count} of the ${surfaces.length} checked ${verb} not graded ready. Where each stands:`,
+        ),
       ],
-      lines: surfaces.map(([id, surfaceBasis]) => ({
-        label: surfaceName(id),
-        message: surfaceBasisMessage(surfaceBasis),
-        identifier: id,
-      })),
+      lines: rows,
     };
   }
 

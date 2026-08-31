@@ -67,6 +67,23 @@
   overscroll-behavior-y: contain;
 }
 
+/* The cap is bought entirely by the STICKY header, and below this breakpoint
+   the header is not sticky — AppShell.css:365-366 sets
+   `.dg-shell__trust { position: static }` here. On the phone the panel simply
+   makes the page longer, which is the accordion behaviour this component's own
+   comment promises, so the cap prevents no collision and costs a nested scroll
+   region holding ~85% of the receipts behind an overlay scrollbar macOS does
+   not paint until you already know to scroll. Released at exactly the width
+   where the thing that justified it stops being true — one breakpoint value,
+   the same 768px every other media query in this product uses. */
+@media (max-width: 768px) {
+  .dg-status-drawer__panel {
+    max-block-size: none;
+    overflow-y: visible;
+    overscroll-behavior-y: auto;
+  }
+}
+
 .dg-status-drawer__panel[data-open="false"] {
   display: none;
 }

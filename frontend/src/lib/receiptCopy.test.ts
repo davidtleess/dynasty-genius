@@ -141,8 +141,139 @@ describe("receipt messages say what the producer said", () => {
     );
     expect(differing.lines.map((l) => read(l.message))).toEqual([
       "Waiting on the capture health check, which is reporting: something needs attention.",
-      "Its checks pass; it is waiting on David's sign-off.",
+      "It has not been signed off by David yet.",
     ]);
+  });
+
+  it("never calls a surface not ready when the producer says it passed", () => {
+    // THE FILTER THAT FILTERS NOTHING. `_default_tier_readiness_status`
+    // (system_health.py:63-68) builds this basis from
+    // `[... for s in response.surfaces if s.tier_status != "ok"]`, and "ok" is
+    // NOT a member of `TierStatus` (system_tier_readiness_models.py:25-30). The
+    // comparison is a tautology, so the list is EVERY surface whenever the
+    // rollup is degraded — ready ones included. Reachable today: the R8 overlay
+    // (system_tier_readiness.py:196-214) downgrades ONE surface whose own
+    // producer artifact is absent, and the five surfaces declare five different
+    // artifacts. A heading counting the list length said "5 parts of the
+    // product are not graded ready" over four rows reading "Every readiness
+    // check passed."
+    const mixed = subsystemBasisMessage(
+      "roster_capacity: all_readiness_checks_passed; daily_what_changed: producer_artifact_missing:app/data/what_changed/what_changed_latest_report.json; model_trust_console: all_readiness_checks_passed; trade_lab: all_readiness_checks_passed; league_pulse: readiness_active_with_insufficient_data",
+    );
+    expect(read(mixed.summary)).toBe(
+      "One part of the 5 checked is not graded ready. Where each stands:",
+    );
+    // Every row still speaks for itself, and the one that is held back names
+    // the missing file byte-exact.
+    expect(mixed.lines.map((l) => read(l.message))).toEqual([
+      "Every readiness check passed.",
+      "A file its producer is supposed to write is missing: app/data/what_changed/what_changed_latest_report.json.",
+      "Every readiness check passed.",
+      "Every readiness check passed.",
+      "Running, with too little data behind one of its checks to grade it.",
+    ]);
+    expect(addresses(mixed.lines[1]?.message ?? [])).toEqual([
+      "app/data/what_changed/what_changed_latest_report.json",
+    ]);
+
+    // And when the whole list is ready, the receipt claims nothing about
+    // readiness at all — the rollup is degraded for some other reason, and
+    // nothing on this list is it.
+    const allReady = subsystemBasisMessage(
+      "roster_capacity: all_readiness_checks_passed; trade_lab: all_readiness_checks_passed",
+    );
+    expect(read(allReady.summary)).toBe("Where each part of the product stands:");
+    expect(allReady.lines.map((l) => read(l.message))).toEqual([
+      "Every readiness check passed.",
+      "Every readiness check passed.",
+    ]);
+  });
+
+  it("writes the four bases a failing gate component actually puts on a surface", () => {
+    // system_tier_readiness_models.py:301-320 — every component defect writes
+    // `{defect}:{component}` as the SURFACE basis. None of the four was written
+    // until the review found them, so the realistic broken morning printed raw
+    // machinery. The component name is an address and stays exact.
+    const { summary } = subsystemBasisMessage(
+      "roster_capacity: component_failed:audit_hygiene; trade_lab: component_failed:audit_hygiene",
+    );
+    expect(read(summary)).toBe(
+      "2 parts of the product are not graded ready, all for the same reason. Its readiness check audit_hygiene did not pass.",
+    );
+
+    const each = subsystemBasisMessage(
+      "roster_capacity: component_state_missing:mif_breaker; trade_lab: unknown_component_status:audit_hygiene; league_pulse: required_component_not_applicable:mif_breaker",
+    );
+    expect(each.lines.map((l) => read(l.message))).toEqual([
+      "Its readiness check mif_breaker recorded no state at all.",
+      "Its readiness check audit_hygiene reported a status this product does not recognise.",
+      "Its readiness check mif_breaker reported itself not applicable, and it is not optional.",
+    ]);
+    expect(each.lines.flatMap((l) => addresses(l.message))).toEqual([
+      "mif_breaker",
+      "audit_hygiene",
+      "mif_breaker",
+    ]);
+  });
+
+  it("keeps the other rows translated when one surface id is unknown", () => {
+    // One id the dictionary does not know used to send the WHOLE receipt back
+    // to the raw 400-character dump this ticket exists to kill.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { lines } = subsystemBasisMessage(
+      "roster_capacity: all_readiness_checks_passed; accuracy_tracker: all_readiness_checks_passed",
+    );
+    expect(lines.map((l) => l.label)).toEqual(["Cut list", "Accuracy tracker"]);
+    expect(lines.map((l) => read(l.message))).toEqual([
+      "Every readiness check passed.",
+      "Every readiness check passed.",
+    ]);
+    expect(warn).toHaveBeenCalledWith(
+      "Copy dictionary: no name for surface",
+      "accuracy_tracker",
+    );
+    warn.mockRestore();
+  });
+
+  it("agrees the verb when exactly one capture feed is degraded", () => {
+    // The live shape for model_forward_capture today.
+    const { summary } = subsystemBasisMessage(
+      "1 of 3 stores degraded — model_forward_capture: missing 1 of 67 days (2026-08-12)",
+    );
+    expect(read(summary)).toBe(
+      "1 of 3 daily capture feeds is in a bad state. Which, and why:",
+    );
+  });
+
+  it("hands back an unwritten store caveat and an unwritten failure reason RAW", () => {
+    // THE FALLBACK MUST NOT BUY SILENCE, and these are the two branches where it
+    // could. Both used to route through `describeToken`, whose miss path is
+    // `humanize` — so `unexpected_settings_hash_detected` reached David as
+    // "Unexpected settings hash detected" with the producer's token nowhere in
+    // the document and `findRawCopy` seeing no underscores to fail on.
+    //
+    // Class A is a closed two-token set (system_capture_health_models.py:400-404)
+    // and everything else degrades by default, so the caveats that can reach a
+    // DEGRADED store's reason (system_health.py:103) are exactly the class-B set,
+    // none of which the dictionary has a sentence for.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { lines } = subsystemBasisMessage(
+      "1 of 3 stores degraded — model_forward_capture: missing 1 of 67 days (2026-08-12); unexpected_settings_hash_detected",
+    );
+    const storeText = read(lines[0]?.message ?? []);
+    expect(storeText).toBe(
+      "missing 1 of 67 days (2026-08-12) · unexpected_settings_hash_detected",
+    );
+    expect(findRawCopy(storeText)).toContain("unexpected_settings_hash_detected");
+
+    // Same law for a producer's own failure text. `report_freshness.json`
+    // declares a free-text `failure_reason_field` on six of nine artifacts.
+    const failure = reportBasisMessage("producer_failure:market_source_prior_date");
+    expect(read(failure)).toBe(
+      "The run reported that it failed: market_source_prior_date",
+    );
+    expect(findRawCopy(read(failure))).toContain("market_source_prior_date");
+    warn.mockRestore();
   });
 
   it("says an adapter that returned only a status returned only a status", () => {

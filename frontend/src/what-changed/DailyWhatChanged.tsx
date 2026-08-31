@@ -19,6 +19,7 @@ import {
   fieldLabel,
   formatCaptureTimestamp,
   lookupToken,
+  type ReceiptSegment,
 } from "../lib/copy";
 import { useEndpointResource } from "../lib/useEndpointResource";
 import {
@@ -774,9 +775,17 @@ function HealthSheet({
         // the whole line and the exemption came from the paragraph calling
         // itself a receipt.
         <p className="dg-wc__sheet-line" data-receipt>
+          {/* `market_source` is a free `str` at the boundary
+              (league_what_changed_models.py:137) and the dictionary knows only
+              some of its values. When it has no sentence, `sheetReason` hands
+              back the key itself — and printing that as the message AND as the
+              address rendered the same token twice on one line
+              ("Market source / keeptradecut / keeptradecut"). No sentence means
+              the address alone, which is exactly what the line said before this
+              ticket. */}
           <ReceiptRow
             label="Market source"
-            message={[{ kind: "prose", text: sheetReason(market.market_source) }]}
+            message={marketSourceSentence(market.market_source)}
             identifier={market.market_source}
           />
         </p>
@@ -987,6 +996,21 @@ function WhereYouStandBlock({
 function sheetReason(token: string): string {
   const note = lookupToken(token);
   return note.mapped ? note.text : note.raw;
+}
+
+/**
+ * The sentence for a market-source key, or NOTHING when the dictionary has none.
+ *
+ * `lookupToken` returns the token unchanged for any string it has no entry for
+ * and that carries no raw key ("keeptradecut"), so `sheetReason` cannot be used
+ * as a message beside the same token as an identifier — it would print it
+ * twice. An address with no sentence is just an address.
+ */
+function marketSourceSentence(source: string): ReceiptSegment[] {
+  const note = lookupToken(source);
+  return note.mapped && note.text !== source
+    ? [{ kind: "prose", text: note.text }]
+    : [];
 }
 
 function producerReasons(data: WhatChangedResponse): string[] {
