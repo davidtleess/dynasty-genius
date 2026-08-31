@@ -704,19 +704,11 @@ export function receiptDetail(field: string, value: string | number | null): str
 // `data-identifier`, which reads identically and can be audited. Every call
 // site moved (League Pulse, Trade partners, the player card).
 
-/**
- * DG-119 — `receiptDetail` without the leading label, for the one shape where
- * the label is ALREADY on screen: a definition list whose `<dt>` names the
- * field and whose `<dd>` carries the value. Printing the full form there gives
- * "How well the rosters fit" twice in eight lines, which reads as a bug.
- *
- * The receipt still names the producer field, because that is what makes it a
- * receipt. Only the duplicated half goes.
- */
-export function receiptValue(field: string, value: string | number | null): string {
-  const shown = value === null || value === "" ? "not recorded" : String(value);
-  return `${shown} (from ${field})`;
-}
+// `receiptValue(field, value)` was DG-119's — `receiptDetail` without the
+// leading label, for a `<dt>`/`<dd>` shape where the label is already on screen.
+// It went the same way as `receiptLine` and for the same reason: one string
+// cannot say which half of itself is an address. `ui/Receipt.tsx` renders that
+// exact line as `<FieldReceipt>`, same bytes, with the producer field declared.
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 5 · Health surfaces — the names and states of the daily feeds.

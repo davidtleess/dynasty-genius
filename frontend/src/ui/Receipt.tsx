@@ -21,7 +21,7 @@
 // the browser gate. It no longer grants an exemption — see renderRule.ts.
 import type { ReactNode } from "react";
 
-import type { ReceiptSegment } from "../lib/copy";
+import { fieldLabel, type ReceiptSegment } from "../lib/copy";
 import "./ui.css";
 
 /**
@@ -115,6 +115,41 @@ export function ReceiptCitation({
       ) : (
         <Identifier>{shown}</Identifier>
       )}
+    </>
+  );
+}
+
+/**
+ * A field receipt: a value, then the producer field it came from.
+ *
+ * DG-119 rendered this shape as ONE string out of `copy.ts` — "0.841 (from
+ * complementarity_score)" — which is precisely the form DG-120 retired one file
+ * over: a single string cannot declare which half of itself is an address, so
+ * the render rule could only take the whole line or leave it. Identical bytes on
+ * screen, two nodes, and the field name declared as the address it is.
+ *
+ * `withLabel` prints the field's human name first, for a receipt that stands on
+ * its own line. Leave it off where a `<dt>` already names the field — printing
+ * both gives a manager the same words twice within eight lines, which reads as
+ * a bug.
+ *
+ * `not recorded` is a FACT (the field was read and held nothing), so it stays
+ * prose and never rides in behind the identifier declaration.
+ */
+export function FieldReceipt({
+  field,
+  value,
+  withLabel = false,
+}: {
+  field: string;
+  value: string | number | null;
+  withLabel?: boolean;
+}) {
+  const shown = value === null || value === "" ? "not recorded" : String(value);
+  return (
+    <>
+      {withLabel ? `${fieldLabel(field)} — ` : null}
+      {shown} (from <Identifier>{field}</Identifier>)
     </>
   );
 }

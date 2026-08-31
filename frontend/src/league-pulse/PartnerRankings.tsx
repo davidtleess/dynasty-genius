@@ -1,12 +1,6 @@
 import type { LeaguePulsePartnerRanking } from "../lib/api";
-import {
-  fieldLabel,
-  postureClause,
-  receiptDetail,
-  receiptLine,
-  receiptValue,
-  UNPLACED_POSTURE,
-} from "../lib/copy";
+import { fieldLabel, postureClause, UNPLACED_POSTURE } from "../lib/copy";
+import { FieldReceipt } from "../ui/Receipt";
 import { TokenNotes } from "../ui/TokenNotes";
 import "./PartnerRankings.css";
 
@@ -320,7 +314,7 @@ function PartnerCard({
                     {scorePartSentence(key, value, ranking, evidence)}
                   </p>
                   <p className="dg-partner-card__part-receipt" data-receipt>
-                    {receiptValue(key, value)}
+                    <FieldReceipt field={key} value={value} />
                   </p>
                 </dd>
               </div>
@@ -328,12 +322,27 @@ function PartnerCard({
           })}
         </dl>
         <ul className="dg-partner-card__sources" data-receipt>
-          <li>{receiptDetail("partner_score", ranking.partner_score)}</li>
           <li>
-            {receiptDetail("counterparty_roster_id", ranking.counterparty_roster_id)}
+            <FieldReceipt
+              field="partner_score"
+              value={ranking.partner_score}
+              withLabel
+            />
           </li>
+          <li>
+            <FieldReceipt
+              field="counterparty_roster_id"
+              value={ranking.counterparty_roster_id}
+              withLabel
+            />
+          </li>
+          {/* No producer field to cite here: `position_scores` is already named
+              by the label, and the values carry no machinery — QB/RB/WR/TE are
+              words a manager reads as English. So this line is plain prose in
+              the receipt layer, with nothing declared an address that is not
+              one. */}
           {positionReceipt.length > 0 ? (
-            <li>{receiptLine("Per-position fit", positionReceipt.join(", "))}</li>
+            <li>Per-position fit: {positionReceipt.join(", ")}</li>
           ) : null}
         </ul>
       </details>

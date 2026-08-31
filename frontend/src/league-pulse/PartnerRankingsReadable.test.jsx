@@ -252,6 +252,22 @@ function cardFor(name) {
   return within(screen.getByText(name).closest("article"));
 }
 
+/**
+ * The full text of the receipt line that cites `field`, read across the nodes
+ * DG-120's `<FieldReceipt>` splits it into (our words, then the field declared
+ * `data-identifier`). Asserting the composed string is how this file keeps
+ * proving the BYTES a manager sees while the DOM underneath is free to change.
+ */
+function receiptText(card, field) {
+  const id = [
+    ...card
+      .getByText("How this fit was scored")
+      .closest("details")
+      .querySelectorAll("[data-identifier]"),
+  ].find((el) => el.textContent === field);
+  return id?.closest("li, p")?.textContent ?? null;
+}
+
 describe("DG-119 · the caveat is a section fact, said once", () => {
   it("prints the market-derived caveat exactly once across eleven partners", () => {
     render(<PartnerRankings rankings={LIVE_ELEVEN} />);
@@ -350,27 +366,66 @@ describe("DG-119 · the numbers survive, in the receipt", () => {
 
     const card = cardFor("YippeKiYay MarshalFaulker");
     expect(card.getByText("How this fit was scored")).toBeTruthy();
-    expect(card.getByText(/Trade-fit score — 2\.091/)).toBeTruthy();
+    expect(receiptText(card, "partner_score")).toBe(
+      "Trade-fit score — 2.091 (from partner_score)",
+    );
     // The four parts. Each `<dt>` above these already names the field, so the
     // receipt carries the value and the producer key and does not repeat the
     // label — printing the full form gave "How well the rosters fit" twice
     // within eight lines on the first browser pass.
-    expect(card.getByText("0.841 (from complementarity_score)")).toBeTruthy();
-    expect(card.getByText("1 (from divergence_density_score)")).toBeTruthy();
-    expect(card.getByText("0.25 (from posture_alignment_score)")).toBeTruthy();
+    // DG-120 split a receipt into two nodes — our words, and the producer field
+    // declared `data-identifier` — so these read the composed line rather than
+    // one text node. The BYTES on screen are unchanged; only the DOM is.
+    expect(receiptText(card, "complementarity_score")).toBe(
+      "0.841 (from complementarity_score)",
+    );
+    expect(receiptText(card, "divergence_density_score")).toBe(
+      "1 (from divergence_density_score)",
+    );
+    expect(receiptText(card, "posture_alignment_score")).toBe(
+      "0.25 (from posture_alignment_score)",
+    );
     expect(card.getByText("How well the rosters fit")).toBeTruthy();
     expect(card.getByText("Whether you're pointed opposite ways")).toBeTruthy();
-    expect(card.getByText(/Their roster number — 7/)).toBeTruthy();
+    expect(receiptText(card, "counterparty_roster_id")).toBe(
+      "Their roster number — 7 (from counterparty_roster_id)",
+    );
     // Per-position scores, still on screen, still labelled.
     expect(card.getByText(/RB 0\.554/)).toBeTruthy();
     expect(card.getByText(/WR 0\.841/)).toBeTruthy();
   });
 
-  it("puts every raw producer key inside a declared receipt subtree", () => {
+  it("declares every raw producer key an identifier, not a blanket receipt", () => {
     render(<PartnerRankings rankings={LIVE_ELEVEN} />);
 
     const card = cardFor("YippeKiYay MarshalFaulker");
-    expect(card.getByText(/from partner_score/).closest("[data-receipt]")).toBeTruthy();
+    // DG-120 took the render rule's exemption OFF `[data-receipt]` — a wrapper
+    // cannot say which bytes inside it are an address — and put it on
+    // `[data-identifier]`, which points at exactly those bytes. Every producer
+    // field this card cites is declared that way, and the wrapper still marks
+    // the layer for styling and the browser gate.
+    const declared = [
+      ...card
+        .getByText("How this fit was scored")
+        .closest("details")
+        .querySelectorAll("[data-identifier]"),
+    ].map((el) => el.textContent);
+    expect(declared).toEqual(
+      expect.arrayContaining([
+        "complementarity_score",
+        "divergence_density_score",
+        "activity_recency_score",
+        "posture_alignment_score",
+        "partner_score",
+        "counterparty_roster_id",
+      ]),
+    );
+    for (const el of card
+      .getByText("How this fit was scored")
+      .closest("details")
+      .querySelectorAll("[data-identifier]")) {
+      expect(el.closest("[data-receipt]")).toBeTruthy();
+    }
   });
 });
 
