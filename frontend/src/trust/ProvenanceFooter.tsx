@@ -23,18 +23,30 @@
 //   The GRADE is not a receipt. It is a claim a person reads, so it goes through
 //   the same dictionary the shell strip uses and sits outside the declared
 //   receipt subtree. Its raw value still rides `data-grade` for CSS and tests.
+//
+// DG-120 sharpens the first of those. Every value in this block is an ADDRESS —
+// a run id, a date, a version, a hash, a sha, the key naming which market the
+// model was benchmarked against — so each one is declared `data-identifier`
+// individually rather than the whole block claiming exemption by being called a
+// receipt. `not available` is the one exception: it is our word for an absent
+// field, not an address, so it stays prose.
 import { trustGradeWord, valueWord } from "../lib/copy";
 import { MODEL_GRADE_QUALIFIER } from "../lib/trustCopy";
+import { Identifier } from "../ui/Receipt";
 import type { TrustConsoleViewModel } from "./trustViewModel";
 
+const NOT_AVAILABLE = "not available";
+
 const orNA = (v: string | null | undefined): string =>
-  v === null || v === undefined || v === "" ? "not available" : v;
+  v === null || v === undefined || v === "" ? NOT_AVAILABLE : v;
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="dg-trust-prov__row">
       <span className="dg-trust-prov__label">{label}</span>
-      <span className="dg-trust-prov__value">{value}</span>
+      <span className="dg-trust-prov__value">
+        {value === NOT_AVAILABLE ? value : <Identifier>{value}</Identifier>}
+      </span>
     </div>
   );
 }

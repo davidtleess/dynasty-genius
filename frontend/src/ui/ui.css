@@ -461,3 +461,68 @@
 .dg-ui-spread[data-lane="market"] {
   --dg-spread-accent: var(--dg-market);
 }
+
+/* DG-120 — the receipt primitive. A human label, the sentence, and the address
+   beneath it. The address is mono and selectable because copying it is the
+   whole reason it is on screen; the label and sentence are the reading text.
+   Neutral chrome throughout: a receipt describes provenance and never carries
+   a verdict hue.
+
+   THE LABEL SITS BESIDE, NOT ABOVE, AND THAT IS A MEASURED DECISION. The first
+   build stacked all three parts, which reads well on one row and very badly on
+   forty: the shell's status drawer went from 501px to 1237px at 1440 with the
+   pill open, and 1277px to 3327px with the report list open too (Chromium,
+   2026-08-30). That drawer lives inside a STICKY header (AppShell.css
+   `.dg-shell__trust`), so a panel taller than the viewport does not "expand in
+   flow" — it covers the product it is supposed to sit above. A label column
+   puts each row back on one line and the two-column grid keeps every label
+   left-aligned with every other, which is what makes a column of them
+   scannable in the first place. The value column still stacks its own message
+   and address, so the identifier is still BENEATH what it explains. */
+.dg-receipt__row {
+  display: grid;
+  grid-template-columns: minmax(0, 8rem) minmax(0, 1fr);
+  column-gap: var(--dg-space-3);
+  row-gap: var(--dg-space-1);
+  padding-block: var(--dg-space-1);
+  align-items: baseline;
+}
+
+.dg-receipt__label {
+  font-size: var(--dg-text-sm);
+  font-weight: var(--dg-weight-semibold);
+  line-height: var(--dg-leading-snug);
+  color: var(--dg-chrome);
+}
+
+.dg-receipt__message {
+  font-size: var(--dg-text-sm);
+  line-height: var(--dg-leading-normal);
+  color: var(--dg-text);
+}
+
+.dg-receipt__id {
+  font-family: var(--dg-font-mono);
+  font-size: var(--dg-text-sm);
+  line-height: var(--dg-leading-snug);
+  color: var(--dg-text-muted);
+  /* An address is copied, so it must be able to break anywhere: a 62-character
+     artifact path in a 358px phone column is what took this layer sideways
+     before it was styled at all. */
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+/* Column placement, declared AFTER the three single-class rules above so
+   specificity ascends down the file (biome noDescendingSpecificity). Direct
+   children only: a `.dg-receipt__id` nested INSIDE a message — an evidence path
+   quoted mid-sentence — is not a grid item of this row and must keep flowing
+   with the words around it. */
+.dg-receipt__row > .dg-receipt__label {
+  grid-column: 1;
+}
+
+.dg-receipt__row > .dg-receipt__message,
+.dg-receipt__row > .dg-receipt__id {
+  grid-column: 2;
+}

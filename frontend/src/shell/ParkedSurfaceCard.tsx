@@ -1,6 +1,7 @@
 // H1 §1b: parked surfaces stay VISIBLE with an honest educational card —
 // what the surface will be, why it is parked (evidence-cited), and what
 // unparks it. Neutral tone; no dates promised, no verdict language.
+import { Identifier } from "../ui/Receipt";
 import "./ParkedSurfaceCard.css";
 
 type ParkedCopy = {
@@ -46,11 +47,12 @@ export function ParkedSurfaceCard({ surface }: { surface: string }) {
       <h2 className="dg-parked-card__heading">{copy.heading}</h2>
       <p className="dg-parked-card__body">{copy.body}</p>
       <p className="dg-parked-card__unpark">{copy.unpark}</p>
-      {/* A cited path IS the receipt layer — a receipt that renamed the document
-          it cites would stop being a receipt — so the exemption is declared
-          rather than left to slip under the rule. */}
-      <p className="dg-parked-card__evidence">
-        Evidence: <span data-receipt>{copy.evidencePath}</span>
+      {/* A cited path is an ADDRESS: it names a document a person can open, and
+          rewording it destroys the only thing it was for. DG-120 makes that the
+          declaration it always was — `data-identifier`, not "this is a receipt,
+          look away". */}
+      <p className="dg-parked-card__evidence" data-receipt>
+        Evidence: <Identifier>{copy.evidencePath}</Identifier>
       </p>
     </section>
   );

@@ -688,12 +688,18 @@ describe("DailyWhatChanged", () => {
     expect(screen.getByTestId("wc-model-degraded").textContent).toMatch(
       /Pvo seed stale/,
     );
-    // DG-113: the raw producer tokens are still kept verbatim, still in the
-    // declared receipt layer, now inside the health sheet rather than an
-    // always-open rail — one press down, complete when asked.
+    // DG-113: the producer tokens are still complete in the declared receipt
+    // layer, inside the health sheet rather than an always-open rail — one
+    // press down, complete when asked.
+    //
+    // DG-120: a status is a MESSAGE, so the sheet says it in English. The
+    // reasons the dictionary has no sentence for still print their own bytes
+    // (asserted below), which is why this sheet is still where an operator
+    // reads what the producers actually said.
     await openHealthSheet();
     const raw = screen.getByTestId("wc-provenance").textContent;
-    expect(raw).toMatch(/Feed status: degraded/i);
+    expect(raw).toMatch(/Feed status: Something needs attention/i);
+    expect(raw).not.toMatch(/Feed status: degraded/i);
     for (const token of [
       "market_snapshot_stale",
       "feature_source_unverifiable",
@@ -790,11 +796,14 @@ describe("DailyWhatChanged", () => {
         /insufficient_history/i,
       ),
     ).toBeNull();
-    // ...but not lost either: the verbatim token is in the receipt sheet, which
-    // is the one layer the render rule permits a raw pipeline key.
+    // ...but not lost either: the receipt sheet carries it. DG-120: as the
+    // SENTENCE, not the token — `insufficient_history` is a status, and nothing
+    // in the product is reachable by it, so there is no address to preserve.
+    // The fact is the same one, and the raw token is still on the notice's own
+    // title attribute for anyone who wants the producer's exact string.
     await openHealthSheet();
     expect(screen.getByTestId("wc-provenance").textContent).toContain(
-      "insufficient_history",
+      "Not enough days captured yet to compare one to the next.",
     );
     expect(screen.queryByText(/top mover unavailable/i)).toBeNull();
     expect(screen.queryByText(/0\.00/i)).toBeNull();
@@ -1723,11 +1732,13 @@ describe("DG-111 a comparison that never ran never reads as 'nothing moved'", ()
     expect(notice.getAttribute("title")).toBe("insufficient_history");
     expect(within(market).queryByText(/insufficient_history/)).toBeNull();
 
-    // 3. The health sheet still records it verbatim — `producerReasons` reads
-    //    the MARKET comparison window now, not only the model's.
+    // 3. The health sheet still records it — `producerReasons` reads the MARKET
+    //    comparison window now, not only the model's. DG-120: as the sentence
+    //    the dictionary holds for it, since a status is a message and not an
+    //    address. The producer's exact token stays on the notice's title.
     const sheet = await openHealthSheet();
     expect(screen.getByTestId("wc-provenance").textContent).toContain(
-      "insufficient_history",
+      "Not enough days captured yet to compare one to the next.",
     );
     // 4. And the market source survives in the sheet even though the comparison
     //    window carried no dates.

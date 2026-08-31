@@ -52,8 +52,14 @@ export function FoldTable({ folds }: { folds: TrustConsoleViewModel["folds"] }) 
           would stop it being a receipt, so the exemption is DECLARED here rather
           than left implicit. The sentence a manager reads is the truth panel
           above it; this is the working underneath. */}
+      {/* DG-120: `data-quoted` carries a condition the rule states — the source
+          must be NAMED ON SCREEN beside the quotation, so a reader knows whose
+          words they are reading. "In the statistician's own terms" named a
+          register, not a document, and the document was named only in the
+          comment below. It is named here now, where David can see it. */}
       <p className="dg-trust-lede">
-        The season-by-season working behind that, in the statistician's own terms.
+        The season-by-season working behind that, with the backtest artifact's own
+        column names kept as it writes them.
       </p>
       {/* DG-117: thirteen columns of statistics, `white-space: nowrap` on every
           cell, 1039px of table inside a 358px column at 390px — and the page
@@ -66,7 +72,13 @@ export function FoldTable({ folds }: { folds: TrustConsoleViewModel["folds"] }) 
           aria-label="Per-fold backtest results"
           data-receipt
         >
-          <thead>
+          {/* DG-120: the exemption narrows to the HEADER ROW, which is the part
+              that quotes the backtest artifact's own vocabulary — "RMSE" is the
+              statistic's real name and the reason a number here can be checked
+              against `eval/backtest_artifact.py`. The body cells are numbers and
+              the CI note is our sentence; both are audited like any other copy,
+              where before the whole table was waved through. */}
+          <thead data-quoted>
             <tr>
               {COLUMNS.map((col) => (
                 <th key={col} scope="col">

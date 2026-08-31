@@ -1,5 +1,5 @@
 import type { LeaguePulseResponse } from "../lib/api";
-import { receiptLine } from "../lib/copy";
+import { ReceiptCitation } from "../ui/Receipt";
 import { SnapshotStamp } from "./SnapshotStamp";
 
 // Header band for the League Pulse surface.
@@ -70,19 +70,29 @@ export function LeaguePulseHeader({ data }: { data: LeaguePulseResponse }) {
         </p>
       ) : null}
       {/* The three artifact schema versions are a receipt: they name exactly
-          which producer output this page was built from. They stay verbatim —
-          renaming a version would stop it being a receipt — and now say which
-          artifact each one belongs to. */}
+          which producer output this page was built from. DG-120: each version
+          is now DECLARED an identifier rather than riding a blanket exemption
+          on the list — the label is our words, the version is the artifact's,
+          and the render rule can finally tell the two apart. The bytes and the
+          line a manager reads are unchanged. */}
       <ul className="dg-league-pulse__sources" data-receipt>
-        <li>{receiptLine("Team posture data", schemaVersion(sources.team_posture))}</li>
         <li>
-          {receiptLine("Team value data", schemaVersion(sources.team_value_matrix))}
+          <ReceiptCitation
+            label="Team posture data"
+            raw={schemaVersion(sources.team_posture)}
+          />
         </li>
         <li>
-          {receiptLine(
-            "League opportunity data",
-            schemaVersion(sources.league_opportunity),
-          )}
+          <ReceiptCitation
+            label="Team value data"
+            raw={schemaVersion(sources.team_value_matrix)}
+          />
+        </li>
+        <li>
+          <ReceiptCitation
+            label="League opportunity data"
+            raw={schemaVersion(sources.league_opportunity)}
+          />
         </li>
       </ul>
     </section>

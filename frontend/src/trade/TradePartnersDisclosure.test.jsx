@@ -126,8 +126,15 @@ describe("Trade partners · the facts that travel with the panel", () => {
     // partner_rankings is read out of the league_opportunity artifact and no
     // other (league_pulse_assembler.py:272-280), so that is the one receipt
     // this page is entitled to print.
-    const receipt = await screen.findByText(
-      "League opportunity data: league_opportunity.v2",
+    // DG-120: our label and the artifact's own version are separate nodes now,
+    // so the version can be declared `data-identifier`. The line reads the same.
+    await screen.findByRole("region", { name: "Trade partners" });
+    const receipt = [...document.querySelectorAll("li")].find(
+      (node) => node.textContent === "League opportunity data: league_opportunity.v2",
+    );
+    expect(receipt).toBeTruthy();
+    expect(receipt.querySelector("[data-identifier]").textContent).toBe(
+      "league_opportunity.v2",
     );
     expect(receipt.closest("ul")).toHaveProperty("dataset.receipt");
     expect(screen.queryByText(/Team posture data:/)).toBeNull();

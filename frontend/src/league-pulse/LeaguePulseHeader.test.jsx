@@ -5,6 +5,11 @@ import { describe, expect, it } from "vitest";
 import { leaguePulseResponse } from "./fixtures";
 import { LeaguePulseHeader } from "./LeaguePulseHeader";
 
+/** The one receipt line whose rendered text is exactly `line`, or undefined. */
+function receiptLineOf(root, line) {
+  return [...root.querySelectorAll("li")].find((node) => node.textContent === line);
+}
+
 function headerResponse() {
   return leaguePulseResponse({
     dropped: {
@@ -53,15 +58,23 @@ describe("LeaguePulseHeader", () => {
     // The three artifact versions stay VERBATIM — they are the receipt, and a
     // receipt that renamed what it cites would stop being one. DG-109 only
     // labels them and declares the list as the receipt layer.
+    //
+    // DG-120 split each line into our LABEL and the artifact's own VERSION, so
+    // the version can be declared `data-identifier` and the render rule can
+    // tell the two apart. The line a person reads is byte-identical, which is
+    // what `receiptLineOf` checks — and the version now has to be inside the
+    // declared identifier, not merely somewhere on the line.
     for (const [label, version] of [
       ["Team posture data", "team_posture.v1"],
       ["Team value data", "team_value_matrix.v1"],
       ["League opportunity data", "league_opportunity.v2"],
     ]) {
-      expect(within(banner).getByText(`${label}: ${version}`)).toBeTruthy();
+      const line = receiptLineOf(banner, `${label}: ${version}`);
+      expect(line).toBeTruthy();
+      expect(line.querySelector("[data-identifier]").textContent).toBe(version);
     }
     expect(
-      within(banner).getByText("Team posture data: team_posture.v1").closest("ul"),
+      receiptLineOf(banner, "Team posture data: team_posture.v1").closest("ul"),
     ).toHaveProperty("dataset.receipt");
   });
 

@@ -177,16 +177,76 @@ describe("the render rule: no raw pipeline key reaches the DOM", () => {
     expect(findRawCopy("2XVAR and XVAR")).toEqual(["XVAR", "XVAR"]);
   });
 
-  it("exempts the receipt layer and the league's own words, and nothing else", () => {
+  it("exempts declared identifiers and the league's own words, and nothing else", () => {
     const host = document.createElement("div");
     host.innerHTML = `
       <p>engine_b_not_decision_grade</p>
-      <p data-receipt>artifact pvo_refresh</p>
+      <p data-receipt>artifact <span data-identifier>pvo_refresh</span></p>
       <h4 data-user-text>MDEF</h4>
-      <span data-receipt><em>nested_raw_key</em></span>
+      <span data-identifier><em>nested_raw_key</em></span>
     `;
     const findings = auditRenderedCopy(host);
     expect(findings.map((f) => f.token)).toEqual(["engine_b_not_decision_grade"]);
+  });
+
+  // ── DG-120: identifiers vs messages inside a receipt ──────────────────────
+  //
+  // The DG-109 exemption was doing double duty. `[data-receipt]` said "raw text
+  // lives here" and the audit skipped the whole subtree, so a STATUS MESSAGE
+  // nobody had written in English rode in under the same declaration that
+  // legitimately protects a file path. One click on the header pill put
+  // `roster_capacity: live_precondition_not_ok:capture_health_ok=degraded` on
+  // David's screen, and the rule that exists to stop exactly that was blind to
+  // it by construction.
+  //
+  // The split the rule now enforces: an IDENTIFIER is an address — a path, an
+  // artifact id, a run id, a hash, a git sha, a schema version — and rewording
+  // it destroys the thing it names, so it is declared `data-identifier` and
+  // kept byte-exact. A MESSAGE is a sentence — a status, a reason, a condition,
+  // a count — and there is no address in it to destroy, so it goes through the
+  // dictionary like every other sentence in the product.
+  //
+  // `[data-receipt]` survives as the LAYER marker (it is what the health card's
+  // provenance rows are), but it no longer grants an exemption. A component can
+  // no longer buy silence by calling itself a receipt; it has to point at the
+  // exact bytes that are an address.
+  it("fails a snake_case MESSAGE inside a receipt and spares the identifier beside it", () => {
+    const host = document.createElement("div");
+    host.innerHTML = `
+      <div data-receipt>
+        <span data-identifier>app/data/model_capture/pvo_refresh_latest_report.json</span>
+        <span data-identifier>scripts/run_pvo_refresh.py</span>
+        <span>live_precondition_not_ok:capture_health_ok=degraded</span>
+      </div>
+    `;
+    const findings = auditRenderedCopy(host);
+    expect(
+      findings.map((f) => f.token),
+      `the receipt exemption still swallowed a message:\n${formatRawCopyFindings(findings)}`,
+    ).toEqual(["live_precondition_not_ok", "capture_health_ok"]);
+  });
+
+  // The four strings the 2026-08-30 closeout audit measured on David's screen,
+  // each one a sentence someone declined to write. Every one of them must be
+  // seen by the rule when it sits inside a receipt undeclared.
+  it("sees each string the closeout audit found behind the receipt exemption", () => {
+    const measured = [
+      "roster_capacity: live_precondition_not_ok:capture_health_ok=degraded",
+      "2 of 3 stores degraded — model_forward_capture: missing 1 of 67 days (2026-08-12)",
+      "adapter_status:ok",
+      "mtime_fresh",
+    ];
+    for (const message of measured) {
+      const host = document.createElement("div");
+      const receipt = document.createElement("div");
+      receipt.setAttribute("data-receipt", "");
+      receipt.textContent = message;
+      host.appendChild(receipt);
+      expect(
+        auditRenderedCopy(host).length,
+        `a receipt hid this from the rule: ${message}`,
+      ).toBeGreaterThan(0);
+    }
   });
 
   // ── The nav rail, surface by surface ──────────────────────────────────────
@@ -216,6 +276,29 @@ describe("the render rule: no raw pipeline key reaches the DOM", () => {
       (whatChangedDegradedLive as Wire).daily_diff.model.comparison_window.status,
     ).toBe("model_multi_vintage_ambiguous");
     expectClean(container, "Daily What-Changed (degraded model feed)");
+  });
+
+  // DG-120 — THE SECOND RECEIPT ONE CLICK FROM DAVID. The health sheet under
+  // "Details" on the front page is shut on arrival, so neither this test nor
+  // the browser gate had ever rendered it; both mounts above audit clean for
+  // free. Opened, on the degraded fixture, it printed
+  //   Feed status: degraded · market ok · model model_multi_vintage_ambiguous
+  //   · producer reasons, verbatim: model_multi_vintage_ambiguous
+  // — a raw enum three times over, on the surface the nav opens on, behind a
+  // `data-receipt` that exempted the whole paragraph. The sheet is opened here
+  // in both feed states so it can never go unlooked-at again.
+  it.each([
+    ["quiet", whatChangedLive],
+    ["degraded", whatChangedDegradedLive],
+  ])("holds inside the front page's health sheet (%s feed)", async (label, fixture) => {
+    mockRoutes({ "/api/league/what-changed": fixture as Wire });
+
+    const { container } = render(<DailyWhatChanged />);
+    await screen.findByRole("region", { name: /daily what-changed/i });
+    screen.getByTestId("wc-health-sheet-toggle").click();
+    await screen.findByTestId("wc-health-sheet");
+
+    expectClean(container, `Daily What-Changed health sheet (${label} feed)`);
   });
 
   it("holds on Roster Audit with live data", async () => {
@@ -575,6 +658,56 @@ describe("the render rule: no raw pipeline key reaches the DOM", () => {
     await screen.findByText(/data freshness/i);
 
     expectClean(container, "System health card");
+  });
+
+  // DG-120. The card above is the surface one click behind "Attention — details
+  // inside", and until now its receipts were the ONE place the rule could not
+  // see. These two assertions are the ticket's honesty law in test form:
+  // translation, not deletion. The messages are gone as machinery; every
+  // identifier they sat beside is still on screen, byte for byte.
+  it("keeps every receipt identifier byte-exact while its messages become prose", async () => {
+    mockRoutes({ "/api/health": systemHealthLive as Wire });
+
+    const { container } = render(<SystemHealthCard now={new Date("2026-08-30")} />);
+    await screen.findByText(/data freshness/i);
+    const text = (container as HTMLElement).innerText ?? container.textContent ?? "";
+
+    // Every ADDRESS the payload carries still reaches the screen unaltered.
+    for (const report of (systemHealthLive as Wire).reports) {
+      expect(text, `the artifact id left the receipt: ${report.artifact_id}`).toContain(
+        report.artifact_id,
+      );
+      expect(text, `the producer left the receipt: ${report.producer}`).toContain(
+        report.producer,
+      );
+      expect(text, `the file path left the receipt: ${report.artifact_path}`).toContain(
+        report.artifact_path,
+      );
+    }
+    for (const subsystem of (systemHealthLive as Wire).subsystems) {
+      expect(
+        text,
+        `the guard id left the receipt: ${subsystem.subsystem_id}`,
+      ).toContain(subsystem.subsystem_id);
+    }
+
+    // And every MESSAGE the closeout audit measured is gone as machinery. The
+    // FACTS inside them are asserted separately, in SystemHealthCard.test.tsx.
+    for (const machinery of [
+      "live_precondition_not_ok",
+      "adapter_status:ok",
+      "mtime_fresh",
+      "embedded_timestamp_fresh",
+      "past_grace",
+      "timestamp_source:mtime_fallback",
+      "core_substrate",
+      "daily_diagnostics",
+    ]) {
+      expect(
+        text,
+        `a pipeline message survived in a receipt: ${machinery}`,
+      ).not.toContain(machinery);
+    }
   });
 
   it("holds on the trust strip, which rides every surface, with live data", async () => {

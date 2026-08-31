@@ -617,8 +617,13 @@ export function describeToken(token: string): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 4 · The receipt layer — where a raw key is allowed to live, always labelled.
+// 4 · The receipt layer — where a raw IDENTIFIER is allowed to live, labelled.
 // ─────────────────────────────────────────────────────────────────────────────
+//
+// DG-120 narrowed this section's remit and it is worth saying why. The header
+// used to read "where a raw key is allowed to live", and a MESSAGE is a key too,
+// so unreadable status strings lived here by the letter of it. Only an ADDRESS
+// belongs in the raw layer now; the messages moved to section 9.
 
 /**
  * The consolidated `title={`field=${value}`}` convention. A receipt names the
@@ -630,10 +635,13 @@ export function receiptDetail(field: string, value: string | number | null): str
   return `${fieldLabel(field)} — ${shown} (from ${field})`;
 }
 
-/** A labelled receipt line for a raw identifier that has no prose form. */
-export function receiptLine(label: string, raw: string | number | null): string {
-  return `${label}: ${raw === null || raw === "" ? "not recorded" : String(raw)}`;
-}
+// `receiptLine(label, raw)` used to live here, returning `"label: raw"` as ONE
+// string. It is gone, and its going is the point of DG-120: a single string
+// cannot declare which half of itself is an address, so the render rule could
+// only take the whole line or leave it — and it left it. `ui/Receipt.tsx`
+// renders the same line as two nodes, the label ours and the value declared
+// `data-identifier`, which reads identically and can be audited. Every call
+// site moved (League Pulse, Trade partners, the player card).
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 5 · Health surfaces — the names and states of the daily feeds.
@@ -985,4 +993,698 @@ const POSITION_GROUPS: Record<string, string> = {
 export function positionGroup(position: string | null | undefined): string | null {
   if (position === null || position === undefined) return null;
   return POSITION_GROUPS[position.trim().toUpperCase()] ?? null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 9 · DG-120 — THE RECEIPT LAYER: identifiers stay, messages become sentences.
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// A receipt carries two kinds of string and they are not the same kind of
+// thing:
+//
+//   an IDENTIFIER is an ADDRESS. `app/data/what_changed/…json`,
+//   `scripts/run_pvo_refresh.py`, `pvo_refresh`, a run id, a git sha, a schema
+//   version. It names something a person can go and look at, and rewording it
+//   destroys the only thing it was for. These never pass through this
+//   dictionary. They are rendered inside `data-identifier` and stay byte-exact.
+//
+//   a MESSAGE is a SENTENCE. A status, a reason, a condition, a count.
+//   `live_precondition_not_ok:capture_health_ok=degraded` addresses nothing —
+//   there is no `live_precondition_not_ok` to go and look at. It is a sentence
+//   someone declined to write, and it belongs here with every other sentence in
+//   the product.
+//
+// Everything below is the second kind. The rule is DG-109's, unchanged: the
+// furniture goes, the FACTS STAY. A degraded store still says which store and
+// which days; a failed precondition still says which check and what it read;
+// a stale report still says stale. Nothing is dropped — the raw identifier the
+// message sat beside is on screen underneath it.
+//
+// EVERY SENTENCE HERE IS TRACED TO THE LINE THAT PRODUCES IT. Where a comment
+// names a file and line, that is the producer whose behaviour the sentence
+// claims. A sentence with no producer behind it is a guess, and a guess in the
+// receipt layer is worse than the raw token — the raw token at least did not
+// lie.
+
+/** One piece of a receipt message: our words, or bytes we must not touch. */
+export type ReceiptSegment =
+  | { kind: "prose"; text: string }
+  | { kind: "identifier"; raw: string };
+
+/** One line of a receipt: what it is about, in words, and the address it names. */
+export type ReceiptDetail = {
+  /** The human label — what a manager would call the thing this line is about. */
+  label: string;
+  /** The message, in prose, with any address inside it kept byte-exact. */
+  message: ReceiptSegment[];
+  /** The raw id this line is about. Rendered beneath the label, byte-exact. */
+  identifier: string;
+};
+
+const prose = (text: string): ReceiptSegment => ({ kind: "prose", text });
+const identifier = (raw: string): ReceiptSegment => ({ kind: "identifier", raw });
+
+/**
+ * The last resort for a message with no entry above.
+ *
+ * It returns the producer's OWN bytes, never a humanized paraphrase — a
+ * humanized caveat reads as broken English and can be mistaken for a claim
+ * (the DG-043 bug), and the receipt layer is the one place where showing the
+ * raw string is honest rather than lazy. What it does NOT do is hide it: the
+ * segment is prose, not an identifier, so `renderRule` sees it, the gate goes
+ * red, and the crew writes the sentence. An unwritten message is a defect that
+ * should be loud, and David keeps seeing the true string in the meantime.
+ */
+function unwrittenMessage(message: string): ReceiptSegment[] {
+  // `zSubsystemHealth.basis` is a bare `z.string()` (zod.gen.ts:1329) where
+  // `zSurfaceReadiness.basis` is `.min(1)`, so an empty basis is a shape the
+  // boundary accepts. Absence renders nothing (spec §6 rule 6) — a "Why" label
+  // standing over an empty span promises a reason and delivers none.
+  if (message.trim() === "") return [];
+  if (findRawCopy(message).length === 0) return [prose(message)];
+  console.warn("Copy dictionary: no sentence for receipt message", message);
+  return [prose(message)];
+}
+
+/**
+ * One TOKEN inside a receipt sentence, with the same law as `unwrittenMessage`.
+ *
+ * `describeToken` humanizes an unmapped token, and outside the receipt layer
+ * that is right: DG-109 pairs it with a `TokenNotes` paragraph that prints the
+ * raw key alongside, so nothing is lost. Inside a receipt there is no such
+ * paragraph — the sentence IS the whole rendering — so a humanized miss would
+ * replace the producer's bytes with prose nobody wrote, and `findRawCopy` would
+ * see no underscores and let it through. Three refuters caught exactly that on
+ * this ticket's first build, in the two branches below. Returning the raw token
+ * keeps the address on screen AND keeps the render rule red, which is the whole
+ * point of §9: the fallback must not be able to buy silence.
+ */
+function receiptToken(token: string): string {
+  const note = lookupToken(token);
+  return note.mapped ? note.text : note.raw;
+}
+
+/**
+ * The five surfaces tier-readiness grades (`app/config/tier_readiness.json`),
+ * named with the LEAF LABEL each one carries in the nav rail
+ * (`shell/destinations.ts`) — the words on the tab David actually clicks.
+ *
+ * That is a deliberate choice over the config's own `display_name`, and the
+ * two differ on three of the five: the config says "Roster Capacity", "Trade
+ * Lab" and "League Pulse" where the nav says "Cut list", "Build a trade" and
+ * "League". This receipt exists to tell a person WHICH PART of the product is
+ * held back, and a name he cannot find in the rail does not tell him that.
+ */
+const SURFACE_NAMES: Record<string, string> = {
+  // destinations.ts: Roster › Cut list.
+  roster_capacity: "Cut list",
+  // destinations.ts: Today.
+  daily_what_changed: "Today",
+  // destinations.ts: Track record › Model trust.
+  model_trust_console: "Model trust",
+  // destinations.ts: Trades › Build a trade.
+  trade_lab: "Build a trade",
+  // destinations.ts: League.
+  league_pulse: "League",
+};
+
+export function surfaceName(surfaceId: string): string {
+  const known = SURFACE_NAMES[surfaceId];
+  if (known !== undefined) return known;
+  console.warn("Copy dictionary: no name for surface", surfaceId);
+  return humanize(surfaceId);
+}
+
+/**
+ * The two live preconditions a surface can be held back by
+ * (`_KNOWN_PRECONDITIONS`, system_tier_readiness_models.py:43-45). The set is
+ * closed in the backend — an unknown one is config corruption there — so an
+ * unknown one here is a real drift worth warning about.
+ */
+const PRECONDITION_NAMES: Record<string, string> = {
+  model_provenance_ok: "model provenance",
+  capture_health_ok: "capture health",
+};
+
+function preconditionName(key: string): string {
+  const known = PRECONDITION_NAMES[key];
+  if (known !== undefined) return known;
+  console.warn("Copy dictionary: no name for precondition", key);
+  return humanize(key).toLowerCase();
+}
+
+/**
+ * A report's `basis` — the freshness evaluator's one-line account of WHY the
+ * row reads the way it does (`evaluate_report_freshness`,
+ * system_health_models.py:501-655). Every branch of that function is here.
+ */
+const REPORT_BASIS_SENTENCES: Record<string, string> = {
+  // :538 — the configured path held no file at all.
+  artifact_absent: "The file this report writes was not there.",
+  // :620 — no embedded timestamp declared and no modification time either.
+  no_observable_timestamp: "Nothing on the file said when it was written.",
+  // :636 with timestamp_basis "embedded_timestamp" (:614).
+  embedded_timestamp_fresh:
+    "Inside its freshness window, going by the timestamp the report publishes.",
+  // :636 with timestamp_basis "mtime" (:618) — no timestamp field is declared
+  // for this artifact, so the file's own clock is what there is.
+  mtime_fresh: "Inside its freshness window, going by when the file was last written.",
+  // :638 — past the scheduled run, inside the configured grace hours after it.
+  within_grace: "Past its scheduled run, still inside the grace period after it.",
+  // :640 — past the scheduled run and past the grace hours too.
+  past_grace: "Past its scheduled run, and past the grace period after it.",
+  // :649 — the dormancy floor, applied only to a MISSING artifact off-season.
+  dormant_ok_offseason: "Out of season — nothing was expected to run.",
+  // :451 — the config declares an input-provenance block and none was readable.
+  input_provenance_unreadable:
+    "This report is supposed to record where its inputs came from, and that record could not be read.",
+  // :467 — every declared input stream loaded, none fell back to an earlier season.
+  inputs_live: "Every input it reads loaded live.",
+};
+
+/**
+ * A report `basis` that carries a value inside it. Ordered most specific first;
+ * each one names the producer branch it translates.
+ */
+const REPORT_BASIS_PATTERNS: {
+  match: RegExp;
+  build: (m: RegExpMatchArray) => ReceiptSegment[];
+}[] = [
+  {
+    // :540-543 — `below_min_size:{observed}<{floor}`. Both numbers are facts
+    // about the file, not addresses, so both are said in the sentence.
+    match: /^below_min_size:(\d+)<(\d+)$/,
+    build: (m) => [
+      prose(
+        `Too small to be a real report — ${m[1]} bytes, under the ${m[2]}-byte floor.`,
+      ),
+    ],
+  },
+  {
+    // :553-556 — the artifact declares a status field and it was absent, or
+    // present and not text. The field NAME is an address into the artifact.
+    match: /^malformed_status:(.+)$/,
+    build: (m) => [
+      prose("The status field this report is supposed to publish ("),
+      identifier(m[1] as string),
+      prose(") was missing, or was not text."),
+    ],
+  },
+  {
+    // :606-609 — the declared timestamp field held something that is not a date.
+    match: /^malformed_embedded_timestamp:(.+)$/,
+    build: (m) => [
+      prose("The timestamp field this report publishes ("),
+      identifier(m[1] as string),
+      // :600-609 covers BOTH arms — the field was absent (`raw is None`) and
+      // the field was present and unparseable. The sentence names both,
+      // because "could not be read" alone would imply something was there.
+      prose(") was missing, or could not be read as a date."),
+    ],
+  },
+  {
+    // :631-634 — a clock-skew guard. The suffix says which clock was read.
+    match: /^future_timestamp:(embedded_timestamp|mtime)$/,
+    build: (m) => [
+      prose(
+        m[1] === "mtime"
+          ? "Its timestamp is in the future — read from when the file was last written."
+          : "Its timestamp is in the future — read from the timestamp the report publishes.",
+      ),
+    ],
+  },
+  {
+    // :561-562 — `producer_failure:{fact.failure_reason or 'unreported'}`. The
+    // reason is arbitrary producer bytes: `app/config/report_freshness.json`
+    // declares a free-text `failure_reason_field` on six of nine artifacts, two
+    // of them core_substrate. So it goes through the dictionary if the
+    // dictionary knows it, and through UNTOUCHED if it does not — never
+    // humanized, which would delete the producer's own words from the screen.
+    match: /^producer_failure:(.+)$/,
+    build: (m) =>
+      m[1] === "unreported"
+        ? [prose("The run reported that it failed, and gave no reason.")]
+        : [prose(`The run reported that it failed: ${receiptToken(m[1] as string)}`)],
+  },
+  {
+    // :467 — the healthy input-provenance line, with the streams named.
+    match: /^inputs_live: (.+)$/,
+    build: (m) => [
+      prose("Every input it reads loaded live: "),
+      ...streamSegments(m[1] as string),
+      prose("."),
+    ],
+  },
+];
+
+/**
+ * The stream list inside an input-provenance basis, e.g.
+ * `pbp 2025 (ValueError), player_stats 2025 (ConnectionError)`.
+ *
+ * `_describe_stream` (system_health_models.py:383-405) builds each phrase as
+ * `{stream name}[ {season}][ ({details})]`, so the FIRST word is the stream's
+ * id — an address into the producer's own input block — and everything after
+ * it is already the plain-language description that function exists to write.
+ * The id is kept byte-exact; the description is passed through untouched,
+ * because paraphrasing a count of rows would be inventing one.
+ */
+function streamSegments(list: string): ReceiptSegment[] {
+  const segments: ReceiptSegment[] = [];
+  const items = list.split(", ");
+  items.forEach((item, index) => {
+    if (index > 0) segments.push(prose(", "));
+    const space = item.indexOf(" ");
+    if (space === -1) {
+      segments.push(identifier(item));
+      return;
+    }
+    segments.push(identifier(item.slice(0, space)));
+    segments.push(prose(item.slice(space)));
+  });
+  return segments;
+}
+
+/**
+ * The degraded input-provenance basis (`summarize_input_provenance`,
+ * system_health_models.py:470-480): up to three sections joined by ` | `, each
+ * a shouted header and a stream list. The headers are the only machinery in
+ * it, and each one is a claim the function makes explicitly:
+ *
+ *   EMPTY          `status != "loaded"` (:456)   — the stream did not load.
+ *   EARLIER SEASON `fallback_used is True` (:460) — the season it ASKED for was
+ *                  refused and an earlier one was served. DG-023: this is NOT a
+ *                  cache and must never be called one.
+ *   LIVE           neither (:463)                 — loaded, season as requested.
+ */
+const PROVENANCE_SECTION_LEDES: Record<string, string> = {
+  EMPTY: "Did not load: ",
+  "EARLIER SEASON": "Served an earlier season than the one asked for: ",
+  LIVE: "Loaded live: ",
+};
+
+function provenanceSections(basis: string): ReceiptSegment[] | null {
+  const sections = basis.split(" | ");
+  const segments: ReceiptSegment[] = [];
+  for (const [index, section] of sections.entries()) {
+    const split = section.indexOf(": ");
+    if (split === -1) return null;
+    const lede = PROVENANCE_SECTION_LEDES[section.slice(0, split)];
+    if (lede === undefined) return null;
+    if (index > 0) segments.push(prose(" · "));
+    segments.push(prose(lede));
+    segments.push(...streamSegments(section.slice(split + 2)));
+  }
+  return segments.length > 0 ? segments : null;
+}
+
+/** A report row's `basis`, said as a sentence. Identifiers inside it survive. */
+export function reportBasisMessage(basis: string): ReceiptSegment[] {
+  const exact = REPORT_BASIS_SENTENCES[basis];
+  if (exact !== undefined) return [prose(exact)];
+  for (const rule of REPORT_BASIS_PATTERNS) {
+    const match = basis.match(rule.match);
+    if (match !== null) return rule.build(match);
+  }
+  const provenance = provenanceSections(basis);
+  if (provenance !== null) return provenance;
+  return unwrittenMessage(basis);
+}
+
+/**
+ * A report's `disclosures` — side facts the evaluator attaches to a row. Both
+ * of them change what the row's own numbers mean, so neither is decoration.
+ */
+const DISCLOSURE_SENTENCES: Record<string, string> = {
+  // :580 and :617 — appended whenever the time on the row came from the file
+  // rather than from inside the report. It is why "18 hr ago" is the file's age.
+  "timestamp_source:mtime_fallback":
+    "The time on this row is when the file was last written, not a timestamp inside it.",
+  // :653-654 — auxiliary rows are excluded from the rollup by
+  // `_TIER_SEVERITY` (:363), which has no `auxiliary` key. Saying so here is
+  // what stops a failed secondary feed reading as a healthy overall status.
+  auxiliary_info_only:
+    "Secondary data: this row is reported for information and does not move the overall status.",
+};
+
+export function disclosureSentence(token: string): ReceiptSegment[] {
+  const known = DISCLOSURE_SENTENCES[token];
+  if (known !== undefined) return [prose(known)];
+  return unwrittenMessage(token);
+}
+
+/**
+ * One tier-readiness surface's own `basis`
+ * (`evaluate_surface_readiness`, system_tier_readiness_models.py:277-375, and
+ * the two overrides in system_tier_readiness.py:142 and :211).
+ */
+const SURFACE_BASIS_SENTENCES: Record<string, string> = {
+  // :352-354 — no `ratified_date` in app/config/tier_readiness.json. This
+  // branch sits AHEAD of the insufficient-data one in the same else-chain, so a
+  // surface can reach it with a check that was never gradeable; the earlier
+  // wording ("Its checks pass") claimed more than the branch entails.
+  awaiting_david_ratification: "It has not been signed off by David yet.",
+  // :357-358 — active, but a component reported `insufficient_data`.
+  readiness_active_with_insufficient_data:
+    "Running, with too little data behind one of its checks to grade it.",
+  // :360-361 — every gate component passed.
+  all_readiness_checks_passed: "Every readiness check passed.",
+  // system_tier_readiness.py:155 — the happy path of the evidence probe.
+  "declared evidence files present": "Its declared evidence files are all present.",
+};
+
+/**
+ * The two bases the producer writes for a surface that IS graded ready.
+ *
+ * `_default_tier_readiness_status` (system_health.py:63-68) filters the surface
+ * list on `surface.tier_status != "ok"` — and "ok" is NOT a member of
+ * `TierStatus` (system_tier_readiness_models.py:25-30), whose four values are
+ * diagnostic_grade_active, diagnostic_grade_active_limited,
+ * preconditions_degraded and not_graduated. The comparison is therefore a
+ * tautology and the basis names EVERY surface whenever the rollup is degraded,
+ * ready ones included. The R8 overlay (system_tier_readiness.py:196-214)
+ * downgrades ONE surface whose own producer artifact is absent, and the five
+ * surfaces declare five different artifacts — so a list of one held-back
+ * surface and four passing ones is a live shape, not a hypothetical.
+ *
+ * Reading the docstring's intent instead of the filter's behaviour is how a
+ * heading saying "5 parts of the product are not graded ready" ends up printed
+ * over four rows that read "Every readiness check passed."  These two bases are
+ * the ones set alongside a tier_status inside `_ACTIVE_STATUSES` (:357-361), so
+ * they are what lets the frontend count the held-back surfaces itself rather
+ * than trusting a filter that filters nothing.
+ */
+const READY_SURFACE_BASES: ReadonlySet<string> = new Set([
+  "all_readiness_checks_passed",
+  "readiness_active_with_insufficient_data",
+]);
+
+function surfaceBasisMessage(basis: string): ReceiptSegment[] {
+  const exact = SURFACE_BASIS_SENTENCES[basis];
+  if (exact !== undefined) return [prose(exact)];
+
+  // :344-349 — the integrity cascade. A precondition that is not `ok` wins
+  // outright, and this is the string it writes. The observed value is the
+  // precondition's OWN status word, so it goes through the same shelf of the
+  // dictionary the health pill uses.
+  const precondition = basis.match(/^live_precondition_not_ok:([a-z_]+)=(.+)$/);
+  if (precondition !== null) {
+    return [
+      prose(
+        `Waiting on the ${preconditionName(precondition[1] as string)} check, which is reporting: ${valueWord(
+          precondition[2] as string,
+        ).toLowerCase()}.`,
+      ),
+    ];
+  }
+
+  // system_tier_readiness.py:138-143 — one entry per missing evidence file,
+  // joined by "; ". The paths are addresses and stay exactly as written.
+  if (basis.startsWith("evidence_missing:")) {
+    const paths = basis
+      .split("; ")
+      .map((part) => part.replace("evidence_missing:", ""));
+    const segments: ReceiptSegment[] = [
+      prose(
+        paths.length === 1
+          ? "A declared evidence file is missing: "
+          : "Declared evidence files are missing: ",
+      ),
+    ];
+    paths.forEach((path, index) => {
+      if (index > 0) segments.push(prose(", "));
+      segments.push(identifier(path));
+    });
+    return [...segments, prose(".")];
+  }
+
+  // system_tier_readiness_models.py:301-320 — the FOUR bases a component defect
+  // actually writes onto a SURFACE. Every one of them is `{defect}:{component}`
+  // with the component name suffixed, and none was written until now: the
+  // entries this dictionary held for this area were `ComponentReadiness.basis`
+  // values, which the health payload never carries and this function is never
+  // called with. So the realistic broken morning — a gate component failing —
+  // printed raw machinery while four written sentences sat unreachable.
+  // The component name is an address into `_KNOWN_COMPONENTS` and stays exact.
+  const component = basis.match(
+    /^(component_failed|component_state_missing|unknown_component_status|required_component_not_applicable):(.+)$/,
+  );
+  if (component !== null) {
+    const sentence: Record<string, [string, string]> = {
+      // :319 — the component reported `fail`.
+      component_failed: ["Its readiness check ", " did not pass."],
+      // :301-303 — a declared component recorded no state at all (fail-closed).
+      component_state_missing: ["Its readiness check ", " recorded no state at all."],
+      // :306-309 — a status outside the four the registry allows.
+      unknown_component_status: [
+        "Its readiness check ",
+        " reported a status this product does not recognise.",
+      ],
+      // :311-315 — R6: `not_applicable` is legal only on an optional component.
+      required_component_not_applicable: [
+        "Its readiness check ",
+        " reported itself not applicable, and it is not optional.",
+      ],
+    };
+    const [head, tail] = sentence[component[1] as string] as [string, string];
+    return [prose(head), identifier(component[2] as string), prose(tail)];
+  }
+
+  // system_tier_readiness.py:205-213 — a producer artifact the surface declares
+  // is not on disk. The path is an address.
+  const artifact = basis.match(/^producer_artifact_missing:(.+)$/);
+  if (artifact !== null) {
+    return [
+      prose("A file its producer is supposed to write is missing: "),
+      identifier(artifact[1] as string),
+      prose("."),
+    ];
+  }
+
+  // system_tier_readiness.py:145-151 — the off-season probe, already a sentence
+  // apart from its leading key.
+  if (basis.startsWith("off_season_presence_probe_only: ")) {
+    return [
+      prose(
+        `Out of season, so only its evidence was checked — ${basis.slice("off_season_presence_probe_only: ".length)}`,
+      ),
+    ];
+  }
+
+  return unwrittenMessage(basis);
+}
+
+/**
+ * A capture store's own reason (`_store_reason`, system_health.py:75-105).
+ *
+ * That function already writes plain language for every branch it has —
+ * "missing 1 of 68 days (2026-08-12)", "stale since 2026-08-12", "3 days below
+ * the 60% row floor" — so this passes it through rather than paraphrasing a
+ * count. The one branch that can carry machinery is the store's own caveat
+ * list (:103), and those go through the token dictionary — but through
+ * `receiptToken`, not `describeToken`. Class A is a closed two-token set
+ * (system_capture_health_models.py:400-404) and everything else degrades by
+ * default, so the caveats that can actually reach a DEGRADED store's reason are
+ * the class-B set, none of which the dictionary has a sentence for yet. Under
+ * `describeToken` every one of them would have reached David as invented prose
+ * with the producer's token nowhere in the document and the render rule green.
+ */
+function storeReasonMessage(reason: string): ReceiptSegment[] {
+  if (findRawCopy(reason).length === 0) return [prose(reason)];
+  const parts = reason.split("; ").map((part) => receiptToken(part));
+  return [prose(parts.join(" · "))];
+}
+
+/**
+ * A subsystem's `basis` — one guard's account of itself.
+ *
+ * Three of these are compound: capture health and tier readiness both write a
+ * summary followed by one entry per degraded store / not-ready surface
+ * (system_health.py:139-141 and :66-69). A compound basis becomes a SUMMARY
+ * sentence plus one labelled line per entry, so each entry keeps its own
+ * identifier instead of all of them being buried in one string.
+ */
+export function subsystemBasisMessage(basis: string): {
+  summary: ReceiptSegment[];
+  lines: ReceiptDetail[];
+} {
+  // system_health.py:216 — the fallback when an adapter returns a bare status
+  // and no reason at all. It restates the status the row already shows, and
+  // saying so is the only honest translation of it.
+  const bare = basis.match(/^adapter_status:(.+)$/);
+  if (bare !== null) {
+    return {
+      summary: [
+        prose(
+          `The check returned only its status (${valueWord(bare[1] as string).toLowerCase()}), with nothing further.`,
+        ),
+      ],
+      lines: [],
+    };
+  }
+
+  // :143 and :72 — the fail-closed arms. Neither says what went wrong, because
+  // neither knows; the sentence must not pretend otherwise.
+  if (basis === "capture_health_uncomputable") {
+    return {
+      summary: [prose("Capture health could not be worked out at all.")],
+      lines: [],
+    };
+  }
+  if (basis === "tier_readiness_uncomputable") {
+    return { summary: [prose("Readiness could not be worked out at all.")], lines: [] };
+  }
+  if (basis === "tier_readiness_route_unavailable") {
+    return { summary: [prose("The readiness check could not be reached.")], lines: [] };
+  }
+
+  // :137 and :60 — the healthy arms, already written as sentences by the
+  // producer ("all 3 capture stores healthy", "all 5 surfaces ready"), and :70.
+  if (
+    /^all \d+ capture stores healthy$/.test(basis) ||
+    /^all \d+ surfaces ready$/.test(basis) ||
+    basis === "no surface named a reason"
+  ) {
+    return {
+      summary: [prose(`${basis.charAt(0).toUpperCase()}${basis.slice(1)}.`)],
+      lines: [],
+    };
+  }
+
+  // :139-141 — `{k} of {n} stores degraded — {store_id}: {reason}; …`.
+  const stores = basis.match(/^(\d+) of (\d+) stores degraded — (.+)$/);
+  if (stores !== null) {
+    const entries = splitLabelledEntries(stores[3] as string);
+    // The summary promises the rows that follow it. If the tail did not parse,
+    // the promise would be empty — so fall through to the raw string rather
+    // than print a heading over nothing.
+    if (entries.length > 0) {
+      // One degraded store is the live shape for model_forward_capture today,
+      // and "1 of 3 … feeds are in a bad state" is the sentence David reads on
+      // that morning. The verb agrees, the way the surfaces branch already did.
+      const feedVerb = stores[1] === "1" ? "is" : "are";
+      return {
+        summary: [
+          prose(
+            `${stores[1]} of ${stores[2]} daily capture feeds ${feedVerb} in a bad state. Which, and why:`,
+          ),
+        ],
+        lines: entries.map(([id, reason]) => ({
+          label: feedName(id),
+          message: storeReasonMessage(reason),
+          identifier: id,
+        })),
+      };
+    }
+  }
+
+  // :63-68 — `{surface_id}: {surface basis}; …`. NOT "one entry per surface
+  // that is not ready", which is what the producer's variable name and its
+  // docstring both say: the filter is `tier_status != "ok"` against a
+  // `TierStatus` with no "ok" member, so this is EVERY surface. See
+  // READY_SURFACE_BASES. The surface's own basis is the only thing on the line
+  // that says where that surface actually stands, so the count comes from the
+  // bases, never from the length of a list that was never filtered.
+  const surfaces = splitLabelledEntries(basis);
+  // One id the dictionary does not know used to send the WHOLE receipt back to
+  // the raw 400-character dump. `surfaceName` already warns and humanizes an
+  // unknown id, so one unknown surface now costs one row's label, not the other
+  // four rows' translations.
+  if (surfaces.length > 0 && surfaces.some(([id]) => id in SURFACE_NAMES)) {
+    const heldBack = surfaces.filter(
+      ([, surfaceBasis]) => !READY_SURFACE_BASES.has(surfaceBasis),
+    );
+    const rows = surfaces.map(([id, surfaceBasis]) => ({
+      label: surfaceName(id),
+      message: surfaceBasisMessage(surfaceBasis),
+      identifier: id,
+    }));
+
+    // Every surface on the list is graded ready. The rollup is still degraded —
+    // that is why this basis exists at all — but nothing here is what degraded
+    // it, and a heading claiming otherwise would be contradicted by its own
+    // rows. State what the list is and let each row speak.
+    if (heldBack.length === 0) {
+      return {
+        summary: [prose("Where each part of the product stands:")],
+        lines: rows,
+      };
+    }
+
+    const count = heldBack.length === 1 ? "One part" : `${heldBack.length} parts`;
+    const verb = heldBack.length === 1 ? "is" : "are";
+
+    // ONE CAUSE, SAID ONCE. On 2026-08-30 all five surfaces carried the SAME
+    // basis — every one of them waiting on capture health — and printing it
+    // five times filled the drawer with 10 lines that said one thing. Worse, it
+    // buried the fact worth having: this is not five problems, it is one. The
+    // shared sentence moves into the summary and the rows keep their names and
+    // their ids. It collapses only when EVERY surface on the list is held back
+    // by the identical string; a ready surface in the list is a different fact
+    // and keeps its own line.
+    const shared = new Set(heldBack.map(([, surfaceBasis]) => surfaceBasis));
+    if (heldBack.length === surfaces.length && shared.size === 1) {
+      return {
+        summary: [
+          prose(
+            `${count} of the product ${verb} not graded ready, all for the same reason. `,
+          ),
+          ...surfaceBasisMessage([...shared][0] as string),
+        ],
+        lines: rows.map((row) => ({ ...row, message: [] })),
+      };
+    }
+
+    // Mixed, or several causes. The count is of the held-back surfaces; the
+    // rows are ALL of them, each saying for itself whether it passed.
+    return {
+      summary: [
+        prose(
+          heldBack.length === surfaces.length
+            ? `${count} of the product ${verb} not graded ready. Which, and why:`
+            : `${count} of the ${surfaces.length} checked ${verb} not graded ready. Where each stands:`,
+        ),
+      ],
+      lines: rows,
+    };
+  }
+
+  return { summary: unwrittenMessage(basis), lines: [] };
+}
+
+/** What an id looks like in these payloads: lower snake_case, nothing else. */
+const ENTRY_ID = /^[a-z][a-z0-9_]*$/;
+
+/**
+ * Split `id: rest; id: rest; …` into pairs.
+ *
+ * Two things make this less trivial than it looks, and both are live:
+ *
+ *   the REST contains colons — `roster_capacity:
+ *   live_precondition_not_ok:capture_health_ok=degraded` — so the id is
+ *   everything up to the FIRST ": " (colon-space), never the first colon.
+ *
+ *   the REST contains "; " — `_store_reason` (system_health.py:105) joins a
+ *   store's own bits with exactly that separator, so one store can produce
+ *   `market_divergence_history: missing 4 of 53 days; stale since 2026-08-12`.
+ *   A part whose head is not an id is therefore a CONTINUATION of the entry
+ *   before it, not a new one. Splitting naively made the second bit its own
+ *   nameless row.
+ *
+ * Returns [] when the string is not of this shape at all, so a caller falls
+ * through to the raw message rather than inventing structure that is not there.
+ */
+function splitLabelledEntries(text: string): [string, string][] {
+  const entries: [string, string][] = [];
+  for (const part of text.split("; ")) {
+    const split = part.indexOf(": ");
+    const head = split === -1 ? "" : part.slice(0, split);
+    if (split === -1 || !ENTRY_ID.test(head)) {
+      const previous = entries[entries.length - 1];
+      if (previous === undefined) return [];
+      previous[1] = `${previous[1]}; ${part}`;
+      continue;
+    }
+    entries.push([head, part.slice(split + 2)]);
+  }
+  return entries;
 }

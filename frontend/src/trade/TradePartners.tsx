@@ -20,7 +20,7 @@ import { useEffect, useState } from "react";
 
 import type { LeaguePulseResponse } from "../lib/api";
 import { zLeaguePulseResponse } from "../lib/api/zod.gen";
-import { receiptLine } from "../lib/copy";
+import { ReceiptCitation } from "../ui/Receipt";
 import "../league-pulse/LeaguePulse.css";
 import { PartnerRankings } from "../league-pulse/PartnerRankings";
 import { PostureBasis } from "../league-pulse/PostureBasis";
@@ -114,7 +114,9 @@ export function TradePartners() {
         </p>
       ) : null}
       <ul className="dg-league-pulse__sources" data-receipt>
-        <li>{receiptLine("League opportunity data", opportunityVersion)}</li>
+        <li>
+          <ReceiptCitation label="League opportunity data" raw={opportunityVersion} />
+        </li>
       </ul>
       {/* The posture disclosure travels WITH the cards. Each card prints the two
           posture words the paragraph explains, and a posture word with no basis
