@@ -111,6 +111,21 @@ S3_INVIOLATE_SHA256 = {
 # no PVO/scoring/UI change, market wall unchanged, decision_supported=False throughout.
 # This EXTENDS the authorized set only; the exact-set allowlist semantics are preserved
 # (any other new, unlisted eval file still fails this audit).
+#
+# ADDENDUM (2026-08-31, David-authorized -- schedule-derived week finality):
+# week_finality.py is added to AUTHORIZED_EVAL_FILES below. It is a pure, model-blind
+# module (no DB/file/network I/O, no model call, no market coupling) that derives whether
+# an NFL week has ended from the schedule's own last-game time, so the realized-outcome
+# grader's finality gate can open at all. David's ruling, verbatim: "look at the schedule
+# for Week 1 and see when the last game in Week 1 is. When that game is over, the week is
+# final, and the stats are in."
+# It is the "governed finality-evidence provider" that run_realized_outcome_scoring's
+# _default_schedule_loader names as the only thing permitted to assert finality; the
+# score-derived default and its contract test are UNCHANGED, and this is a second door
+# beside that one rather than a widening of it. No Engine A/B feature or training change,
+# no PVO/scoring change, no product/UI change. This EXTENDS the authorized set only; the
+# exact-set allowlist semantics are preserved (any other new, unlisted eval file still
+# fails this audit). All permanent S4 guardrails remain UNCHANGED.
 AUTHORIZED_EVAL_FILES = {
     "__init__.py",
     "backtest_artifact.py",
@@ -130,6 +145,7 @@ AUTHORIZED_EVAL_FILES = {
     "te_archetype_bakeoff.py",
     "te_regularization_bakeoff.py",
     "te_role_risk_experiment.py",
+    "week_finality.py",
 }
 
 AST_AUDIT_SCAN_ROOTS = (
