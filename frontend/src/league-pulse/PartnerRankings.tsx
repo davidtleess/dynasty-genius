@@ -5,6 +5,7 @@ import {
   receiptDetail,
   receiptLine,
   receiptValue,
+  UNPLACED_POSTURE,
 } from "../lib/copy";
 import { TokenNotes } from "../ui/TokenNotes";
 import "./PartnerRankings.css";
@@ -43,7 +44,12 @@ import "./PartnerRankings.css";
 //                              are that roster's players whose market signal is
 //                              MODEL_HIGH_MARKET_LOW or MODEL_LOW_MARKET_HIGH
 //                              (:178-183). We print the COUNT, which is the
-//                              fact; the clamped score is a receipt line.
+//                              fact; the clamped score is a receipt line. A
+//                              ZERO IS LIST ABSENCE, NOT AGREEMENT: the rows
+//                              come from `_rostered_market_rows` (:33-41), so a
+//                              roster missing from the divergence artifact —
+//                              stale, thin or gate-suppressed — reads zero
+//                              exactly like a roster we priced and matched.
 //
 //   activity_recency_score     :185 — `activity_recency_score = 0.0`, A LITERAL.
 //                              It is never computed from anything. There is no
@@ -63,7 +69,17 @@ import "./PartnerRankings.css";
 //                              a placed pair that is simply not in the
 //                              complementary table. The evidence carries both
 //                              posture labels, so this component can tell which
-//                              happened and says so.
+//                              happened and says so — BY MIRRORING :223, the
+//                              producer's own gate, and not by asking whether
+//                              copy.ts happens to hold a word. The first cut
+//                              asked the dictionary and got TRANSITIONAL wrong
+//                              in both directions: a placed team rendered as
+//                              "we don't have enough signal to say which way
+//                              they're pointed", and a fully placed pairing's
+//                              table-miss zero rendered as a missing posture.
+//                              `_label_for` (team_posture.py:95-105) returns
+//                              FIVE labels; UNCLASSIFIED is not one of them and
+//                              is the only unplaced state there is.
 //
 //   partner_score              :189-195. The four parts, added. The list
 //                              arrives sorted by it, descending (:219).
@@ -87,6 +103,11 @@ const SCORE_KEYS = [
   "posture_alignment_score",
 ] as const;
 
+/**
+ * `SKILL_POSITIONS` (league_opportunity_map.py:16) — the exact list the matching
+ * loop sweeps. Sentences below claim a measured negative over it by name, so
+ * `PartnerRankingsReadable.test.jsx` reads the producer and fails if it moves.
+ */
 const POSITIONS = ["QB", "RB", "WR", "TE"] as const;
 
 export const PARTNER_RANKING_LEDE =
@@ -145,25 +166,39 @@ function postureSentence(perspective: string, counterparty: string): string {
   return "We don't have enough signal to place either roster.";
 }
 
-/** The matched positions, said as the gate that produced them (:173). */
+/**
+ * The matched positions, said as the gate that produced them (:173).
+ *
+ * The empty case NAMES THE SWEEP. The loop runs over `SKILL_POSITIONS` and only
+ * those (:16, :170), so "there's no position" would claim a wider check than the
+ * producer performed — on the one surface whose whole premise is that it does
+ * not do that. `PartnerRankingsReadable.test.jsx` locks this list to the
+ * producer's tuple.
+ */
 function positionSentence(matched: readonly string[]): string {
   return matched.length > 0
     ? `They're deep at ${joinPositions(matched)} — exactly where you're thin.`
-    : "There's no position where you're thin and they're deep.";
+    : `There's no position among ${joinPositions(POSITIONS)} where you're thin and they're deep.`;
 }
 
 /**
- * The divergence row COUNT, which is the fact; the clamped score is not. A zero
- * says only what the producer's filter says — that none of their players are on
- * the price-gap list — and stops there. It does not become "we agree with the
- * market about their whole roster", because a roster with no rows in the
- * divergence artifact at all produces the same zero.
+ * The divergence row COUNT, which is the fact; the clamped score is not.
+ *
+ * A ZERO CLAIMS LIST MEMBERSHIP AND NOTHING MORE. `divergence_row_count` is
+ * `len(divergence_rows)`, and those rows come out of `_rostered_market_rows`
+ * (:33-41) filtered to two signals (:178-183) — so a roster with NO rows in the
+ * market-divergence artifact at all, because it was stale, thin, or gate-
+ * suppressed (universe_market_divergence.py:120-127 emits four such states),
+ * yields the same zero as a roster that was priced against the market and
+ * agreed everywhere. "None of their players show a price gap between us and the
+ * market" asserts the second of those; only one of the two is entailed by the
+ * count. So the sentence says which list they are absent from, and stops.
  */
 function divergenceSentence(count: unknown): string | null {
   if (typeof count !== "number") return null;
   return count > 0
     ? `We and the market price ${count} of their players differently.`
-    : "None of their players show a price gap between us and the market.";
+    : "None of their players are on our price-gap list — the players we and the market price differently.";
 }
 
 /** One part of the score: what it counts, then the raw number as a receipt. */
@@ -178,7 +213,7 @@ function scorePartSentence(
     case "complementarity_score":
       return matched.length > 0
         ? `The best of the positions where you're thin and they're deep (${joinPositions(matched)}).`
-        : "Nothing scored here: no position has you thin and them deep.";
+        : `Nothing scored here: no position among ${joinPositions(POSITIONS)} has you thin and them deep.`;
     case "divergence_density_score": {
       // The part explains what it COUNTS. The headline sentence already states
       // the count itself, and repeating it word for word inside the receipt is
@@ -201,9 +236,17 @@ function scorePartSentence(
         : "How recently this team has traded.";
     case "posture_alignment_score": {
       if (value !== 0) return "Scores the two postures against each other.";
+      // THE PRODUCER'S OWN GATE, not a dictionary lookup. `_posture_alignment_
+      // score` returns 0.0 down two paths and this sentence tells them apart:
+      // :223 `if "UNCLASSIFIED" in {perspective_posture, counterparty_posture}`
+      // is the not-placed one, and :236's `.get(pair, 0.0)` is a fully placed
+      // pair that is simply absent from the complementary table. Asking the copy
+      // dictionary "do we have a word for this label?" instead answered the
+      // wrong question and got TRANSITIONAL — a placed label — wrong in both
+      // directions at once.
       const placed =
-        postureClause(String(evidence.perspective_posture)) !== null &&
-        postureClause(String(evidence.counterparty_posture)) !== null;
+        String(evidence.perspective_posture) !== UNPLACED_POSTURE &&
+        String(evidence.counterparty_posture) !== UNPLACED_POSTURE;
       return placed
         ? "Both postures were placed, so this pairing simply scores nothing."
         : "One of these teams does not have enough signal for a posture, so this part could not score.";
@@ -255,6 +298,12 @@ function PartnerCard({
 
       <p className="dg-partner-card__why">{why}</p>
 
+      {/* A caveat that is NOT true of every partner stays on the card it is true
+          of, IN THE OPEN. The section above carries only the intersection, and a
+          click is a softening: a caveat behind a disclosure is a caveat the
+          reader can miss on the way to acting. */}
+      <TokenNotes className="dg-partner-card__caveats" tokens={cardCaveats} />
+
       <details className="dg-partner-card__receipt">
         <summary className="dg-partner-card__receipt-summary">
           How this fit was scored
@@ -287,9 +336,6 @@ function PartnerCard({
             <li>{receiptLine("Per-position fit", positionReceipt.join(", "))}</li>
           ) : null}
         </ul>
-        {/* A caveat that is NOT true of every partner stays on the card it is
-            true of. The section above carries only the intersection. */}
-        <TokenNotes className="dg-partner-card__caveats" tokens={cardCaveats} />
       </details>
     </article>
   );

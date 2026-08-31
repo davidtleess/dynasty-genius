@@ -67,7 +67,10 @@ describe("PartnerRankings", () => {
     for (const component of [
       "How well the rosters fit",
       "How often we disagree on price",
-      "How recently they've traded",
+      // NOT "How recently they've traded" — the part is the literal 0.0 on
+      // league_opportunity_map.py:185, so a term naming a measured recency is
+      // the same false frame the value was retired for.
+      "Trade activity",
       "Whether you're pointed opposite ways",
     ]) {
       expect(row.getByText(component)).toBeTruthy();

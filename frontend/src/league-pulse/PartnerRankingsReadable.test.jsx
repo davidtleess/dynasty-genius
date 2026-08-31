@@ -27,6 +27,7 @@ import { fileURLToPath } from "node:url";
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { postureClause } from "../lib/copy";
 import { PartnerRankings } from "./PartnerRankings";
 
 // Producer-realistic rows, copied from the shape the live API returned on
@@ -327,7 +328,7 @@ describe("DG-119 · each card says who to call and why, in a sentence", () => {
 
     expect(
       cardFor("Drew P. Bauls").getByText(
-        /You're rebuilding and they're middle of the pack\. There's no position where you're thin and they're deep\./,
+        /You're rebuilding and they're middle of the pack\. There's no position among QB, RB, WR and TE where you're thin and they're deep\./,
       ),
     ).toBeTruthy();
   });
@@ -454,6 +455,256 @@ describe("DG-119 · a zero that was never measured does not read as a measuremen
       ),
     ).toBeTruthy();
     expect(card.queryByText(/they're not enough signal/i)).toBeNull();
+  });
+});
+
+describe("DG-119 · a posture the producer PLACED is never rendered as an absence", () => {
+  // THE PANEL'S BLOCKING FINDING. `_label_for` (team_posture.py:95-105) returns
+  // FIVE labels, not four: CONTENDER, REBUILDING, ASCENDING, TRANSITIONAL,
+  // BALANCED. TRANSITIONAL is placed — the API DTO enumerates it
+  // (league_pulse_models.py:117), the frontend's own generated types carry it
+  // (types.gen.ts:1256), and `_posture_alignment_score` PAYS it 0.10 against
+  // CONTENDER and against REBUILDING (league_opportunity_map.py:233-234).
+  //
+  // The first cut of this component asked the copy dictionary "do we have a word
+  // for this?" and treated "no" as "the producer could not place them". That is
+  // a new sentence asserting a missing measurement the model actually made.
+  it("names a transitional counterparty instead of claiming we could not place them", () => {
+    render(
+      <PartnerRankings
+        rankings={[
+          partner({
+            counterparty_team_name: "Transitional Ted",
+            score_components: {
+              activity_recency_score: 0.0,
+              complementarity_score: 0.841,
+              divergence_density_score: 1.0,
+              posture_alignment_score: 0.1,
+            },
+            evidence: {
+              counterparty_posture: "TRANSITIONAL",
+              divergence_row_count: 5,
+              perspective_posture: "REBUILDING",
+              position_scores: { RB: 0.554, WR: 0.841 },
+            },
+          }),
+        ]}
+      />,
+    );
+
+    const card = cardFor("Transitional Ted");
+    expect(
+      card.getByText(
+        /You're rebuilding and they're in transition\. They're deep at RB and WR — exactly where you're thin\./,
+      ),
+    ).toBeTruthy();
+    expect(card.queryByText(/which way they're pointed/)).toBeNull();
+  });
+
+  it("calls a placed pairing that scores nothing what it is, even when a label is transitional", () => {
+    // TRANSITIONAL vs ASCENDING is absent from the complementary table
+    // (league_opportunity_map.py:227-235), so `.get(..., 0.0)` returns zero with
+    // BOTH postures placed. The producer's own not-placed gate is line 223,
+    // `if "UNCLASSIFIED" in {perspective_posture, counterparty_posture}` — and
+    // that, not dictionary coverage, is what this card must mirror.
+    render(
+      <PartnerRankings
+        rankings={[
+          partner({
+            counterparty_team_name: "Both Placed Bob",
+            matched_positions: [],
+            partner_score: 1.0,
+            score_components: {
+              activity_recency_score: 0.0,
+              complementarity_score: 0.0,
+              divergence_density_score: 1.0,
+              posture_alignment_score: 0.0,
+            },
+            evidence: {
+              counterparty_posture: "ASCENDING",
+              divergence_row_count: 5,
+              perspective_posture: "TRANSITIONAL",
+              position_scores: {},
+            },
+          }),
+        ]}
+      />,
+    );
+
+    const card = cardFor("Both Placed Bob");
+    expect(
+      card.getByText(
+        "Both postures were placed, so this pairing simply scores nothing.",
+      ),
+    ).toBeTruthy();
+    expect(card.getByText(/You're in transition and they're rising\./)).toBeTruthy();
+  });
+
+  it("locks the placed-posture shelf to every label the classifier can return", () => {
+    // THE GRADUATION RED FOR THE SHELF. The bug above was possible because a
+    // hand-written set in copy.ts mirrored a producer enum with nothing tying
+    // the two together. This reads `_label_for` and fails the moment the
+    // classifier gains a label the frontend has no word for — before it can
+    // reach a card as "we don't have enough signal".
+    const posture = readFileSync(
+      resolve(
+        dirname(fileURLToPath(import.meta.url)),
+        "../../../src/dynasty_genius/team_posture.py",
+      ),
+      "utf8",
+    );
+    const body = posture.slice(posture.indexOf("def _label_for("));
+    const labels = [
+      ...body.slice(0, body.indexOf("\ndef ", 1)).matchAll(/return "([A-Z_]+)"/g),
+    ].map((match) => match[1]);
+
+    expect(labels.length).toBeGreaterThan(0);
+    expect(new Set(labels)).toEqual(
+      new Set(["CONTENDER", "REBUILDING", "ASCENDING", "TRANSITIONAL", "BALANCED"]),
+    );
+    for (const label of labels) {
+      expect(
+        postureClause(label),
+        `team_posture.py can label a roster ${label}, and copy.ts has no in-sentence ` +
+          "word for it. PartnerRankings.tsx would tell David we could not place a team " +
+          "the model placed. Add the word to VALUE_WORDS before this ships.",
+      ).not.toBeNull();
+    }
+    // UNCLASSIFIED is the ONLY unplaced state, and it is not a label the
+    // classifier emits — league_opportunity_map.py substitutes it when a roster
+    // carries no posture at all (:186-187), and gates on exactly it at :223.
+    expect(labels).not.toContain("UNCLASSIFIED");
+    expect(postureClause("UNCLASSIFIED")).toBeNull();
+  });
+
+  it("mirrors the producer's own not-placed gate, not a dictionary lookup", () => {
+    const source = readFileSync(
+      resolve(
+        dirname(fileURLToPath(import.meta.url)),
+        "../../../src/dynasty_genius/league_opportunity_map.py",
+      ),
+      "utf8",
+    );
+
+    expect(
+      source.includes(
+        'if "UNCLASSIFIED" in {perspective_posture, counterparty_posture}:',
+      ),
+      "_posture_alignment_score's not-placed gate moved. PartnerRankings.tsx tells " +
+        "David whether a zero here means an unplaced posture or a placed pairing that " +
+        "scores nothing, and it decides that by mirroring this line.",
+    ).toBe(true);
+  });
+});
+
+describe("DG-119 · a zero row count claims list membership, not roster coverage", () => {
+  it("does not say their whole roster was priced against the market", () => {
+    // `divergence_row_count` is `len(divergence_rows)` where the rows come from
+    // `_rostered_market_rows(market_divergence)` (league_opportunity_map.py:33-41,
+    // :178-184). A roster with NO rows in the divergence artifact — stale, thin
+    // or gate-suppressed, all modelled states in universe_market_divergence.py —
+    // produces the same zero as a roster that was priced and agreed everywhere.
+    // The face sentence may therefore claim membership and nothing more.
+    render(
+      <PartnerRankings
+        rankings={[
+          partner({
+            counterparty_team_name: "No Market Rows",
+            score_components: {
+              activity_recency_score: 0.0,
+              complementarity_score: 0.841,
+              divergence_density_score: 0.0,
+              posture_alignment_score: 0.25,
+            },
+            evidence: {
+              counterparty_posture: "CONTENDER",
+              divergence_row_count: 0,
+              perspective_posture: "REBUILDING",
+              position_scores: { RB: 0.554, WR: 0.841 },
+            },
+          }),
+        ]}
+      />,
+    );
+
+    const card = cardFor("No Market Rows");
+    expect(
+      card.getByText(
+        /None of their players are on our price-gap list — the players we and the market price differently\./,
+      ),
+    ).toBeTruthy();
+    expect(card.queryByText(/None of their players show a price gap/)).toBeNull();
+  });
+});
+
+describe("DG-119 · the sweep a sentence claims is the sweep the producer ran", () => {
+  it("names the four positions the matching loop actually covers", () => {
+    render(<PartnerRankings rankings={LIVE_ELEVEN} />);
+
+    expect(
+      cardFor("Drew P. Bauls").getByText(
+        /There's no position among QB, RB, WR and TE where you're thin and they're deep\./,
+      ),
+    ).toBeTruthy();
+  });
+
+  it("locks that list to SKILL_POSITIONS", () => {
+    const source = readFileSync(
+      resolve(
+        dirname(fileURLToPath(import.meta.url)),
+        "../../../src/dynasty_genius/league_opportunity_map.py",
+      ),
+      "utf8",
+    );
+
+    expect(
+      source.includes('SKILL_POSITIONS = ("QB", "RB", "WR", "TE")'),
+      "The positions the matching loop sweeps changed. PartnerRankings.tsx names " +
+        "them in a sentence that claims a measured negative over exactly that list.",
+    ).toBe(true);
+  });
+});
+
+describe("DG-119 · a caveat true of one partner stays in the reader's path", () => {
+  it("keeps a card-specific caveat on the card face, not behind the disclosure", () => {
+    render(
+      <PartnerRankings
+        rankings={[
+          partner({
+            counterparty_team_name: "Only Mine",
+            caveats: ["partner_score_market_influenced", "posture_unclassified"],
+            // Producer-legal: an UNCLASSIFIED side forces alignment to 0.0
+            // (league_opportunity_map.py:223), so the score is 1.841, not 2.091.
+            partner_score: 1.841,
+            score_components: {
+              activity_recency_score: 0.0,
+              complementarity_score: 0.841,
+              divergence_density_score: 1.0,
+              posture_alignment_score: 0.0,
+            },
+            evidence: {
+              counterparty_posture: "UNCLASSIFIED",
+              divergence_row_count: 5,
+              perspective_posture: "REBUILDING",
+              position_scores: { RB: 0.554, WR: 0.841 },
+            },
+          }),
+          partner({
+            counterparty_roster_id: 4,
+            counterparty_team_name: "Not Mine",
+          }),
+        ]}
+      />,
+    );
+
+    const card = screen.getByText("Only Mine").closest("article");
+    const note = within(card).getByText(
+      "One of these teams does not have enough signal for a posture.",
+    );
+    // A caveat is never allowed to soften into permission, and a click is a
+    // softening. Only the intersection — what is true of every card — is hoisted
+    // to the section; anything true of ONE partner stays in the open on it.
+    expect(note.closest("details")).toBeNull();
   });
 });
 

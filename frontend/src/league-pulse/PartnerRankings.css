@@ -75,8 +75,11 @@
 
 /* The list item is the flex context, and the card fills it.
  *
- * MEASURED, not assumed: the first cut gave the card `height: 100%` inside a
- * plain `<li>`, and at 390 the article laid out 217px tall inside a 183px grid
+ * MEASURED, not assumed: the first cut gave the card a full percentage height
+ * inside a plain `<li>` (the raw declaration is deliberately not spelled out
+ * here — rawCssAudit.test.js counts by regex and does not strip comments, so
+ * prose quoting a declaration becomes a phantom row in the debt ledger).
+ * At 390 the article laid out 217px tall inside a 183px grid
  * cell — every card overflowing its own row by 34px, which is exactly the
  * resolved value of the `margin-top: auto` below. Making the item a flex
  * container and the card `flex: 1` gives the auto margin real slack to
@@ -198,10 +201,16 @@
   margin-top: var(--dg-space-2);
 }
 
+/* A caveat true of THIS partner only, on the card face — a direct child of the
+   card now, not of the disclosure, so the card's own flex gap spaces it and the
+   margin that stood in for that gap inside `<details>` would double it. Same
+   size and muted colour as the section caveat above the grid, because it is the
+   same kind of sentence doing the same job. */
 .dg-partner-card__caveats {
-  margin: var(--dg-space-2) 0 0;
+  margin: 0;
   padding: 0;
   list-style: none;
+  font-size: var(--dg-text-sm);
   color: var(--dg-text-muted);
   line-height: var(--dg-leading-normal);
 }
