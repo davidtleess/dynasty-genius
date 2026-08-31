@@ -5,6 +5,14 @@ import { describe, expect, it } from "vitest";
 import { leaguePulseResponse } from "./fixtures";
 import { PartnerRankings } from "./PartnerRankings";
 
+// THE ALLOWLIST TESTS. DG-119 rebuilt this panel's presentation — card frames,
+// a rank word instead of a bare 2.091, one caveat for the section instead of
+// eleven stamps — and the readability of that rebuild is covered in
+// PartnerRankingsReadable.test.jsx. What is covered HERE is the part that did
+// not change and must not: the strict per-field allowlists that keep nested
+// evidence and stray score components off the surface, and the fact that every
+// value the panel does show is said in words rather than in producer tokens.
+
 function partnerRankingResponse() {
   const base = leaguePulseResponse();
   const ranking = {
@@ -31,8 +39,8 @@ function partnerRankingResponse() {
     score_components: {
       complementarity_score: 0.8,
       divergence_density_score: 0.5,
-      activity_recency_score: 0.2,
-      posture_alignment_score: 0.6,
+      activity_recency_score: 0.0,
+      posture_alignment_score: 0.25,
       ignored_score_component: 0.99,
     },
   };
@@ -40,37 +48,22 @@ function partnerRankingResponse() {
 }
 
 describe("PartnerRankings", () => {
-  it("renders partner rankings as market-influenced context with the allowlisted score and evidence fields", () => {
+  it("renders the allowlisted score, evidence and position fields and nothing else", () => {
     render(<PartnerRankings rankings={partnerRankingResponse().partner_rankings} />);
 
-    const section = screen.getByRole("region", {
-      name: /partner rankings/i,
-    });
-
+    const section = screen.getByRole("region", { name: /who to call/i });
+    expect(within(section).getByRole("heading", { name: /who to call/i })).toBeTruthy();
     expect(
-      within(section).getByRole("heading", { name: /partner rankings/i }),
+      within(section).getByText(
+        /partly market-derived, so it is context rather than a proven edge/i,
+      ),
     ).toBeTruthy();
-    expect(within(section).getByText(/market-influenced context/i)).toBeTruthy();
-    expect(within(section).getByText(/not a validated ranking/i)).toBeTruthy();
 
     const card = within(section).getByText("Market Context FC").closest("article");
     expect(card).toBeTruthy();
     const row = within(card);
 
-    expect(row.getByText(/roster 8/i)).toBeTruthy();
-    // Exact match: the score's own label, still distinct from the caveat that
-    // says the score is market-influenced. The two must never collapse.
-    expect(row.getByText("Trade-fit score")).toBeTruthy();
-    expect(row.getByText(/0\.742/)).toBeTruthy();
-    expect(row.getByText(/RB, WR/)).toBeTruthy();
-    expect(row.getByText(/market-influenced/i)).toBeTruthy();
-    expect(
-      row.getByText(
-        /partly market-derived, so it is context rather than a proven edge/i,
-      ),
-    ).toBeTruthy();
-    expect(row.queryByText("partner_score_market_influenced")).toBeNull();
-
+    // The four allowlisted components, each still named by the dictionary.
     for (const component of [
       "How well the rosters fit",
       "How often we disagree on price",
@@ -80,39 +73,70 @@ describe("PartnerRankings", () => {
       expect(row.getByText(component)).toBeTruthy();
     }
 
-    // Both postures still render, both said in words.
-    expect(row.getByText("Where you are")).toBeTruthy();
-    expect(row.getByText("Contending")).toBeTruthy();
-    expect(row.getByText("Where they are")).toBeTruthy();
-    expect(row.getByText("Rebuilding")).toBeTruthy();
-    expect(row.getByText("Players we price differently")).toBeTruthy();
-    expect(row.getByText("4")).toBeTruthy();
+    // Both postures and the divergence count still reach the reader — as the
+    // sentence that says who to call and why, rather than as labelled pairs.
+    expect(
+      row.getByText(
+        /You're contending and they're rebuilding\. They're deep at RB and WR — exactly where you're thin\. We and the market price 4 of their players differently\./,
+      ),
+    ).toBeTruthy();
+
+    // The raw producer vocabulary never reaches a reader outside the receipt.
     expect(row.queryByText(/CONTENDER/)).toBeNull();
     expect(row.queryByText(/perspective_posture/i)).toBeNull();
+    expect(row.queryByText("partner_score_market_influenced")).toBeNull();
 
-    for (const [position, value] of [
-      ["QB", "0.12"],
-      ["RB", "0.81"],
-      ["WR", "0.34"],
-      ["TE", "0.25"],
-    ]) {
-      expect(row.getByText(new RegExp(`${position}\\s+${value}`))).toBeTruthy();
-    }
-
+    // Allowlists: a stray score component, a nested evidence key and a position
+    // outside QB/RB/WR/TE are all dropped.
     expect(row.queryByText(/ignored_score_component/i)).toBeNull();
     expect(row.queryByText(/ignored_nested_key/i)).toBeNull();
     expect(row.queryByText(/must not render/i)).toBeNull();
-    expect(row.queryByText(/DL\s+0\.99/)).toBeNull();
+    expect(row.queryByText(/DL 0\.99/)).toBeNull();
+    expect(row.getByText(/QB 0\.12, RB 0\.81, WR 0\.34, TE 0\.25/)).toBeTruthy();
   });
 
   it("renders a section-level empty state without hiding the surface", () => {
     render(<PartnerRankings rankings={[]} />);
 
-    const section = screen.getByRole("region", {
-      name: /partner rankings/i,
-    });
+    const section = screen.getByRole("region", { name: /who to call/i });
     expect(
       within(section).getByText(/no partner ranking context available/i),
     ).toBeTruthy();
+  });
+
+  it("says nothing about a caveat when the producer emitted none", () => {
+    // Absence renders nothing (spec §6 rule 6). An empty caveat list produces
+    // no element at all — not an "everything checks out" line, which would be a
+    // claim the producer never made.
+    const base = partnerRankingResponse().partner_rankings[0];
+    render(<PartnerRankings rankings={[{ ...base, caveats: [] }]} />);
+
+    expect(screen.queryByText(/market-derived/i)).toBeNull();
+  });
+
+  it("keeps a caveat that is true of only one partner on that partner's card", () => {
+    const base = partnerRankingResponse().partner_rankings[0];
+    render(
+      <PartnerRankings
+        rankings={[
+          { ...base, counterparty_roster_id: 8, counterparty_team_name: "Both" },
+          {
+            ...base,
+            counterparty_roster_id: 9,
+            counterparty_team_name: "Only This One",
+            caveats: ["partner_score_market_influenced", "posture_unclassified"],
+          },
+        ]}
+      />,
+    );
+
+    // The shared token is hoisted once; the one-off stays where it is true.
+    expect(
+      screen.getAllByText(/partly market-derived, so it is context/i),
+    ).toHaveLength(1);
+    const unique = screen.getByText(/does not have enough signal for a posture\./i);
+    expect(unique.closest("article")).toBe(
+      screen.getByText("Only This One").closest("article"),
+    );
   });
 });

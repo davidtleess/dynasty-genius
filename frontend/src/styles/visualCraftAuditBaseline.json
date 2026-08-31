@@ -37,6 +37,15 @@
       "card_treatment_selectors": 0
     },
     {
+      "path": "league-pulse/PartnerRankings.css",
+      "focus_visible_selectors": 1,
+      "focus_token_consumers": 1,
+      "hover_selectors": 1,
+      "elevation_consumers": 0,
+      "row_treatment_selectors": 2,
+      "card_treatment_selectors": 17
+    },
+    {
       "path": "model-scoreboard/ModelScoreboard.css",
       "focus_visible_selectors": 0,
       "focus_token_consumers": 0,
@@ -209,11 +218,11 @@
     }
   ],
   "totals": {
-    "focus_visible_selectors": 19,
-    "focus_token_consumers": 16,
-    "hover_selectors": 8,
+    "focus_visible_selectors": 20,
+    "focus_token_consumers": 17,
+    "hover_selectors": 9,
     "elevation_consumers": 0,
-    "row_treatment_selectors": 44,
-    "card_treatment_selectors": 14
+    "row_treatment_selectors": 46,
+    "card_treatment_selectors": 31
   }
 }

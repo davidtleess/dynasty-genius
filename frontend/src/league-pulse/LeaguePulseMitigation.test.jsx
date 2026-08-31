@@ -99,7 +99,7 @@ describe("League Pulse graduation mitigation", () => {
 
     render(<TradePartners />);
 
-    const panel = await screen.findByRole("region", { name: /partner rankings/i });
+    const panel = await screen.findByRole("region", { name: /who to call/i });
     const mitigation = screen.getByText(MITIGATION_COPY);
     const mitigationBlock = mitigation.closest("[data-mitigation-contract]");
 

@@ -95,6 +95,7 @@ const FIELD_LABELS: Record<string, string> = {
   z_score: "vs. the league average",
 
   // Partner rankings.
+  counterparty_roster_id: "Their roster number",
   partner_score: "Trade-fit score",
   complementarity_score: "How well the rosters fit",
   divergence_density_score: "How often we disagree on price",
@@ -292,6 +293,36 @@ export function valueWord(value: string): string {
   if (findRawCopy(value).length === 0) return value;
   console.warn("Copy dictionary: no word for value", value);
   return humanize(value);
+}
+
+/**
+ * DG-119 — the four posture labels the producer can actually PLACE a team into,
+ * for use mid-sentence ("you're rebuilding and they're contending").
+ *
+ * DERIVED from VALUE_WORDS rather than written out again, so the in-sentence
+ * form can never drift into a second name for the same enum — the DG-117
+ * defect, where one quantity acquired four names on screen at once. The only
+ * change is the leading capital, which is typesetting, not vocabulary.
+ *
+ * `UNCLASSIFIED` IS DELIBERATELY ABSENT and returns null. team_posture.py emits
+ * it when a roster has too little signal to place, and there is no grammatical
+ * form of "not enough signal to place them" that can sit inside "you're X and
+ * they're Y" without reading as a posture we assigned. A caller that gets null
+ * must say the signal is missing in its own words; it must never fall through
+ * to a clause that implies we placed the team.
+ */
+const PLACEABLE_POSTURES: ReadonlySet<string> = new Set([
+  "CONTENDER",
+  "REBUILDING",
+  "ASCENDING",
+  "BALANCED",
+]);
+
+export function postureClause(value: string): string | null {
+  if (!PLACEABLE_POSTURES.has(value)) return null;
+  const word = VALUE_WORDS[value];
+  if (word === undefined) return null;
+  return `${word.charAt(0).toLowerCase()}${word.slice(1)}`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -642,6 +673,20 @@ export function receiptDetail(field: string, value: string | number | null): str
 // renders the same line as two nodes, the label ours and the value declared
 // `data-identifier`, which reads identically and can be audited. Every call
 // site moved (League Pulse, Trade partners, the player card).
+
+/**
+ * DG-119 — `receiptDetail` without the leading label, for the one shape where
+ * the label is ALREADY on screen: a definition list whose `<dt>` names the
+ * field and whose `<dd>` carries the value. Printing the full form there gives
+ * "How well the rosters fit" twice in eight lines, which reads as a bug.
+ *
+ * The receipt still names the producer field, because that is what makes it a
+ * receipt. Only the duplicated half goes.
+ */
+export function receiptValue(field: string, value: string | number | null): string {
+  const shown = value === null || value === "" ? "not recorded" : String(value);
+  return `${shown} (from ${field})`;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 5 · Health surfaces — the names and states of the daily feeds.

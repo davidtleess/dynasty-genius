@@ -1,16 +1,84 @@
 import type { LeaguePulsePartnerRanking } from "../lib/api";
-import { fieldLabel, valueWord } from "../lib/copy";
+import {
+  fieldLabel,
+  postureClause,
+  receiptDetail,
+  receiptLine,
+  receiptValue,
+} from "../lib/copy";
 import { TokenNotes } from "../ui/TokenNotes";
+import "./PartnerRankings.css";
 
-// Partner Rankings — the "who-to-target" context. Presented as MARKET-INFLUENCED
-// context, NOT a validated ranking (the partner score is partly market-derived;
-// the divergence is descriptive, not a proven edge). Strict per-field allowlists
-// keep nested evidence/score noise off the surface.
+// ─────────────────────────────────────────────────────────────────────────────
+// WHO TO CALL — the partner rankings, rewritten to answer the question a
+// manager actually opens this page with.
 //
-// DG-109: every score name, evidence key and posture value goes through the copy
-// dictionary. `partner_score` is still shown as its own labelled pair, distinct
-// from the `partner_score_market_influenced` caveat — the two must never collapse
-// into one another.
+// DG-119. Measured on the live product at 1440 the day this was written: 6,401
+// pixels of page for eleven partners, each one a flat ~90px stack of
+// label-over-value pairs with no card frame — "Roster 7", "Market-influenced",
+// "Trade-fit score 2.091", "RB, WR", four naked decimals, two posture words, a
+// row count, per-position decimals, and THE SAME CAVEAT SENTENCE ON ALL ELEVEN
+// CARDS. Nothing on that page told David who to call or why.
+//
+// WHAT EACH NUMBER IS, read out of league_opportunity_map.py rather than out of
+// a plausible reading of the field names. Every sentence below is entailed by
+// one of these lines and by nothing else:
+//
+//   matched_positions          :170-175. A position joins this list ONLY where
+//                              your positional z <= -0.75 AND theirs >= +0.75.
+//                              That gate IS "thin on your side, deep on theirs"
+//                              — the same thresholds `_position_label` uses to
+//                              call a group deficit ("Thin") or surplus
+//                              ("Deep") — so the sentence states the gate, not
+//                              an interpretation of it. An EMPTY list is a
+//                              measured negative: the loop ran over all four
+//                              skill positions and none qualified.
+//
+//   complementarity_score      :177. max() of the matched positions' scores,
+//                              default 0.0. So a 0.0 here always coincides with
+//                              an empty matched_positions, and both say the
+//                              same measured thing.
+//
+//   divergence_density_score   :184. clamp(len(divergence_rows) / 5). The rows
+//                              are that roster's players whose market signal is
+//                              MODEL_HIGH_MARKET_LOW or MODEL_LOW_MARKET_HIGH
+//                              (:178-183). We print the COUNT, which is the
+//                              fact; the clamped score is a receipt line.
+//
+//   activity_recency_score     :185 — `activity_recency_score = 0.0`, A LITERAL.
+//                              It is never computed from anything. There is no
+//                              trade-activity input in this pipeline at all.
+//                              THIS IS THE ZERO THAT IS NOT A MEASUREMENT, and
+//                              the old card rendered it as "How recently
+//                              they've traded — 0.00", which tells a manager
+//                              these teams have not traded recently. Nobody
+//                              measured that. The copy below says we do not
+//                              track it, and PartnerRankingsReadable.test.jsx
+//                              holds the graduation RED that fails the moment
+//                              that line stops being a literal.
+//
+//   posture_alignment_score    :222-236. Returns 0.0 for TWO different reasons
+//                              and the card must not conflate them: either side
+//                              UNCLASSIFIED (a posture we could not place), or
+//                              a placed pair that is simply not in the
+//                              complementary table. The evidence carries both
+//                              posture labels, so this component can tell which
+//                              happened and says so.
+//
+//   partner_score              :189-195. The four parts, added. The list
+//                              arrives sorted by it, descending (:219).
+//
+// THE CAVEAT MOVED; THE FACT DID NOT. `partner_score_market_influenced` is
+// appended to EVERY ranking by the DTO itself (league_pulse_models.py:160-165),
+// unconditionally — `map_partner_ranking` never passes a caveat list at all.
+// It is therefore a property of how the score is BUILT, not of any one partner,
+// and it belongs to the section. What is hoisted is only what is true of every
+// card: `sharedCaveats` below takes the intersection, and anything a producer
+// ever attaches to some partners and not others stays on the cards where it is
+// true. Removing ten repetitions removes furniture. Removing the sentence would
+// be the defect this whole program exists to prevent, so it is still here,
+// above the cards it qualifies, said once.
+// ─────────────────────────────────────────────────────────────────────────────
 
 const SCORE_KEYS = [
   "complementarity_score",
@@ -19,83 +87,220 @@ const SCORE_KEYS = [
   "posture_alignment_score",
 ] as const;
 
-const EVIDENCE_KEYS = [
-  "perspective_posture",
-  "counterparty_posture",
-  "divergence_row_count",
-] as const;
-
 const POSITIONS = ["QB", "RB", "WR", "TE"] as const;
 
-// The two posture fields hold enum labels; the row count is a number.
-function evidenceValue(key: string, raw: unknown): string {
-  return key === "divergence_row_count" ? String(raw) : valueWord(String(raw));
+export const PARTNER_RANKING_LEDE =
+  "Everyone we could rank, in trade-fit order: how well their roster covers " +
+  "your holes, how many of their players we and the market price differently, " +
+  "and which way the two of you are pointed. Open a card for the parts behind " +
+  "the order.";
+
+/** English list: "RB", "RB and WR", "QB, RB and WR". */
+function joinPositions(positions: readonly string[]): string {
+  const last = positions[positions.length - 1];
+  if (positions.length <= 1 || last === undefined) return positions.join("");
+  return `${positions.slice(0, -1).join(", ")} and ${last}`;
 }
 
-function Pair({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="dg-league-pulse__pair">
-      <dt>{label}</dt>
-      <dd>{value}</dd>
-    </div>
-  );
+function ordinal(n: number): string {
+  const tens = n % 100;
+  if (tens >= 11 && tens <= 13) return `${n}th`;
+  const suffix = { 1: "st", 2: "nd", 3: "rd" }[n % 10] ?? "th";
+  return `${n}${suffix}`;
 }
 
-function PartnerCard({ ranking }: { ranking: LeaguePulsePartnerRanking }) {
+/**
+ * The score, said in words. `2.091` is not a fact a manager can use: it has no
+ * range, no units and no scale on screen, and the four parts it sums do not
+ * share one either (three are clamped 0-1, the fourth tops out at 0.25). What
+ * IS a fact is the ORDER, which the producer itself computes (:219). So the
+ * card leads with the rank and the raw score moves to the receipt.
+ *
+ * STANDARD COMPETITION RANKING, because ties are real: this league returned
+ * 1.1 / 1.1, 1.05 / 1.05 and 1.0 / 1.0. Calling one of an identical pair "6th"
+ * and the other "7th" would invent a difference the producer never emitted, so
+ * equal scores share a rank and say they are tied.
+ */
+function rankWord(score: number, allScores: readonly number[]): string {
+  const descending = [...allScores].sort((a, b) => b - a);
+  const rank = descending.indexOf(score) + 1;
+  const tied = allScores.filter((other) => other === score).length > 1;
+  if (rank === 1) return tied ? "Tied for best fit" : "Best fit";
+  return tied ? `Tied ${ordinal(rank)} best fit` : `${ordinal(rank)} best fit`;
+}
+
+/**
+ * Which way the two rosters are pointed. Both postures placed → both are named.
+ * Either one UNCLASSIFIED → the clause says the signal is missing for THAT
+ * side, and never falls through to wording that implies we placed it.
+ */
+function postureSentence(perspective: string, counterparty: string): string {
+  const you = postureClause(perspective);
+  const them = postureClause(counterparty);
+  if (you !== null && them !== null) return `You're ${you} and they're ${them}.`;
+  if (you !== null)
+    return `You're ${you}, and we don't have enough signal to say which way they're pointed.`;
+  if (them !== null)
+    return `They're ${them}, and we don't have enough signal to place your own roster.`;
+  return "We don't have enough signal to place either roster.";
+}
+
+/** The matched positions, said as the gate that produced them (:173). */
+function positionSentence(matched: readonly string[]): string {
+  return matched.length > 0
+    ? `They're deep at ${joinPositions(matched)} — exactly where you're thin.`
+    : "There's no position where you're thin and they're deep.";
+}
+
+/**
+ * The divergence row COUNT, which is the fact; the clamped score is not. A zero
+ * says only what the producer's filter says — that none of their players are on
+ * the price-gap list — and stops there. It does not become "we agree with the
+ * market about their whole roster", because a roster with no rows in the
+ * divergence artifact at all produces the same zero.
+ */
+function divergenceSentence(count: unknown): string | null {
+  if (typeof count !== "number") return null;
+  return count > 0
+    ? `We and the market price ${count} of their players differently.`
+    : "None of their players show a price gap between us and the market.";
+}
+
+/** One part of the score: what it counts, then the raw number as a receipt. */
+function scorePartSentence(
+  key: (typeof SCORE_KEYS)[number],
+  value: number,
+  ranking: LeaguePulsePartnerRanking,
+  evidence: Record<string, unknown>,
+): string {
+  const matched = ranking.matched_positions ?? [];
+  switch (key) {
+    case "complementarity_score":
+      return matched.length > 0
+        ? `The best of the positions where you're thin and they're deep (${joinPositions(matched)}).`
+        : "Nothing scored here: no position has you thin and them deep.";
+    case "divergence_density_score": {
+      // The part explains what it COUNTS. The headline sentence already states
+      // the count itself, and repeating it word for word inside the receipt is
+      // the stamped-furniture habit this ticket is retiring.
+      const count = evidence.divergence_row_count;
+      if (typeof count !== "number")
+        return "Counts their players we and the market price differently.";
+      return count > 0
+        ? `Counts their players we and the market price differently — they have ${count}.`
+        : "Counts their players we and the market price differently; none of theirs are on that list.";
+    }
+    case "activity_recency_score":
+      // See the header note on :185. The sentence is guarded on the value so it
+      // can never outlive the literal it describes: if a real signal ever
+      // arrives the card falls back to naming what the part counts, and the
+      // graduation RED in PartnerRankingsReadable.test.jsx fails in the same
+      // commit so the wording is revisited rather than discovered wrong.
+      return value === 0
+        ? "We don't track trade activity, so this part scores nothing for anybody and moves no one up or down the list."
+        : "How recently this team has traded.";
+    case "posture_alignment_score": {
+      if (value !== 0) return "Scores the two postures against each other.";
+      const placed =
+        postureClause(String(evidence.perspective_posture)) !== null &&
+        postureClause(String(evidence.counterparty_posture)) !== null;
+      return placed
+        ? "Both postures were placed, so this pairing simply scores nothing."
+        : "One of these teams does not have enough signal for a posture, so this part could not score.";
+    }
+  }
+}
+
+function PartnerCard({
+  ranking,
+  allScores,
+  cardCaveats,
+}: {
+  ranking: LeaguePulsePartnerRanking;
+  allScores: readonly number[];
+  cardCaveats: readonly string[];
+}) {
   const score = ranking.score_components as Record<string, number>;
   const evidence = ranking.evidence as Record<string, unknown>;
   const positionScores = (evidence.position_scores ?? {}) as Record<string, unknown>;
-  const matched = (ranking.matched_positions ?? []).join(", ");
+  const matched = ranking.matched_positions ?? [];
+
+  const why = [
+    postureSentence(
+      String(evidence.perspective_posture),
+      String(evidence.counterparty_posture),
+    ),
+    positionSentence(matched),
+    divergenceSentence(evidence.divergence_row_count),
+  ]
+    .filter((sentence) => sentence !== null)
+    .join(" ");
+
+  const positionReceipt = POSITIONS.filter(
+    (p) => typeof positionScores[p] === "number",
+  ).map((p) => `${p} ${positionScores[p] as number}`);
 
   return (
-    <article className="dg-league-pulse__partner-card">
-      {/* DG-118: h4 under an h2 section heading. When these cards lived on
-          League Pulse the outline ran h1 → h2 → h3 → h4; DG-114 moved them to
-          their own destination, where nothing renders an h2 or h3 above them.
-          Both levels drop by one so the outline is h1 → h2 → h3 again. */}
-      <h3 className="dg-league-pulse__partner-name" data-user-text>
-        {ranking.counterparty_team_name ?? "Unknown counterparty"}
-      </h3>
-      <p className="dg-league-pulse__partner-roster">
-        Roster {ranking.counterparty_roster_id}
-      </p>
-      <p className="dg-league-pulse__partner-badge">Market-influenced</p>
-      <dl className="dg-league-pulse__partner-fit">
-        <Pair
-          label={fieldLabel("partner_score")}
-          value={ranking.partner_score.toFixed(3)}
-        />
-      </dl>
-      <p className="dg-league-pulse__partner-positions">{matched}</p>
+    <article className="dg-partner-card">
+      <div className="dg-partner-card__head">
+        {/* DG-118: h3 under the section's h2 — nothing renders an h2 or h3
+            between them, so the outline runs h1 → h2 → h3. */}
+        <h3 className="dg-partner-card__name" data-user-text>
+          {ranking.counterparty_team_name ?? "Unknown counterparty"}
+        </h3>
+        <p className="dg-partner-card__rank">
+          {rankWord(ranking.partner_score, allScores)}
+        </p>
+      </div>
 
-      <dl className="dg-league-pulse__partner-scores">
-        {SCORE_KEYS.map((k) => {
-          const value = score[k];
-          return typeof value === "number" ? (
-            <Pair key={k} label={fieldLabel(k)} value={value.toFixed(2)} />
-          ) : null;
-        })}
-      </dl>
+      <p className="dg-partner-card__why">{why}</p>
 
-      <dl className="dg-league-pulse__partner-evidence">
-        {EVIDENCE_KEYS.filter((k) => k in evidence).map((k) => (
-          <Pair key={k} label={fieldLabel(k)} value={evidenceValue(k, evidence[k])} />
-        ))}
-      </dl>
-
-      <ul className="dg-league-pulse__partner-position-scores">
-        {POSITIONS.filter((p) => typeof positionScores[p] === "number").map((p) => (
-          <li key={p}>
-            {p} {(positionScores[p] as number).toFixed(2)}
+      <details className="dg-partner-card__receipt">
+        <summary className="dg-partner-card__receipt-summary">
+          How this fit was scored
+        </summary>
+        <dl className="dg-partner-card__parts">
+          {SCORE_KEYS.map((key) => {
+            const value = score[key];
+            if (typeof value !== "number") return null;
+            return (
+              <div key={key} className="dg-partner-card__part">
+                <dt>{fieldLabel(key)}</dt>
+                <dd>
+                  <p className="dg-partner-card__part-copy">
+                    {scorePartSentence(key, value, ranking, evidence)}
+                  </p>
+                  <p className="dg-partner-card__part-receipt" data-receipt>
+                    {receiptValue(key, value)}
+                  </p>
+                </dd>
+              </div>
+            );
+          })}
+        </dl>
+        <ul className="dg-partner-card__sources" data-receipt>
+          <li>{receiptDetail("partner_score", ranking.partner_score)}</li>
+          <li>
+            {receiptDetail("counterparty_roster_id", ranking.counterparty_roster_id)}
           </li>
-        ))}
-      </ul>
-
-      <TokenNotes
-        className="dg-league-pulse__partner-caveats"
-        tokens={ranking.caveats ?? []}
-      />
+          {positionReceipt.length > 0 ? (
+            <li>{receiptLine("Per-position fit", positionReceipt.join(", "))}</li>
+          ) : null}
+        </ul>
+        {/* A caveat that is NOT true of every partner stays on the card it is
+            true of. The section above carries only the intersection. */}
+        <TokenNotes className="dg-partner-card__caveats" tokens={cardCaveats} />
+      </details>
     </article>
+  );
+}
+
+/** Tokens present on EVERY ranking — the ones that belong to the section. */
+function sharedCaveats(rankings: readonly LeaguePulsePartnerRanking[]): string[] {
+  const first = rankings[0];
+  if (first === undefined) return [];
+  return (first.caveats ?? []).filter((token) =>
+    rankings.every((ranking) => (ranking.caveats ?? []).includes(token)),
   );
 }
 
@@ -104,19 +309,30 @@ export function PartnerRankings({
 }: {
   rankings: LeaguePulsePartnerRanking[];
 }) {
+  const shared = sharedCaveats(rankings);
+  const allScores = rankings.map((ranking) => ranking.partner_score);
+
   return (
-    <section aria-label="Partner Rankings" className="dg-league-pulse__partners">
-      <h2 className="dg-league-pulse__section-heading">Partner Rankings</h2>
-      <p className="dg-league-pulse__section-note">
-        Market-influenced context — not a validated ranking. The partner score is partly
-        market-derived. Two-lane evidence is shown for context.
-      </p>
+    <section aria-label="Who to call" className="dg-partners">
+      <h2 className="dg-partners__heading">Who to call</h2>
+      <p className="dg-partners__lede">{PARTNER_RANKING_LEDE}</p>
+      <TokenNotes className="dg-partners__caveats" tokens={shared} />
       {rankings.length === 0 ? (
-        <p className="dg-league-pulse__empty">No partner ranking context available.</p>
+        <p className="dg-partners__empty">No partner ranking context available.</p>
       ) : (
-        rankings.map((ranking) => (
-          <PartnerCard key={ranking.counterparty_roster_id} ranking={ranking} />
-        ))
+        <ol className="dg-partners__list">
+          {rankings.map((ranking) => (
+            <li key={ranking.counterparty_roster_id}>
+              <PartnerCard
+                ranking={ranking}
+                allScores={allScores}
+                cardCaveats={(ranking.caveats ?? []).filter(
+                  (token) => !shared.includes(token),
+                )}
+              />
+            </li>
+          ))}
+        </ol>
       )}
     </section>
   );

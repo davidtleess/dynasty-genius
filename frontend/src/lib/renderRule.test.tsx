@@ -588,7 +588,7 @@ describe("the render rule: no raw pipeline key reaches the DOM", () => {
     mockRoutes({ "/api/league/pulse": leaguePulseLive as Wire });
 
     const { container } = render(<TradePartners />);
-    await screen.findByLabelText(/partner rankings/i);
+    await screen.findByLabelText(/who to call/i);
 
     expectClean(container, "Trade partners");
   });
