@@ -54,6 +54,7 @@ from src.dynasty_genius.pvo_source import (  # noqa: E402
 from src.dynasty_genius.universe_market_divergence import (  # noqa: E402
     build_universe_market_divergence,
 )
+from src.dynasty_genius.write_plan import write_plan  # noqa: E402
 
 # ── default tracked artifact + operational paths (overridable via CLI / kwargs) ──
 DEFAULT_LATEST_PATH = "app/data/valuation/universe_market_divergence_latest.json"
@@ -727,10 +728,26 @@ def main(argv: list[str] | None = None) -> int:
     # every resolved path, overridden or not, is what makes the forgotten one
     # visible. Mirrors run_pvo_refresh / run_feature_refresh / run_what_changed_report.
     if args.preflight:
+        plan = write_plan(
+            writes={
+                "divergence latest": args.latest_path,
+                "coverage latest": args.coverage_latest_path,
+                "history db": args.history_db_path,
+                "readiness marker": args.marker_path,
+                "run report": args.report_path,
+            },
+            reads={
+                "FC forward-capture db": args.fc_forward_capture_db_path,
+                "market cache (legacy)": args.market_cache_path,
+                "PVO seed": args.pvo_seed_path,
+                "PVO coverage seed": args.pvo_coverage_seed_path,
+                "PVO runtime dir": args.pvo_runtime_dir,
+            },
+        )
         print(
             json.dumps(
                 {
-                    "preflight": True,
+                    **plan,
                     "latest_path": args.latest_path,
                     "coverage_latest_path": args.coverage_latest_path,
                     "history_db_path": args.history_db_path,

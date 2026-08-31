@@ -202,7 +202,9 @@ def test_preflight_prints_config_without_refresh_capture_or_writes(
 
     assert result == 0
     out = json.loads(capsys.readouterr().out)
-    assert out == {
+
+    # The resolved-settings contract, unchanged.
+    settings = {
         "preflight": True,
         "pvo_artifact_path": str(pvo),
         "coverage_artifact_path": str(coverage),
@@ -213,6 +215,17 @@ def test_preflight_prints_config_without_refresh_capture_or_writes(
         "capture_db_path": None,
         "phase": "phase17_2_pvo_rebuild_only",
     }
+    assert {k: out[k] for k in settings} == settings
+
+    # And the write plan, which is the half a settings dump could not express: this
+    # invocation redirects the candidate pair into tmp but leaves --runtime-dir at the
+    # production default, so it WOULD publish live. The plan has to say so out loud.
+    assert out["live_writes"] >= 1
+    assert "NOT a sandboxed run" in out["verdict"]
+    live = {w["role"] for w in out["writes"] if w["target"] == "LIVE"}
+    assert "published runtime dir" in live
+    sandboxed = {w["role"] for w in out["writes"] if w["target"] == "SANDBOX"}
+    assert {"candidate PVO", "candidate coverage"} <= sandboxed
     assert not report_path.exists()
     assert pvo.read_text()
     assert coverage.read_text()

@@ -38,6 +38,7 @@ from src.dynasty_genius.capture.model_forward_capture_driver import (  # noqa: E
     capture_model_pvo_snapshot,
     resolve_provenance_subset,
 )
+from src.dynasty_genius.write_plan import write_plan  # noqa: E402
 
 DEFAULT_PVO_PATH = "app/data/valuation/universe_pvo_latest.json"
 DEFAULT_COVERAGE_PATH = "app/data/valuation/universe_pvo_coverage_latest.json"
@@ -657,10 +658,24 @@ def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
 
     if args.preflight:
+        plan = write_plan(
+            writes={
+                "candidate PVO": args.pvo_artifact_path,
+                "candidate coverage": args.coverage_artifact_path,
+                "published runtime dir": args.runtime_dir or None,
+                "run report": args.report_path,
+                "capture db": args.capture_db_path,
+                "capture report": args.capture_report_path,
+            },
+            reads={
+                "seed PVO (drift baseline)": args.seed_pvo_path,
+                "seed coverage (drift baseline)": args.seed_coverage_path,
+            },
+        )
         print(
             json.dumps(
                 {
-                    "preflight": True,
+                    **plan,
                     "pvo_artifact_path": args.pvo_artifact_path,
                     "coverage_artifact_path": args.coverage_artifact_path,
                     "seed_pvo_path": args.seed_pvo_path,
