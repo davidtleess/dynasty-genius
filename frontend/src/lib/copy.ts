@@ -1062,15 +1062,27 @@ function unwrittenMessage(message: string): ReceiptSegment[] {
 }
 
 /**
- * The five surfaces tier-readiness grades, in the words the nav uses for them
- * (`app/config/tier_readiness.json`, checked against `shell/destinations.ts`).
+ * The five surfaces tier-readiness grades (`app/config/tier_readiness.json`),
+ * named with the LEAF LABEL each one carries in the nav rail
+ * (`shell/destinations.ts`) — the words on the tab David actually clicks.
+ *
+ * That is a deliberate choice over the config's own `display_name`, and the
+ * two differ on three of the five: the config says "Roster Capacity", "Trade
+ * Lab" and "League Pulse" where the nav says "Cut list", "Build a trade" and
+ * "League". This receipt exists to tell a person WHICH PART of the product is
+ * held back, and a name he cannot find in the rail does not tell him that.
  */
 const SURFACE_NAMES: Record<string, string> = {
-  roster_capacity: "Roster capacity",
+  // destinations.ts: Roster › Cut list.
+  roster_capacity: "Cut list",
+  // destinations.ts: Today.
   daily_what_changed: "Today",
+  // destinations.ts: Track record › Model trust.
   model_trust_console: "Model trust",
-  trade_lab: "Trade Lab",
-  league_pulse: "League pulse",
+  // destinations.ts: Trades › Build a trade.
+  trade_lab: "Build a trade",
+  // destinations.ts: League.
+  league_pulse: "League",
 };
 
 export function surfaceName(surfaceId: string): string {
@@ -1161,7 +1173,10 @@ const REPORT_BASIS_PATTERNS: {
     build: (m) => [
       prose("The timestamp field this report publishes ("),
       identifier(m[1] as string),
-      prose(") could not be read as a date."),
+      // :600-609 covers BOTH arms — the field was absent (`raw is None`) and
+      // the field was present and unparseable. The sentence names both,
+      // because "could not be read" alone would imply something was there.
+      prose(") was missing, or could not be read as a date."),
     ],
   },
   {
