@@ -128,10 +128,23 @@
   font-weight: var(--dg-weight-semibold);
 }
 
+/* DG-120: this was a WRAPPING ROW, which was right when the receipt was a run
+   of bare tokens and wrong the moment each one became a labelled row. Measured
+   in Chromium at 1440: "Data group  core data" and "Report id  pvo_refresh"
+   landed on the SAME line, so the second row's label read as a continuation of
+   the first row's value. One receipt line per line. */
 .dg-syshealth__receipt {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.35rem;
+}
+
+/* The per-entry rows a compound check writes — one degraded feed, one surface
+   that is not ready. They are the same primitive, indented under the summary
+   that promised them. */
+.dg-syshealth__receipt-lines {
+  display: flex;
+  flex-direction: column;
 }
 
 /* Dormant is the calm expected off-season state — plain gray, no accent. */

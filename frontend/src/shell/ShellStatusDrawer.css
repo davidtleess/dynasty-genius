@@ -40,11 +40,31 @@
   background: var(--dg-caveat);
 }
 
+/* DG-120 — THE ACCORDION HAD OUTGROWN ITS OWN PROMISE.
+   The comment at the top of ShellStatusDrawer.tsx says the drawer "expands IN
+   FLOW (accordion) so nothing ever overlaps content at any scroll position —
+   the overlay-collision class of bug is structurally impossible here." That is
+   true at the top of the page and false everywhere else: this panel lives
+   inside `.dg-shell__trust`, which is `position: sticky` above the phone
+   breakpoint (AppShell.css), so once the panel is taller than the viewport the
+   sticky header simply covers the product as soon as you scroll. Measured in
+   Chromium at 1440x900 on 2026-08-30: 1277px of panel BEFORE this ticket, and
+   3074px after its receipts were labelled and written out — 1.4x and 3.4x the
+   viewport. Playwright could not click the front page's own "Details" button
+   with the drawer open; the header was on top of it.
+   The cap is the smallest fix that makes the sentence true again: the panel
+   takes a readable slice and scrolls the rest inside itself, so the plumbing is
+   one press away and never in the way. It bounds the pre-existing case too. */
 .dg-status-drawer__panel {
   display: flex;
   flex-direction: column;
   gap: var(--dg-space-2);
   width: 100%;
+  max-block-size: 60vh;
+  overflow-y: auto;
+  /* A flick that reaches the end of this panel stops here rather than handing
+     the rest of the gesture to the page underneath. */
+  overscroll-behavior-y: contain;
 }
 
 .dg-status-drawer__panel[data-open="false"] {

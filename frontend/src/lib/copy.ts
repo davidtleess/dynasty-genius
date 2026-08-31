@@ -1322,7 +1322,7 @@ function surfaceBasisMessage(basis: string): ReceiptSegment[] {
   if (precondition !== null) {
     return [
       prose(
-        `Not ready — the ${preconditionName(precondition[1] as string)} check it depends on is reporting: ${valueWord(
+        `Waiting on the ${preconditionName(precondition[1] as string)} check, which is reporting: ${valueWord(
           precondition[2] as string,
         ).toLowerCase()}.`,
       ),
@@ -1471,13 +1471,34 @@ export function subsystemBasisMessage(basis: string): {
   // not ready. The surface's own basis is a message in its own right.
   const surfaces = splitLabelledEntries(basis);
   if (surfaces.length > 0 && surfaces.every(([id]) => id in SURFACE_NAMES)) {
+    // ONE CAUSE, SAID ONCE. On 2026-08-30 all five surfaces carried the SAME
+    // basis — every one of them waiting on capture health — and printing it
+    // five times filled the drawer with 10 lines that said one thing. Worse, it
+    // buried the fact worth having: this is not five problems, it is one. The
+    // shared sentence moves into the summary and the rows keep their names and
+    // their ids. When the bases genuinely differ, each row still carries its
+    // own, because then they really are different problems.
+    const shared = new Set(surfaces.map(([, surfaceBasis]) => surfaceBasis));
+    const count = surfaces.length === 1 ? "One part" : `${surfaces.length} parts`;
+    const verb = surfaces.length === 1 ? "is" : "are";
+    if (shared.size === 1) {
+      return {
+        summary: [
+          prose(
+            `${count} of the product ${verb} not graded ready, all for the same reason. `,
+          ),
+          ...surfaceBasisMessage([...shared][0] as string),
+        ],
+        lines: surfaces.map(([id]) => ({
+          label: surfaceName(id),
+          message: [],
+          identifier: id,
+        })),
+      };
+    }
     return {
       summary: [
-        prose(
-          surfaces.length === 1
-            ? "One part of the product is not graded ready. Which, and why:"
-            : `${surfaces.length} parts of the product are not graded ready. Which, and why:`,
-        ),
+        prose(`${count} of the product ${verb} not graded ready. Which, and why:`),
       ],
       lines: surfaces.map(([id, surfaceBasis]) => ({
         label: surfaceName(id),

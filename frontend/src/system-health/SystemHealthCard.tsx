@@ -164,10 +164,20 @@ function HealthBody({ data, now }: { data: SystemHealth; now: Date }) {
       </details>
       {/* DG-111: the backend's own disclaimer stays — it is data this endpoint
           publishes. The stamped "Descriptive only — not decision-grade." line
-          beside it was ours, repeated from every other surface, and is gone. */}
-      <footer className="dg-syshealth__footer">
+          beside it was ours, repeated from every other surface, and is gone.
+
+          DG-120: this was a `<footer>`, which is a CONTENTINFO landmark unless
+          it sits inside an article/section/aside/main/nav — and this card's
+          root is a `<div role="status">`, inside the shell's
+          `<header role="banner">`. So the drawer was publishing "the footer of
+          the whole page", nested inside another landmark: axe
+          landmark-contentinfo-is-top-level, measured on the built bundle at
+          both widths. Nobody knew, because the gate had never opened the
+          drawer — the same shape of miss DG-118 found on Model Trust, and the
+          same fix. A div is what this always was: one sentence, styled. */}
+      <div className="dg-syshealth__footer">
         <span className="dg-syshealth__disclaimer">{data.disclaimer}</span>
-      </footer>
+      </div>
     </div>
   );
 }
@@ -310,7 +320,7 @@ function SubsystemReceipt({ row }: { row: SubsystemRow }) {
   const { summary, lines } = subsystemBasisMessage(row.basis);
   return (
     <span className="dg-syshealth__receipt dg-syshealth__meta" data-receipt>
-      <ReceiptRow label="Why it reads this way" message={summary} />
+      <ReceiptRow label="Why" message={summary} />
       {lines.length > 0 && (
         <span className="dg-syshealth__receipt-lines">
           {lines.map((line) => (
@@ -355,10 +365,7 @@ function ReportItem({ row, now }: { row: ReportRow; now: Date }) {
           was dropped: `basis` was the one string here that no test could see,
           and it is now the row a manager actually reads. */}
       <span className="dg-syshealth__receipt dg-syshealth__meta" data-receipt>
-        <ReceiptRow
-          label="Why it reads this way"
-          message={reportBasisMessage(row.basis)}
-        />
+        <ReceiptRow label="Why" message={reportBasisMessage(row.basis)} />
         {row.disclosures.map((disclosure) => (
           <ReceiptRow
             key={disclosure}
