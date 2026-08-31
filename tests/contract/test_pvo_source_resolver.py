@@ -494,13 +494,13 @@ def test_roster_auditor_loads_verified_runtime_and_falls_back_to_seed_when_absen
     _configure_route_pvo_paths(monkeypatch, roster_auditor, root)
 
     # T4d: the loader now returns (rows, resolved-provenance) — unpack the rows map.
-    runtime_rows, _runtime_provenance = roster_auditor._load_rostered_engine_a_universe_pvos()
+    runtime_rows, _runtime_provenance = roster_auditor._load_rostered_universe_pvos()
 
     assert set(runtime_rows) == {"runtime-player"}
 
     for path in runtime_dir.iterdir():
         path.unlink()
-    seed_rows, _seed_provenance = roster_auditor._load_rostered_engine_a_universe_pvos()
+    seed_rows, _seed_provenance = roster_auditor._load_rostered_universe_pvos()
 
     assert set(seed_rows) == {"seed-player"}
 

@@ -93,10 +93,15 @@ def _universe_path_str(path: Path) -> str:
         return str(path)
 
 
-def _load_rostered_engine_a_universe_pvos(
+def _load_rostered_universe_pvos(
     path: Path | None = None,
 ) -> tuple[dict[str, dict[str, Any]], dict[str, Any] | None]:
-    """Return (rostered current-draft Engine A rows by Sleeper id, resolved provenance).
+    """Return (rostered universe rows by Sleeper id, resolved provenance).
+
+    Covers BOTH engines: current-draft Engine A rookie rows and Engine B
+    active-player rows. Keyed on ``sleeper_player_id``, which Sleeper always
+    supplies — unlike ``gsis_id``, which it returns null for on most of the
+    roster and which the fallback path below keys on.
 
     F-seed-split T4d: the provenance carries the RESOLVED ``universe_pvo_batch`` path +
     ``pvo_source_kind`` (runtime vs seed) so per-row stamps reflect the actual source —
@@ -133,13 +138,19 @@ def _load_rostered_engine_a_universe_pvos(
         valuation = row.get("valuation") or {}
         context = row.get("league_context") or {}
         sleeper_id = row.get("sleeper_player_id")
-        if (
-            sleeper_id is not None
-            and valuation.get("engine_path") == "ENGINE_A"
-            and context.get("rostered") is True
-            and context.get("in_current_draft") is True
-        ):
-            indexed[str(sleeper_id)] = row
+        if sleeper_id is None or context.get("rostered") is not True:
+            continue
+        engine_path = valuation.get("engine_path")
+        # ENGINE_A rows are current-draft rookie valuations and only apply to a
+        # player actually in that draft. ENGINE_B rows are the active-player
+        # valuations and carry no draft concept -- requiring in_current_draft
+        # here is what confined this index to rookies and left every veteran to
+        # the gsis-keyed fallback below, which Sleeper cannot satisfy.
+        if engine_path == "ENGINE_A" and context.get("in_current_draft") is not True:
+            continue
+        if engine_path not in ("ENGINE_A", "ENGINE_B"):
+            continue
+        indexed[str(sleeper_id)] = row
     return indexed, provenance
 
 
@@ -161,7 +172,7 @@ def _roster_audit_signals_from_player(player: dict) -> RosterAuditSignals | None
     )
 
 
-def _pvo_from_universe_engine_a_row(
+def _pvo_from_universe_row(
     row: dict[str, Any],
     live_player: dict,
     provenance: dict[str, Any] | None = None,
@@ -171,10 +182,14 @@ def _pvo_from_universe_engine_a_row(
     identity_ids = row.get("identity_ids") or {}
     lineage = row.get("lineage") or {}
     roster_audit = _roster_audit_signals_from_player(live_player)
-    caveats = [
-        "roster_audit_reconciled_from_universe_pvo",
-        "current_draft_rookie_engine_a_value_preserved",
-    ]
+    # Engine A rows are current-draft rookie valuations; Engine B rows are the
+    # active-player valuations. Both are already fully adjudicated in the
+    # universe artifact -- including the ENGINE_B_MIN_GAMES_T refusal, which is
+    # why reading the row inherits an honest null rather than recomputing one.
+    is_engine_b = valuation.get("engine_path") == "ENGINE_B"
+    caveats = ["roster_audit_reconciled_from_universe_pvo"]
+    if not is_engine_b:
+        caveats.append("current_draft_rookie_engine_a_value_preserved")
     if roster_audit:
         for caveat in roster_audit.caveats:
             if caveat not in caveats:
@@ -201,16 +216,20 @@ def _pvo_from_universe_engine_a_row(
         position=str(player.get("position") or live_player.get("position")),
         nfl_team=player.get("team") or live_player.get("team"),
         age=player.get("age") or live_player.get("age"),
-        is_prospect=True,
+        is_prospect=not is_engine_b,
         sleeper_id=str(identity_ids.get("sleeper_id") or row.get("sleeper_player_id")),
-        engine_used="engine_a",
+        engine_used="engine_b" if is_engine_b else "engine_a",
         model_version=valuation.get("model_version"),
         model_grade=str(valuation.get("model_grade") or "PRE_MODEL"),
         dynasty_value_score=valuation.get("dynasty_value_score"),
-        projection_1y=None,
-        projection_2y=None,
-        projection_3y=None,
-        dvs_engine="A" if valuation.get("dynasty_value_score") is not None else None,
+        projection_1y=row.get("projection_1y") if is_engine_b else None,
+        projection_2y=row.get("projection_2y") if is_engine_b else None,
+        projection_3y=row.get("projection_3y") if is_engine_b else None,
+        dvs_engine=(
+            None
+            if valuation.get("dynasty_value_score") is None
+            else ("B" if is_engine_b else "A")
+        ),
         xvar=valuation.get("xvar"),
         signal_completeness=float(valuation.get("feature_completeness") or 0.0),
         inputs_present=[],
@@ -615,18 +634,18 @@ async def run_audit_pvo() -> dict:
 
     # Engine B scores generated before any market data — architecture gate.
     engine_b_scores = {s["player_id"]: s for s in score_inference_partition()}
-    engine_a_rookie_pvos, engine_a_provenance = _load_rostered_engine_a_universe_pvos()
+    rostered_universe_pvos, universe_provenance = _load_rostered_universe_pvos()
 
     pvos = []
     for p in players:
         if p.get("position") not in SKILL_POSITIONS:
             continue
 
-        universe_engine_a_row = engine_a_rookie_pvos.get(str(p.get("player_id")))
-        if universe_engine_a_row is not None:
+        universe_row = rostered_universe_pvos.get(str(p.get("player_id")))
+        if universe_row is not None:
             pvos.append(
-                _pvo_from_universe_engine_a_row(
-                    universe_engine_a_row, p, engine_a_provenance
+                _pvo_from_universe_row(
+                    universe_row, p, universe_provenance
                 )
             )
             continue

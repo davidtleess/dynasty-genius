@@ -398,18 +398,18 @@ def test_engine_a_row_without_resolved_source_kind_omits_pvo_source_kind():
     source_versions is typed dict[str, str]; pvo_source_kind is omitted (not None) when the
     resolver provenance is absent, so the PlayerValueObject validates without crashing.
     """
-    from app.services.roster_auditor import _pvo_from_universe_engine_a_row
+    from app.services.roster_auditor import _pvo_from_universe_row
 
     row = _universe_row_for_rookie()
     live_player = {"full_name": "Kaelon Black", "position": "RB", "age": 24}
 
     # provenance=None (no resolver metadata threaded)
-    pvo_none = _pvo_from_universe_engine_a_row(row, live_player, provenance=None)
+    pvo_none = _pvo_from_universe_row(row, live_player, provenance=None)
     assert "pvo_source_kind" not in pvo_none.source_versions
     assert pvo_none.source_versions["universe_pvo_batch"]
 
     # provenance present but source_kind None (explicit-path seam)
-    pvo_kindless = _pvo_from_universe_engine_a_row(
+    pvo_kindless = _pvo_from_universe_row(
         row,
         live_player,
         provenance={"universe_pvo_batch": "app/data/valuation/universe_pvo_latest.json",
@@ -424,6 +424,112 @@ def test_engine_a_rookie_reconciliation_preserves_veteran_engine_b_path(tmp_path
     assert veteran["model_grade"] == "ACTIVE_B"
     assert veteran["engine_used"] == "engine_b"
     assert veteran["dynasty_value_score"] is not None
+
+
+# ── The gsis-less veteran: production's actual shape ──────────────────────────
+# Every fixture above hands the route a `gsis_id`. Sleeper does not: it returns
+# null for that field on ALL 27 of David's players, so the gsis-keyed Engine B
+# join resolved 0 of 27 and silently dropped 20 real scores while the endpoint
+# reported dropped_player_count: 0. The suite stayed green because the fixture
+# supplied the one field production has never had. These tests reproduce the
+# real shape.
+_VETERAN_NO_GSIS = {
+    "player_id": "8146",
+    "full_name": "Test Veteran WR",
+    "position": "WR",
+    "team": "NYJ",
+    "age": 25,
+    # deliberately NO gsis_id
+}
+
+
+def _universe_row_for_engine_b_veteran(**overrides) -> dict:
+    row = {
+        "sleeper_player_id": "8146",
+        "dg_player_id": "test_veteran_wr",
+        "identity_status": "resolved",
+        "identity_ids": {"sleeper_id": "8146"},
+        "player": {
+            "full_name": "Test Veteran WR",
+            "position": "WR",
+            "team": "NYJ",
+            "age": 25.0,
+            "dg_status": "ENGINE_B",
+        },
+        "league_context": {
+            "rostered": True,
+            "roster_id": 1,
+            "in_current_draft": False,
+            "on_taxi": False,
+        },
+        "valuation": {
+            "engine_path": "ENGINE_B",
+            "valuation_status": "MODEL_SUPPORTED",
+            "dynasty_value_score": 77.6,
+            "xvar": 8.4,
+            "model_grade": "ACTIVE_B",
+            "feature_completeness": 1.0,
+            "decision_supported": False,
+        },
+    }
+    row.update(overrides)
+    return row
+
+
+def test_rostered_engine_b_veteran_without_gsis_id_still_gets_his_score(tmp_path):
+    result = _run_with_universe(
+        tmp_path,
+        [_universe_row_for_engine_b_veteran()],
+        roster=[_VETERAN_NO_GSIS],
+        scores=[],
+    )
+    vet = next(p for p in result["players"] if p["sleeper_id"] == "8146")
+    assert vet["dynasty_value_score"] == 77.6
+    assert vet["engine_used"] == "engine_b"
+    assert vet["model_grade"] == "ACTIVE_B"
+    assert vet["dvs_engine"] == "B"
+
+
+def test_engine_b_veteran_completeness_is_the_real_one_not_the_empty_features_constant(
+    tmp_path,
+):
+    """signal_completeness on this surface was 4/17 = 0.2353 for every player --
+    a constant of the code path (features={"age": ...}) presented as a
+    measurement of the player, and it dragged a "fewer than 50% of required
+    signals present" caveat under every row. The universe row carries the real
+    figure; the route must not manufacture one."""
+    result = _run_with_universe(
+        tmp_path,
+        [_universe_row_for_engine_b_veteran()],
+        roster=[_VETERAN_NO_GSIS],
+        scores=[],
+    )
+    vet = next(p for p in result["players"] if p["sleeper_id"] == "8146")
+    assert vet["signal_completeness"] == 1.0
+
+
+def test_engine_b_veteran_under_the_games_gate_keeps_its_honest_null(tmp_path):
+    """Wilson (7 games) and Allen (4) are correctly withheld by
+    ENGINE_B_MIN_GAMES_T. Reading the universe row inherits that refusal; a
+    naive join-key swap would have recomputed and PRINTED an invented number,
+    because the gate reads games_t from the features dict the route never fills."""
+    gated = _universe_row_for_engine_b_veteran(
+        valuation={
+            "engine_path": "ENGINE_B",
+            "valuation_status": "MODEL_UNCERTAIN",
+            "dynasty_value_score": None,
+            "xvar": None,
+            "model_grade": "ACTIVE_B",
+            "feature_completeness": 1.0,
+            "decision_supported": False,
+        }
+    )
+    result = _run_with_universe(
+        tmp_path, [gated], roster=[_VETERAN_NO_GSIS], scores=[]
+    )
+    vet = next(p for p in result["players"] if p["sleeper_id"] == "8146")
+    assert vet["dynasty_value_score"] is None
+    assert vet["dvs_engine"] is None
 
 
 def test_engine_a_rookie_carries_counter_argument_when_dvs_above_80(tmp_path):
