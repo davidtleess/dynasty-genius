@@ -949,6 +949,56 @@ class TestExitDedup:
         assert second == []
         assert len(third) == 1  # a NEW run failed — new news
 
+    def test_a_reboot_does_not_hide_the_same_first_run_failure(self, tmp_path: Path) -> None:
+        """The (runs, exit) pair is NOT unique across launchd bootstrap epochs.
+
+        launchd's ``runs`` counter resets at label load — a reboot, or a plain
+        bootout+bootstrap. So a job that fails on its FIRST run of every boot
+        session yields ``[1, <exit>]`` every single time. Once that pair is in
+        ``reported_exits`` the failure is suppressed forever, on every future
+        boot, with no line and no record.
+
+        This is not hypothetical: on 2026-08-31 the machine rebooted at
+        05:47:36 with ``dynasty-model-pvo-refresh`` already deduped at
+        ``[2, 1]`` and genuinely failing. Scoping the key to the boot session
+        keeps the intended within-session suppression and ends the
+        across-session blindness.
+        """
+
+        m = _alert()
+        pin_path = tmp_path / "pins.json"
+        pin_path.write_text(json.dumps({"pins": []}), encoding="utf-8")
+        boot_a = datetime(2026, 8, 30, 6, 0, tzinfo=TZ)
+        boot_b = datetime(2026, 8, 31, 5, 47, 36, tzinfo=TZ)
+
+        first, reported = m.exit_code_lines(
+            self._states(m, 1, 1),
+            pin_path=pin_path,
+            repo_root=tmp_path,
+            now=NOW,
+            boot_time=boot_a,
+        )
+        same_boot, _ = m.exit_code_lines(
+            self._states(m, 1, 1),
+            pin_path=pin_path,
+            repo_root=tmp_path,
+            now=NOW,
+            reported_exits=reported,
+            boot_time=boot_a,
+        )
+        after_reboot, _ = m.exit_code_lines(
+            self._states(m, 1, 1),
+            pin_path=pin_path,
+            repo_root=tmp_path,
+            now=NOW,
+            reported_exits=reported,
+            boot_time=boot_b,
+        )
+
+        assert len(first) == 1
+        assert same_boot == []  # still suppressed WITHIN a boot session
+        assert len(after_reboot) == 1  # a new boot session is new news
+
 
 class TestPinFreshness:
     """Review: a pin must never honor a STALE marker — a producer that

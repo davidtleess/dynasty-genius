@@ -417,6 +417,7 @@ def exit_code_lines(
     repo_root: Path,
     now: datetime,
     reported_exits: dict[str, list[int]] | None = None,
+    boot_time: datetime | None = None,
 ) -> tuple[list[str], dict[str, list[int]]]:
     """Class (b): a producer that exited non-zero — DISARMED until the pin
     file exists (spec step 9: one producer can exit non-zero on a perfectly
@@ -455,7 +456,21 @@ def exit_code_lines(
         state = states[label]
         if state is None or state.last_exit_code in (None, 0):
             continue
-        evidence = [state.runs if state.runs is not None else -1, state.last_exit_code]
+        # The (runs, exit) pair is NOT unique across launchd bootstrap epochs:
+        # ``runs`` resets at LABEL LOAD, so a reboot — or a plain
+        # bootout+bootstrap with no reboot at all — restarts it at 1. A job
+        # that fails on its first run of every boot session therefore yields
+        # the same pair forever, and one recorded suppression silences it for
+        # the life of the state file. Scoping the key to the boot session
+        # keeps the intended within-session suppression (spec step 9: one
+        # stale failure must not re-alert every morning) and ends the
+        # across-session blindness. -1 when the boot time is unavailable, so
+        # an unknown boot never silently collides with a known one.
+        evidence = [
+            int(boot_time.timestamp()) if boot_time is not None else -1,
+            state.runs if state.runs is not None else -1,
+            state.last_exit_code,
+        ]
         current_evidence[label] = evidence
 
         failed_stream: str | None = None
@@ -866,6 +881,7 @@ def run_alert(rt: Runtime) -> list[str]:
         repo_root=rt.repo_root,
         now=rt.now,
         reported_exits=reported_exits,
+        boot_time=rt.boot_time,
     )
     lines.extend(exit_ls)
 
