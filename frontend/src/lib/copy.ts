@@ -95,10 +95,16 @@ const FIELD_LABELS: Record<string, string> = {
   z_score: "vs. the league average",
 
   // Partner rankings.
+  counterparty_roster_id: "Their roster number",
   partner_score: "Trade-fit score",
   complementarity_score: "How well the rosters fit",
   divergence_density_score: "How often we disagree on price",
-  activity_recency_score: "How recently they've traded",
+  // NOT "How recently they've traded". `activity_recency_score` is the literal
+  // `0.0` on league_opportunity_map.py:185 — never computed, no trade-activity
+  // input exists in this pipeline — so a term naming a measured recency is the
+  // same false frame the value itself was retired for. This names the topic the
+  // part is about; the sentence under it says we do not track it.
+  activity_recency_score: "Trade activity",
   posture_alignment_score: "Whether you're pointed opposite ways",
   perspective_posture: "Where you are",
   counterparty_posture: "Where they are",
@@ -166,6 +172,14 @@ const VALUE_WORDS: Record<string, string> = {
   REBUILDING: "Rebuilding",
   ASCENDING: "Rising",
   BALANCED: "Middle of the pack",
+  // The fifth label, and it IS a placement the model made. team_posture.py:104
+  // returns it when a roster clears no contender bar (strength_z < 0.75) AND its
+  // forward signals — value-weighted age, early-pick balance, taxi stash — sum
+  // negative (future_score <= -0.25). "In transition" says exactly that much and
+  // stops: it does not call the roster weak today (a 0.7 z-score reaches this
+  // branch) and it does not call it rebuilding, which is the branch where those
+  // same forward signals come out POSITIVE.
+  TRANSITIONAL: "In transition",
   UNCLASSIFIED: "Not enough signal to place them",
 
   // Positional surplus labels.
@@ -292,6 +306,53 @@ export function valueWord(value: string): string {
   if (findRawCopy(value).length === 0) return value;
   console.warn("Copy dictionary: no word for value", value);
   return humanize(value);
+}
+
+/**
+ * DG-119 — the posture a roster carries when the producer could NOT place it.
+ *
+ * This is the one unplaced state, and it is the PRODUCER'S definition of one:
+ * `team_posture.py`'s `_label_for` never returns it, `league_opportunity_map.py`
+ * substitutes it when a team carries no posture at all (:186-187), and
+ * `_posture_alignment_score` gates on exactly it — `if "UNCLASSIFIED" in
+ * {perspective_posture, counterparty_posture}` (:223). Every other label the
+ * classifier emits is a placement the model made, and anything on screen that
+ * decides "did we place this team?" must ask this question and no other.
+ */
+export const UNPLACED_POSTURE = "UNCLASSIFIED";
+
+/**
+ * DG-119 — a posture label said mid-sentence ("you're rebuilding and they're
+ * contending"), or null when the producer could not place the team.
+ *
+ * DERIVED from `valueWord` rather than written out again, so the in-sentence
+ * form can never drift into a second name for the same enum — the DG-117
+ * defect, where one quantity acquired four names on screen at once. The only
+ * change is the leading capital, which is typesetting, not vocabulary.
+ *
+ * PLACEMENT IS THE PRODUCER'S CALL, NEVER THE DICTIONARY'S. The first cut of
+ * this function returned null for any label absent from a hand-written
+ * four-item set — and `TRANSITIONAL`, a label `team_posture.py:104` emits, the
+ * API DTO enumerates (league_pulse_models.py:117) and the alignment table pays
+ * 0.10 against CONTENDER and REBUILDING (league_opportunity_map.py:233-234),
+ * was not in it. A gap in our vocabulary became a sentence telling David we had
+ * no signal on a team the model had placed. So the gate is the producer's:
+ * `UNCLASSIFIED` alone returns null, and a label the dictionary has not yet
+ * learned degrades to the producer's own word — humanized, with `valueWord`'s
+ * warning — rather than to a false absence. `PartnerRankingsReadable.test.jsx`
+ * holds the graduation RED that reads `_label_for` and fails the moment the
+ * classifier gains a label with no word here.
+ *
+ * The null case still carries a duty: a caller that gets it must say the signal
+ * is missing in its own words. There is no grammatical form of "not enough
+ * signal to place them" that can sit inside "you're X and they're Y" without
+ * reading as a posture we assigned.
+ */
+export function postureClause(value: string): string | null {
+  if (value === UNPLACED_POSTURE) return null;
+  const word = valueWord(value);
+  if (word.length === 0) return null;
+  return `${word.charAt(0).toLowerCase()}${word.slice(1)}`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -642,6 +703,12 @@ export function receiptDetail(field: string, value: string | number | null): str
 // renders the same line as two nodes, the label ours and the value declared
 // `data-identifier`, which reads identically and can be audited. Every call
 // site moved (League Pulse, Trade partners, the player card).
+
+// `receiptValue(field, value)` was DG-119's — `receiptDetail` without the
+// leading label, for a `<dt>`/`<dd>` shape where the label is already on screen.
+// It went the same way as `receiptLine` and for the same reason: one string
+// cannot say which half of itself is an address. `ui/Receipt.tsx` renders that
+// exact line as `<FieldReceipt>`, same bytes, with the producer field declared.
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 5 · Health surfaces — the names and states of the daily feeds.

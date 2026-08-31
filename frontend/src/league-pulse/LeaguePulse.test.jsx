@@ -66,9 +66,7 @@ describe("LeaguePulse container", () => {
     // trade/TradePartners; the posture disclosure it depends on travelled with
     // it, and still renders here too.
     const surface = await screen.findByTestId("league-pulse-ready");
-    expect(
-      within(surface).queryByRole("region", { name: /partner rankings/i }),
-    ).toBeNull();
+    expect(within(surface).queryByRole("region", { name: /who to call/i })).toBeNull();
     expect(within(surface).getByTestId("league-pulse-posture-basis")).toBeTruthy();
   });
 

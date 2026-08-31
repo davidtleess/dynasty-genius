@@ -1,0 +1,216 @@
+/* DG-119 — the trade partners view: card frames, one hierarchy, one caveat.
+ *
+ * Before this file the eleven partners were eleven flat runs of <dl> pairs with
+ * no frame at all, and the section measured 6,401px at 1440. What follows is
+ * the whole visual change, and it is DG-115 tokens end to end — no literal
+ * colours, spacings, radii or font sizes, so the CSS censuses stay honest.
+ *
+ * THE COLUMN COUNT IS THE COMPRESSION. A ranked list does not have to be one
+ * card per row: MEASURED at 1440 this track sizing lays eleven partners out in
+ * three columns and four rows, and the rank word on each card carries the order
+ * that a single column would otherwise have to carry by position alone.
+ * `auto-fill` collapses to one column at 390 without a media query.
+ *
+ * NO LANE HUE AND NO DIRECTION HUE. Nothing here is a model or market reading,
+ * and nothing moved up or down, so the whole surface is painted from the
+ * neutral --dg-chrome family and the surface ladder (tokens.css, three colour
+ * laws). A rank is an ordering, not a verdict, and must never be coloured like
+ * one.
+ */
+
+.dg-partners {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-2);
+}
+
+.dg-partners__heading {
+  font-family: var(--dg-font-display);
+  /* One step above the card names below it. At the same size as an h3 the
+     section heading did not outrank the eleven headings it contains. */
+  font-size: var(--dg-text-xl);
+  font-weight: var(--dg-weight-semibold);
+  line-height: var(--dg-leading-snug);
+  color: var(--dg-text);
+  margin: var(--dg-space-4) 0 0;
+}
+
+.dg-partners__lede {
+  font-size: var(--dg-text-base);
+  line-height: var(--dg-leading-normal);
+  color: var(--dg-text);
+  margin: 0;
+  max-width: 78ch;
+}
+
+/* The section caveat: the ONE place the market-derived fact is said. It sits
+   between the lede and the cards it qualifies, in the reader's path. */
+.dg-partners__caveats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--dg-text-sm);
+  line-height: var(--dg-leading-normal);
+  color: var(--dg-text-muted);
+  max-width: 78ch;
+}
+
+.dg-partners__empty {
+  font-size: var(--dg-text-base);
+  color: var(--dg-text-muted);
+  margin: 0;
+}
+
+.dg-partners__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  /* Space-3, not space-2. At 8px two stacked cards read as one slab with a
+     hairline through it — measured on the first browser pass, where a card's
+     disclosure summary sat 8px above the next card's name. */
+  gap: var(--dg-space-3);
+  list-style: none;
+  margin: var(--dg-space-2) 0 0;
+  padding: 0;
+}
+
+/* The list item is the flex context, and the card fills it.
+ *
+ * MEASURED, not assumed: the first cut gave the card a full percentage height
+ * inside a plain `<li>` (the raw declaration is deliberately not spelled out
+ * here — rawCssAudit.test.js counts by regex and does not strip comments, so
+ * prose quoting a declaration becomes a phantom row in the debt ledger).
+ * At 390 the article laid out 217px tall inside a 183px grid
+ * cell — every card overflowing its own row by 34px, which is exactly the
+ * resolved value of the `margin-top: auto` below. Making the item a flex
+ * container and the card `flex: 1` gives the auto margin real slack to
+ * distribute (none at 390, where each card owns its row; the row's spare height
+ * at 1440, where three cards share one) instead of manufacturing it.
+ */
+.dg-partners__list > li {
+  display: flex;
+}
+
+.dg-partner-card {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--dg-space-2);
+  padding: var(--dg-space-4);
+  background: var(--dg-surface-raised);
+  border: 1px solid var(--dg-border);
+  border-radius: var(--dg-radius-card);
+}
+
+.dg-partner-card:hover {
+  border-color: var(--dg-border-strong);
+}
+
+.dg-partner-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--dg-space-2);
+}
+
+.dg-partner-card__name {
+  font-family: var(--dg-font-display);
+  font-size: var(--dg-text-lg);
+  font-weight: var(--dg-weight-semibold);
+  line-height: var(--dg-leading-snug);
+  color: var(--dg-text);
+  margin: 0;
+  /* A league-authored team name can be one unbroken run of characters. It wraps
+     inside its own card rather than widening the grid track. */
+  overflow-wrap: anywhere;
+}
+
+/* The score in words. It is the ORDER the producer computed, not a grade, so it
+   wears chrome rather than any hue that could read as a recommendation. */
+.dg-partner-card__rank {
+  flex: none;
+  margin: 0;
+  padding: var(--dg-space-1) var(--dg-space-3);
+  font-size: var(--dg-text-sm);
+  font-weight: var(--dg-weight-semibold);
+  line-height: var(--dg-leading-snug);
+  color: var(--dg-chrome-strong);
+  background: var(--dg-chrome-surface);
+  border-radius: var(--dg-radius-round);
+  white-space: nowrap;
+}
+
+.dg-partner-card__why {
+  margin: 0;
+  font-size: var(--dg-text-base);
+  line-height: var(--dg-leading-normal);
+  color: var(--dg-text);
+}
+
+.dg-partner-card__receipt {
+  margin-top: auto;
+  font-size: var(--dg-text-sm);
+}
+
+.dg-partner-card__receipt-summary {
+  cursor: pointer;
+  color: var(--dg-text-muted);
+  line-height: var(--dg-leading-snug);
+  border-radius: var(--dg-radius-control);
+}
+
+.dg-partner-card__receipt-summary:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}
+
+.dg-partner-card__parts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-2);
+  margin: var(--dg-space-2) 0 0;
+}
+
+.dg-partner-card__part > dt {
+  font-weight: var(--dg-weight-semibold);
+  color: var(--dg-text);
+  line-height: var(--dg-leading-snug);
+}
+
+.dg-partner-card__part > dd {
+  margin: 0;
+}
+
+.dg-partner-card__part-copy {
+  margin: 0;
+  color: var(--dg-text);
+  line-height: var(--dg-leading-normal);
+}
+
+.dg-partner-card__part-receipt,
+.dg-partner-card__sources {
+  margin: var(--dg-space-1) 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--dg-text-muted);
+  line-height: var(--dg-leading-normal);
+  overflow-wrap: anywhere;
+}
+
+.dg-partner-card__sources {
+  margin-top: var(--dg-space-2);
+}
+
+/* A caveat true of THIS partner only, on the card face — a direct child of the
+   card now, not of the disclosure, so the card's own flex gap spaces it and the
+   margin that stood in for that gap inside `<details>` would double it. Same
+   size and muted colour as the section caveat above the grid, because it is the
+   same kind of sentence doing the same job. */
+.dg-partner-card__caveats {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+  line-height: var(--dg-leading-normal);
+}

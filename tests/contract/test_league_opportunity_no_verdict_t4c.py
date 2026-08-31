@@ -25,10 +25,16 @@ ROOT = Path(__file__).resolve().parents[2]
 # about survive verbatim: it is a read-only snapshot, and we read rosters rather
 # than minds. The pointer names a place in the product; it nominates no player
 # and directs no trade, and the assertions below re-prove that on the new string.
+#
+# DG-119 (2026-08-30): the pointer's TARGET was renamed. The partner panel is
+# headed "Who to call" now, so "Partner rankings" sent a reader to a section
+# with no such words on it. The pointer names the nav view they actually click
+# ("Trade partners", destinations.ts:60). Both cordon facts are untouched, and it
+# still nominates no player and directs no trade.
 HEADER_COPY = (
     "Your league at a glance — who's contending and who's rebuilding. It's a "
-    "read-only snapshot: we read each roster, we don't read minds. Partner "
-    "rankings now sit under Trades, beside the trade builder."
+    "read-only snapshot: we read each roster, we don't read minds. Trade "
+    "partners now sits under Trades, beside the trade builder."
 )
 OLD_LEAGUE_OPPORTUNITY_TOKENS = {
     "recommended_drop",

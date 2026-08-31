@@ -67,7 +67,7 @@ describe("Trade partners · the facts that travel with the panel", () => {
     );
 
     // Above the cards, not somewhere below them.
-    const panel = screen.getByRole("region", { name: /partner rankings/i });
+    const panel = screen.getByRole("region", { name: /who to call/i });
     expect(
       asOf.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
@@ -90,7 +90,7 @@ describe("Trade partners · the facts that travel with the panel", () => {
 
     render(<TradePartners />);
 
-    await screen.findByRole("region", { name: /partner rankings/i });
+    await screen.findByRole("region", { name: /who to call/i });
     expect(screen.queryByText(/could not be matched up/i)).toBeNull();
   });
 

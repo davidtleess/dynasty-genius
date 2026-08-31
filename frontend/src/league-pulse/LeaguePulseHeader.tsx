@@ -18,8 +18,20 @@ import { SnapshotStamp } from "./SnapshotStamp";
 // replacement keeps both load-bearing facts and adds a plain pointer to where
 // the partner panel went, which is a navigation fact and asserts nothing about
 // the ranking itself (it still declines to be a validated one).
+//
+// DG-119 REVIEW FIX: the pointer named something that exists nowhere. DG-119
+// headed the panel "Who to call", so a reader following "Partner rankings"
+// arrived at a page with no such words on it — one destination with three names,
+// which is the DG-117 defect wearing a wayfinding costume. The pointer now names
+// the NAV VIEW the reader clicks: destinations.ts:56-61 puts "Trade partners"
+// under "Trades" beside "Build a trade", and TradePartners.tsx:107 gives the
+// region that same accessible name. It deliberately does NOT say "who to call" —
+// that clause left this page with the panel that answered it (DG-114), and
+// TradePartnersDisclosure.test.jsx holds the guard that keeps it gone.
+// tests/contract/test_league_opportunity_no_verdict_t4c.py byte-asserts this
+// string, so it moved in the same commit.
 const LEAGUE_SNAPSHOT_COPY =
-  "Your league at a glance — who's contending and who's rebuilding. It's a read-only snapshot: we read each roster, we don't read minds. Partner rankings now sit under Trades, beside the trade builder.";
+  "Your league at a glance — who's contending and who's rebuilding. It's a read-only snapshot: we read each roster, we don't read minds. Trade partners now sits under Trades, beside the trade builder.";
 
 // The panels THIS page renders. `dropped.partner_rankings` is deliberately not
 // summed here: the sentence below says the records "are not shown below", and
