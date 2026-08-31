@@ -50,6 +50,26 @@ def _validate_bundle(bundle: dict[str, Any], source: str) -> bool:
         return False
 
 
+class EngineBManifestUnavailableError(RuntimeError):
+    """The v2 manifest could not be resolved, so the served model set is unknown.
+
+    David's ruling, 2026-08-31, verbatim: "if the model can't read the file, then it
+    needs to be a hard error."
+
+    Refusing is the whole point. This class of failure previously resolved to ``{}`` and
+    fell through ``self._v2_bundles.get(position) or self._v1_bundle`` to the SUPERSEDED
+    v1 model, silently, for every position -- which is how the land gate spent weeks
+    validating tickets against a build the repo documents as not beating a naive
+    baseline. Nothing errored, nothing logged where anyone read it, and the answers were
+    simply worse.
+
+    NOT raised when the manifest is readable and simply does not promote a position:
+    ``train_engine_b`` writes entries only for promoted positions, so a ``None`` there is
+    a deliberate statement that v1 is the right model for it. That fallback is by design
+    and survives.
+    """
+
+
 class EngineBService:
     _instance = None
     _loaded: bool = False
@@ -70,19 +90,29 @@ class EngineBService:
         """Load v2 per-position bundles and v1 fallback. Idempotent."""
         if self._loaded:
             return
+        # Set AFTER the loads, not before: a raise here must not leave a half-loaded
+        # singleton that answers every later call from an empty v2 map -- which would
+        # silently reinstate the exact v1 fallback this refusal exists to prevent.
+        v2 = self._load_v2_bundles()
+        v1 = self._load_v1_bundle()
+        self._v2_bundles = v2
+        self._v1_bundle = v1
         self._loaded = True
-        self._v2_bundles = self._load_v2_bundles()
-        self._v1_bundle = self._load_v1_bundle()
 
     def _load_v2_bundles(self) -> dict[str, Any]:
         if not _V2_MANIFEST_PATH.exists():
-            return {}
+            raise EngineBManifestUnavailableError(
+                f"Engine B v2 manifest not found at {_V2_MANIFEST_PATH}; refusing to "
+                "serve rather than silently falling back to the superseded v1 model."
+            )
         try:
             with open(_V2_MANIFEST_PATH) as f:
                 manifest: dict[str, str | None] = json.load(f)
         except Exception as e:
-            logger.error("Engine B: failed to read v2 manifest: %s", e)
-            return {}
+            raise EngineBManifestUnavailableError(
+                f"Engine B v2 manifest at {_V2_MANIFEST_PATH} could not be read: {e}; "
+                "refusing to serve rather than silently falling back to v1."
+            ) from e
 
         bundles: dict[str, Any] = {}
         for pos, artifact_path in manifest.items():
@@ -90,19 +120,25 @@ class EngineBService:
                 continue
             full_path = _ROOT / artifact_path
             if not full_path.exists():
-                logger.warning(
-                    "Engine B: v2 artifact missing for %s: %s", pos, full_path
+                raise EngineBManifestUnavailableError(
+                    f"Engine B v2 manifest promotes {pos} to {artifact_path}, which does "
+                    "not exist. A manifest naming a model that is not on disk is a broken "
+                    "deployment, not a reason to serve v1."
                 )
-                continue
             try:
                 with open(full_path, "rb") as f:
                     bundle = pickle.load(f)
-                if _validate_bundle(bundle, str(full_path)):
-                    bundles[pos] = bundle
             except Exception as e:
-                logger.error(
-                    "Engine B: failed to load v2 artifact for %s: %s", pos, e
+                raise EngineBManifestUnavailableError(
+                    f"Engine B v2 artifact for {pos} at {full_path} could not be loaded: "
+                    f"{e}; refusing to serve rather than falling back to v1."
+                ) from e
+            if not _validate_bundle(bundle, str(full_path)):
+                raise EngineBManifestUnavailableError(
+                    f"Engine B v2 artifact for {pos} at {full_path} failed validation; "
+                    "refusing to serve rather than falling back to v1."
                 )
+            bundles[pos] = bundle
         return bundles
 
     def _load_v1_bundle(self) -> dict[str, Any]:

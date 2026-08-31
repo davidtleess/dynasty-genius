@@ -9,6 +9,7 @@ Tests cover:
 """
 from __future__ import annotations
 
+import json
 from unittest.mock import patch
 
 import numpy as np
@@ -175,31 +176,113 @@ def test_score_inference_partition_is_sorted(mock_read, mock_bundle):
 
 # ── Contract validation on load ───────────────────────────────────────────────
 
-def test_service_rejects_bundle_with_prohibited_feature():
-    """_load_v2_bundles must reject any artifact whose features violate the contract."""
-    bad_bundle_data = {
-        "model": Ridge(),
-        "imputer": SimpleImputer(),
-        "features": ["age", "ktc_value"],
-        "version": "engine_b_v2_wr",
-    }
-    manifest = {"WR": "app/data/models/engine_b/runs/fake/wr_v2.pkl"}
-    with (
-        patch("app.services.engine_b_service._V2_MANIFEST_PATH") as mock_mp,
-        patch("builtins.open", create=True) as mock_open,
-        patch("app.services.engine_b_service.pickle.load", return_value=bad_bundle_data),
-        patch("pathlib.Path.exists", return_value=True),
-    ):
-        mock_mp.exists.return_value = True
-        svc = EngineBService.__new__(EngineBService)
-        svc._loaded = False
-        svc._v2_bundles = {}
-        svc._v1_bundle = {}
-        # Direct call: bundle with prohibited feature should not enter _v2_bundles
-        result = svc._load_v2_bundles.__func__  # access unbound to test in isolation
-        # Validate via contract function directly
-        from src.dynasty_genius.models.engine_b_contract import (
-            validate_no_prohibited_features,
+def test_service_rejects_bundle_with_prohibited_feature(tmp_path, monkeypatch):
+    """_load_v2_bundles must reject any artifact whose features violate the contract.
+
+    This test previously asserted its own title and then did not test it: it built four
+    mocks, never called _load_v2_bundles, and asserted validate_no_prohibited_features
+    directly -- which would pass whatever the service did. Rewritten 2026-08-31 to
+    exercise the real load path, which is possible now that a validation failure raises
+    rather than being logged and skipped.
+    """
+    import pickle as _pickle
+
+    import app.services.engine_b_service as mod
+
+    run_dir = tmp_path / "app/data/models/engine_b/runs/fake"
+    run_dir.mkdir(parents=True)
+    artifact = run_dir / "wr_v2.pkl"
+    artifact.write_bytes(
+        _pickle.dumps(
+            {
+                "model": Ridge(),
+                "imputer": SimpleImputer(),
+                "features": ["age", "ktc_value"],
+                "version": "engine_b_v2_wr",
+            }
         )
-        with pytest.raises(ValueError, match="[Pp]rohibited"):
-            validate_no_prohibited_features(["age", "ktc_value"])
+    )
+    manifest = tmp_path / "v2_manifest.json"
+    manifest.write_text(
+        json.dumps({"WR": "app/data/models/engine_b/runs/fake/wr_v2.pkl"})
+    )
+    monkeypatch.setattr(mod, "_V2_MANIFEST_PATH", manifest)
+    monkeypatch.setattr(mod, "_ROOT", tmp_path)
+
+    svc = EngineBService.__new__(EngineBService)
+    with pytest.raises(mod.EngineBManifestUnavailableError):
+        svc._load_v2_bundles()
+
+
+# ── The manifest refusal (David's ruling, 2026-08-31) ─────────────────────────────
+# "if the model can't read the file, then it needs to be a hard error."
+#
+# This class of failure previously resolved to {} and fell through
+# `self._v2_bundles.get(position) or self._v1_bundle` to the SUPERSEDED v1 model for
+# every position, silently. That is how the land gate spent weeks validating against a
+# build the repo documents as not beating a naive baseline.
+
+def _fresh_service():
+    from app.services.engine_b_service import EngineBService as _S
+    return _S.__new__(_S)
+
+
+def test_absent_manifest_refuses_instead_of_serving_v1(tmp_path, monkeypatch):
+    import app.services.engine_b_service as mod
+    monkeypatch.setattr(mod, "_V2_MANIFEST_PATH", tmp_path / "not_here.json")
+    with pytest.raises(mod.EngineBManifestUnavailableError, match="not found"):
+        _fresh_service()._load_v2_bundles()
+
+
+def test_unreadable_manifest_refuses_instead_of_serving_v1(tmp_path, monkeypatch):
+    import app.services.engine_b_service as mod
+    bad = tmp_path / "v2_manifest.json"
+    bad.write_text("{ this is not json")
+    monkeypatch.setattr(mod, "_V2_MANIFEST_PATH", bad)
+    with pytest.raises(mod.EngineBManifestUnavailableError, match="could not be read"):
+        _fresh_service()._load_v2_bundles()
+
+
+def test_a_manifest_naming_a_missing_model_is_a_broken_deployment(tmp_path, monkeypatch):
+    """A manifest that promotes a position to a pickle which is not on disk is lying.
+    Serving v1 in that case is the silent-downgrade defect wearing a different hat."""
+    import app.services.engine_b_service as mod
+    manifest = tmp_path / "v2_manifest.json"
+    manifest.write_text(json.dumps({"WR": "app/data/models/engine_b/runs/gone/wr_v2.pkl"}))
+    monkeypatch.setattr(mod, "_V2_MANIFEST_PATH", manifest)
+    monkeypatch.setattr(mod, "_ROOT", tmp_path)
+    with pytest.raises(mod.EngineBManifestUnavailableError, match="does not exist"):
+        _fresh_service()._load_v2_bundles()
+
+
+def test_a_position_the_manifest_does_not_promote_still_falls_back_to_v1(
+    tmp_path, monkeypatch
+):
+    """The ONE fallback that survives, and it must. train_engine_b writes entries only
+    for promoted positions, so a null is a deliberate statement that v1 is right for it
+    -- not a failure to read anything."""
+    import app.services.engine_b_service as mod
+    manifest = tmp_path / "v2_manifest.json"
+    manifest.write_text(json.dumps({"TE": None}))
+    monkeypatch.setattr(mod, "_V2_MANIFEST_PATH", manifest)
+    monkeypatch.setattr(mod, "_ROOT", tmp_path)
+
+    assert _fresh_service()._load_v2_bundles() == {}
+
+
+def test_a_failed_load_does_not_strand_the_service_answering_from_an_empty_map(
+    tmp_path, monkeypatch
+):
+    """_load() used to set _loaded=True BEFORE loading. A raise then left a singleton
+    that answered every later call from an empty v2 map -- silently reinstating the very
+    v1 fallback this refusal exists to prevent."""
+    import app.services.engine_b_service as mod
+    monkeypatch.setattr(mod, "_V2_MANIFEST_PATH", tmp_path / "not_here.json")
+    svc = _fresh_service()
+    svc._loaded = False
+    svc._v2_bundles = {}
+    svc._v1_bundle = {}
+
+    with pytest.raises(mod.EngineBManifestUnavailableError):
+        svc._load()
+    assert svc._loaded is False, "a failed load must not mark the service loaded"
