@@ -80,8 +80,20 @@ ARCHETYPE_WINDOW_SEASONS = qb.execution.ARCHETYPE_WINDOW_SEASONS
 # walk-forward, and the promotion decision record. RUNNER-OWNED: resolved
 # against THIS script's own repository root, never caller-selected.
 F25_FROZEN_SET: dict[str, str] = {
+    # RE-PINNED 2026-08-31 on David's ruling. Held 307200148e2c251e… from
+    # 2026-07-02 until DG-028 (99c238d6, 2026-08-28) added 17 lines registering
+    # engine_b:v1_fallback, moving the file to ad981800711a322e… . That entry is
+    # a CUSTODIAL registration — its own approved_by records the already-served
+    # fallback engine_b_service._load_v1_bundle scans for, explicitly "not a new
+    # approval" — so the boundary move is authorized after the fact, not a
+    # study-invalidating edit. Nothing published by QB-1 is affected: the study
+    # ran against the old pin; only a RE-RUN would have refused.
+    # The drift went unseen for three days because dg-land.sh gates in a fresh
+    # worktree where the gitignored model pickles are absent, so the seven
+    # contract tests covering this boundary SKIP on every land. Re-pinning
+    # restores the guard; it does not fix that blindness.
     "app/config/model_registry.json": (
-        "307200148e2c251e4b4de9ce3d03a02eab20839034dc3a8ba319a5a1298e1ac3"
+        "ad981800711a322e82eb7691c5bfe035db6c7c95ad1972611f86b9642f2d0be9"
     ),
     "app/data/models/engine_b/runs/20260513T012309Z/qb_v2.pkl": (
         "d7acb6808e4a6caf412ec05b41aa90324e04f90ef219bbf78f680f66ea7d304f"

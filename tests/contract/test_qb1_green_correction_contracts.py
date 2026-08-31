@@ -1400,8 +1400,16 @@ def test_r3g4_f25_set_is_runner_owned_and_exactly_the_registered_five() -> None:
     Codex's independently measured hashes, resolved against the script's OWN
     repo root — and the real repo passes it today (the standing tripwire)."""
     assert runner.F25_FROZEN_SET == {
+        # RE-PINNED 2026-08-31 on David's ruling, in BOTH places deliberately:
+        # this double entry is the guard that makes a unilateral change to the
+        # runner's F25 set impossible, and it caught exactly that when the
+        # runner alone was edited. DG-028 (99c238d6, 2026-08-28) moved the
+        # registry from 307200148e2c251e… to ad981800711a322e… by custodially
+        # registering engine_b:v1_fallback — an already-served artifact, its own
+        # approved_by says "not a new approval". See run_qb1_study.py for the
+        # full record.
         "app/config/model_registry.json": (
-            "307200148e2c251e4b4de9ce3d03a02eab20839034dc3a8ba319a5a1298e1ac3"
+            "ad981800711a322e82eb7691c5bfe035db6c7c95ad1972611f86b9642f2d0be9"
         ),
         "app/data/models/engine_b/runs/20260513T012309Z/qb_v2.pkl": (
             "d7acb6808e4a6caf412ec05b41aa90324e04f90ef219bbf78f680f66ea7d304f"
