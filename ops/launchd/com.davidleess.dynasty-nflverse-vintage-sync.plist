@@ -39,6 +39,21 @@
         <string>/Users/davidleess/dynasty-genius-product</string>
     </array>
 
+    <!--
+      launchd's minimal PATH holds no Homebrew, so gcloud's wrapper falls back to
+      /usr/bin/python3 (3.9.6) and refuses to load: gcloud 581.0.0 requires 3.10+.
+      Every successful run of this job so far came from an interactive shell that
+      had Homebrew's 3.14 on PATH, which is why the receipts look clean and prove
+      nothing about the scheduled path. Same defect as 36f2c7cb fixed for
+      dynasty-backup-irreplaceable after the 2026-08-22 Intel -> arm64 migration;
+      this job was written afterwards and did not inherit the fix.
+    -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>CLOUDSDK_PYTHON</key>
+        <string>/opt/homebrew/opt/python@3.14/bin/python3.14</string>
+    </dict>
+
     <key>WorkingDirectory</key>
     <string>/Users/davidleess/dynasty-genius-product</string>
 
