@@ -375,7 +375,7 @@ def test_f9_stale_completed_season_without_predictions_noops_hermetically(
 
     monkeypatch.setattr(cli, "_resolve_season_week", lambda **_kwargs: (2025, 22))
     monkeypatch.setattr(cli, "_default_prediction_loader", lambda *_args, **_kwargs: [])
-    monkeypatch.setattr(cli, "_default_schedule_loader", _fail_loader("schedule_loader"))
+    monkeypatch.setattr(cli, "_finality_schedule_loader", _fail_loader("schedule_loader"))
     monkeypatch.setattr(cli, "_default_stat_loader", _fail_loader("stat_loader"))
     monkeypatch.setattr(cli, "_default_util_loader", _fail_loader("util_loader"))
     monkeypatch.setattr(
@@ -495,7 +495,7 @@ def test_f13_scheduled_stale_target_with_predictions_noops_without_scoring(
     monkeypatch.setattr(cli, "_resolve_season_week", lambda **_kwargs: (2025, 22))
     monkeypatch.setattr(
         cli,
-        "_default_schedule_loader",
+        "_finality_schedule_loader",
         lambda *_args, **_kwargs: _final_schedule(
             season=2025, week=22, gameday="2026-02-08"
         ),
@@ -538,7 +538,7 @@ def test_f14_explicit_stale_target_bypasses_guard_for_intentional_backfill(
 
     monkeypatch.setattr(
         cli,
-        "_default_schedule_loader",
+        "_finality_schedule_loader",
         lambda *_args, **_kwargs: _final_schedule(
             season=2025, week=22, gameday="2026-02-08"
         ),
@@ -635,7 +635,7 @@ def test_f16_unwritable_marker_on_full_scoring_path_preserves_scorecard_and_clea
 
     monkeypatch.setattr(
         cli,
-        "_default_schedule_loader",
+        "_finality_schedule_loader",
         lambda *_args, **_kwargs: _final_schedule(),
     )
     monkeypatch.setattr(cli, "_default_stat_loader", lambda *_args, **_kwargs: _stat_rows())

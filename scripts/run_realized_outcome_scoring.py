@@ -34,6 +34,7 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Optional
+from zoneinfo import ZoneInfo
 
 # Standalone-run path bootstrap: when launchd/cron runs this file directly the repo root is
 # not on sys.path, so the first-party `src` imports would crash. Resolve the root from this
@@ -45,6 +46,12 @@ if str(ROOT) not in sys.path:
 from src.dynasty_genius.capture.outcome_forward_capture_store import (  # noqa: E402
     OutcomeForwardCaptureStore,
     week_status,
+)
+from src.dynasty_genius.eval.week_finality import (  # noqa: E402
+    DEFAULT_TZ as FINALITY_TZ,
+)
+from src.dynasty_genius.eval.week_finality import (  # noqa: E402
+    derive_week_finality,
 )
 from src.dynasty_genius.identity.outcome_identity_bridge import (  # noqa: E402
     OutcomeIdentityBridge,
@@ -529,6 +536,38 @@ def _default_schedule_loader(season: int, week: int) -> dict[str, Any]:
     }
 
 
+def _finality_schedule_loader(
+    season: int, week: int, *, now: Optional[datetime] = None
+) -> dict[str, Any]:
+    """The governed finality provider the score-derived default has always deferred to.
+
+    ``_default_schedule_loader`` states the rule and then, correctly, refuses to satisfy
+    it: a populated score proves play was OBSERVED, never that it ENDED, so a
+    score-derived schedule may never certify finality. That door was closed deliberately
+    in 17cfc1e9 and the provider meant to reopen it was never built, so `week_status` has
+    never once returned "finalized" and not one prediction has ever been graded.
+
+    David's ruling, 2026-08-31, verbatim: "look at the schedule for Week 1 and see when
+    the last game in Week 1 is. When that game is over, the week is final, and the stats
+    are in."
+
+    That replaces an ASSERTION with a DERIVATION -- the schedule already contains the
+    fact, so nothing has to be trusted to declare it. See
+    src/dynasty_genius/eval/week_finality.py for the three refusals that keep it from
+    closing a week early.
+    """
+    import nflreadpy as nfl  # lazy: keep module import standalone-clean + fast
+
+    frame = nfl.load_schedules([season]).to_pandas()
+    games = frame[frame["week"] == week]
+    return derive_week_finality(
+        games.to_dict("records"),
+        season=season,
+        week=week,
+        now=now or datetime.now(ZoneInfo(FINALITY_TZ)),
+    )
+
+
 def _default_stat_loader(season: int, week: int) -> list[dict[str, Any]]:
     import nflreadpy as nfl
 
@@ -964,7 +1003,7 @@ def _resolve_season_week(
             played_season_provider or nfl.get_current_season
         )
         week_provider = week_provider or nfl.get_current_week
-    schedule_loader = schedule_loader or _default_schedule_loader
+    schedule_loader = schedule_loader or _finality_schedule_loader
 
     roster_season = int(roster_season_provider())
     played_season = int(played_season_provider())
@@ -1052,7 +1091,7 @@ def main(
             marker_path=Path(args.marker_path),
             enforce_target_freshness=not explicit_target,
             now_fn=now_fn,
-            schedule_loader=_default_schedule_loader,
+            schedule_loader=_finality_schedule_loader,
             stat_loader=_default_stat_loader,
             util_loader=_default_util_loader,
             prediction_loader=_default_prediction_loader,

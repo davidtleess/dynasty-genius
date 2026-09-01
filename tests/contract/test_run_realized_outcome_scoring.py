@@ -426,7 +426,7 @@ def test_main_default_offseason_path_noops_without_artifact_mutation(
     monkeypatch.setattr(cli, "_resolve_season_week", lambda: (2026, 5))
     monkeypatch.setattr(
         cli,
-        "_default_schedule_loader",
+        "_finality_schedule_loader",
         lambda *_args, **_kwargs: {
             "season": 2026,
             "week": 5,
