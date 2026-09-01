@@ -103,6 +103,55 @@ effect. This is the quantified core of DG-128 and the strongest argument that th
 
 ---
 
+## The promotion protocol — RATIFIED BY DAVID 2026-09-01
+
+**Five candidates per season. One at a time. Asked directly whether five was too small, David's
+answer was "keep it at 5."**
+
+Five is a cap on **promotions** — changes to the model that serves him. It is NOT a cap on thinking.
+Hypotheses may be generated without limit; anything may be tested against history for understanding.
+What is scarce is changing what David is served, and the reason is threefold:
+
+1. **Multiplicity.** Under Benjamini-Hochberg at q=0.10, the best candidate in a family of 5 needs
+   p ≤ 0.020; in a family of 100 it needs p ≤ 0.001. Testing more does not find more — past a point
+   it finds less, because the bar rises faster than the ideas improve. Uncorrected, 100 useless
+   features yield ~5 that look significant by luck.
+2. **Sample.** 86 distinct QBs exist in the entire history (RB 202, WR 317, TE 177). Resampling the
+   same measurement on the same players moves the QB score between 0.567 and 0.748 on luck alone.
+   Paired tests cancel most of that shared noise — which is why the TE study's band was 0.03, not
+   0.18 — but the effects being chased are small relative to what the data can resolve.
+3. **The holdout is a consumable, and this is the binding constraint.** `HOLDOUT_SEASONS = [2022,
+   2023]` is a fixed constant read by every candidate ever tested — already 8 times. A test set is
+   not renewable. After enough looks, "it passed the holdout" means "someone found something that
+   fits those two seasons," and you cannot tell the difference from inside.
+
+**Declare the family of five BEFORE the first test and never shrink it.** If five are registered and
+three are run, the correction still runs over five. Shrinking a family after seeing results is how a
+losing candidate gets quietly dropped to flatter the winners.
+
+### The bar — six conditions, all must hold, all fixed in writing before the first fit
+
+1. The effect matches the pre-registered direction.
+2. Delta Spearman ≥ **+0.05** (the materiality floor QB-1 already registered).
+3. The 95% CI of the paired, player-clustered bootstrap **excludes zero**.
+4. Coverage ≥ **70%** non-imputed on the population the candidate claims to help.
+5. **No position loses more than 0.02** Spearman.
+6. It survives Benjamini-Hochberg at **q = 0.10** over the declared family of five.
+
+The template is the TE college-features bake-off (2026-09-01): walk-forward by season, expanding
+window, identical pipeline both arms, pooled out-of-fold Spearman, paired bootstrap of the
+DIFFERENCE, clustered on player. Its verdict — delta +0.0053, CI [−0.0091, +0.0202], P(better) 77.1%,
+coverage 50.6% → **REJECTED** — is the worked example. It failed the materiality floor by a factor of
+ten before statistics were needed.
+
+### How to buy more capacity honestly
+
+Not by relaxing the bar. By raising resolution: the two-season target (`avg_ppg_t1_t2`) is what caps
+the backtest at 4 folds, because each fold consumes two years of future. QB-1 predicts ONE season
+ahead and gets 8 folds from the same data — a doubling of statistical power available for free, and
+arguably a more honest target, since a two-year average blends a healthy season and an injured one
+into a number describing neither. Each season played adds a fold; 2026 will add one.
+
 ## The loop
 
 A hypothesis register is worthless without a scoreboard. The practice is:
