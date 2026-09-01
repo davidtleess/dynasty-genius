@@ -1,0 +1,50 @@
+{
+  "position": "QB",
+  "skipped": false,
+  "alpha_selected": 1000.0,
+  "features": [
+    "age",
+    "aging_curve_value",
+    "cpoe",
+    "dakota",
+    "epa_per_dropback",
+    "games_t",
+    "is_dual_threat",
+    "ngs_avg_time_to_throw",
+    "ngs_completion_percentage_above_expectation",
+    "ppg_t",
+    "ppg_t_minus_1",
+    "ppg_t_minus_1_available",
+    "ppg_t_minus_2",
+    "ppg_t_minus_2_available",
+    "snap_share",
+    "snap_share_t_minus_1",
+    "snap_share_t_minus_1_available"
+  ],
+  "n_features": 17,
+  "train_rows": 169,
+  "test_rows": 95,
+  "metrics_v2": {
+    "rmse": 4.508648015474114,
+    "r2": 0.43891720351113395,
+    "spearman": 0.6957751111993583
+  },
+  "metrics_v1_1": {
+    "rmse": 3.39694316015804,
+    "r2": 0.6091460132320292,
+    "spearman": 0.7673382023616003
+  },
+  "metrics_v1_0": {
+    "rmse": 4.602989065634779,
+    "r2": 0.4151908274890772,
+    "spearman": 0.6573371267436903
+  },
+  "metrics_baseline": {
+    "rmse": 5.461186459546745,
+    "r2": 0.17679443281346297,
+    "spearman": 0.6337088245728352
+  },
+  "improvements": 3,
+  "promotion_warranted": true,
+  "artifact_path": "app/data/models/engine_b/runs/20260831T204458Z/qb_v2.pkl"
+}

@@ -10,6 +10,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from src.dynasty_genius.features.feature_assembly import OUTCOME_COLUMN
+
 ROOT = Path(__file__).resolve().parents[1]
 DATASET_V2 = ROOT / "app" / "data" / "training" / "engine_b_features_v2.csv"
 
@@ -52,15 +54,31 @@ def test_outcome_completeness_gate(df):
     rows_2024 = df[df["feature_season"] == 2024]
     assert not rows_2024["training_eligible"].any(), "2024 rows must not be training_eligible (missing T+2)."
     
+    # Pre-2024 rows all have a COMPLETE outcome window, but "complete window" and
+    # "trainable" stopped being the same thing when attrition rows were un-deleted.
+    # A player who never posted a qualifying season in t+1/t+2 is now RETAINED and
+    # labelled (outcome_returned=False) instead of being dropped, and he is deliberately
+    # not training_eligible: he has no production outcome, so admitting him to the points
+    # regression would feed it NaN targets. He belongs to the availability model instead.
     rows_pre_2024 = df[df["feature_season"] < 2024]
-    assert rows_pre_2024["training_eligible"].all(), "Pre-2024 rows should be training_eligible."
+    observed = rows_pre_2024[OUTCOME_COLUMN].notna()
+    assert rows_pre_2024.loc[observed, "training_eligible"].all(), (
+        "every pre-2024 row WITH an observed outcome must be training_eligible"
+    )
+    assert not rows_pre_2024.loc[~observed, "training_eligible"].any(), (
+        "a row with no observed production must never enter the production regression"
+    )
+    assert (rows_pre_2024.loc[~observed, "outcome_returned"] == False).all(), (  # noqa: E712
+        "the non-trainable pre-2024 rows are exactly the attrition population, and each "
+        "must carry the availability label that makes it usable"
+    )
 
 def test_aging_curve_position_populated(df):
     """BLOCKER 4: Verify aging_curve_position is logged."""
     assert df["aging_curve_position"].notna().all(), "aging_curve_position contains nulls."
     
     # Check QB archetypes
-    dual_threats = df[df["is_dual_threat"] == True]
+    dual_threats = df[df["is_dual_threat"] == True]  # noqa: E712  pandas boolean mask
     if not dual_threats.empty:
         assert (dual_threats[dual_threats["position"] == "QB"]["aging_curve_position"] == "QB_dual_threat").all()
 

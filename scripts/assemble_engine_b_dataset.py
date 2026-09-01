@@ -88,6 +88,12 @@ ENGINE_B_OUTPUT_COLUMNS = (
     "position",
     OUTCOME_COLUMN,
     "training_eligible",
+    # Availability label, NOT a model input. OUTCOME_COLUMN answers "how much did he
+    # produce", which is only defined for a player who played; this answers "did he
+    # post a qualifying season at all", which is defined for everyone with a complete
+    # window. Keeping them as two columns is what lets a hurdle model estimate P(plays)
+    # separately from E[points | plays] instead of learning from survivors only.
+    "outcome_returned",
     "ppg_t_minus_1_available",
     "ppg_t_minus_2_available",
     "snap_share_t_minus_1_available",

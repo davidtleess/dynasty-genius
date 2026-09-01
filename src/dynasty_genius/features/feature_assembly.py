@@ -80,16 +80,51 @@ def apply_inference_partition(
             pts.append(row["ppg_t2"])
         return float(np.mean(pts)) if pts else np.nan
 
+    def _returned(row: pd.Series) -> bool:
+        """Did a qualifying outcome season appear at t+1 or t+2?
+
+        Narrow on purpose. The upstream assembler drops seasons under
+        MIN_GAMES_THRESHOLD, so a missing outcome row means "did not post a QUALIFYING
+        season", which is a weaker claim than "took zero snaps". Anything downstream that
+        models attrition must read this as the pipeline's own qualification event, not as
+        a football fact.
+        """
+        return bool(
+            (pd.notna(row.get("games_t1")) and row["games_t1"] > 0)
+            or (pd.notna(row.get("games_t2")) and row["games_t2"] > 0)
+        )
+
     merged[OUTCOME_COLUMN] = merged.apply(_calc_avg, axis=1)
+    merged["outcome_returned"] = merged.apply(_returned, axis=1).astype("boolean")
     merged = merged.drop(
         columns=[c for c in ("ppg_t1", "ppg_t2", "games_t1", "games_t2") if c in merged.columns]
     )
 
-    # Training-eligible = complete 2-year window (feature_season + 2 <= latest season).
-    merged["training_eligible"] = merged["feature_season"] < (inference_season - 1)
-    keep = (merged["training_eligible"] & merged[OUTCOME_COLUMN].notna()) | (
-        merged["feature_season"] == inference_season
-    )
+    # A complete 2-year outcome window (feature_season + 2 <= latest season). Outside it
+    # the player's return is UNOBSERVED rather than negative, so the availability label is
+    # nulled there; otherwise an availability model would read every currently-active
+    # player as having washed out.
+    window_complete = merged["feature_season"] < (inference_season - 1)
+    merged.loc[~window_complete, "outcome_returned"] = pd.NA
+
+    # `training_eligible` keeps the meaning every consumer already relies on: this row can
+    # train the PRODUCTION regression. Consumers select on it and then read OUTCOME_COLUMN
+    # straight into a Ridge fit (train_engine_b.py:212,294,351,371;
+    # backtest_harness._build_fold_data), so a row with no observed production must not
+    # qualify — admitting one feeds NaN targets into a points model, which is a different
+    # bug from the one this fixes.
+    merged["training_eligible"] = window_complete & merged[OUTCOME_COLUMN].notna()
+
+    # ...but the row itself SURVIVES, which is the actual fix. A player who never returned
+    # is an OBSERVATION, not a missing row. The pre-DG mask dropped him entirely, deleting
+    # 638 of 2,880 complete-window player-seasons, 9.3x concentrated in the lowest
+    # snap-share decile — which is what flattened the learned age curve and left the model
+    # with almost no examples of the low-opportunity population it is asked to rank.
+    # He is kept with outcome_returned=False and OUTCOME_COLUMN=NaN, because what was
+    # observed is the absence of an opportunity, never a productive capacity of zero.
+    # That is the hurdle split: P(plays) is estimable from every complete-window row,
+    # E[points | plays] only from those who played.
+    keep = window_complete | (merged["feature_season"] == inference_season)
     return merged[keep].reset_index(drop=True)
 
 

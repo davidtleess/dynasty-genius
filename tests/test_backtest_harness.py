@@ -7,9 +7,21 @@ Task 10.5 (15 tests): run() contract — BacktestResult shape, fold counts,
 All use the real engine_b_features_v2.csv — no mocking needed.
 
 Expected counts verified against the CSV before writing these tests:
-  WR: n_train=[294,454,607,754], n_test=[160,153,147,153]
+  WR: n_train=[294,454,607,755], n_test=[160,153,148,155]
   QB: n_train=[80,123,169,215],  n_test=[43,46,46,49]
-  RB: n_train=[191,289,387,483], n_test=[98,98,96,90]
+  RB: n_train=[191,289,387,483], n_test=[100,99,95,90]
+
+CAUTION — these counts pin a DATA SNAPSHOT, not a behaviour, so they move whenever
+`assemble_engine_b_dataset.py` is re-run against refreshed nflverse data. They last moved
+2026-08-31 by +-1-2 rows per fold when the assembler was re-run; that refresh was NOT the
+attrition change landed the same day, which only adds rows with `training_eligible=False`
+and therefore cannot alter a count the driver takes after filtering on that flag. The proof
+it was upstream churn: `training_eligible` disagreed on ZERO of 2,730 player-seasons common
+to both snapshots, and one RB fold moved DOWN (96 -> 95), which adding rows cannot do.
+
+If you are here because these failed again after an assembler run, confirm the same two
+things before editing the numbers — a count that moves for any other reason is a real
+finding, and re-pinning it would erase the evidence.
 """
 from __future__ import annotations
 
@@ -166,12 +178,12 @@ def test_run_n_train_increases_each_fold(wr_run):
 
 def test_run_wr_n_train_per_fold(wr_run):
     _, result = wr_run
-    assert [f.n_train for f in result.folds] == [294, 454, 607, 754]
+    assert [f.n_train for f in result.folds] == [294, 454, 607, 755]
 
 
 def test_run_wr_n_test_per_fold(wr_run):
     _, result = wr_run
-    assert [f.n_test for f in result.folds] == [160, 153, 147, 153]
+    assert [f.n_test for f in result.folds] == [160, 153, 148, 155]
 
 
 def test_run_qb_n_test_per_fold(qb_run):
@@ -181,7 +193,7 @@ def test_run_qb_n_test_per_fold(qb_run):
 
 def test_run_rb_n_test_per_fold(rb_run):
     _, result = rb_run
-    assert [f.n_test for f in result.folds] == [98, 98, 96, 90]
+    assert [f.n_test for f in result.folds] == [100, 99, 95, 90]
 
 
 def test_run_fixed_alpha_wr(wr_run):

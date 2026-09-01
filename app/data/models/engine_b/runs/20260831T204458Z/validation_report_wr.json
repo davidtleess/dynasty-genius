@@ -1,0 +1,49 @@
+{
+  "position": "WR",
+  "skipped": false,
+  "alpha_selected": 200.0,
+  "features": [
+    "age",
+    "aging_curve_value",
+    "games_t",
+    "ngs_avg_cushion",
+    "ngs_avg_separation",
+    "ppg_t",
+    "ppg_t_minus_1",
+    "ppg_t_minus_1_available",
+    "ppg_t_minus_2",
+    "ppg_t_minus_2_available",
+    "snap_share",
+    "snap_share_t_minus_1",
+    "snap_share_t_minus_1_available",
+    "tprr",
+    "weighted_opportunity",
+    "yprr"
+  ],
+  "n_features": 16,
+  "train_rows": 607,
+  "test_rows": 303,
+  "metrics_v2": {
+    "rmse": 2.8971832925097627,
+    "r2": 0.6819635037202776,
+    "spearman": 0.8086472663740449
+  },
+  "metrics_v1_1": {
+    "rmse": 3.39694316015804,
+    "r2": 0.6091460132320292,
+    "spearman": 0.7673382023616003
+  },
+  "metrics_v1_0": {
+    "rmse": 3.0380703849321145,
+    "r2": 0.6502798317403375,
+    "spearman": 0.7933856970919659
+  },
+  "metrics_baseline": {
+    "rmse": 3.4840286408369416,
+    "r2": 0.5400734832466147,
+    "spearman": 0.7765422075832759
+  },
+  "improvements": 3,
+  "promotion_warranted": true,
+  "artifact_path": "app/data/models/engine_b/runs/20260831T204458Z/wr_v2.pkl"
+}

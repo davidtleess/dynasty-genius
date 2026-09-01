@@ -1414,8 +1414,15 @@ def test_r3g4_f25_set_is_runner_owned_and_exactly_the_registered_five() -> None:
         "app/data/models/engine_b/runs/20260513T012309Z/qb_v2.pkl": (
             "d7acb6808e4a6caf412ec05b41aa90324e04f90ef219bbf78f680f66ea7d304f"
         ),
+        # RE-PINNED 2026-08-31 (second move of the day) alongside the runner's copy —
+        # the double entry exists precisely so neither side can move alone. The Engine B
+        # retrain David authorized promoted all four positions into
+        # runs/20260831T204458Z, and TE moved off the never-gated te_v3 head onto a
+        # te_v2 that passed a real held-out 3/3. See run_qb1_study.py for the full
+        # record, including the note that the study's frozen QB artifact is no longer
+        # the served QB model.
         "app/data/models/engine_b/v2_manifest.json": (
-            "86f199bd069823cc292f8d56553dadc91f07f78bd47ac26498a06f16440984bc"
+            "916677c19a43b2bfbe9b3a1182c8779263d699ded526b1bc27245b4a50b8da44"
         ),
         "src/dynasty_genius/eval/qb_v3_walk_forward.py": (
             "7f3e9283afac1928629b3c04ef2ec71e85c99f3e55278f2237fcf9bedab4a3b5"

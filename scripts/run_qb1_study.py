@@ -98,8 +98,24 @@ F25_FROZEN_SET: dict[str, str] = {
     "app/data/models/engine_b/runs/20260513T012309Z/qb_v2.pkl": (
         "d7acb6808e4a6caf412ec05b41aa90324e04f90ef219bbf78f680f66ea7d304f"
     ),
+    # RE-PINNED 2026-08-31, second move of the day, from
+    # 86f199bd069823cc… to 916677c19a43b2bf… . Cause: the Engine B retrain David
+    # authorized ("go all the way — assemble, retrain, pin, republish") promoted all
+    # four positions into runs/20260831T204458Z, so the manifest now names four new
+    # bundles. TE additionally moved OFF the te_v3 head — that head was fit and scored
+    # on the same rows with promotion_warranted hardcoded null, i.e. it never took the
+    # gate — onto a te_v2 that passed a real held-out 3/3.
+    # The retrain was itself downstream of un-deleting 638 attrition player-seasons
+    # from the training table, so the boundary move is intended and authorized, not
+    # drift. Re-pinned in the SAME change that caused it, which is the step DG-021's
+    # closeout records as the one previously forgotten in this code path.
+    # NOTE for anyone re-running QB-1: the study's own frozen QB artifact
+    # (runs/20260513T012309Z/qb_v2.pkl, still pinned above and still on disk) is no
+    # longer the SERVED QB model. Published QB-1 results are unaffected — they were
+    # computed against that artifact — but a re-run now compares a study boundary to a
+    # different production model, and that is a real question rather than a hash chore.
     "app/data/models/engine_b/v2_manifest.json": (
-        "86f199bd069823cc292f8d56553dadc91f07f78bd47ac26498a06f16440984bc"
+        "916677c19a43b2bfbe9b3a1182c8779263d699ded526b1bc27245b4a50b8da44"
     ),
     "src/dynasty_genius/eval/qb_v3_walk_forward.py": (
         "7f3e9283afac1928629b3c04ef2ec71e85c99f3e55278f2237fcf9bedab4a3b5"

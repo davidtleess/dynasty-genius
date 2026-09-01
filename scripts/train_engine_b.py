@@ -11,8 +11,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pickle
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -44,6 +46,33 @@ MODELS_DIR   = ROOT / "app" / "data" / "models" / "engine_b"
 RUNS_DIR     = MODELS_DIR / "runs"
 
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def write_manifest(path: Path, manifest: dict[str, Any]) -> None:
+    """Publish the position→bundle manifest atomically.
+
+    A plain ``open(path, "w")`` truncates on open, leaving a window in which the manifest
+    is empty or half-written. That window matters because of who reads it:
+    ``EngineBService`` resolves a bundle with ``self._v2_bundles.get(position) or
+    self._v1_bundle`` (app/services/engine_b_service.py:136), a silent fail-open. A reader
+    landing in the window finds no v2 bundles and serves the superseded v1 model for every
+    position, with no error and no caveat — during a retrain, on the live product.
+
+    Same temp-file + ``os.replace`` pattern the repo already uses in
+    ``league_transactions._atomic_write_json`` and ``nflverse_usage._atomic_write_json``;
+    ``os.replace`` is atomic on POSIX, so a reader sees either the old manifest or the new
+    one and never a partial file. The temp file is created in the destination directory so
+    the replace never crosses a filesystem boundary.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(json.dumps(manifest, indent=2) + "\n")
+        os.replace(tmp, path)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
 RUNS_DIR.mkdir(parents=True, exist_ok=True)
 
 # ── Metadata columns excluded from all model feature sets ─────────────────────
@@ -137,14 +166,33 @@ def train_te_deployment_model(df: pd.DataFrame, run_dir: Path) -> dict[str, Any]
     report_path = run_dir / "validation_report_te.json"
     if artifact_path.exists() or report_path.exists():
         raise FileExistsError(f"TE deployment artifact already exists in {run_dir}")
+    # Hold out the same seasons every other position holds out. Scoring the fit on its own
+    # X measured memorisation, not generalisation, and `promotion_warranted: None` below
+    # meant the >=2/3 composite gate was never invoked for TE at all — so the one position
+    # that ever failed a fair test (run 20260513T012309Z, 0 improvements of 3) shipped
+    # afterwards with no test having been taken. Same split/fit/score/gate shape as
+    # `_train_position`, so TE is judged by the standard the others are judged by.
+    fit_df = train_df[~train_df["feature_season"].isin(HOLDOUT_SEASONS)]
+    holdout_df = train_df[train_df["feature_season"].isin(HOLDOUT_SEASONS)]
+    if holdout_df.empty:
+        raise ValueError(
+            f"TE deployment training has no holdout rows in seasons {HOLDOUT_SEASONS}; "
+            "refusing to report in-sample metrics as validation"
+        )
+
     model, imputer, X, y = _fit_position_ridge(
-        train_df,
+        fit_df,
         features,
         alpha=TE_MODEL_CHANGE_ALPHA,
     )
-    y_pred = model.predict(X)
-    metrics_model = _score(y, y_pred)
-    metrics_baseline = _score(y, train_df["ppg_t"].values)
+    X_test = imputer.transform(holdout_df[features])
+    y_test = holdout_df[OUTCOME_COLUMN].values
+    y_pred = model.predict(X_test)
+    metrics_model = _score(y_test, y_pred)
+    # Baseline on the SAME held-out rows — comparing against a baseline measured on the
+    # training rows would compare two different populations.
+    metrics_baseline = _score(y_test, holdout_df["ppg_t"].values)
+    improvements, promotion_warranted = _gate(metrics_model, metrics_baseline)
 
     with open(artifact_path, "wb") as f:
         pickle.dump({
@@ -166,9 +214,12 @@ def train_te_deployment_model(df: pd.DataFrame, run_dir: Path) -> dict[str, Any]
         "features": features,
         "n_features": len(features),
         "train_rows": len(X),
+        "test_rows": len(holdout_df),
+        "holdout_seasons": list(HOLDOUT_SEASONS),
         "metrics_model": metrics_model,
         "metrics_baseline": metrics_baseline,
-        "promotion_warranted": None,
+        "improvements": improvements,
+        "promotion_warranted": promotion_warranted,
         "artifact_path": str(artifact_path),
     }
     with open(report_path, "w") as f:
@@ -376,8 +427,7 @@ def train_v2_stratified(df: pd.DataFrame, run_dir: Path) -> dict[str, Any]:
 
     # Write manifest only for promoted positions
     manifest_path = MODELS_DIR / "v2_manifest.json"
-    with open(manifest_path, "w") as f:
-        json.dump(manifest, f, indent=2)
+    write_manifest(manifest_path, manifest)
 
     promoted = [p for p, path in manifest.items() if path is not None]
     not_promoted = [p for p, path in manifest.items() if path is None]
