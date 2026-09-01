@@ -814,3 +814,118 @@ def test_real_runtime_artifact_rows_map_xvar_from_valuation() -> None:
         # therefore honestly records NULL until the upstream defect at
         # universe_pvo_batch.py:99 is fixed — never a silent substitute.
         assert mapped["dvs_pct"] == valuation.get("xvar_percentile_position")
+
+
+# ── DG-131: declared provenance discontinuities ──────────────────────────────
+# A REQUIRED artifact can be destroyed in a way no retry fixes. The refusal stays
+# mandatory; a narrow, David-ruled registry converts one named loss from a silent abort
+# into a recorded absence that travels into the provenance itself.
+
+_DISCONTINUITY_REGISTRY_PATH = Path("app/config/provenance_discontinuities.json")
+
+
+def _registry(*paths: Path) -> bytes:
+    return json.dumps(
+        {
+            "discontinuity_schema_version": 1,
+            "artifacts": [
+                {
+                    "path": str(p),
+                    "unrecoverable_since": "2026-08-31",
+                    "cause": "destroyed by a symlink write-through",
+                    "serving_impact": "NONE — the sibling pickle is byte-identical to backup",
+                }
+                for p in paths
+            ],
+        }
+    ).encode()
+
+
+def test_declared_provenance_discontinuity_lets_capture_run_and_records_the_absence(
+    tmp_path,
+) -> None:
+    """The capture completes, and the vintage SAYS the witness is gone."""
+    artifacts = _artifact_bytes()
+    del artifacts[TE_V3_METADATA_PATH]
+    artifacts[_DISCONTINUITY_REGISTRY_PATH] = _registry(TE_V3_METADATA_PATH)
+
+    report = capture_model_pvo_snapshot(
+        db_path=tmp_path / "model_forward.db",
+        report_path=None,
+        pvo_artifact_path=PVO_PATH,
+        coverage_artifact_path=COVERAGE_PATH,
+        read_artifact=_reader(artifacts),
+        now_fn=_now(),
+        git_sha_fn=lambda: "git-sha",
+        feature_source=_fixture_feature_source(),
+    )
+
+    assert report["status"] != "aborted", report.get("aborted_reason")
+
+    meta = report["provenance"]["te_v3_metadata"]
+    # Honestly null rather than a fabricated or inherited hash.
+    assert meta["sha256"] is None
+    assert meta["discontinuity"]["status"] == "provenance_unavailable"
+    assert meta["discontinuity"]["unrecoverable_since"] == "2026-08-31"
+    assert meta["discontinuity"]["serving_impact"].startswith("NONE")
+
+
+def test_undeclared_missing_artifact_still_aborts_even_when_a_registry_exists(
+    tmp_path,
+) -> None:
+    """The registry is a named exception, never a general softening.
+
+    A registry that declares some OTHER artifact must not rescue this one — otherwise the
+    mechanism degrades into the optional check David ruled out.
+    """
+    artifacts = _artifact_bytes()
+    del artifacts[TE_V3_METADATA_PATH]
+    artifacts[_DISCONTINUITY_REGISTRY_PATH] = _registry(
+        Path("app/data/models/head_a/runs/00000000T000000Z/some_other_artifact.json")
+    )
+
+    report = capture_model_pvo_snapshot(
+        db_path=tmp_path / "model_forward.db",
+        report_path=None,
+        pvo_artifact_path=PVO_PATH,
+        coverage_artifact_path=COVERAGE_PATH,
+        read_artifact=_reader(artifacts),
+        now_fn=_now(),
+        git_sha_fn=lambda: "git-sha",
+        feature_source=_fixture_feature_source(),
+    )
+
+    assert report["status"] == "aborted"
+    assert "required_provenance" in report["aborted_reason"]
+
+
+def test_discontinuity_mechanism_does_not_change_a_healthy_provenance_hash(
+    tmp_path,
+) -> None:
+    """The artifact is PRESENT. Introducing the mechanism must move nothing.
+
+    Pins that DG-131 is inert for every vintage that still has its witness — the registry
+    is consulted only on FileNotFoundError, and the extra provenance key appears only when
+    an absence is actually declared.
+    """
+    base = _artifact_bytes()
+    with_registry = {**base, _DISCONTINUITY_REGISTRY_PATH: _registry(TE_V3_METADATA_PATH)}
+
+    def run(artifacts, db_name):
+        return capture_model_pvo_snapshot(
+            db_path=tmp_path / db_name,
+            report_path=None,
+            pvo_artifact_path=PVO_PATH,
+            coverage_artifact_path=COVERAGE_PATH,
+            read_artifact=_reader(artifacts),
+            now_fn=_now(),
+            git_sha_fn=lambda: "git-sha",
+            feature_source=_fixture_feature_source(),
+        )
+
+    without = run(base, "a.db")
+    with_ = run(with_registry, "b.db")
+
+    assert without["provenance_hash"] == with_["provenance_hash"]
+    assert with_["provenance"]["te_v3_metadata"]["sha256"] is not None
+    assert "discontinuity" not in with_["provenance"]["te_v3_metadata"]

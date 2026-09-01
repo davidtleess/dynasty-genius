@@ -40,6 +40,12 @@ from src.dynasty_genius.capture.prediction_snapshot_store import (
     CANONICAL_UTIL_FIELDS,
     PredictionSnapshotStore,
 )
+from src.dynasty_genius.capture.provenance_discontinuity import (
+    hashable_absence,
+    load_declared_discontinuities,
+    recorded_absence,
+    sha_or_declared_absence,
+)
 from src.dynasty_genius.features.feature_source import resolve_feature_source
 from src.dynasty_genius.models.engine_b_contract import ENGINE_B_FEATURES_BY_POSITION
 
@@ -180,13 +186,21 @@ def resolve_provenance_subset(
         latest = json.loads(latest_bytes)
         head_a_bytes = read_artifact(HEAD_A_V3_MANIFEST_PATH)
         head_a = json.loads(head_a_bytes)
-        te_meta_bytes = read_artifact(Path(head_a["TE"]).parent / "te_v3_metadata.json")
+        te_meta_sha, te_meta_absence = sha_or_declared_absence(
+            Path(head_a["TE"]).parent / "te_v3_metadata.json",
+            read_artifact=read_artifact,
+            declared=load_declared_discontinuities(read_artifact),
+        )
         subset["engine_a"] = {
             "pointer_model_version": latest.get("model_version"),
             "pointer_sha256": _sha(latest_bytes),
             "head_a_sha256": _sha(head_a_bytes),
-            "te_metadata_sha256": _sha(te_meta_bytes),
+            "te_metadata_sha256": te_meta_sha,
         }
+        # Added ONLY when declared, so a healthy vintage hashes byte-identically to before.
+        # When present it changes provenance_hash, which is correct: the vintage differs.
+        if te_meta_absence is not None:
+            subset["engine_a"]["te_metadata_discontinuity"] = hashable_absence(te_meta_absence)
     return subset
 
 
@@ -282,7 +296,11 @@ def _resolve_provenance(
         head_a_bytes = read_artifact(HEAD_A_V3_MANIFEST_PATH)
         head_a = json.loads(head_a_bytes)
         te_meta_path = Path(head_a["TE"]).parent / "te_v3_metadata.json"
-        te_meta_bytes = read_artifact(te_meta_path)
+        te_meta_sha, te_meta_absence = sha_or_declared_absence(
+            te_meta_path,
+            read_artifact=read_artifact,
+            declared=load_declared_discontinuities(read_artifact),
+        )
         block["engine_a_v2_pointer"] = {
             "path": str(ENGINE_A_LATEST_PATH),
             "model_version": latest.get("model_version"),
@@ -295,8 +313,10 @@ def _resolve_provenance(
         }
         block["te_v3_metadata"] = {
             "path": str(te_meta_path),
-            "sha256": _sha(te_meta_bytes),
+            "sha256": te_meta_sha,
         }
+        if te_meta_absence is not None:
+            block["te_v3_metadata"]["discontinuity"] = recorded_absence(te_meta_absence)
         block["engine_a_training_cutoff"] = {"value": None, "status": "unknown"}
 
     subset = resolve_provenance_subset(
