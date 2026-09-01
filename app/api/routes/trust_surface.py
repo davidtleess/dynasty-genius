@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from src.dynasty_genius.eval.backtest_artifact import BacktestResult
+from src.dynasty_genius.eval.served_model_alignment import check_served_alignment
 
 router = APIRouter(prefix="/trust-surface", tags=["trust-surface"])
 
@@ -16,6 +17,15 @@ RUNS_DIR = Path("app/data/backtest/trust_surface/latest")
 MODEL_CARDS_DIR = Path("app/data/backtest/model_cards")
 
 _VALID_POSITIONS = frozenset({"QB", "RB", "WR", "TE"})
+
+# One sentence, in the register David ruled for on 2026-08-29: prose, no pipeline or
+# governance vocabulary. It states the fact and nothing more — it does not tell him what
+# to do about it, and it never implies the figures are merely "old" when they in fact
+# describe a different model.
+DEPLOYED_MODEL_NOTE = (
+    "These accuracy numbers were measured on an earlier version of this model. "
+    "The version answering today has been retrained since."
+)
 
 
 class ModelReliability(BaseModel):
@@ -39,6 +49,13 @@ class TrustSurfaceResponse(BacktestResult):
     experimental: bool
     model_card_available: bool
     model_reliability: ModelReliability | None = None
+    # DG-132 — whether these figures describe the model that is actually answering.
+    # Every other guard compares a version STRING ("engine_b_v2" for every bundle ever
+    # built) or a value to a copy of itself; this one hashes the deployed file. Fails
+    # closed: unreadable inputs report False, never True.
+    describes_deployed_model: bool = False
+    # Plain prose when they do not, per David's 2026-08-29 copy ruling; null when they do.
+    deployed_model_note: str | None = None
 
 
 class ModelCardResponse(BaseModel):
@@ -108,6 +125,12 @@ async def get_trust_surface(position: str) -> JSONResponse:
 
     overall_grade = result.promotion_gate.overall_grade
 
+    # Do these figures describe the model that is actually serving? Hash the deployed
+    # bundle rather than trusting a version string. See served_model_alignment.
+    alignment = check_served_alignment(
+        pos_upper, getattr(result, "model_artifact_hash", None)
+    )
+
     # W4: QB-only model-reliability stamp — a descriptive, measured-uncertainty
     # caveat (no buy/sell/roster-action, no verdict/tier/grade). The QB engine is
     # the least-validated; a divergence read should visibly carry that.
@@ -139,6 +162,8 @@ async def get_trust_surface(position: str) -> JSONResponse:
             RUNS_DIR / f"model_card_source_{pos_upper}.json"
         ).exists(),
         model_reliability=model_reliability,
+        describes_deployed_model=alignment.aligned,
+        deployed_model_note=None if alignment.aligned else DEPLOYED_MODEL_NOTE,
     )
 
     # response_model=TrustSurfaceResponse gives the typed OpenAPI schema; returning a

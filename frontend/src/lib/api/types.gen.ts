@@ -3600,6 +3600,14 @@ export type TradeSide = {
  * frontend Hey API codegen has a real OpenAPI schema (no untyped object).
  */
 export type TrustSurfaceResponse = {
+    /**
+     * Deployed Model Note
+     */
+    deployed_model_note?: string | null;
+    /**
+     * Describes Deployed Model
+     */
+    describes_deployed_model?: boolean;
     divergence_validity?: DivergenceResult | null;
     /**
      * Experimental

@@ -126,6 +126,29 @@ S3_INVIOLATE_SHA256 = {
 # no PVO/scoring change, no product/UI change. This EXTENDS the authorized set only; the
 # exact-set allowlist semantics are preserved (any other new, unlisted eval file still
 # fails this audit). All permanent S4 guardrails remain UNCHANGED.
+# ADDENDUM (2026-09-01, DG-132 -- the trust surface must describe the served model):
+# served_model_alignment.py is added to AUTHORIZED_EVAL_FILES below. It is a pure,
+# read-only provenance comparator: it hashes the bundle named by the serving manifest and
+# compares it to the hash the published trust artifact recorded. No model call, no
+# training, no network, no market coupling, and it writes nothing.
+#
+# It exists because both pre-existing guards were structurally incapable of firing.
+# publish_trust_surface.py:100-104 compares `card.model_version` to
+# `artifact.model_version`, and both are the literal string "engine_b_v2" for every Engine
+# B bundle ever built. validate_trust_publication.py:197-199 compares the published card's
+# `model_artifact_hash` to the artifact's -- but the publisher COPIED that value from the
+# artifact at publish_trust_surface.py:112-114, so it compares a value to a copy of
+# itself. Neither ever consults the serving manifest. Measured 2026-09-01: all four
+# published positions describe models replaced on 2026-08-31 and both guards passed.
+#
+# It FAILS CLOSED -- unreadable manifest, missing bundle, null mapping or absent recorded
+# hash all report NOT aligned, because a staleness check that assumes freshness when it
+# cannot see manufactures confidence instead of withholding it.
+#
+# No Engine A/B feature or training change, no PVO/scoring change, no published value
+# moves; the only product change is that a stale accuracy figure now says so on screen.
+# This EXTENDS the authorized set only; the exact-set allowlist semantics are preserved
+# (any other new, unlisted eval file still fails this audit).
 AUTHORIZED_EVAL_FILES = {
     "__init__.py",
     "backtest_artifact.py",
@@ -133,6 +156,7 @@ AUTHORIZED_EVAL_FILES = {
     "backtest_metrics.py",
     "backtest_mock_draft.py",
     "backtest_report.py",
+    "served_model_alignment.py",
     "composite_gate.py",
     "draft_capital_bakeoff.py",
     "draft_capital_manifest.py",

@@ -6467,6 +6467,22 @@
       "TrustSurfaceResponse": {
         "description": "Typed Trust Surface contract: the full BacktestResult plus the hoisted,\nconsumer-facing fields. Non-breaking superset of the prior dict response, so the\nfrontend Hey API codegen has a real OpenAPI schema (no untyped object).",
         "properties": {
+          "deployed_model_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deployed Model Note"
+          },
+          "describes_deployed_model": {
+            "default": false,
+            "title": "Describes Deployed Model",
+            "type": "boolean"
+          },
           "divergence_validity": {
             "anyOf": [
               {
