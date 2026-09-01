@@ -1649,6 +1649,8 @@ export const zTradeRosterReconciliation = z.object({
  * frontend Hey API codegen has a real OpenAPI schema (no untyped object).
  */
 export const zTrustSurfaceResponse = z.object({
+    deployed_model_note: z.string().nullish(),
+    describes_deployed_model: z.boolean().optional().default(false),
     divergence_validity: zDivergenceResult.nullish(),
     experimental: z.boolean(),
     folds: z.array(zFoldResult),

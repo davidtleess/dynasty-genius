@@ -92,6 +92,15 @@ function TrustReady({ data }: { data: TrustSurface }) {
       {data.model_reliability?.caveat && (
         <span className="dg-trust__caveat">{data.model_reliability.caveat}</span>
       )}
+      {/* DG-132: the strip's accuracy claim is only honest while it describes the model
+          that is actually answering. On 2026-09-01 it described four models replaced the
+          day before, and no guard fired — both existing checks compared a version string
+          that reads "engine_b_v2" for every bundle ever built. The backend now hashes the
+          deployed file; when it disagrees, the strip says so in the same breath as the
+          grade rather than leaving the number to stand alone. */}
+      {data.deployed_model_note && (
+        <span className="dg-trust__stale-model">{data.deployed_model_note}</span>
+      )}
     </div>
   );
 }

@@ -62,3 +62,12 @@
   color: var(--dg-chrome);
   font-style: italic;
 }
+
+/* DG-132 — the accuracy figures do not describe the model that is answering.
+   Styled like the Unvalidated badge rather than the italic caveats: a caveat
+   qualifies a number that still stands, while this says the number belongs to a
+   different model. That is a stronger claim and it should not read as a footnote. */
+.dg-trust__stale-model {
+  color: var(--dg-cliff);
+  font-weight: var(--dg-weight-semibold);
+}

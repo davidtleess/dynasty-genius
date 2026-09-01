@@ -178,4 +178,39 @@ describe("TrustStrip", () => {
       expect(screen.queryByText("ACTIVE_B")).toBeNull();
     });
   });
+
+  // DG-132 — the strip's accuracy claim is only honest while it describes the model
+  // that is actually answering. On 2026-09-01 it described four models replaced the day
+  // before and nothing said so: both backend guards compared a version string that reads
+  // "engine_b_v2" for every bundle ever built.
+  it("says so on screen when the figures describe a model that has been replaced", async () => {
+    const note =
+      "These accuracy numbers were measured on an earlier version of this model. " +
+      "The version answering today has been retrained since.";
+    mockFetchResponse(
+      trustSurfaceResponse({
+        describes_deployed_model: false,
+        deployed_model_note: note,
+      }),
+    );
+
+    render(<TrustStrip position="QB" />);
+
+    expect(await screen.findByText(note)).toBeTruthy();
+  });
+
+  it("stays silent when the figures do describe the deployed model", async () => {
+    mockFetchResponse(
+      trustSurfaceResponse({
+        describes_deployed_model: true,
+        deployed_model_note: null,
+      }),
+    );
+
+    render(<TrustStrip position="QB" />);
+
+    await screen.findByText(GRADE_QUALIFIER);
+
+    expect(screen.queryByText(/measured on an earlier version/)).toBeNull();
+  });
 });
