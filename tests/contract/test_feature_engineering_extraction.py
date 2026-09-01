@@ -517,3 +517,91 @@ def test_feature_modules_are_in_market_leakage_scan_allowlist() -> None:
         Path("src/dynasty_genius/features/feature_refresh_runner.py")
         in leakage.ENGINE_MODEL_PATHS
     )
+
+
+def _short_prior_season_frames() -> dict[str, pd.DataFrame]:
+    """wr1 plays only 2 weeks in 2024 — below MIN_GAMES_THRESHOLD (4)."""
+    frames = _feature_frames()
+    stats = frames["player_stats"].copy()
+    drop = (
+        (stats["player_id"] == "wr1")
+        & (stats["season"] == 2024)
+        & (stats["week"] > 2)
+    )
+    frames["player_stats"] = stats[~drop].reset_index(drop=True)
+    return frames
+
+
+def test_games_lags_distinguish_a_returning_player_from_a_rookie_at_equal_games_t() -> None:
+    """DG-127: the durability gate reads games_t, which is ONE SEASON.
+
+    wr1 and qb1 both post games_t = 5 in 2025. wr1 is a three-year player with two full
+    prior seasons; qb1 has none. Before the games lags the feature table could not tell
+    them apart, so ENGINE_B_MIN_GAMES_T refused both on identical evidence. This pins the
+    distinction the DG-128 taper needs to shrink toward the right prior.
+    """
+    assembly = importlib.import_module("src.dynasty_genius.features.feature_assembly")
+
+    candidate = assembly.build_engine_b_features(
+        seasons_window=[2023, 2024, 2025],
+        read_fns=_feature_frames(),
+    )
+
+    def row(player_id: str):
+        return candidate[
+            (candidate["player_id"] == player_id)
+            & (candidate["feature_season"] == 2025)
+        ].iloc[0]
+
+    veteran, rookie = row("wr1"), row("qb1")
+
+    # The premise: identical current-season durability evidence.
+    assert veteran["games_t"] == rookie["games_t"] == 5
+
+    # The veteran carries both prior seasons. 2024 is absent as a ROW (the DG-029
+    # inference partition) and still lags correctly, because step 7 joins before
+    # apply_inference_partition at step 10.
+    assert veteran["games_t_minus_1"] == 5
+    assert veteran["games_t_minus_2"] == 5
+    assert veteran["games_t_minus_1_available"] == True  # noqa: E712
+    assert veteran["games_t_minus_2_available"] == True  # noqa: E712
+
+    # The rookie carries neither.
+    assert pd.isna(rookie["games_t_minus_1"])
+    assert pd.isna(rookie["games_t_minus_2"])
+    assert rookie["games_t_minus_1_available"] == False  # noqa: E712
+    assert rookie["games_t_minus_2_available"] == False  # noqa: E712
+
+    # The whole point: same games_t, different durability history.
+    assert (
+        veteran["games_t_minus_1_available"] != rookie["games_t_minus_1_available"]
+    ), "a four-year pro and a true rookie must not be identical at equal games_t"
+
+
+def test_games_lags_are_left_censored_at_min_games_threshold() -> None:
+    """DG-127 limitation, pinned deliberately so DG-128 cannot assume otherwise.
+
+    Step 2 drops player-seasons below MIN_GAMES_THRESHOLD (4) BEFORE the step-7 lag join,
+    so a 1-3 game prior season is written NaN/available=False — byte-identical to a player
+    who was never in the league. These lags separate a FULL prior season from NO prior
+    season; they cannot separate a SHORT one from none. A taper that reads absence as "no
+    NFL history" will be wrong about precisely the injured players it most needs to judge.
+    """
+    assembly = importlib.import_module("src.dynasty_genius.features.feature_assembly")
+
+    candidate = assembly.build_engine_b_features(
+        seasons_window=[2023, 2024, 2025],
+        read_fns=_short_prior_season_frames(),
+    )
+    wr_2025 = candidate[
+        (candidate["player_id"] == "wr1") & (candidate["feature_season"] == 2025)
+    ].iloc[0]
+
+    # He played in 2024. Two games is below the threshold, so the season is not on file.
+    assert pd.isna(wr_2025["games_t_minus_1"])
+    assert wr_2025["games_t_minus_1_available"] == False  # noqa: E712
+
+    # 2023 was a full season and survives, which is what makes the censoring visible
+    # rather than total: t-2 is present while t-1 is not.
+    assert wr_2025["games_t_minus_2"] == 5
+    assert wr_2025["games_t_minus_2_available"] == True  # noqa: E712

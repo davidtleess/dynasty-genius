@@ -85,6 +85,11 @@ ENGINE_B_OUTPUT_COLUMNS = (
     "pass_attempts",
     "snap_share",
     "games_t",
+    # Durability lags. `games_t` is ONE SEASON; ENGINE_B_MIN_GAMES_T reads it alone, so the
+    # gate asks "is this player durable?" with a single season to answer. These carry the
+    # prior two. LEFT-CENSORED AT MIN_GAMES_THRESHOLD — see feature_assembly.py step 7.
+    "games_t_minus_1",
+    "games_t_minus_2",
     "position",
     OUTCOME_COLUMN,
     "training_eligible",
@@ -97,6 +102,8 @@ ENGINE_B_OUTPUT_COLUMNS = (
     "ppg_t_minus_1_available",
     "ppg_t_minus_2_available",
     "snap_share_t_minus_1_available",
+    "games_t_minus_1_available",
+    "games_t_minus_2_available",
     "te_role_is_risk_profile",
     "ngs_completion_percentage_above_expectation",
     "ngs_avg_time_to_throw",

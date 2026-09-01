@@ -305,20 +305,46 @@ def build_engine_b_features(
         df = df.merge(ng_rush, on=["player_id", "feature_season"], how="left")
 
     # 7. Multi-year trends + availability flags
-    trend_base = df[["player_id", "feature_season", "ppg_t", "snap_share"]].drop_duplicates(
-        subset=["player_id", "feature_season"]
-    )
+    #
+    # Renames here are BY NAME. The previous positional form (`df_t1.columns = [...]`)
+    # relabels by ORDER, so a selection and a name list that disagree silently write one
+    # feature's values into another column: adding `games_t` to `trend_base` without
+    # matching the list puts a game count into `ppg_t_minus_1` and a PPG into
+    # `snap_share_t_minus_1`. Both are REQUIRED Engine B features for all four positions
+    # (engine_b_contract.py ENGINE_B_BASE_FEATURES), so every published value would move
+    # while the name-only guards in scripts/assemble_engine_b_dataset.py:269-275 still
+    # passed. `.rename` cannot express that mistake; the positional form invited it.
+    #
+    # ⚠ `games_t_minus_1` / `games_t_minus_2` are LEFT-CENSORED AT `MIN_GAMES_THRESHOLD`
+    # (4). Step 2 above drops player-seasons below it BEFORE this join, so a player who
+    # played 1-3 games last season is written NaN with `_available = False` — byte-identical
+    # to a true rookie. These lags separate a FULL prior season from NO prior season; they
+    # cannot separate a SHORT prior season from none. The same censoring already applies to
+    # the ppg and snap_share lags. A consumer that reads absence as "no NFL history" will be
+    # wrong about exactly the injured players it most needs to reason about.
+    trend_base = df[
+        ["player_id", "feature_season", "ppg_t", "snap_share", "games_t"]
+    ].drop_duplicates(subset=["player_id", "feature_season"])
     df_t1 = trend_base.copy()
     df_t1["feature_season"] = df_t1["feature_season"] + 1
-    df_t1.columns = ["player_id", "feature_season", "ppg_t_minus_1", "snap_share_t_minus_1"]
-    df_t2 = trend_base[["player_id", "feature_season", "ppg_t"]].copy()
+    df_t1 = df_t1.rename(columns={
+        "ppg_t": "ppg_t_minus_1",
+        "snap_share": "snap_share_t_minus_1",
+        "games_t": "games_t_minus_1",
+    })
+    df_t2 = trend_base[["player_id", "feature_season", "ppg_t", "games_t"]].copy()
     df_t2["feature_season"] = df_t2["feature_season"] + 2
-    df_t2.columns = ["player_id", "feature_season", "ppg_t_minus_2"]
+    df_t2 = df_t2.rename(columns={
+        "ppg_t": "ppg_t_minus_2",
+        "games_t": "games_t_minus_2",
+    })
     df = df.merge(df_t1, on=["player_id", "feature_season"], how="left")
     df = df.merge(df_t2, on=["player_id", "feature_season"], how="left")
     df["ppg_t_minus_1_available"] = df["ppg_t_minus_1"].notna()
     df["ppg_t_minus_2_available"] = df["ppg_t_minus_2"].notna()
     df["snap_share_t_minus_1_available"] = df["snap_share_t_minus_1"].notna()
+    df["games_t_minus_1_available"] = df["games_t_minus_1"].notna()
+    df["games_t_minus_2_available"] = df["games_t_minus_2"].notna()
 
     # 8. QB archetype (dual-threat from multi-year rushing)
     rushing_hist = df[["player_id", "feature_season", "rushing_yards_t"]].copy()
