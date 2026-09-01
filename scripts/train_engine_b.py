@@ -15,9 +15,10 @@ import os
 import pickle
 import sys
 import tempfile
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 import numpy as np
 import pandas as pd
@@ -46,6 +47,69 @@ MODELS_DIR   = ROOT / "app" / "data" / "models" / "engine_b"
 RUNS_DIR     = MODELS_DIR / "runs"
 
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
+RUNS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+@contextmanager
+def model_publish(run_id: str) -> Iterator[None]:
+    """Declare a model publish in flight for the WHOLE of it — first pickle to last write.
+
+    The window being guarded opens at the FIRST bundle write, not the manifest. A scorer
+    landing between pickle two and pickle three reads a half-swapped model set, which is
+    the actual hazard; wrapping only the manifest would be present, green, and covering
+    the wrong interval.
+
+    A context manager rather than two calls, so the ordering cannot be got wrong by a
+    later edit and the `finally` cannot be forgotten.
+    """
+    from src.dynasty_genius.model_publish_lock import clear_sentinel, write_sentinel
+
+    write_sentinel(
+        ROOT,
+        run_id=run_id,
+        # TZ-AWARE on purpose: blocking_publish() compares this to an aware now(), and a
+        # naive stamp is treated as stale — which would silently disable the guard rather
+        # than fail loudly.
+        started_at=datetime.now(timezone.utc),
+    )
+    try:
+        yield
+    finally:
+        # A stale sentinel that silently stops the daily chain is a worse defect than the
+        # race it prevents. The module carries two independent staleness escapes for the
+        # case where even this fails, but relying on them for the ordinary failure path
+        # would be sloppy.
+        clear_sentinel(ROOT)
+
+
+def publish_model_set(
+    manifest_path: Path, manifest: dict[str, Any], *, run_id: str
+) -> None:
+    """Declare the publish, write the manifest, and clear the declaration.
+
+    A retrain replaces four pickles and a manifest as FIVE separate writes.
+    ``com.davidleess.dynasty-model-pvo-refresh`` fires at 11:30 and 14:00 and takes no lock
+    of any kind, so a run landing inside those writes scores the universe from a
+    half-swapped model set and publishes it as live serving state, with a green receipt
+    because from its side nothing failed.
+
+    ``model_publish_lock`` (DG-126) is the consumer half and is already landed. It is INERT
+    until a producer declares itself — it can only refuse when something wrote the
+    sentinel. This is that producer. The lock module is IMPORTED rather than reimplemented
+    so the two halves cannot drift.
+
+    Advisory, not a lock: it stops the scheduled scorer, which is the observed hazard. It
+    does not stop a human running the scorer by hand, and it does not make the five writes
+    atomic. The atomic manifest write below closes a different window (a reader seeing a
+    truncated manifest); both are needed and neither subsumes the other.
+
+    ``clear_sentinel`` runs in a ``finally`` because a stale sentinel that silently stops
+    the daily chain is a worse defect than the race it prevents. The module carries two
+    independent staleness escapes for the case where even this fails, but relying on them
+    for the ordinary failure path would be sloppy.
+    """
+    with model_publish(run_id):
+        write_manifest(manifest_path, manifest)
 
 
 def write_manifest(path: Path, manifest: dict[str, Any]) -> None:
@@ -73,7 +137,6 @@ def write_manifest(path: Path, manifest: dict[str, Any]) -> None:
     except BaseException:
         Path(tmp).unlink(missing_ok=True)
         raise
-RUNS_DIR.mkdir(parents=True, exist_ok=True)
 
 # ── Metadata columns excluded from all model feature sets ─────────────────────
 _META_COLS = {
@@ -411,23 +474,28 @@ def train_v2_stratified(df: pd.DataFrame, run_dir: Path) -> dict[str, Any]:
     position_results: dict[str, Any] = {}
     manifest: dict[str, str | None] = {}
 
-    for pos in ("QB", "RB", "WR", "TE"):
-        result = _train_position(pos, train_df, run_dir, v1_0_metrics, v1_1_metrics)
-        position_results[pos] = result
-        if not result.get("skipped") and result.get("promotion_warranted"):
-            manifest[pos] = result["artifact_path"]
-        else:
-            manifest[pos] = None
+    # The declared window opens BEFORE the first pickle and closes after the manifest.
+    # `_train_position` writes a bundle per position, so a scorer landing between pickle
+    # two and pickle three would read a half-swapped model set — guarding only the manifest
+    # would cover the wrong interval. run_dir's name is the run id by construction.
+    with model_publish(run_dir.name):
+        for pos in ("QB", "RB", "WR", "TE"):
+            result = _train_position(pos, train_df, run_dir, v1_0_metrics, v1_1_metrics)
+            position_results[pos] = result
+            if not result.get("skipped") and result.get("promotion_warranted"):
+                manifest[pos] = result["artifact_path"]
+            else:
+                manifest[pos] = None
 
-    # Write per-position validation reports
-    for pos, result in position_results.items():
-        report_path = run_dir / f"validation_report_{pos.lower()}.json"
-        with open(report_path, "w") as f:
-            json.dump(result, f, indent=2)
+        # Write per-position validation reports
+        for pos, result in position_results.items():
+            report_path = run_dir / f"validation_report_{pos.lower()}.json"
+            with open(report_path, "w") as f:
+                json.dump(result, f, indent=2)
 
-    # Write manifest only for promoted positions
-    manifest_path = MODELS_DIR / "v2_manifest.json"
-    write_manifest(manifest_path, manifest)
+        # Write manifest only for promoted positions
+        manifest_path = MODELS_DIR / "v2_manifest.json"
+        write_manifest(manifest_path, manifest)
 
     promoted = [p for p, path in manifest.items() if path is not None]
     not_promoted = [p for p, path in manifest.items() if path is None]
