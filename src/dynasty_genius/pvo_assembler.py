@@ -459,8 +459,18 @@ def assemble_pvo(
             _k = DVS_BLEND_K.get(pos_upper, 5)
 
             _dvs_a = engine_a_result["dynasty_value_score"] if engine_a_result else None
+            # HURDLE on the B component (DG-128): the same P(plays) x E[points | plays]
+            # the pure-B branch above applies. Until this landed a player at games_t=7
+            # was served an availability-blind number and the same player at 8 was
+            # discounted. The Engine A prior is NOT discounted: it is a draft-capital
+            # model whose training outcomes already include the busts, so applying
+            # P(plays) to it too would count attrition twice.
             # Clamp Engine B component to 0–100 before entering the blend formula.
-            _dvs_b_raw = (projection_2y / _b_p90 * 100.0) if (projection_2y is not None and _b_p90) else None
+            _dvs_b_raw = (
+                apply_availability(projection_2y, availability_p) / _b_p90 * 100.0
+                if (projection_2y is not None and _b_p90)
+                else None
+            )
             _dvs_b = round(min(100.0, max(0.0, _dvs_b_raw)), 1) if _dvs_b_raw is not None else None
 
             if _dvs_a is not None and _dvs_b is not None and 1 <= _n < ENGINE_B_MIN_GAMES_T:
