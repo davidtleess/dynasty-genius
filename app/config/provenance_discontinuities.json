@@ -1,0 +1,22 @@
+{
+  "discontinuity_schema_version": 1,
+  "declared_date": "2026-09-01",
+  "ticket": "DG-131",
+  "ruling": "David, 2026-09-01, asked directly and answered directly: accept a documented provenance discontinuity. He also ruled (2026-08-31) that an unreadable model must be a hard error. Both hold: the check stays mandatory, and this file is the narrow, named, auditable exception to it.",
+  "reason": "A REQUIRED provenance artifact is read to sha256 it and is permanently unrecoverable. Rather than fabricate a witness or make the check optional, the absence is recorded here and travels INTO the provenance record, so a vintage says 'this witness is absent, here is why' instead of appearing whole. An artifact missing from disk and absent from this list still aborts the capture, unchanged.",
+  "discipline": "ADDING AN ENTRY IS NOT A FIX AND IS NOT ROUTINE. It is an admission that a witness is gone forever. An entry requires David's ruling, a verified-exhaustive search (disk, git, every offsite run), and a backup_manifest.json entry so the class cannot recur. A file that merely FAILED to be read — permissions, a bad path, a stale symlink — must never be listed here; restore it instead. Never list an artifact whose CONTENT is parsed: this mechanism is only sound where the bytes were used for a hash and nothing else.",
+  "artifacts": [
+    {
+      "path": "app/data/models/head_a/runs/20260524T140748Z/te_v3_metadata.json",
+      "unrecoverable_since": "2026-08-31",
+      "content_parsed": false,
+      "read_purpose": "sha256 only — src/dynasty_genius/capture/model_forward_capture_driver.py:183 (provenance_hash subset) and :285 (full block). Its fields are never parsed, so no downstream value depends on its content.",
+      "cause": "Destroyed 2026-08-31 by a write inside an already-symlinked directory, which followed the link into the real tree.",
+      "search_performed": "Not on disk anywhere; not in git; in NONE of the 14 offsite backup runs. app/config/backup_manifest.json named v3_manifest.json and te_v3.pkl from this directory but never the metadata, so every offsite copy holds the pickle and none holds the metadata.",
+      "last_logged_sha256": "ec643177",
+      "last_logged_sha256_is_not_an_acceptance_test": "Recorded for audit only. Bytes cannot be derived from a hash, and no copy exists to verify a reconstruction against. Do not treat this value as a target to rebuild toward — a file matching a shape is not the file.",
+      "serving_impact": "NONE. The sibling te_v3.pkl is byte-identical to the 2026-08-29 offsite copy (9e1b0b7f...), so the model that serves is intact and verified. Only the provenance witness is gone.",
+      "effect": "The stored provenance carries te_metadata_sha256: null plus a te_metadata_discontinuity record naming this entry. provenance_hash therefore CHANGES from the pre-loss vintage, which is honest — the vintage genuinely differs."
+    }
+  ]
+}
