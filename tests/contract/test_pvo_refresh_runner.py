@@ -1026,3 +1026,58 @@ def test_explicit_runtime_dir_redirect_is_allowed(
 
     assert rc == 0
     assert "refusing to run" not in capsys.readouterr().err
+
+
+def test_a_publish_in_flight_defers_the_refresh_and_reports_it_as_failed(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    """A retrain replaces four pickles and a manifest as five separate writes. Scoring
+    from a half-replaced set publishes a mixed model's output as live serving state with
+    a green receipt. Deferring is reported as FAILED on purpose: a refresh that did not do
+    its job must not report success, and the gap alert should say so."""
+    import json as _json
+    import os as _os
+    from datetime import datetime, timezone
+
+    from src.dynasty_genius.model_publish_lock import SENTINEL_REL_PATH
+
+    runner = _load_runner()
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+    sentinel = tmp_path / SENTINEL_REL_PATH
+    sentinel.parent.mkdir(parents=True, exist_ok=True)
+    sentinel.write_text(
+        _json.dumps(
+            {
+                "run_id": "20260831T204458Z",
+                "started_at": datetime.now(timezone.utc).isoformat(),
+                "pid": _os.getpid(),
+            }
+        )
+    )
+
+    called: list[str] = []
+    monkeypatch.setattr(
+        runner, "run_pvo_refresh", lambda **_k: called.append("ran") or {"status": "ok"}
+    )
+
+    rc = runner.main(["--runtime-dir", str(tmp_path / "rt")])
+
+    assert rc == 3
+    assert called == [], "the refresh must not run while a publish is in flight"
+    err = capsys.readouterr().err
+    assert "model publish is in flight" in err
+    assert "20260831T204458Z" in err
+
+
+def test_no_publish_in_flight_leaves_the_refresh_untouched(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """The normal case: no sentinel, no behaviour change at all."""
+    runner = _load_runner()
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+    monkeypatch.setattr(runner, "run_pvo_refresh", lambda **_k: {"status": "ok"})
+
+    assert runner.main(["--runtime-dir", str(tmp_path / "rt")]) == 0
