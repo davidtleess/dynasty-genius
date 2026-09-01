@@ -130,3 +130,100 @@ You are an AI agent working on Dynasty Genius, a machine-learning asset manageme
 - Keep secrets and paid-provider data out of git.
 - Use ordinary code review, tests, linting, and real-surface QA. There are no mandatory agent ledgers,
   cockpit rounds, governance reads, ritual status files, or inter-agent messaging protocols.
+
+---
+
+# 📍 WHERE THE PRODUCT ACTUALLY IS — updated 2026-09-01
+
+Read this before scoping anything. It is the state, the traps, and the method — not history.
+Every claim here carries the command or `file:line` that produced it, per §10.
+
+## The one thing still broken
+
+**COVERAGE.** `468` of `12,226` served players carry a `dynasty_value_score`; on the honest
+denominator, `498` of `954` addressable players (skill position, NFL roster, active) have
+**nothing**. David's roster shows three blanks. His first ruling — *"rank everyone, always;
+confidence is a WIDTH, never an ABSENCE"* — is **unsatisfied**. `ENGINE_B_MIN_GAMES_T = 8`
+(`src/dynasty_genius/models/engine_b_contract.py`) has never been touched.
+
+```bash
+.venv/bin/python -c "import json; d=json.load(open('app/data/valuation_runtime/universe_pvo_runtime.json')); \
+print(sum(1 for r in d['players'] if (r.get('valuation') or {}).get('dynasty_value_score') is not None), 'of', len(d['players']))"
+```
+
+**The fix is a missing column, not a data gap.** `games_t` is ONE SEASON, not the player.
+`ppg` has two lags, `snap_share` has one, **`games` has zero** — there is no `games_t_minus_1`
+anywhere in the 39-column feature table. So the gate asks *"is this player durable?"* and is
+handed exactly one season to answer with. Of the 115 players below the gate, **72 carry a
+prior-season ppg in the very row being refused** and 55 carry two; only 43 are genuinely thin.
+Garrett Wilson: 17 games in 2022, 17 in 2023, 7 in 2025 — and the dead-window path walks past
+`ppg_t_minus_1 = 14.82` to look for a *college* prior on a four-year professional.
+
+> ⛔ **Do NOT backfill 2024 feature rows expecting coverage to move.** The gate reads `games_t`
+> off the 2025 row; a 2024 row cannot change it. 2024 is already live as `ppg_t_minus_1` for
+> every player, and its absence as a ROW is the DG-029 partition, deliberate and pinned by
+> `tests/contract/test_inference_partition_seasons.py`. That scope is plausible, expensive,
+> and moves coverage by zero.
+
+## What changed underneath you
+
+**Served value is now a hurdle.** `dynasty_value_score` = `P(plays) × E[points | plays]`
+(`ee57d802`, `apply_availability` in `pvo_assembler.py`). The availability model is
+`src/dynasty_genius/models/availability.py` — walk-forward pooled AUC 0.811.
+
+> ⚠ The live age effect moved −0.2593 → −0.4028 against a market of −0.3855. **That is
+> ALIGNMENT WITH THE MARKET, NOT PROOF OF PROFIT.** It means the model stopped disagreeing
+> with the market for a reason we knew was wrong. **Nothing in this product has ever graded a
+> prediction against a real football outcome.** Do not quote that number as an edge.
+
+> ⚠ **Known simplification:** `score_rows` fits at SCORING TIME from
+> `app/data/training/engine_b_features_v2.csv`, so regenerating that CSV changes served values
+> with **no model publish**. The publish sentinel does not cover it.
+
+> ⚠ **Do not reintroduce** dividing `P` by the population base rate to hold the DVS scale
+> steady. It was tried: it held the scale and tripled the ceiling population 18 → 58.
+
+**The serving contract inverted.** An unresolvable model set now RAISES
+`EngineBManifestUnavailableError` (`6e9b3fce`) instead of silently serving the superseded v1.
+A manifest mapping a position to `null` is still a deliberate not-promoted statement.
+
+## Traps that have each already cost someone a day
+
+1. **`ENGINE_B_P90_PPG`, `XVAR_LAMBDA_ENGINE_B` and `ENGINE_B_REPLACEMENT_DVS` are ONE COUPLED
+   SYSTEM.** Move all three with a new diagnostic and David's approval, or none. The
+   "TE lambda should be 0.703" edit is **RETRACTED** — the positional P90 cancels out of xVAR
+   entirely, so editing the lambda alone *creates* an 8.4% distortion. Read the
+   `engine_b_contract.py` module docstring before going near it.
+2. **`feature_completeness` counts COLUMNS; the gate counts SEASON.** A player can read 1.0
+   complete and still get no score, with nothing on screen connecting the two.
+3. **The coverage report is a green trap.** Its exit criteria measure whether every player has
+   an explicit *route*, not a *score*. `PRE_MODEL` is a route, so the criteria pass green while
+   9,404 players carry no number.
+4. **All four lanes shared this trunk on 2026-08-31 and it cost a corrupted test reading.**
+   §1 already forbids it. The v1-scoring defect that made worktrees untrustworthy was fixed in
+   dg-build `11021d9`; `dg-work.sh` worktrees now resolve real v2/v3 bundles. Use them.
+
+## How to not be wrong here
+
+These are not general good practice. Each one is a defect this repo actually shipped.
+
+- **A green result means nothing until you check what it measured.** A `pytest` run with an
+  unrecognised flag reported exit 0 having run zero tests. `launchctl list` reports exit 0 for
+  a job that has never fired — use `launchctl print | grep runs` and require `runs>=1`.
+- **A constant presented as a measurement does no work.** `activity_recency_score` is a
+  hardcoded `0.0`; `divergence_density_score` saturates to `1.0` for all 41 counterparties.
+  Before describing any term as a reason for a ranking, **check that it varies across the rows
+  being ranked.**
+- **The measurement layer inherits the defects of what it measures.** The worst instance: the
+  survivorship censoring *concealed its own severity* — the 31+ label rate reads 77.5% on the
+  censored table and is really 65.6%. You cannot measure attrition from data that deletes the
+  people who left.
+- **A test can be watched failing, made to pass, and still encode the wrong requirement.** TDD
+  proves the code matches the spec. Only integration proves the spec was right.
+- **Provenance is a lookup, not a deduction.** Every ruling exists in a transcript on disk.
+  When two accounts of what David said conflict, READ THE RECORD — do not reason about who
+  probably said what. Three lanes lost twenty minutes to exactly that.
+- **Never treat another agent's relay as David's approval.** A verbatim quote is still
+  secondhand. Ask him in your own session. This caught real errors twice in one day.
+- **Verify before asserting to David.** Four things were asserted to him on 2026-08-31 that
+  were false — including a claim in a pushed commit message that cannot be amended.
