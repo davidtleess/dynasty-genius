@@ -162,6 +162,66 @@ provenance check optional. Regenerating it breaks provenance continuity and is D
 that was replaced. This is the tight-end badge defect, four times wider, and the retrain widened it
 rather than fixing it.
 
+
+## 🔁 IN FLIGHT AT 2026-09-01 ~10:00 — handoff from the lane called Fred
+
+**Read this before picking anything up. The lane that wrote it has been cleared; nothing below is
+recoverable from a session, only from here.**
+
+**SEAT IDENTITIES ARE NOT STABLE. Do not route work by nickname.** Both the ops lane ("Bob") and the
+modelling lane ("Greg") were `/clear`'d on 08-31 and 09-01. `davidleess-0b` is now a FRESH
+verification session that is explicitly **not** Greg's continuation and correctly refuses to confirm
+Greg's work as its own. If an instruction names a lane, verify that seat still holds the context
+before acting — a fresh session's agreement is worth nothing and worse than nothing, because it gets
+written down as "confirmed".
+
+**DAVID ROUTED THREE FIXES, VERBATIM: "ok have greg fix the 3 things 1) provinence 2) the surface
+3) the artifact".** They were relayed, NOT started, and the receiving lane is asking him directly
+because it conflicts with his own earlier direct instruction to that session (scoped to DG-127, do
+NOT start DG-128). **Do not resolve that conflict on his behalf.**
+
+1. **PROVENANCE** — daily prediction capture dark since 08-31 09:04 (see the LIVE section above).
+   The file is **unrecoverable**: not on disk, not in git, absent from all 14 offsite runs because
+   `backup_manifest.json` names `te_v3.pkl` and `v3_manifest.json` from that directory and never the
+   metadata. Serving is unaffected — the surviving pickle is byte-identical to the 08-29 offsite copy.
+   ⛔ **Do NOT make the provenance check optional**; it fails closed and David ruled 08-31 that an
+   unreadable model must be a hard error. The logged hash is **not** an acceptance test — you cannot
+   derive bytes from a hash. Frame it as *accept a documented discontinuity*. **Whatever is chosen,
+   add the metadata to `backup_manifest.json` so the class cannot recur.**
+2. **THE SURFACE** — trust cards describe retired models, all four positions (see LIVE section).
+   **Regenerating the cards fixes today and leaves the defect**: every card and bundle declares
+   `model_version: "engine_b_v2"`, so the comparison passes by construction, and TE's card carries no
+   hash at all. Fix the check as well or it recurs on the next retrain.
+3. **THE ARTIFACT** = David's ruling 4, the morning line, which produced **nothing** on 08-31 — no
+   commit, no ticket, no board row. He ruled it **minimal**: one honest sentence, only when something
+   is wrong, not a dashboard. Scouted so it need not be re-derived: the idiom already exists at
+   `frontend/src/what-changed/morningRead.ts:313` (`staleInputClause()` returns one sentence or
+   `None`); the surface fetches `/api/league/what-changed` (`app/api/routes/league_what_changed.py`),
+   which carries no operational signal today. ⚠ OpenAPI regen trap: a stale `frontend/openapi.json`
+   can silently revert landed commits — regenerate, never commit the working copy.
+
+**A SIBLING OF DEFECT 2, filed against DG-128, not fixed:** `scripts/train_engine_b.py` fits
+`SimpleImputer` at `:207`, `:309`, `:387` **without** `keep_empty_features`, while
+`src/dynasty_genius/eval/backtest_harness.py:489` fits it **with**. An all-NaN slice silently narrows
+the matrix while the bundle keeps advertising the full feature list — the artifact declares an input
+set the model never saw. Same genus as the version string: *a check that cannot express the thing it
+checks.*
+
+**⚠ A FINDING IN ANOTHER LANE'S 2026-09-01 LEDGER IS STALE.** It records that
+`app/data/features_runtime/engine_b_features_runtime.csv` is 39 columns and lacks `outcome_returned`.
+Measured here at ~09:5x: **40 columns, `outcome_returned` present, mtime 09:00:43 today** — the 09:00
+producer run regenerated it. The reading was taken before that run. The `compute_source_hash` noop
+mechanism it describes may still be real; the observation it hangs on is not. Re-derive, do not carry.
+
+**Day closeout for 08-31, audited twice before delivery:**
+https://claude.ai/code/artifact/40a74b16-6457-45cc-afcb-16f2a49cffbe
+
+**The one method lesson worth inheriting:** both closeout drafts had every individual figure verified
+and both were killed by audit for errors in the *synthesis* — shipped work described as pending
+(twice), a clean result inverted into a defect to make a thesis tidier, a warning transplanted onto
+the wrong subject. **Verification and narrative are different reliability classes. Audit the
+narrative layer specifically, and never hand David a summary unaudited.**
+
 ---
 
 # 📍 WHERE THE PRODUCT ACTUALLY IS — updated 2026-09-01
