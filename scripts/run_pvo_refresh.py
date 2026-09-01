@@ -38,6 +38,9 @@ from src.dynasty_genius.capture.model_forward_capture_driver import (  # noqa: E
     capture_model_pvo_snapshot,
     resolve_provenance_subset,
 )
+from src.dynasty_genius.model_publish_lock import (  # noqa: E402
+    blocking_publish,
+)
 from src.dynasty_genius.write_plan import write_plan  # noqa: E402
 
 DEFAULT_PVO_PATH = "app/data/valuation/universe_pvo_latest.json"
@@ -695,6 +698,25 @@ def main(argv: list[str] | None = None) -> int:
     if trap is not None:
         print(trap, file=sys.stderr)
         return 2
+
+    # A retrain replaces four pickles and a manifest as five separate writes. Scoring the
+    # universe from a half-replaced set publishes a mixed model's output as live serving
+    # state with a green receipt -- nothing errors, the answers are simply wrong. Deferring
+    # is reported as a FAILED step on purpose: a refresh that did not do its job must not
+    # report success, and the gap alert should say so. Silence here would be the exact
+    # defect this guards against, one layer up.
+    in_flight = blocking_publish(ROOT, now=datetime.now(timezone.utc))
+    if in_flight is not None:
+        print(
+            "deferring: a model publish is in flight "
+            f"(run_id={in_flight.get('run_id')}, pid={in_flight.get('pid')}, "
+            f"started_at={in_flight.get('started_at')}).\n"
+            "  Scoring now would read a half-replaced model set and publish it live.\n"
+            "  This clears on its own when the publish finishes, when its process exits, "
+            "or after 2 hours.",
+            file=sys.stderr,
+        )
+        return 3
 
     capture_fn = capture_model_pvo_snapshot if args.capture_db_path else None
     # Seed-split mode is the DEFAULT: a scheduled run publishes into the gitignored runtime
