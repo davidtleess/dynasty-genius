@@ -130,6 +130,37 @@ You are an AI agent working on Dynasty Genius, a machine-learning asset manageme
 - Keep secrets and paid-provider data out of git.
 - Use ordinary code review, tests, linting, and real-surface QA. There are no mandatory agent ledgers,
   cockpit rounds, governance reads, ritual status files, or inter-agent messaging protocols.
+- **One carve-out, and it is not ritual.** `docs/agent-ledger/<date>.md` is a dated FINDINGS LOG, not a
+  status file: on 2026-08-31 it was the only on-disk record of several live hazards, and nothing else
+  held them. Nobody must open one, write one, or round-trip through one to do work. But if you find a
+  hazard that outlives your task, put it where the next person reads — this file for anything durable,
+  the dated ledger for anything you want attributed and timestamped. **A finding recorded only in a
+  commit message or a chat message is not recorded.**
+
+
+
+## ⚠ LIVE AS OF 2026-09-01 — two things are broken right now
+
+**1. The daily prediction capture has been dark since 2026-08-31 09:04, behind a green receipt.**
+`model_forward_capture` aborts every run with
+`required_provenance_missing: app/data/models/head_a/runs/20260524T140748Z/te_v3_metadata.json`,
+while the enclosing `run_pvo_refresh` reports `status: ok`. Verify, do not assume:
+```
+sqlite3 "file:app/data/model_forward_capture.db?mode=ro" \
+  "select capture_date,count(*) from model_forward_capture_raw group by 1 order by 1 desc limit 3"
+```
+2026-08-30 has 12,226 rows; **2026-08-31 has none.** The file was destroyed by a symlink accident that
+morning and **is in NO backup copy** — `app/config/backup_manifest.json` names `te_v3.pkl` and
+`v3_manifest.json` from that directory but never the metadata, so 14 days of offsite runs all contain
+the pickle and none contains the metadata. It is not in git. It is gone. The capture reads it only to
+sha256 it for provenance and **fails closed, which is correct** — do not "fix" this by making the
+provenance check optional. Regenerating it breaks provenance continuity and is David's call, not yours.
+
+**2. The trust surface describes models that no longer exist — for ALL FOUR positions.**
+`app/data/backtest/model_cards/*_model_card.json` were generated **2026-05-15**; the served bundles are
+`engine_b/runs/20260831T204458Z/*`. Every performance figure the product displays belongs to a model
+that was replaced. This is the tight-end badge defect, four times wider, and the retrain widened it
+rather than fixing it.
 
 ---
 
