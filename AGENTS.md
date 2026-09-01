@@ -163,6 +163,50 @@ that was replaced. This is the tight-end badge defect, four times wider, and the
 rather than fixing it.
 
 
+## ⛔ 2026-09-01 — THE 09:00 CHAIN IS FAILING. FIX THIS BEFORE RESTARTING THE API.
+
+**This supersedes any earlier advice to restart the API first. That ordering was wrong and acting on
+it would serve 2018 predictions on David's roster screen.**
+
+```
+09:00:01  run_feature_refresh   exit 0    runtime CSV regenerated, 2,746 -> 3,384 rows
+09:00:44  run_pvo_refresh       exit 1    ValueError: engine_b_prediction_conflict
+```
+Verified here: `app/data/ops/daily_chain_latest_report.json` shows `run_pvo_refresh exit_code 1`.
+
+**MECHANISM — a regression from `58d3b20c`, and two components disagreeing about one flag.**
+`58d3b20c` recovered 638 attrition rows. `src/dynasty_genius/features/feature_assembly.py:116` sets
+`training_eligible = window_complete & OUTCOME_COLUMN.notna()`, so a recovered washout is
+window-complete with a null outcome and lands **`training_eligible = False`** — correct, it cannot
+train a points model. But `scripts/build_universe_pvo_batch.py:190` reads
+`frame["training_eligible"] == False` as **"the inference partition"**. One flag, two meanings: *not
+trainable* vs *needs a prediction*. The scorer returned 1,143 predictions spanning 2018-2025 instead
+of 505 for 2025, and 29 players came back with two conflicting predictions (Derek Carr as both 2025 LV
+12.881 and 2018 LAC 3.706).
+
+**⚠ WHY THE ORDER MATTERS.** `app/services/roster_auditor.py:636` is
+`{s["player_id"]: s for s in score_inference_partition()}` — a dict comprehension, so duplicates
+overwrite silently and **the last one wins**. The roster audit is currently UNAFFECTED only because
+the 27-commits-behind API process is protecting it by accident. **Restart before fixing the partition
+and the roster starts serving 2018 predictions for those 29 players, with no error and no log line.**
+Correct order: **partition fix → then restart.**
+
+**TWO THINGS NOT TO WRITE DOWN WRONG:**
+- **The regression fails ZERO tests.** The full suite passes against the exact file that breaks
+  production (6,606 passed / 32 skipped). Production exits 1 every morning; the gate is green.
+- **The guard that caught it is NOT a partition guard.** `build_universe_pvo_batch.py:281-285`
+  compares prediction VALUES — equal predictions increment a counter and `continue` **silently**; it
+  raises only when they differ. It fired only because Carr's two seasons happened to disagree. **A
+  multi-season partition producing equal predictions passes clean.** Do not record this as
+  fail-closed-working-as-designed.
+
+**Today is a SECOND lost capture day** — `max(capture_date)` in `model_forward_capture.db` is still
+`2026-08-30`.
+
+*(Found and root-caused by the ops lane, independently confirmed by the modelling lane; the chain
+report, both code sites, the dict comprehension, the value-comparing guard and the capture date
+re-verified here before writing.)*
+
 ## 🔁 IN FLIGHT AT 2026-09-01 ~10:00 — handoff from the lane called Fred
 
 **Read this before picking anything up. The lane that wrote it has been cleared; nothing below is
@@ -180,7 +224,11 @@ written down as "confirmed".
 because it conflicts with his own earlier direct instruction to that session (scoped to DG-127, do
 NOT start DG-128). **Do not resolve that conflict on his behalf.**
 
+0. **FIRST: the partition regression above.** It is not one of David's three, it appeared this
+   morning, and it gates the API restart.
 1. **PROVENANCE** — daily prediction capture dark since 08-31 09:04 (see the LIVE section above).
+   ✅ **RULED: David told the modelling lane directly, in its own window, to accept a documented
+   provenance discontinuity, and routed it there.** Do not reopen it or reassign it.
    The file is **unrecoverable**: not on disk, not in git, absent from all 14 offsite runs because
    `backup_manifest.json` names `te_v3.pkl` and `v3_manifest.json` from that directory and never the
    metadata. Serving is unaffected — the surviving pickle is byte-identical to the 08-29 offsite copy.
