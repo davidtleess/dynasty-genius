@@ -47,6 +47,36 @@ logger = logging.getLogger(__name__)
 # ── Position-specific required signal sets ────────────────────────────────────
 # These match the feature contracts defined in the North Star Architecture.
 
+def apply_availability(projection: float, availability: Optional[float]) -> float:
+    """Compose the hurdle: E[value] = P(plays) x E[points | plays].
+
+    `projection` is a points forecast CONDITIONAL ON PLAYING — a model fit only on players
+    who played can express nothing else. `availability` is the probability he posts a
+    qualifying season at all. Multiplying them is the expected value.
+
+    A probability is a DISCOUNT. Because P <= 1 this can only ever reduce a value, which is
+    what keeps it from inventing new players at the DVS ceiling. An earlier variant divided
+    P by the population base rate to hold the mean DVS steady; it held the scale and nearly
+    tripled the ceiling population (21 -> 58) by pushing above-average-availability players
+    past the P90. Measured with the plain product, the ceiling count FALLS to 17.
+
+    A missing availability passes the projection through UNCHANGED. Substituting 0.0 would
+    delete the player; substituting 1.0 would assert a certainty never observed. Passing it
+    through is the only choice that claims nothing.
+
+    Out-of-range input raises rather than clamping: a probability outside [0,1] means the
+    producer is broken, and clamping would hide that behind a plausible number.
+    """
+    if availability is None:
+        return projection
+    if not 0.0 <= float(availability) <= 1.0:
+        raise ValueError(
+            f"availability must be a probability in [0,1], got {availability!r} — "
+            "clamping this would hide a broken producer behind a plausible score"
+        )
+    return projection * float(availability)
+
+
 def _engine_b_required(position: str) -> list[str]:
     pos = position.upper()
     contract = ENGINE_B_FEATURES_BY_POSITION.get(pos, frozenset())
@@ -394,6 +424,10 @@ def assemble_pvo(
         # Veterans with games_t below ENGINE_B_MIN_GAMES_T are routed to the Dead Window
         # fallback below; this block runs only for Engine B-eligible players.
         games_t = features.get("games_t")
+        # P(plays), supplied by the producer alongside the feature row. Absent means no
+        # estimate was available, which apply_availability passes through unchanged rather
+        # than treating as either certain attrition or certain availability.
+        availability_p = features.get("availability_p")
         pos_upper = identity.position.upper()
         _b_p90 = ENGINE_B_P90_PPG.get(pos_upper)
         _below_games_gate = (
@@ -404,7 +438,13 @@ def assemble_pvo(
         if (projection_2y is not None
                 and _b_p90 is not None
                 and not _below_games_gate):
-            dvs_raw = projection_2y / _b_p90 * 100.0
+            # HURDLE: expected value is what he scores TIMES the chance he is there to
+            # score it. projection_2y is E[points | plays]; availability is P(plays).
+            # Applied BEFORE the existing normalisation so ENGINE_B_P90_PPG,
+            # XVAR_LAMBDA_ENGINE_B and ENGINE_B_REPLACEMENT_DVS all keep their meaning —
+            # they are one coupled system (DG-092) and this moves none of them.
+            _adjusted = apply_availability(projection_2y, availability_p)
+            dvs_raw = _adjusted / _b_p90 * 100.0
             dvs_clamped_flag = dvs_raw > 100.0
             dynasty_value_score = round(min(100.0, max(0.0, dvs_raw)), 1)
             dvs_engine = "B"

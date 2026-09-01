@@ -198,6 +198,15 @@ def _load_engine_b_feature_rows(path: Path = ENGINE_B_FEATURES_PATH) -> dict[str
             key: (None if pd.isna(value) else value)
             for key, value in raw.items()
         }
+
+    # P(plays) for the hurdle. The assembler multiplies the points projection by this, so
+    # a player's served value becomes P(plays) x E[points | plays] rather than the second
+    # factor alone. Absent for anyone the model cannot score, and apply_availability passes
+    # an absent value through UNCHANGED rather than reading it as certain attrition.
+    from src.dynasty_genius.models.availability import score_rows
+
+    for player_id, probability in score_rows(rows, repo_root=ROOT).items():
+        rows[player_id]["availability_p"] = probability
     return rows
 
 

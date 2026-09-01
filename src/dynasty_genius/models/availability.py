@@ -29,6 +29,7 @@ so this model does not inherit it.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
 import numpy as np
@@ -254,3 +255,41 @@ def walk_forward_availability(
         ),
         base_rate=base_rate,
     )
+
+
+TRAINING_TABLE_REL = "app/data/training/engine_b_features_v2.csv"
+
+
+def score_rows(
+    rows: Mapping[str, Mapping[str, Any]], *, repo_root: Path, table_rel: str = TRAINING_TABLE_REL
+) -> dict[str, float]:
+    """P(returns) for each feature row, keyed the same way the input is keyed.
+
+    Fit on every complete-window row in the training table, then applied to the inference
+    rows. Returns {} if the table is missing, so a caller degrades to unadjusted
+    projections rather than failing — an absent availability estimate is passed through
+    unchanged by ``apply_availability``.
+
+    KNOWN SIMPLIFICATION, stated rather than hidden: this fits at scoring time from the
+    training table instead of loading a published artifact. The consequence is real — the
+    served value depends on that CSV, so regenerating it changes served values without a
+    model publish, which is exactly the kind of silent coupling the publish sentinel exists
+    to make visible for the other four bundles. Promoting this to a published artifact
+    inside the manifest and the sentinel's scope is the follow-up; it is not done here.
+    """
+    import csv
+
+    path = Path(repo_root) / table_rel
+    if not path.exists():
+        return {}
+    with open(path) as handle:
+        train = [r for r in csv.DictReader(handle) if r.get("outcome_returned") in ("True", "False")]
+    if len(train) < MIN_TRAIN_SEASONS * 50 or not rows:
+        return {}
+
+    used, _ = _observable(train)
+    model = _fit(train, used)
+    keys = list(rows)
+    matrix = _matrix([rows[k] for k in keys], used)
+    probs = model.predict_proba(matrix)[:, 1]
+    return {k: float(min(1.0, max(0.0, p))) for k, p in zip(keys, probs)}
