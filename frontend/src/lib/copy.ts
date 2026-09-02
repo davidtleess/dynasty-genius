@@ -132,6 +132,9 @@ const FIELD_LABELS: Record<string, string> = {
   engine_path: "Which model scored him",
   model_grade: "Model status",
   dynasty_value_score: "Dynasty value",
+  // DG-128 (2026-09-01): the band ships with the number. One label for the pair.
+  dvs_band_low: "Likely range",
+  dvs_band_high: "Likely range",
   xvar: VALUE_OVER_REPLACEMENT,
   xvar_percentile_position: "Position percentile",
   projection_1y: "1-year projection",
@@ -348,6 +351,39 @@ export const UNPLACED_POSTURE = "UNCLASSIFIED";
  * signal to place them" that can sit inside "you're X and they're Y" without
  * reading as a posture we assigned.
  */
+/**
+ * DG-128 (2026-09-01): the band, said as one phrase. The API ships it to one
+ * decimal in DVS units; a manager reads whole points, and "to" reads aloud where
+ * an en dash does not. Null when either edge is missing — a range with one end is
+ * not a range, and the caller renders the absence, never half a claim.
+ */
+export function likelyRange(
+  low: number | null | undefined,
+  high: number | null | undefined,
+): string | null {
+  if (low === null || low === undefined || high === null || high === undefined)
+    return null;
+  return `${Math.round(low)} to ${Math.round(high)}`;
+}
+
+/**
+ * DG-128: what PRODUCED a score — its basis — said the way "Which model scored
+ * him" is said. `dvs_engine` is the batch's own marker (A / B / blend); the lane
+ * words above already exist for the same three things, so this is a lookup, not
+ * a fourth vocabulary.
+ */
+const BASIS_LANE: Record<string, string> = {
+  A: "ENGINE_A",
+  B: "ENGINE_B",
+  blend: "BLEND_AB",
+};
+
+export function basisWord(basis: string | null | undefined): string | null {
+  if (basis === null || basis === undefined) return null;
+  const lane = BASIS_LANE[basis];
+  return lane === undefined ? null : valueWord(lane);
+}
+
 export function postureClause(value: string): string | null {
   if (value === UNPLACED_POSTURE) return null;
   const word = valueWord(value);
