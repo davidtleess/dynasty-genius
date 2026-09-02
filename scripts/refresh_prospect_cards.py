@@ -24,6 +24,14 @@ from typing import Optional
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from src.dynasty_genius.models.dvs_band import (  # noqa: E402
+    ENGINE_A_SIGMA_RUN,
+    ENGINE_A_V3_SIGMA_RUN,
+    assert_band_sigma_runs_match_served_models,
+)
+from src.dynasty_genius.models.player_identity import PlayerIdentity  # noqa: E402
+from src.dynasty_genius.pvo_assembler import assemble_pvo  # noqa: E402
+
 IDENTITY_FILE = ROOT / "resources" / "prospect_identity_2026.json"
 CARDS_JSON = ROOT / "resources" / "prospect_cards.json"
 CARDS_JS = ROOT / "resources" / "prospect_cards.js"
@@ -75,8 +83,10 @@ def _build_pvo_dicts(
     identity_data: dict,
 ) -> tuple[list[dict], list[str]]:
     """Assemble PVOs for 80 verified 2026 players. Returns (pvo_dicts, dvs_warnings)."""
-    from src.dynasty_genius.models.player_identity import PlayerIdentity
-    from src.dynasty_genius.pvo_assembler import assemble_pvo
+    # DG-128: the band ships with the number, and its width is the scoring head's own
+    # published error. Refuse to score a single card if the heads this tree serves are not
+    # the runs those widths were pinned to (a re-promoted v3 TE head nobody re-pinned).
+    assert_band_sigma_runs_match_served_models()
 
     pvos: list[dict] = []
     warnings: list[str] = []
@@ -125,6 +135,13 @@ def _build_pvo_dicts(
 
         pvo = assemble_pvo(identity, features, is_prospect=True)
         d = pvo.dict()
+        # Which runs the band's width was pinned to, so a stale card is legible after the fact
+        # (the same record the universe batch keeps; `engine_used` says which head applied).
+        d["source_versions"] = {
+            **(d.get("source_versions") or {}),
+            "dvs_band_sigma_run_a": ENGINE_A_SIGMA_RUN,
+            "dvs_band_sigma_run_a_v3": ENGINE_A_V3_SIGMA_RUN,
+        }
 
         # Restore preserved player_id and model_grade from existing cards.
         # assemble_pvo returns PRE_MODEL as default for Engine A prospects;
