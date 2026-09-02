@@ -248,6 +248,23 @@ export const zBaselineQuestion = z.object({
 });
 
 /**
+ * EngineBDependencyUnavailableDetail
+ */
+export const zEngineBDependencyUnavailableDetail = z.object({
+    error: z.literal('engine_b_dependency_unavailable'),
+    message: z.string()
+});
+
+/**
+ * EngineBDependencyUnavailableResponse
+ *
+ * 503 from ``GET /api/engine-b/scores``.
+ */
+export const zEngineBDependencyUnavailableResponse = z.object({
+    detail: zEngineBDependencyUnavailableDetail
+});
+
+/**
  * EvidenceListField
  */
 export const zEvidenceListField = z.object({
@@ -1077,6 +1094,23 @@ export const zRosterCapacityErrorResponse = z.object({
     decision_supported: z.literal(false).optional().default(false),
     error: z.string(),
     message: z.string()
+});
+
+/**
+ * RosterDependencyUnavailableDetail
+ */
+export const zRosterDependencyUnavailableDetail = z.object({
+    error: z.literal('roster_dependency_unavailable'),
+    message: z.string()
+});
+
+/**
+ * RosterDependencyUnavailableResponse
+ *
+ * 503 from ``GET /api/roster/audit``.
+ */
+export const zRosterDependencyUnavailableResponse = z.object({
+    detail: zRosterDependencyUnavailableDetail
 });
 
 /**

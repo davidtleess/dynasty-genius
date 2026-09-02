@@ -1,5 +1,8 @@
 from fastapi import APIRouter, HTTPException
 
+from app.api.routes.dependency_unavailable_models import (
+    RosterDependencyUnavailableResponse,
+)
 from app.api.routes.roster_audit_models import (
     RosterAuditResponse,
     RosterDependencyError,
@@ -11,7 +14,12 @@ from src.dynasty_genius.features.inference_partition import InferencePartitionEr
 router = APIRouter(prefix="/roster", tags=["roster"])
 
 
-@router.get("/audit", response_model=RosterAuditResponse)
+@router.get(
+    "/audit",
+    response_model=RosterAuditResponse,
+    # DG-135: declare the 503 DG-133 added, in the shape the server actually sends.
+    responses={503: {"model": RosterDependencyUnavailableResponse}},
+)
 async def audit_roster() -> RosterAuditResponse:
     try:
         audit = await run_audit_pvo()

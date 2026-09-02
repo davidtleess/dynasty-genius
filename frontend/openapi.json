@@ -939,6 +939,38 @@
         "title": "Effect",
         "type": "object"
       },
+      "EngineBDependencyUnavailableDetail": {
+        "properties": {
+          "error": {
+            "const": "engine_b_dependency_unavailable",
+            "title": "Error",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ],
+        "title": "EngineBDependencyUnavailableDetail",
+        "type": "object"
+      },
+      "EngineBDependencyUnavailableResponse": {
+        "description": "503 from ``GET /api/engine-b/scores``.",
+        "properties": {
+          "detail": {
+            "$ref": "#/components/schemas/EngineBDependencyUnavailableDetail"
+          }
+        },
+        "required": [
+          "detail"
+        ],
+        "title": "EngineBDependencyUnavailableResponse",
+        "type": "object"
+      },
       "EvidenceListField": {
         "properties": {
           "caveats": {
@@ -4856,6 +4888,38 @@
         "title": "RosterCapacityResponse",
         "type": "object"
       },
+      "RosterDependencyUnavailableDetail": {
+        "properties": {
+          "error": {
+            "const": "roster_dependency_unavailable",
+            "title": "Error",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ],
+        "title": "RosterDependencyUnavailableDetail",
+        "type": "object"
+      },
+      "RosterDependencyUnavailableResponse": {
+        "description": "503 from ``GET /api/roster/audit``.",
+        "properties": {
+          "detail": {
+            "$ref": "#/components/schemas/RosterDependencyUnavailableDetail"
+          }
+        },
+        "required": [
+          "detail"
+        ],
+        "title": "RosterDependencyUnavailableResponse",
+        "type": "object"
+      },
       "RosterPenaltySummary": {
         "properties": {
           "decision_supported": {
@@ -8437,6 +8501,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngineBDependencyUnavailableResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Get Engine B Scores",
@@ -8755,6 +8829,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RosterDependencyUnavailableResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Audit Roster",

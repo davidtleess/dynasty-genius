@@ -550,6 +550,29 @@ export type Effect = {
 };
 
 /**
+ * EngineBDependencyUnavailableDetail
+ */
+export type EngineBDependencyUnavailableDetail = {
+    /**
+     * Error
+     */
+    error: 'engine_b_dependency_unavailable';
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * EngineBDependencyUnavailableResponse
+ *
+ * 503 from ``GET /api/engine-b/scores``.
+ */
+export type EngineBDependencyUnavailableResponse = {
+    detail: EngineBDependencyUnavailableDetail;
+};
+
+/**
  * EvidenceListField
  */
 export type EvidenceListField = {
@@ -2655,6 +2678,29 @@ export type RosterCapacityResponse = {
 };
 
 /**
+ * RosterDependencyUnavailableDetail
+ */
+export type RosterDependencyUnavailableDetail = {
+    /**
+     * Error
+     */
+    error: 'roster_dependency_unavailable';
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * RosterDependencyUnavailableResponse
+ *
+ * 503 from ``GET /api/roster/audit``.
+ */
+export type RosterDependencyUnavailableResponse = {
+    detail: RosterDependencyUnavailableDetail;
+};
+
+/**
  * RosterPenaltySummary
  */
 export type RosterPenaltySummary = {
@@ -4518,6 +4564,15 @@ export type GetEngineBScoresApiEngineBScoresGetData = {
     url: '/api/engine-b/scores';
 };
 
+export type GetEngineBScoresApiEngineBScoresGetErrors = {
+    /**
+     * Service Unavailable
+     */
+    503: EngineBDependencyUnavailableResponse;
+};
+
+export type GetEngineBScoresApiEngineBScoresGetError = GetEngineBScoresApiEngineBScoresGetErrors[keyof GetEngineBScoresApiEngineBScoresGetErrors];
+
 export type GetEngineBScoresApiEngineBScoresGetResponses = {
     /**
      * Response Get Engine B Scores Api Engine B Scores Get
@@ -4755,6 +4810,15 @@ export type AuditRosterApiRosterAuditGetData = {
     query?: never;
     url: '/api/roster/audit';
 };
+
+export type AuditRosterApiRosterAuditGetErrors = {
+    /**
+     * Service Unavailable
+     */
+    503: RosterDependencyUnavailableResponse;
+};
+
+export type AuditRosterApiRosterAuditGetError = AuditRosterApiRosterAuditGetErrors[keyof AuditRosterApiRosterAuditGetErrors];
 
 export type AuditRosterApiRosterAuditGetResponses = {
     /**
