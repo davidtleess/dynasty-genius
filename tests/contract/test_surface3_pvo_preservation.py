@@ -60,6 +60,12 @@ EXPECTED_EXISTING_ROW = {
         # 00 §No-Verdict Line ("surface the arithmetic honestly, unclamped").
         "dvs_clamped": None,
         "dvs_p90_ref": None,
+        # DISCLOSED CONTRACT CHANGE (2026-09-01, DG-128): the valuation block gained
+        # the DVS band. This fixture PVO carries neither field, so both serialize
+        # as null here. Pinned by tests/contract/test_dg128_band_reaches_the_surfaces.py;
+        # rationale in the DG-128 ticket ("the band ships with the number").
+        "dvs_band_low": None,
+        "dvs_band_high": None,
         "decision_supported": False,
     },
     "market_overlay": None,

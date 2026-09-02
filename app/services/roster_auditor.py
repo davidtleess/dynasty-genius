@@ -98,6 +98,14 @@ def _universe_path_str(path: Path) -> str:
         return str(path)
 
 
+# DG-128 (2026-09-01): a veteran's value can be measured (ENGINE_B) or, under the
+# eight-game gate, blended with his draft-capital prior (BLEND_AB). Both are
+# active-player valuations — the blend is NOT a current-draft rookie row, and
+# refusing it here would drop a blended veteran from the roster the day one is
+# served (none is under the range-only cut; the held fill would serve them).
+_VETERAN_ENGINE_PATHS = frozenset({"ENGINE_B", "BLEND_AB"})
+
+
 def _load_rostered_universe_pvos(
     path: Path | None = None,
 ) -> tuple[dict[str, dict[str, Any]], dict[str, Any] | None]:
@@ -153,7 +161,7 @@ def _load_rostered_universe_pvos(
         # the gsis-keyed fallback below, which Sleeper cannot satisfy.
         if engine_path == "ENGINE_A" and context.get("in_current_draft") is not True:
             continue
-        if engine_path not in ("ENGINE_A", "ENGINE_B"):
+        if engine_path != "ENGINE_A" and engine_path not in _VETERAN_ENGINE_PATHS:
             continue
         indexed[str(sleeper_id)] = row
     return indexed, provenance
@@ -187,13 +195,19 @@ def _pvo_from_universe_row(
     identity_ids = row.get("identity_ids") or {}
     lineage = row.get("lineage") or {}
     roster_audit = _roster_audit_signals_from_player(live_player)
-    # Engine A rows are current-draft rookie valuations; Engine B rows are the
-    # active-player valuations. Both are already fully adjudicated in the
-    # universe artifact -- including the ENGINE_B_MIN_GAMES_T refusal, which is
-    # why reading the row inherits an honest null rather than recomputing one.
-    is_engine_b = valuation.get("engine_path") == "ENGINE_B"
+    # Engine A rows are current-draft rookie valuations; Engine B and blend rows
+    # are the active-player valuations. All are already fully adjudicated in the
+    # universe artifact -- including the eight-game gate's blend, which is why
+    # reading the row inherits its band and basis rather than recomputing them.
+    is_veteran = valuation.get("engine_path") in _VETERAN_ENGINE_PATHS
+    dynasty_value_score = valuation.get("dynasty_value_score")
+    # DG-128: the basis marker is what the batch stamped (B / A / blend). Rows
+    # from before the band existed carry no marker; derive it from the lane.
+    dvs_engine = None
+    if dynasty_value_score is not None:
+        dvs_engine = row.get("dvs_engine") or ("B" if is_veteran else "A")
     caveats = ["roster_audit_reconciled_from_universe_pvo"]
-    if not is_engine_b:
+    if not is_veteran:
         caveats.append("current_draft_rookie_engine_a_value_preserved")
     if roster_audit:
         for caveat in roster_audit.caveats:
@@ -221,20 +235,18 @@ def _pvo_from_universe_row(
         position=str(player.get("position") or live_player.get("position")),
         nfl_team=player.get("team") or live_player.get("team"),
         age=player.get("age") or live_player.get("age"),
-        is_prospect=not is_engine_b,
+        is_prospect=not is_veteran,
         sleeper_id=str(identity_ids.get("sleeper_id") or row.get("sleeper_player_id")),
-        engine_used="engine_b" if is_engine_b else "engine_a",
+        engine_used="engine_b" if is_veteran else "engine_a",
         model_version=valuation.get("model_version"),
         model_grade=str(valuation.get("model_grade") or "PRE_MODEL"),
-        dynasty_value_score=valuation.get("dynasty_value_score"),
-        projection_1y=row.get("projection_1y") if is_engine_b else None,
-        projection_2y=row.get("projection_2y") if is_engine_b else None,
-        projection_3y=row.get("projection_3y") if is_engine_b else None,
-        dvs_engine=(
-            None
-            if valuation.get("dynasty_value_score") is None
-            else ("B" if is_engine_b else "A")
-        ),
+        dynasty_value_score=dynasty_value_score,
+        projection_1y=row.get("projection_1y") if is_veteran else None,
+        projection_2y=row.get("projection_2y") if is_veteran else None,
+        projection_3y=row.get("projection_3y") if is_veteran else None,
+        dvs_engine=dvs_engine,
+        dvs_band_low=valuation.get("dvs_band_low"),
+        dvs_band_high=valuation.get("dvs_band_high"),
         xvar=valuation.get("xvar"),
         signal_completeness=float(valuation.get("feature_completeness") or 0.0),
         inputs_present=[],

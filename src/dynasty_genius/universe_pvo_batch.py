@@ -85,6 +85,9 @@ def _empty_valuation(route: str, pvo: dict[str, Any] | None = None) -> dict[str,
         # as null so the schema is stable and absence never hides an unrun check.
         "dvs_clamped": None,
         "dvs_p90_ref": None,
+        # DG-128 (2026-09-01): the band ships with the number; no number, null band.
+        "dvs_band_low": None,
+        "dvs_band_high": None,
         "decision_supported": False,
     }
 
@@ -104,6 +107,12 @@ def _valuation_from_pvo(route: str, pvo: dict[str, Any]) -> dict[str, Any]:
         # that produced it rather than a bare ceiling value (00 §No-Verdict Line).
         "dvs_clamped": pvo.get("dvs_clamped"),
         "dvs_p90_ref": pvo.get("dvs_p90_ref"),
+        # DG-128 (2026-09-01): the band ships with the number. A prior-dominated
+        # estimate must not render with the authority of a measured one; the band
+        # is how a surface tells them apart, and its BASIS is the row's dvs_engine
+        # (what produced the score) — engine_path stays the LANE the player is in.
+        "dvs_band_low": pvo.get("dvs_band_low"),
+        "dvs_band_high": pvo.get("dvs_band_high"),
         "decision_supported": False,
     }
 

@@ -174,6 +174,10 @@ class RosterAuditPlayer(BaseModel):
     dvs_engine: Literal["A", "B", "blend"] | None = None
     model_status_applies: bool = False
     dynasty_value_score: float | None = None
+    # DG-128 (2026-09-01): the band ships with the number (DVS units, null when the
+    # score is null); dvs_engine is its basis — measured (B), prior (A), or blend.
+    dvs_band_low: float | None = None
+    dvs_band_high: float | None = None
     projection_1y: float | None = None
     projection_2y: float | None = None
     projection_3y: float | None = None
@@ -216,6 +220,7 @@ _SCALARS = (
     "player_id", "full_name", "position", "nfl_team", "age", "sleeper_id",
     "is_prospect", "draft_class", "nfl_draft_pick", "nfl_draft_round", "engine_used",
     "model_version", "model_grade", "dvs_engine", "dynasty_value_score",
+    "dvs_band_low", "dvs_band_high",
     "projection_1y", "projection_2y", "projection_3y", "xvar", "dvs_pct",
     "signal_completeness", "inputs_present", "inputs_missing",
 )
