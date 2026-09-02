@@ -19,6 +19,7 @@ from app.services.roster_auditor import audit_player, roster_risk_summary
 from src.dynasty_genius.decision_logic.counter_arguments import (
     generate_counter_argument,
 )
+from src.dynasty_genius.models.dvs_band import dvs_band
 from src.dynasty_genius.models.engine_b_contract import (
     DVS_BLEND_K,
     ENGINE_A_REPLACEMENT_DVS,
@@ -383,6 +384,7 @@ def assemble_pvo(
     xvar_anchor: Optional[str] = None
     xvar_ceiling_bound: Optional[bool] = None
     dvs_blend_weight_b: Optional[float] = None
+    _band_components: dict[str, float] = {}
 
     if engine_a_result:
         # DVS engine A always populates provenance if score is present
@@ -478,6 +480,8 @@ def assemble_pvo(
                 dynasty_value_score = round((1 - _w_b) * _dvs_a + _w_b * _dvs_b, 1)
                 dvs_engine = "blend"
                 dvs_blend_weight_b = round(_w_b, 3)
+                # The band (DG-128) needs the two components exactly as they entered.
+                _band_components = {"w_b": _w_b, "dvs_a": _dvs_a, "dvs_b": _dvs_b}
                 # Blend semantics (Codex review round 2, 2026-08-18): the field
                 # states what happened to THIS score. Both components enter the
                 # blend already clamped to [0,100] and the weights sum to 1, so a
@@ -532,6 +536,17 @@ def assemble_pvo(
                 if backup_caveat not in caveats:
                     caveats.append(backup_caveat)
 
+    # The band ships with the number (DG-128). Computed once, here, after every branch above
+    # has settled dvs_engine, so the basis is whatever engine PRODUCED the served score: a
+    # measured player carries one Engine B holdout RMSE, a prior-only player Engine A's, and
+    # a blend the root-sum-square of B's error and the share of prior error + disagreement
+    # the sample has not resolved. dvs_band raises rather than guess if a score arrives with
+    # no engine or a blend with no components — a bare number where a band was promised is
+    # the exact defect David named.
+    dvs_band_low, dvs_band_high = dvs_band(
+        dynasty_value_score, identity.position, engine=dvs_engine, **_band_components
+    )
+
     # Cross-Positional Architecture (xVAR) — Phase 15.
     # Translates DVS into a unified unit (WR-equivalent points above replacement).
     if dynasty_value_score is not None:
@@ -578,6 +593,8 @@ def assemble_pvo(
         xvar_anchor=xvar_anchor,
         xvar_ceiling_bound=xvar_ceiling_bound,
         dvs_blend_weight_b=dvs_blend_weight_b,
+        dvs_band_low=dvs_band_low,
+        dvs_band_high=dvs_band_high,
         projection_1y=None,
         projection_2y=projection_2y,
         projection_3y=None,
