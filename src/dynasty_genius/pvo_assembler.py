@@ -19,6 +19,7 @@ from app.services.roster_auditor import audit_player, roster_risk_summary
 from src.dynasty_genius.decision_logic.counter_arguments import (
     generate_counter_argument,
 )
+from src.dynasty_genius.models.dvs_band import dvs_band
 from src.dynasty_genius.models.engine_b_contract import (
     DVS_BLEND_K,
     ENGINE_A_REPLACEMENT_DVS,
@@ -383,6 +384,7 @@ def assemble_pvo(
     xvar_anchor: Optional[str] = None
     xvar_ceiling_bound: Optional[bool] = None
     dvs_blend_weight_b: Optional[float] = None
+    _band_components: dict[str, float] = {}
 
     if engine_a_result:
         # DVS engine A always populates provenance if score is present
@@ -459,8 +461,18 @@ def assemble_pvo(
             _k = DVS_BLEND_K.get(pos_upper, 5)
 
             _dvs_a = engine_a_result["dynasty_value_score"] if engine_a_result else None
+            # HURDLE on the B component (DG-128): the same P(plays) x E[points | plays]
+            # the pure-B branch above applies. Until this landed a player at games_t=7
+            # was served an availability-blind number and the same player at 8 was
+            # discounted. The Engine A prior is NOT discounted: it is a draft-capital
+            # model whose training outcomes already include the busts, so applying
+            # P(plays) to it too would count attrition twice.
             # Clamp Engine B component to 0–100 before entering the blend formula.
-            _dvs_b_raw = (projection_2y / _b_p90 * 100.0) if (projection_2y is not None and _b_p90) else None
+            _dvs_b_raw = (
+                apply_availability(projection_2y, availability_p) / _b_p90 * 100.0
+                if (projection_2y is not None and _b_p90)
+                else None
+            )
             _dvs_b = round(min(100.0, max(0.0, _dvs_b_raw)), 1) if _dvs_b_raw is not None else None
 
             if _dvs_a is not None and _dvs_b is not None and 1 <= _n < ENGINE_B_MIN_GAMES_T:
@@ -468,6 +480,8 @@ def assemble_pvo(
                 dynasty_value_score = round((1 - _w_b) * _dvs_a + _w_b * _dvs_b, 1)
                 dvs_engine = "blend"
                 dvs_blend_weight_b = round(_w_b, 3)
+                # The band (DG-128) needs the two components exactly as they entered.
+                _band_components = {"w_b": _w_b, "dvs_a": _dvs_a, "dvs_b": _dvs_b}
                 # Blend semantics (Codex review round 2, 2026-08-18): the field
                 # states what happened to THIS score. Both components enter the
                 # blend already clamped to [0,100] and the weights sum to 1, so a
@@ -478,10 +492,12 @@ def assemble_pvo(
                 # would need its own named field, deliberately not invented here.
                 dvs_clamped_val = False
                 dvs_p90_ref_val = _P90_PPG.get(pos_upper)  # Engine A prior dominates blend window
-                _blend_caveat = (
-                    f"Low professional sample (games={int(_n)}) — Engine A/B blend active "
-                    f"(w_B={dvs_blend_weight_b:.2f}); interpret with caution"
-                )
+                # DG-128 (2026-09-01): a token, not prose. The old sentence carried
+                # "w_B=…" (a raw key the render rule refuses) and "interpret with
+                # caution" (hedging David struck from the screen). The weight rides
+                # on dvs_blend_weight_b and the uncertainty on the band; the sentence
+                # for this token lives in frontend/src/lib/copy.ts.
+                _blend_caveat = f"engine_ab_blend_low_sample:games={int(_n)}"
                 if _blend_caveat not in caveats:
                     caveats.append(_blend_caveat)
             elif engine_a_result:
@@ -521,6 +537,21 @@ def assemble_pvo(
                 backup_caveat = "High-Efficiency / Low-Volume Anomaly (Backup Profile)"
                 if backup_caveat not in caveats:
                     caveats.append(backup_caveat)
+
+    # The band ships with the number (DG-128). Computed once, here, after every branch above
+    # has settled dvs_engine, so the basis is whatever engine PRODUCED the served score: a
+    # measured player carries one Engine B holdout RMSE, a prior-only player Engine A's, and
+    # a blend the root-sum-square of B's error and the share of prior error + disagreement
+    # the sample has not resolved. dvs_band raises rather than guess if a score arrives with
+    # no engine or a blend with no components — a bare number where a band was promised is
+    # the exact defect David named.
+    dvs_band_low, dvs_band_high = dvs_band(
+        dynasty_value_score,
+        identity.position,
+        engine=dvs_engine,
+        prior_head=engine_a_result["engine_used"] if engine_a_result else None,
+        **_band_components,
+    )
 
     # Cross-Positional Architecture (xVAR) — Phase 15.
     # Translates DVS into a unified unit (WR-equivalent points above replacement).
@@ -568,6 +599,8 @@ def assemble_pvo(
         xvar_anchor=xvar_anchor,
         xvar_ceiling_bound=xvar_ceiling_bound,
         dvs_blend_weight_b=dvs_blend_weight_b,
+        dvs_band_low=dvs_band_low,
+        dvs_band_high=dvs_band_high,
         projection_1y=None,
         projection_2y=projection_2y,
         projection_3y=None,

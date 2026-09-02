@@ -3525,6 +3525,44 @@
       },
       "PlayerModelLane": {
         "properties": {
+          "dvs_band_high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dvs Band High"
+          },
+          "dvs_band_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dvs Band Low"
+          },
+          "dvs_engine": {
+            "anyOf": [
+              {
+                "enum": [
+                  "A",
+                  "B",
+                  "blend"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dvs Engine"
+          },
           "dynasty_value_score": {
             "anyOf": [
               {
@@ -4268,6 +4306,28 @@
               }
             ],
             "title": "Draft Class"
+          },
+          "dvs_band_high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dvs Band High"
+          },
+          "dvs_band_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dvs Band Low"
           },
           "dvs_engine": {
             "anyOf": [

@@ -780,6 +780,13 @@ export const zPlayerMarketLane = z.object({
  * PlayerModelLane
  */
 export const zPlayerModelLane = z.object({
+    dvs_band_high: z.number().nullish(),
+    dvs_band_low: z.number().nullish(),
+    dvs_engine: z.enum([
+        'A',
+        'B',
+        'blend'
+    ]).nullish(),
     dynasty_value_score: z.number().nullable(),
     engine_path: z.string().nullable(),
     model_grade: z.string().nullable(),
@@ -1006,6 +1013,8 @@ export const zRosterAuditPlayer = z.object({
     counter_argument: zCounterArgumentField,
     decision_supported: z.literal(false).optional().default(false),
     draft_class: z.int().nullish(),
+    dvs_band_high: z.number().nullish(),
+    dvs_band_low: z.number().nullish(),
     dvs_engine: z.enum([
         'A',
         'B',

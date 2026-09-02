@@ -63,6 +63,29 @@
   opacity: 0.55;
 }
 
+/* DG-128: the band ships with the number. The range sits under the score on
+   its own line — taller row, never a wider table — in the muted body colour,
+   under every player who has a number. The range IS how a prior-dominated
+   estimate reads with less authority than a measured one: it is wider. David
+   ruled 2026-09-01 that the number itself is not greyed or lightened by its
+   basis — same weight, same colour, on every row. `data-basis` stays on the
+   value cell as a marker; nothing styles on it. */
+.dg-roster__score {
+  display: block;
+}
+
+/* Full text color, NOT --dg-text-muted, for the reason the model-status toggle
+   below gives: the band prints most often on rows whose model status does not
+   apply (every prior-scored or blended player), and those rows carry opacity
+   0.55. Muted ink composited through that reads 2.78:1 — axe's own reading on
+   the smoke fixture's three prior-scored rows, below the 4.5:1 floor DG-105
+   cleared. The band is quieter than the number through its size alone. */
+.dg-roster__band {
+  display: block;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text);
+}
+
 .dg-roster__detail td {
   font-size: 0.875rem;
   opacity: 0.9;

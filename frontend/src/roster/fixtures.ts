@@ -14,7 +14,11 @@ function player(
     model_version: "engine_b_v2",
     model_grade: "ACTIVE_B",
     model_status_applies: true,
+    dvs_engine: "B" as const,
     dynasty_value_score: 78.5,
+    // DG-128: measured basis, one sigma_B (WR 20.0) each side, as the assembler ships it.
+    dvs_band_low: 58.5,
+    dvs_band_high: 98.5,
     projection_1y: 12.3,
     projection_2y: 11.1,
     projection_3y: 9.8,

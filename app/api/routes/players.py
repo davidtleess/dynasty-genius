@@ -75,6 +75,12 @@ class PlayerModelLane(BaseModel):
     model_grade: str | None
     model_version: str | None
     dynasty_value_score: float | None
+    # DG-128 (2026-09-01): the band ships with the number. dvs_engine is its BASIS —
+    # measured (B), draft-capital prior (A), or blend — while engine_path stays the
+    # lane; a prior-dominated estimate must not render like a measured one.
+    dvs_engine: Literal["A", "B", "blend"] | None = None
+    dvs_band_low: float | None = None
+    dvs_band_high: float | None = None
     xvar: float | None
     xvar_percentile_position: float | None
     projection_1y: float | None
@@ -333,6 +339,9 @@ def get_player_detail(sleeper_id: str) -> PlayerDetailResponse:
             model_grade=valuation.get("model_grade"),
             model_version=valuation.get("model_version"),
             dynasty_value_score=valuation.get("dynasty_value_score"),
+            dvs_engine=row.get("dvs_engine"),
+            dvs_band_low=valuation.get("dvs_band_low"),
+            dvs_band_high=valuation.get("dvs_band_high"),
             xvar=valuation.get("xvar"),
             xvar_percentile_position=valuation.get("xvar_percentile_position"),
             projection_1y=row.get("projection_1y"),

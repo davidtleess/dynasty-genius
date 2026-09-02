@@ -196,6 +196,22 @@ def _ensure_availability_flags(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _make_imputer(strategy: str) -> SimpleImputer:
+    """The one imputer constructor for every fit site in this file.
+
+    `keep_empty_features=True` keeps a column that is all-NaN in the fit rows, imputed to
+    0.0, instead of sklearn's default of silently dropping it. Without it the bundle's
+    `"features"` list is one longer than the matrix the ridge was fit on: the artifact
+    advertises an input the model has no coefficient for, a live value for that feature is
+    discarded at inference, and anything zipping features with `coef_` misattributes every
+    coefficient after the dropped slot. Mirrors `backtest_harness.py` (`_build_fold_data`),
+    which has fit with this setting since 2026-05-14 — training and backtest must agree on
+    the input set by construction. Shape honesty only: a constant-0.0 column takes a ~0
+    coefficient, so predictions are unchanged. Pinned by tests/test_train_engine_b_bundle_width.py.
+    """
+    return SimpleImputer(strategy=strategy, keep_empty_features=True)
+
+
 def _fit_position_ridge(
     pos_df: pd.DataFrame,
     features: list[str],
@@ -203,7 +219,7 @@ def _fit_position_ridge(
 ) -> tuple[Ridge, SimpleImputer, np.ndarray, np.ndarray]:
     X_raw = pos_df[features]
     y = pos_df[OUTCOME_COLUMN].values
-    imputer = SimpleImputer(strategy="median")
+    imputer = _make_imputer("median")
     X = imputer.fit_transform(X_raw)
     model = Ridge(alpha=alpha)
     model.fit(X, y)
@@ -305,7 +321,7 @@ def train_v1_1_control(df: pd.DataFrame, run_dir: Path) -> dict[str, Any]:
     baseline    = X_test_raw["ppg_t"].values
 
     print(f"  v1.1 unified — train {len(X_train_raw)} rows, holdout {len(X_test_raw)} rows")
-    imputer = SimpleImputer(strategy="mean")
+    imputer = _make_imputer("mean")
     X_train = imputer.fit_transform(X_train_raw)
     X_test  = imputer.transform(X_test_raw)
 
@@ -383,7 +399,7 @@ def _train_position(
 
     print(f"  {pos}: train {len(X_train_raw)} rows, holdout {len(X_test_raw)} rows, {len(available)} features")
 
-    imputer = SimpleImputer(strategy="median")
+    imputer = _make_imputer("median")
     X_train = imputer.fit_transform(X_train_raw)
     X_test  = imputer.transform(X_test_raw)
 
