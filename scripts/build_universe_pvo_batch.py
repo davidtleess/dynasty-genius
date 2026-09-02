@@ -23,6 +23,10 @@ from src.dynasty_genius.features.inference_partition import (  # noqa: E402
     select_inference_partition,
 )
 from src.dynasty_genius.league_capture import load_league_set_for_root  # noqa: E402
+from src.dynasty_genius.models.dvs_band import (  # noqa: E402
+    ENGINE_A_SIGMA_RUN,
+    ENGINE_B_SIGMA_RUN,
+)
 from src.dynasty_genius.models.player_identity import PlayerIdentity  # noqa: E402
 from src.dynasty_genius.pvo_assembler import assemble_pvo  # noqa: E402
 from src.dynasty_genius.universe_pvo_batch import (  # noqa: E402
@@ -349,6 +353,10 @@ def _active_pvos_from_engine_b() -> list[dict[str, Any]]:
                 "engine_b_feature_source_kind": str(feature_meta["feature_source_kind"]),
                 "engine_b_feature_csv_sha256": str(feature_meta["feature_csv_sha256"]),
                 "ff_playerids": str(FF_PLAYERIDS_PATH.relative_to(ROOT)),
+                # DG-128: the band's half-widths are pinned to these two runs; a
+                # retrain that moves a manifest shows up here, not silently.
+                "dvs_band_sigma_run_b": ENGINE_B_SIGMA_RUN,
+                "dvs_band_sigma_run_a": ENGINE_A_SIGMA_RUN,
             },
         )
         pvo_objects.append(pvo)
