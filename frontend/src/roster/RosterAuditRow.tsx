@@ -11,7 +11,7 @@
 import { useState } from "react";
 
 import type { RosterAuditResponse } from "../lib/api";
-import { fieldLabel, liquidityWord, valueWord } from "../lib/copy";
+import { fieldLabel, likelyRange, liquidityWord, valueWord } from "../lib/copy";
 import { PlayerNameButton } from "../player/playerSelection";
 import { TokenNotes } from "../ui/TokenNotes";
 
@@ -30,6 +30,12 @@ export function RosterAuditRow({ player }: { player: Player }) {
   const caveats = player.caveats ?? [];
   const drivers = player.top_drivers?.items ?? [];
   const risks = player.risk_flags?.items ?? [];
+  // DG-128 (2026-09-01): the band ships with the number. `dvs_engine` is the
+  // batch's basis marker for the score — measured (B), draft-capital prior (A)
+  // or a blend — and rides `data-basis` on the value cell the way the grade rides
+  // `data-grade`: RosterAudit.css renders a prior-touched number quieter than a
+  // measured one, which is David's condition for ranking everyone.
+  const band = likelyRange(player.dvs_band_low, player.dvs_band_high);
 
   return (
     <>
@@ -69,9 +75,12 @@ export function RosterAuditRow({ player }: { player: Player }) {
             COLUMNS note. `model_status_applies` still rides the row on
             `data-applies`, which is what the trust de-emphasis in
             RosterAudit.css and RosterAuditTable.test.jsx read. */}
-        <td>
-          {num(player.dynasty_value_score)}
-          {player.dvs_pct != null ? ` (${player.dvs_pct}%)` : ""}
+        <td className="dg-roster__value" data-basis={player.dvs_engine ?? ""}>
+          <span className="dg-roster__score">
+            {num(player.dynasty_value_score)}
+            {player.dvs_pct != null ? ` (${player.dvs_pct}%)` : ""}
+          </span>
+          {band && <span className="dg-roster__band">range {band}</span>}
         </td>
         <td>
           {ra?.signal ? valueWord(ra.signal) : "—"}

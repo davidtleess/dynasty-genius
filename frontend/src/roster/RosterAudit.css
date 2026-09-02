@@ -63,6 +63,31 @@
   opacity: 0.55;
 }
 
+/* DG-128: the band ships with the number. The range sits under the score on
+   its own line — taller row, never a wider table — in the muted body colour.
+   A number whose basis is a draft-capital prior (A) or a blend of prior and
+   measurement reads quieter than a fully measured one (B): same size, regular
+   weight, muted colour. That is the whole of "a prior-dominated estimate must
+   not render with the same authority as a measured one" — no badge, no hedge. */
+.dg-roster__score {
+  display: block;
+}
+
+.dg-roster__band {
+  display: block;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+
+.dg-roster__value[data-basis="B"] .dg-roster__score {
+  font-weight: 600;
+}
+
+.dg-roster__value[data-basis="A"] .dg-roster__score,
+.dg-roster__value[data-basis="blend"] .dg-roster__score {
+  color: var(--dg-text-muted);
+}
+
 .dg-roster__detail td {
   font-size: 0.875rem;
   opacity: 0.9;

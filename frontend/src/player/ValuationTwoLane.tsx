@@ -10,7 +10,13 @@
 import type { z } from "zod";
 
 import type { zPlayerDetailResponse } from "../lib/api/zod.gen";
-import { fieldLabel, sourcedCaveat, valueWord } from "../lib/copy";
+import {
+  basisWord,
+  fieldLabel,
+  likelyRange,
+  sourcedCaveat,
+  valueWord,
+} from "../lib/copy";
 import { TokenNotes } from "../ui/TokenNotes";
 
 type PlayerDetail = z.infer<typeof zPlayerDetailResponse>;
@@ -78,9 +84,18 @@ function enumFact(value: string | null | undefined): string {
   return value === null || value === undefined ? UNKNOWN : valueWord(value);
 }
 
-function Fact({ label, value }: { label: string; value: string | number | null }) {
+function Fact({
+  label,
+  value,
+  basis,
+}: {
+  label: string;
+  value: string | number | null;
+  /** DG-128: the score's basis (A / B / blend) for the stylesheet; "" = none. */
+  basis?: string;
+}) {
   return (
-    <div className="dg-two-lane__fact">
+    <div className="dg-two-lane__fact" data-basis={basis}>
       <dt>{label}</dt>
       <dd>{value ?? UNKNOWN}</dd>
     </div>
@@ -115,9 +130,25 @@ export function ValuationTwoLane({
           <dl className="dg-two-lane__facts">
             {/* Which model scored him and what state that score is in are both
                 FACTS, not machinery — they stay, said in words. */}
-            <Fact label="Scored by" value={enumFact(model.engine_path)} />
+            {/* DG-128 (2026-09-01): "Scored by" names what PRODUCED the score —
+                the basis the band rides on — and falls back to the lane for a
+                row from before the marker existed. The basis also rides
+                `data-basis` so the stylesheet can render a prior-touched number
+                quieter than a measured one. */}
+            <Fact
+              label="Scored by"
+              value={basisWord(model.dvs_engine) ?? enumFact(model.engine_path)}
+            />
             <Fact label="Model status" value={enumFact(model.model_grade)} />
-            <Fact label="Dynasty value" value={model.dynasty_value_score} />
+            <Fact
+              label="Dynasty value"
+              value={model.dynasty_value_score}
+              basis={model.dvs_engine ?? ""}
+            />
+            <Fact
+              label={fieldLabel("dvs_band_low")}
+              value={likelyRange(model.dvs_band_low, model.dvs_band_high)}
+            />
             {/* DG-117: was "Value above replacement (xVAR)" — a fourth name for
                 the quantity the roster surfaces and League Pulse already spell
                 differently. The dictionary spells it once now. */}
