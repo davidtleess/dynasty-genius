@@ -88,7 +88,8 @@ def test_dead_window_caveat_engine_a_fallback_present():
     pvo = assemble_pvo(identity, features)
     assert pvo.dvs_engine == "blend"
     assert pvo.dvs_blend_weight_b is not None
-    assert any("Engine A/B blend active" in c for c in pvo.caveats)
+    # DG-128 (2026-09-01): the blend caveat is a token now (its prose carried w_B=).
+    assert any(c.startswith("engine_ab_blend_low_sample:") for c in pvo.caveats)
     assert pvo.dynasty_value_score is not None
 
 def test_dead_window_caveat_engine_a_fallback_absent():

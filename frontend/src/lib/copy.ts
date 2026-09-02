@@ -571,6 +571,22 @@ const TOKEN_PATTERNS: {
     },
   },
   {
+    // DG-128 (2026-09-01) — "engine_ab_blend_low_sample:games=6", the first blend
+    // rows ever served. Under the eight-game gate a veteran's number is part his
+    // measured production, part his draft pedigree; the weight rides on its own
+    // field and the uncertainty on the band. The old prose quoted the weight
+    // ("w_B=0.44") and hedged ("interpret with caution") — both struck. Only the
+    // number a manager can act on survives: how many pro games we have on him.
+    match: (t) => /^engine_ab_blend_low_sample:games=(\d+)$/.exec(t),
+    build: (t) => {
+      const games = Number(
+        /^engine_ab_blend_low_sample:games=(\d+)$/.exec(t)?.[1] ?? "0",
+      );
+      const noun = games === 1 ? "pro game" : "pro games";
+      return `Only ${games} ${noun} on record, so his number leans partly on his draft pedigree — the range around it is wider for that.`;
+    },
+  },
+  {
     // "Signal completeness 83% — missing: ppg_t_minus_1, ppg_t_minus_2, …"
     // The producer already writes this as a sentence; only the input names are
     // machinery. The percentage and the full list of what is missing survive.
