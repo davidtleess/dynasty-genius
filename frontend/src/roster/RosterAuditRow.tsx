@@ -33,8 +33,9 @@ export function RosterAuditRow({ player }: { player: Player }) {
   // DG-128 (2026-09-01): the band ships with the number. `dvs_engine` is the
   // batch's basis marker for the score — measured (B), draft-capital prior (A)
   // or a blend — and rides `data-basis` on the value cell the way the grade rides
-  // `data-grade`: RosterAudit.css renders a prior-touched number quieter than a
-  // measured one, which is David's condition for ranking everyone.
+  // `data-grade`. It is a marker only: David ruled the same evening that the
+  // number is not greyed by its basis. The range under it is what carries "a
+  // prior-dominated estimate must not render with the same authority" — it is wider.
   const band = likelyRange(player.dvs_band_low, player.dvs_band_high);
 
   return (
