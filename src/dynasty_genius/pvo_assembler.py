@@ -501,10 +501,12 @@ def assemble_pvo(
                 # would need its own named field, deliberately not invented here.
                 dvs_clamped_val = False
                 dvs_p90_ref_val = _P90_PPG.get(pos_upper)  # Engine A prior dominates blend window
-                _blend_caveat = (
-                    f"Low professional sample (games={int(_n)}) — Engine A/B blend active "
-                    f"(w_B={dvs_blend_weight_b:.2f}); interpret with caution"
-                )
+                # DG-128 (2026-09-01): a token, not prose. The old sentence carried
+                # "w_B=…" (a raw key the render rule refuses) and "interpret with
+                # caution" (hedging David struck from the screen). The weight rides
+                # on dvs_blend_weight_b and the uncertainty on the band; the sentence
+                # for this token lives in frontend/src/lib/copy.ts.
+                _blend_caveat = f"engine_ab_blend_low_sample:games={int(_n)}"
                 if _blend_caveat not in caveats:
                     caveats.append(_blend_caveat)
             elif engine_a_result:

@@ -83,3 +83,24 @@ def test_no_score_means_no_band() -> None:
     pvo = assemble_pvo(_identity("WR"), {"engine_b_score": _b_score(12.0), "games_t": 3, "feature_season": 2025})
     assert pvo.dynasty_value_score is None
     assert (pvo.dvs_band_low, pvo.dvs_band_high) == (None, None)
+
+
+def test_the_blend_caveat_is_a_token_the_copy_dictionary_can_say() -> None:
+    # Until DG-128 no blend row was ever served, so its caveat was never screened.
+    # It carried "w_B=0.44", a raw key the render rule refuses on sight, and
+    # "interpret with caution" — hedging David struck from the screen on 2026-08-29.
+    # The caveat is a token now; the sentence lives in frontend/src/lib/copy.ts.
+    pvo = assemble_pvo(
+        _identity("WR"),
+        {
+            "engine_b_score": _b_score(12.0),
+            "games_t": 4,
+            "feature_season": 2025,
+            "pick": 10.0,
+            "round": 1.0,
+            "age_at_nfl_entry": 22.0,
+        },
+    )
+    assert pvo.dvs_engine == "blend"
+    assert "engine_ab_blend_low_sample:games=4" in pvo.caveats
+    assert not any("w_B" in caveat or "caution" in caveat for caveat in pvo.caveats)

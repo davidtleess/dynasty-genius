@@ -60,7 +60,8 @@ def test_blend_caveat_present_when_blend_fires():
     }
     pvo = assemble_pvo(identity, features)
     assert pvo.dvs_engine == "blend"
-    assert any("Engine A/B blend active" in c for c in pvo.caveats), (
+    # DG-128 (2026-09-01): the blend caveat is a token now (its prose carried w_B=).
+    assert any(c.startswith("engine_ab_blend_low_sample:") for c in pvo.caveats), (
         f"Expected blend caveat in caveats, got: {pvo.caveats}"
     )
 
