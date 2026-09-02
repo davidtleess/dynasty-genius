@@ -19,6 +19,9 @@ from scripts.compute_dvs_pct_batch import compute_dvs_pct_batch  # noqa: E402
 from src.dynasty_genius.features.feature_source import (  # noqa: E402
     resolve_feature_source,
 )
+from src.dynasty_genius.features.inference_partition import (  # noqa: E402
+    select_inference_partition,
+)
 from src.dynasty_genius.league_capture import load_league_set_for_root  # noqa: E402
 from src.dynasty_genius.models.player_identity import PlayerIdentity  # noqa: E402
 from src.dynasty_genius.pvo_assembler import assemble_pvo  # noqa: E402
@@ -187,7 +190,17 @@ def _load_engine_b_feature_rows(path: Path = ENGINE_B_FEATURES_PATH) -> dict[str
     if not path.exists():
         return {}
     frame = pd.read_csv(path)
-    inference = frame[frame["training_eligible"] == False].copy()  # noqa: E712
+    # DG-133: the inference partition is the assembler's inference SEASON, selected and
+    # verified one-row-per-player by the shared selector. The former mask (the
+    # complement of the training flag) also admitted every complete-window washout row
+    # (kept with a null outcome since the attrition fix). On the live table that put
+    # 1,114 keys in this dict where the partition has 505: 609 players whose only rows
+    # were washouts were loaded — and handed to `score_rows` below — as if they were
+    # this season's cohort, and the 20 players carrying both a washout row and a 2025
+    # row kept the 2025 row only because file order put it last. The double prediction
+    # that fired the collision guard came from `EngineBService` scoring every masked
+    # ROW, not from this dict; the selector now refuses both shapes before either.
+    inference = select_inference_partition(frame)
     rows: dict[str, dict[str, Any]] = {}
     for _, row in inference.iterrows():
         player_id = row.get("player_id")
@@ -266,6 +279,13 @@ def _active_pvos_from_engine_b() -> list[dict[str, Any]]:
     # conflicting Sleeper mappings now fail closed at parse time, two distinct gsis
     # can no longer resolve to one Sleeper id, so the condition it guarded is
     # unreachable.
+    #
+    # DG-133: this loop is a VALUE-collision guard, not a partition assertion. Two
+    # equal predictions for one gsis pass it (counted, one kept); only unequal ones
+    # raise. What guarantees one prediction per player is the partition selector
+    # upstream (`select_inference_partition` inside `score_inference_partition`),
+    # which refuses a duplicate player_id before anything is scored. This stays as
+    # defence in depth for a prediction list assembled by some other path.
     unique_predictions: dict[str, dict[str, Any]] = {}
     prediction_duplicate_count = 0
     for prediction in predictions:

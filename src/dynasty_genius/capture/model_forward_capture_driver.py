@@ -47,6 +47,10 @@ from src.dynasty_genius.capture.provenance_discontinuity import (
     sha_or_declared_absence,
 )
 from src.dynasty_genius.features.feature_source import resolve_feature_source
+from src.dynasty_genius.features.inference_partition import (
+    InferencePartitionError,
+    select_inference_records,
+)
 from src.dynasty_genius.models.engine_b_contract import ENGINE_B_FEATURES_BY_POSITION
 
 PRODUCER_PATH = Path("scripts/build_universe_pvo_batch.py")
@@ -354,11 +358,20 @@ def _parse_util_value(raw: Any) -> Optional[float]:
 def _load_prediction_time_utilization(
     provenance: dict, read_artifact: Callable[[Any], bytes]
 ) -> tuple[dict[str, dict[str, str]], frozenset[str]]:
-    """Read the RESOLVED Engine B feature source (the same CSV the producer scored — the
-    ``training_eligible == False`` inference rows keyed by gsis ``player_id``) and return a
-    ``{player_id: row}`` map plus the set of canonical util columns actually present in the
-    header. When no Engine B feature source is in provenance (no model-supported B rows),
-    returns empty — every companion row then reads ``missing_feature_row``."""
+    """Read the RESOLVED Engine B feature source (the same CSV the producer scored) and
+    return the inference partition as a ``{player_id: row}`` map keyed by gsis
+    ``player_id``, plus the set of canonical util columns actually present in the header.
+    When no Engine B feature source is in provenance (no model-supported B rows), returns
+    empty — every companion row then reads ``missing_feature_row``.
+
+    The partition is selected by the shared ``select_inference_records`` (DG-133): the
+    assembler's inference season, verified one row per player. Reading it as "every row
+    whose flag is false" also picked up complete-window washout rows from earlier
+    seasons, and this map then kept whichever of a player's rows came last in the file.
+    A selection the selector refuses (empty, no season, a training row in the inference
+    season, a repeated player) raises ``InferencePartitionError``; the driver turns it
+    into its own aborted report. This reader stays on the ``csv`` module by design — no
+    pandas here."""
     feature_csv = provenance.get("feature_csv")
     if not feature_csv or not feature_csv.get("path"):
         return {}, frozenset()
@@ -367,9 +380,7 @@ def _load_prediction_time_utilization(
     header = reader.fieldnames or []
     present = frozenset(c for c in CANONICAL_UTIL_FIELDS if c in header)
     by_player_id: dict[str, dict[str, str]] = {}
-    for record in reader:
-        if str(record.get("training_eligible", "")).strip().lower() != "false":
-            continue  # only inference rows carry the prediction-time utilization
+    for record in select_inference_records(reader):
         player_id = record.get("player_id")
         if player_id:
             by_player_id[str(player_id)] = record
@@ -588,9 +599,16 @@ def capture_model_pvo_snapshot(
     # feature-CSV sha from provenance (NOT the injected feature_source, which is None on the
     # real CLI path). No T2 identity bridge is needed: for Engine B, dg_player_id IS the gsis.
     companion = PredictionSnapshotStore(db_path)
-    feature_rows_by_player_id, present_util_columns = _load_prediction_time_utilization(
-        provenance, read_artifact
-    )
+    try:
+        feature_rows_by_player_id, present_util_columns = (
+            _load_prediction_time_utilization(provenance, read_artifact)
+        )
+    except InferencePartitionError as exc:
+        # The producer scored these same bytes, so this is reachable only if the table
+        # changed underneath the chain; report it the way every other refusal here is
+        # reported (a persisted aborted report carrying the bare token), not as a
+        # traceback on the standalone CLI. Nothing has been appended yet.
+        return abort(str(exc))
     source_hash = (provenance.get("feature_csv") or {}).get("sha256")
     companion_rows: list[dict] = []
     for entry, row in zip(entries, players):

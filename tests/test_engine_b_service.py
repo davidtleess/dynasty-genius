@@ -155,13 +155,15 @@ def test_missing_features_handled_by_imputer(mock_bundle):
 
 @patch("app.services.engine_b_service.pd.read_csv")
 def test_score_inference_partition_is_sorted(mock_read, mock_bundle):
+    # DG-133: the partition is selected by feature_season (the assembler's inference
+    # season), so the fixture carries one — the flag alone no longer selects rows.
     mock_read.return_value = pd.DataFrame([
-        {"player_id": "P1", "position": "WR", "age": 22, "ppg_t": 20.0,
-         "weighted_opportunity": 0.8, "training_eligible": False},
-        {"player_id": "P2", "position": "WR", "age": 22, "ppg_t": 5.0,
-         "weighted_opportunity": 0.2, "training_eligible": False},
-        {"player_id": "P3", "position": "WR", "age": 22, "ppg_t": 12.0,
-         "weighted_opportunity": 0.5, "training_eligible": False},
+        {"player_id": "P1", "feature_season": 2025, "position": "WR", "age": 22,
+         "ppg_t": 20.0, "weighted_opportunity": 0.8, "training_eligible": False},
+        {"player_id": "P2", "feature_season": 2025, "position": "WR", "age": 22,
+         "ppg_t": 5.0, "weighted_opportunity": 0.2, "training_eligible": False},
+        {"player_id": "P3", "feature_season": 2025, "position": "WR", "age": 22,
+         "ppg_t": 12.0, "weighted_opportunity": 0.5, "training_eligible": False},
     ])
     svc = EngineBService.__new__(EngineBService)
     svc._loaded = True

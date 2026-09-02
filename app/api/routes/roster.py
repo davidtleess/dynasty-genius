@@ -6,6 +6,7 @@ from app.api.routes.roster_audit_models import (
     assemble_response,
 )
 from app.services.roster_auditor import RosterConfigError, run_audit_pvo
+from src.dynasty_genius.features.inference_partition import InferencePartitionError
 
 router = APIRouter(prefix="/roster", tags=["roster"])
 
@@ -18,6 +19,15 @@ async def audit_roster() -> RosterAuditResponse:
         raise HTTPException(
             status_code=422,
             detail={"error": "roster_config_error", "message": str(e)},
+        )
+    except InferencePartitionError as e:
+        # DG-133: the Engine B feature table failed the partition contract (empty,
+        # unreadable, a training row in the inference season, or a repeated player).
+        # That is a dependency outage, not a request error — answer the same governed
+        # 503 the envelope assembler uses, carrying the bare token.
+        raise HTTPException(
+            status_code=503,
+            detail={"error": "roster_dependency_unavailable", "message": str(e)},
         )
     try:
         return assemble_response(audit)
