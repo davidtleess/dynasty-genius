@@ -26,6 +26,7 @@ from src.dynasty_genius.league_capture import load_league_set_for_root  # noqa: 
 from src.dynasty_genius.models.dvs_band import (  # noqa: E402
     ENGINE_A_SIGMA_RUN,
     ENGINE_B_SIGMA_RUN,
+    assert_band_sigma_runs_match_served_models,
 )
 from src.dynasty_genius.models.player_identity import PlayerIdentity  # noqa: E402
 from src.dynasty_genius.pvo_assembler import assemble_pvo  # noqa: E402
@@ -264,6 +265,11 @@ def _orphan_record(
 
 
 def _active_pvos_from_engine_b() -> list[dict[str, Any]]:
+    # DG-128: the band's half-widths are pinned to two model runs. Before scoring a
+    # single row, confirm those are the runs this tree serves — a retrain that moved a
+    # manifest without moving the pin would otherwise ship a band describing a model
+    # that no longer exists in the serving path, silently.
+    assert_band_sigma_runs_match_served_models()
     ff_by_gsis, _ = _load_ff_playerids()
     # Resolve the feature source ONCE so the row-read and the predictions share a single,
     # consistent feature CSV (published runtime when available, else the committed seed).

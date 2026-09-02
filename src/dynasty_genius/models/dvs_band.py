@@ -25,19 +25,28 @@ P(plays), which leaves it wider than the arithmetic would give (conservative; P 
 of its own that this absorbs in part). A measured Engine B player sits at ±20–23 points of a
 100-point scale. That is the served model's published error; the band's job is to show it.
 
-Provenance is tested, not asserted: tests/contract/test_dg128_dvs_band.py recomputes every pinned
-value from the tracked artifacts named here and checks ENGINE_A_SIGMA_RUN against the tracked
-latest.json pointer score_prospect loads. ENGINE_B_SIGMA_RUN is the run v2_manifest.json pointed at
-on 2026-09-01; a retrain that moves the manifest must move this pin (the pin rides in every PVO's
-source_versions so the mismatch is visible, not silent).
+Provenance is tested, not asserted: tests/contract/test_dg128_dvs_band.py recomputes every
+pinned value from the tracked artifacts named here. And it is enforced at serving time, not only
+at test time: assert_band_sigma_runs_match_served_models() reads the two pointers the scorers
+load — engine_b/v2_manifest.json for B, models/latest.json for A — and refuses to build a batch
+whose band would describe a run other than the one serving. A retrain that moves a manifest
+therefore stops the refresh until this pin (and the constants above) move with it; the pin also
+rides in every PVO's source_versions so a stale artifact is legible after the fact.
 """
 
 from __future__ import annotations
 
+import json
 import math
+from pathlib import Path
 
 ENGINE_B_SIGMA_RUN = "20260831T204458Z"
 ENGINE_A_SIGMA_RUN = "20260502T153931Z"
+
+# The two pointers the scorers actually load; the pins above must name the same runs.
+_ROOT = Path(__file__).resolve().parents[3]
+ENGINE_B_MANIFEST_PATH = _ROOT / "app/data/models/engine_b/v2_manifest.json"
+ENGINE_A_LATEST_PATH = _ROOT / "app/data/models/latest.json"
 
 # One holdout RMSE of E[points | plays] on the 2022-23 holdout, in DVS points.
 DVS_SIGMA_B: dict[str, float] = {
@@ -99,3 +108,33 @@ def dvs_band(
     low = round(max(0.0, dvs - half), 1)
     high = round(min(100.0, dvs + half), 1)
     return (low, high)
+
+
+def assert_band_sigma_runs_match_served_models(
+    *,
+    manifest_path: Path = ENGINE_B_MANIFEST_PATH,
+    latest_path: Path = ENGINE_A_LATEST_PATH,
+) -> None:
+    """Refuse to band against a run the served models did not come from.
+
+    Reads the same two pointers the scorers load. A position the manifest leaves at
+    ``None`` has no Engine B score and so no band — nothing to be stale. A missing or
+    unreadable pointer is refused, not assumed: a tree that cannot say what it serves
+    cannot say how wide to draw the band either.
+    """
+    try:
+        manifest: dict[str, str | None] = json.loads(manifest_path.read_text())
+        latest: dict[str, object] = json.loads(latest_path.read_text())
+    except (OSError, ValueError) as exc:
+        raise ValueError("dvs_band_sigma_pointer_missing") from exc
+
+    for position, artifact in manifest.items():
+        if artifact is None:
+            continue
+        served_run = Path(artifact).parent.name
+        if served_run != ENGINE_B_SIGMA_RUN:
+            raise ValueError(f"dvs_band_sigma_run_stale:{position}:{served_run}")
+
+    served_a_run = latest.get("model_version")
+    if served_a_run != ENGINE_A_SIGMA_RUN:
+        raise ValueError(f"dvs_band_sigma_run_stale:A:{served_a_run}")

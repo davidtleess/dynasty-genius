@@ -19,6 +19,7 @@ from src.dynasty_genius.models.dvs_band import (
     DVS_SIGMA_B,
     ENGINE_A_SIGMA_RUN,
     ENGINE_B_SIGMA_RUN,
+    assert_band_sigma_runs_match_served_models,
     dvs_band,
 )
 from src.dynasty_genius.models.engine_b_contract import ENGINE_B_P90_PPG
@@ -123,3 +124,95 @@ def test_sigma_a_is_pinned_to_the_engine_a_run_the_blend_actually_serves() -> No
     # score_prospect loads app/data/models/latest.json (tracked); the pin must follow it.
     latest = json.loads((ROOT / "app/data/models/latest.json").read_text())
     assert latest["model_version"] == ENGINE_A_SIGMA_RUN
+
+
+# ── Serving time: the pins must be the runs the served models came from ──────────
+
+STALE_RUN = "20260915T090000Z"
+
+
+def _served_pointers(
+    tmp_path: Path, *, b_run: str, a_run: str, rb_run: str | None = None
+) -> tuple[Path, Path]:
+    def artifact(pos: str) -> str:
+        run = rb_run if (pos == "RB" and rb_run) else b_run
+        return f"app/data/models/engine_b/runs/{run}/{pos.lower()}_v2.pkl"
+
+    manifest_path = tmp_path / "v2_manifest.json"
+    manifest = {pos: artifact(pos) for pos in ("QB", "RB", "WR", "TE")}
+    manifest_path.write_text(json.dumps(manifest))
+    latest_path = tmp_path / "latest.json"
+    latest_path.write_text(
+        json.dumps({"model_version": a_run, "run_dir": f"app/data/models/runs/{a_run}"})
+    )
+    return manifest_path, latest_path
+
+
+def _aligned_pointers(tmp_path: Path, **overrides: str) -> tuple[Path, Path]:
+    pins = {"b_run": ENGINE_B_SIGMA_RUN, "a_run": ENGINE_A_SIGMA_RUN, **overrides}
+    return _served_pointers(tmp_path, **pins)
+
+
+def test_band_pins_that_match_the_served_runs_pass(tmp_path: Path) -> None:
+    manifest_path, latest_path = _aligned_pointers(tmp_path)
+    assert (
+        assert_band_sigma_runs_match_served_models(
+            manifest_path=manifest_path, latest_path=latest_path
+        )
+        is None
+    )
+
+
+def test_a_manifest_promoting_one_position_to_another_run_is_refused(
+    tmp_path: Path,
+) -> None:
+    # A retrain that moves RB and nobody moves the pin: the RB band would describe a
+    # model no longer serving — DG-132's stale-figures defect in a new shape.
+    manifest_path, latest_path = _aligned_pointers(tmp_path, rb_run=STALE_RUN)
+    with pytest.raises(ValueError, match=f"^dvs_band_sigma_run_stale:RB:{STALE_RUN}$"):
+        assert_band_sigma_runs_match_served_models(
+            manifest_path=manifest_path, latest_path=latest_path
+        )
+
+
+def test_an_engine_a_pointer_at_another_run_is_refused(tmp_path: Path) -> None:
+    manifest_path, latest_path = _aligned_pointers(tmp_path, a_run=STALE_RUN)
+    with pytest.raises(ValueError, match=f"^dvs_band_sigma_run_stale:A:{STALE_RUN}$"):
+        assert_band_sigma_runs_match_served_models(
+            manifest_path=manifest_path, latest_path=latest_path
+        )
+
+
+def test_a_position_the_manifest_leaves_unpromoted_is_not_a_mismatch(
+    tmp_path: Path,
+) -> None:
+    manifest_path, latest_path = _aligned_pointers(tmp_path)
+    manifest = json.loads(manifest_path.read_text())
+    manifest["TE"] = None  # no bundle → no B score → no TE band; nothing to be stale
+    manifest_path.write_text(json.dumps(manifest))
+    assert (
+        assert_band_sigma_runs_match_served_models(
+            manifest_path=manifest_path, latest_path=latest_path
+        )
+        is None
+    )
+
+
+def test_a_missing_pointer_is_refused_not_assumed(tmp_path: Path) -> None:
+    _manifest_path, latest_path = _aligned_pointers(tmp_path)
+    with pytest.raises(ValueError, match="^dvs_band_sigma_pointer_missing$"):
+        assert_band_sigma_runs_match_served_models(
+            manifest_path=tmp_path / "absent.json", latest_path=latest_path
+        )
+
+
+def test_the_default_pointers_are_the_tracked_ones_this_tree_serves_from() -> None:
+    # Reads the real tracked latest.json and, where present, the (gitignored) served
+    # manifest. Absent manifest → the check refuses, which is the right answer for a
+    # tree that cannot serve Engine B at all.
+    manifest = ROOT / "app/data/models/engine_b/v2_manifest.json"
+    if not manifest.exists():
+        with pytest.raises(ValueError, match="^dvs_band_sigma_pointer_missing$"):
+            assert_band_sigma_runs_match_served_models()
+        return
+    assert assert_band_sigma_runs_match_served_models() is None
