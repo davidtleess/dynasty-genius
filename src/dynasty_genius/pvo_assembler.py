@@ -546,7 +546,11 @@ def assemble_pvo(
     # no engine or a blend with no components — a bare number where a band was promised is
     # the exact defect David named.
     dvs_band_low, dvs_band_high = dvs_band(
-        dynasty_value_score, identity.position, engine=dvs_engine, **_band_components
+        dynasty_value_score,
+        identity.position,
+        engine=dvs_engine,
+        prior_head=engine_a_result["engine_used"] if engine_a_result else None,
+        **_band_components,
     )
 
     # Cross-Positional Architecture (xVAR) — Phase 15.

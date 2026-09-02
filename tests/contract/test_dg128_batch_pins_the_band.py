@@ -15,7 +15,11 @@ from typing import Any
 
 import pytest
 
-from src.dynasty_genius.models.dvs_band import ENGINE_A_SIGMA_RUN, ENGINE_B_SIGMA_RUN
+from src.dynasty_genius.models.dvs_band import (
+    ENGINE_A_SIGMA_RUN,
+    ENGINE_A_V3_SIGMA_RUN,
+    ENGINE_B_SIGMA_RUN,
+)
 
 _WILSON = "00-0037740"
 _ALLEN = "00-0039823"
@@ -77,6 +81,7 @@ def test_every_pvo_records_the_runs_its_band_widths_came_from(monkeypatch, tmp_p
         versions = call["source_versions"]
         assert versions["dvs_band_sigma_run_b"] == ENGINE_B_SIGMA_RUN
         assert versions["dvs_band_sigma_run_a"] == ENGINE_A_SIGMA_RUN
+        assert versions["dvs_band_sigma_run_a_v3"] == ENGINE_A_V3_SIGMA_RUN
 
 
 

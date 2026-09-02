@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import pytest
 
-from src.dynasty_genius.models.dvs_band import dvs_band
+from src.dynasty_genius import pvo_assembler
+from src.dynasty_genius.models.dvs_band import ENGINE_A_V3_HEAD, dvs_band
 from src.dynasty_genius.models.engine_b_contract import DVS_BLEND_K, ENGINE_B_P90_PPG
 from src.dynasty_genius.models.player_identity import PlayerIdentity
 from src.dynasty_genius.pvo_assembler import apply_availability, assemble_pvo
@@ -79,6 +80,32 @@ def test_a_prior_only_prospect_ships_sigma_a() -> None:
     pvo = assemble_pvo(_identity("RB"), {"pick": 40.0, "round": 2.0, "age": 21.0}, is_prospect=True)
     assert pvo.dvs_engine == "A"
     assert (pvo.dvs_band_low, pvo.dvs_band_high) == dvs_band(pvo.dynasty_value_score, "RB", engine="A")
+
+
+def test_a_te_prospect_scored_by_the_v3_head_ships_that_head_s_band(monkeypatch) -> None:
+    # The assembler tries the v3 TE head first and falls back to the v2 ridge; whichever
+    # produced the number is the one whose error the band must carry. The v3 head's is
+    # wider (29.7 vs 23.6 DVS), so a v2 band on a v3 number would overstate its authority.
+    def v3_scored(position: str, features: dict) -> dict:
+        assert position == "TE"
+        return {
+            "dynasty_value_score": 80.0,
+            "dvs_clamped": False,
+            "engine_used": ENGINE_A_V3_HEAD,
+            "model_version": "head_a_te_v3_ridge",
+            "model_grade": "MODEL",
+            "y24_ppg_raw": 7.28,
+            "caveats": ["head_a_v3_college_features_used"],
+        }
+
+    monkeypatch.setattr(pvo_assembler, "score_prospect_v3", v3_scored)
+    pvo = assemble_pvo(_identity("TE"), {"pick": 40.0, "round": 2.0, "age": 21.0}, is_prospect=True)
+    assert pvo.dvs_engine == "A"
+    assert pvo.engine_used == ENGINE_A_V3_HEAD
+    assert (pvo.dvs_band_low, pvo.dvs_band_high) == dvs_band(
+        pvo.dynasty_value_score, "TE", engine="A", prior_head=ENGINE_A_V3_HEAD
+    )
+    assert (pvo.dvs_band_low, pvo.dvs_band_high) != dvs_band(pvo.dynasty_value_score, "TE", engine="A")
 
 
 def test_no_score_means_no_band() -> None:

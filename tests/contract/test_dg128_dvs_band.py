@@ -10,14 +10,18 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from pathlib import Path
 
 import pytest
 
 from src.dynasty_genius.models.dvs_band import (
     DVS_SIGMA_A,
+    DVS_SIGMA_A_V3,
     DVS_SIGMA_B,
     ENGINE_A_SIGMA_RUN,
+    ENGINE_A_V3_HEAD,
+    ENGINE_A_V3_SIGMA_RUN,
     ENGINE_B_SIGMA_RUN,
     assert_band_sigma_runs_match_served_models,
     dvs_band,
@@ -34,6 +38,27 @@ def test_a_measured_player_carries_one_holdout_rmse_each_side() -> None:
 
 def test_a_prior_only_player_carries_engine_a_s_own_error() -> None:
     assert dvs_band(50.0, "WR", engine="A") == (17.6, 82.4)
+
+
+def test_a_te_prospect_scored_by_the_v3_head_carries_that_head_s_own_error() -> None:
+    # The v3 TE head produced the number, so its out-of-fold error is the band — not the
+    # v2 ridge's, which is a different model with a narrower (11-row) published error.
+    assert dvs_band(80.0, "TE", engine="A", prior_head=ENGINE_A_V3_HEAD) == (50.3, 100.0)
+    assert dvs_band(80.0, "TE", engine="A") == (56.4, 100.0)
+
+
+def test_a_v3_head_without_a_published_error_is_refused_not_guessed() -> None:
+    with pytest.raises(ValueError, match="^dvs_band_sigma_missing$"):
+        dvs_band(50.0, "WR", engine="A", prior_head=ENGINE_A_V3_HEAD)
+
+
+def test_a_blend_over_a_v3_prior_carries_that_head_s_error_in_the_unresolved_share() -> None:
+    w_b, dvs_a, dvs_b = 0.5, 80.0, 60.0
+    low, high = dvs_band(70.0, "TE", engine="blend", w_b=w_b, dvs_a=dvs_a, dvs_b=dvs_b, prior_head=ENGINE_A_V3_HEAD)
+    unresolved = (1 - w_b) * (DVS_SIGMA_A_V3["TE"] + abs(dvs_a - dvs_b))
+    half = math.sqrt(DVS_SIGMA_B["TE"] ** 2 + unresolved**2)
+    assert (low, high) == (round(70.0 - half, 1), round(min(100.0, 70.0 + half), 1))
+    assert half > math.sqrt(DVS_SIGMA_B["TE"] ** 2 + ((1 - w_b) * (DVS_SIGMA_A["TE"] + 20.0)) ** 2)
 
 
 def test_the_blended_band_is_root_sum_square_of_b_error_and_the_unresolved_share() -> None:
@@ -120,6 +145,27 @@ def test_sigma_a_is_the_engine_a_holdout_rmse_in_dvs_units(position: str) -> Non
     )
 
 
+def test_sigma_a_v3_is_the_promotion_s_out_of_fold_rmse_in_dvs_units() -> None:
+    # The v3 TE head's metadata JSON is unrecoverable; the promotion script that wrote it
+    # carries the out-of-fold RMSE it recorded (4-fold leave-one-class-out, target
+    # best3of4_ppg) as a constant. That constant is the surviving record.
+    script = (ROOT / "scripts/promote_head_a_te_v3.py").read_text()
+    oof_rmse = float(re.search(r"^\s*oof_rmse = ([0-9.]+)", script, re.M).group(1))
+    assert DVS_SIGMA_A_V3 == {"TE": round(oof_rmse / ENGINE_A_P90_PPG["TE"] * 100.0, 1)}
+
+
+def test_sigma_a_v3_is_pinned_to_the_v3_head_the_tree_serves() -> None:
+    # score_prospect_v3 loads app/data/models/head_a/v3_manifest.json (gitignored, like the
+    # Engine B manifest); where it is present, every head it names must be the pinned run.
+    manifest_path = ROOT / "app/data/models/head_a/v3_manifest.json"
+    if not manifest_path.exists():
+        pytest.skip("no v3 head served in this tree")
+    manifest = json.loads(manifest_path.read_text())
+    assert set(manifest) <= set(DVS_SIGMA_A_V3)
+    for artifact in manifest.values():
+        assert Path(artifact).parent.name == ENGINE_A_V3_SIGMA_RUN
+
+
 def test_sigma_a_is_pinned_to_the_engine_a_run_the_blend_actually_serves() -> None:
     # score_prospect loads app/data/models/latest.json (tracked); the pin must follow it.
     latest = json.loads((ROOT / "app/data/models/latest.json").read_text())
@@ -132,8 +178,14 @@ STALE_RUN = "20260915T090000Z"
 
 
 def _served_pointers(
-    tmp_path: Path, *, b_run: str, a_run: str, rb_run: str | None = None
-) -> tuple[Path, Path]:
+    tmp_path: Path,
+    *,
+    b_run: str,
+    a_run: str,
+    v3_run: str,
+    rb_run: str | None = None,
+    v3_positions: tuple[str, ...] = ("TE",),
+) -> dict[str, Path]:
     def artifact(pos: str) -> str:
         run = rb_run if (pos == "RB" and rb_run) else b_run
         return f"app/data/models/engine_b/runs/{run}/{pos.lower()}_v2.pkl"
@@ -145,22 +197,31 @@ def _served_pointers(
     latest_path.write_text(
         json.dumps({"model_version": a_run, "run_dir": f"app/data/models/runs/{a_run}"})
     )
-    return manifest_path, latest_path
+    v3_manifest_path = tmp_path / "v3_manifest.json"
+    v3_manifest_path.write_text(
+        json.dumps(
+            {pos: f"app/data/models/head_a/runs/{v3_run}/{pos.lower()}_v3.pkl" for pos in v3_positions}
+        )
+    )
+    return {
+        "manifest_path": manifest_path,
+        "latest_path": latest_path,
+        "v3_manifest_path": v3_manifest_path,
+    }
 
 
-def _aligned_pointers(tmp_path: Path, **overrides: str) -> tuple[Path, Path]:
-    pins = {"b_run": ENGINE_B_SIGMA_RUN, "a_run": ENGINE_A_SIGMA_RUN, **overrides}
+def _aligned_pointers(tmp_path: Path, **overrides: object) -> dict[str, Path]:
+    pins = {
+        "b_run": ENGINE_B_SIGMA_RUN,
+        "a_run": ENGINE_A_SIGMA_RUN,
+        "v3_run": ENGINE_A_V3_SIGMA_RUN,
+        **overrides,
+    }
     return _served_pointers(tmp_path, **pins)
 
 
 def test_band_pins_that_match_the_served_runs_pass(tmp_path: Path) -> None:
-    manifest_path, latest_path = _aligned_pointers(tmp_path)
-    assert (
-        assert_band_sigma_runs_match_served_models(
-            manifest_path=manifest_path, latest_path=latest_path
-        )
-        is None
-    )
+    assert assert_band_sigma_runs_match_served_models(**_aligned_pointers(tmp_path)) is None
 
 
 def test_a_manifest_promoting_one_position_to_another_run_is_refused(
@@ -168,42 +229,58 @@ def test_a_manifest_promoting_one_position_to_another_run_is_refused(
 ) -> None:
     # A retrain that moves RB and nobody moves the pin: the RB band would describe a
     # model no longer serving — DG-132's stale-figures defect in a new shape.
-    manifest_path, latest_path = _aligned_pointers(tmp_path, rb_run=STALE_RUN)
     with pytest.raises(ValueError, match=f"^dvs_band_sigma_run_stale:RB:{STALE_RUN}$"):
-        assert_band_sigma_runs_match_served_models(
-            manifest_path=manifest_path, latest_path=latest_path
-        )
+        assert_band_sigma_runs_match_served_models(**_aligned_pointers(tmp_path, rb_run=STALE_RUN))
 
 
 def test_an_engine_a_pointer_at_another_run_is_refused(tmp_path: Path) -> None:
-    manifest_path, latest_path = _aligned_pointers(tmp_path, a_run=STALE_RUN)
     with pytest.raises(ValueError, match=f"^dvs_band_sigma_run_stale:A:{STALE_RUN}$"):
-        assert_band_sigma_runs_match_served_models(
-            manifest_path=manifest_path, latest_path=latest_path
-        )
+        assert_band_sigma_runs_match_served_models(**_aligned_pointers(tmp_path, a_run=STALE_RUN))
 
 
-def test_a_position_the_manifest_leaves_unpromoted_is_not_a_mismatch(
+def test_a_v3_head_pointer_at_another_run_is_refused(tmp_path: Path) -> None:
+    # A re-promotion of the TE head that nobody re-pins: the 22 TE rookie bands would
+    # describe a model no longer serving. The v2 pointers alone cannot see it.
+    with pytest.raises(ValueError, match=f"^dvs_band_sigma_run_stale:A_v3:TE:{STALE_RUN}$"):
+        assert_band_sigma_runs_match_served_models(**_aligned_pointers(tmp_path, v3_run=STALE_RUN))
+
+
+def test_a_v3_head_promoted_for_a_position_with_no_pinned_error_is_refused(
     tmp_path: Path,
 ) -> None:
-    manifest_path, latest_path = _aligned_pointers(tmp_path)
-    manifest = json.loads(manifest_path.read_text())
-    manifest["TE"] = None  # no bundle → no B score → no TE band; nothing to be stale
-    manifest_path.write_text(json.dumps(manifest))
-    assert (
-        assert_band_sigma_runs_match_served_models(
-            manifest_path=manifest_path, latest_path=latest_path
-        )
-        is None
-    )
+    pointers = _aligned_pointers(tmp_path, v3_positions=("TE", "WR"))
+    with pytest.raises(ValueError, match="^dvs_band_sigma_missing:A_v3:WR$"):
+        assert_band_sigma_runs_match_served_models(**pointers)
+
+
+def test_no_v3_manifest_means_no_v3_head_serves_and_nothing_to_pin(tmp_path: Path) -> None:
+    # score_prospect_v3 returns None when the pointer is absent and the v2 ridge serves
+    # every prospect; the band follows what serves, so absence is not a mismatch.
+    pointers = _aligned_pointers(tmp_path)
+    pointers["v3_manifest_path"] = tmp_path / "absent_v3.json"
+    assert assert_band_sigma_runs_match_served_models(**pointers) is None
+
+
+def test_a_position_the_manifest_leaves_unpromoted_is_refused_because_v1_serves_it(
+    tmp_path: Path,
+) -> None:
+    # A manifest `None` is not "no Engine B score": EngineBService falls back to the v1
+    # bundle for that position (engine_b_service.py, `... or self._v1_bundle`), the
+    # assembler still marks the number dvs_engine "B", and the band would draw the v2
+    # run's error around a v1 model's number. No pinned error for v1 → refuse.
+    pointers = _aligned_pointers(tmp_path)
+    manifest = json.loads(pointers["manifest_path"].read_text())
+    manifest["TE"] = None
+    pointers["manifest_path"].write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match="^dvs_band_sigma_run_unpromoted:TE$"):
+        assert_band_sigma_runs_match_served_models(**pointers)
 
 
 def test_a_missing_pointer_is_refused_not_assumed(tmp_path: Path) -> None:
-    _manifest_path, latest_path = _aligned_pointers(tmp_path)
+    pointers = _aligned_pointers(tmp_path)
+    pointers["manifest_path"] = tmp_path / "absent.json"
     with pytest.raises(ValueError, match="^dvs_band_sigma_pointer_missing$"):
-        assert_band_sigma_runs_match_served_models(
-            manifest_path=tmp_path / "absent.json", latest_path=latest_path
-        )
+        assert_band_sigma_runs_match_served_models(**pointers)
 
 
 def test_the_default_pointers_are_the_tracked_ones_this_tree_serves_from() -> None:
