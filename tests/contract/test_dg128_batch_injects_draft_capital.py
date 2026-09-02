@@ -20,6 +20,7 @@ from src.dynasty_genius.draft_capital import (
     build_snapshot,
     write_snapshot,
 )
+from src.dynasty_genius.models.dvs_band import ENGINE_A_SIGMA_RUN, ENGINE_B_SIGMA_RUN
 
 _WILSON = "00-0037740"  # drafted: 2022 R1 P10, age 22
 _UNDRAFTED = "00-0099999"  # no draft row
@@ -137,3 +138,16 @@ def test_a_missing_snapshot_aborts_the_refresh_with_a_bare_token(monkeypatch, tm
     producer, _calls = _configure(monkeypatch, tmp_path, snapshot=None)
     with pytest.raises(DraftCapitalError, match=r"^draft_capital_snapshot_missing$"):
         producer._active_pvos_from_engine_b()
+
+
+def test_every_pvo_records_the_runs_its_band_widths_came_from(monkeypatch, tmp_path) -> None:
+    # The band's half-widths are pinned to two model runs. A retrain that moves a
+    # manifest must move the pin; carrying the pin on every PVO makes a stale pin
+    # visible in the artifact rather than silent in a module constant.
+    producer, calls = _configure(monkeypatch, tmp_path, snapshot=_snapshot(tmp_path))
+    producer._active_pvos_from_engine_b()
+
+    for call in calls:
+        versions = call["source_versions"]
+        assert versions["dvs_band_sigma_run_b"] == ENGINE_B_SIGMA_RUN
+        assert versions["dvs_band_sigma_run_a"] == ENGINE_A_SIGMA_RUN
