@@ -16,6 +16,10 @@ sys.path.insert(0, str(ROOT))
 
 from app.services.engine_b_service import score_inference_partition  # noqa: E402
 from scripts.compute_dvs_pct_batch import compute_dvs_pct_batch  # noqa: E402
+from src.dynasty_genius.draft_capital import (  # noqa: E402
+    DRAFT_CAPITAL_SNAPSHOT_PATH,
+    load_draft_capital,
+)
 from src.dynasty_genius.features.feature_source import (  # noqa: E402
     resolve_feature_source,
 )
@@ -36,6 +40,9 @@ FF_PLAYERIDS_PATH = ROOT / "app" / "data" / "identity" / "_runs" / "ff_playerids
 ENGINE_B_FEATURES_PATH = ROOT / "app" / "data" / "training" / "engine_b_features_v2.csv"
 FEATURES_RUNTIME_DIR = ROOT / "app" / "data" / "features_runtime"
 OUTPUT_DIR = ROOT / "app" / "data" / "valuation"
+# DG-128: the governed offline snapshot that hands a veteran his pick / round / draft-season
+# age — the Engine A prior's inputs. Module-level so a test or shadow run can steer it.
+DRAFT_CAPITAL_PATH = DRAFT_CAPITAL_SNAPSHOT_PATH
 
 
 def _load_json(path: Path) -> Any:
@@ -261,6 +268,10 @@ def _orphan_record(
 
 def _active_pvos_from_engine_b() -> list[dict[str, Any]]:
     ff_by_gsis, _ = _load_ff_playerids()
+    # DG-128: a missing or tampered snapshot aborts the refresh with a bare token, like a
+    # missing crosswalk — the alternative is a universe where every veteran silently lost
+    # his prior and the eight-game gate's blanks came back with no marker saying why.
+    draft_capital = load_draft_capital(DRAFT_CAPITAL_PATH)
     # Resolve the feature source ONCE so the row-read and the predictions share a single,
     # consistent feature CSV (published runtime when available, else the committed seed).
     feature_source = resolve_feature_source(
@@ -307,6 +318,9 @@ def _active_pvos_from_engine_b() -> list[dict[str, Any]]:
 
     pvo_objects: list[Any] = []
     orphan_records: list[dict[str, Any]] = []
+    draft_capital_matched = 0
+    draft_capital_unmatched = 0
+    draft_capital_age_missing = 0
 
     for gsis_id, prediction in unique_predictions.items():
         ff_entry = ff_by_gsis.get(gsis_id)
@@ -328,6 +342,21 @@ def _active_pvos_from_engine_b() -> list[dict[str, Any]]:
 
         features = feature_rows.get(str(gsis_id), {}).copy()
         features["engine_b_score"] = prediction
+        # DG-128: hand the veteran his draft capital so the Phase 15 blend can fire for a
+        # player under the eight-game gate. Three keys, never `age`: the feature row's
+        # `age` is his CURRENT age and the assembler reads the draft-season age from
+        # `age_at_nfl_entry` only. setdefault, so a feature column of the same name (none
+        # exists today) would win over the snapshot rather than be silently overwritten.
+        # No draft row means undrafted: no keys, no prior, counted — never imputed.
+        capital = draft_capital.get(gsis_id)
+        if capital is None:
+            draft_capital_unmatched += 1
+        else:
+            draft_capital_matched += 1
+            if capital.age is None:
+                draft_capital_age_missing += 1
+            for key, value in capital.engine_a_features().items():
+                features.setdefault(key, value)
         identity = PlayerIdentity(
             dg_id=str(gsis_id),
             full_name=str(ff_entry.get("name") or gsis_id),
@@ -349,6 +378,8 @@ def _active_pvos_from_engine_b() -> list[dict[str, Any]]:
                 "engine_b_feature_source_kind": str(feature_meta["feature_source_kind"]),
                 "engine_b_feature_csv_sha256": str(feature_meta["feature_csv_sha256"]),
                 "ff_playerids": str(FF_PLAYERIDS_PATH.relative_to(ROOT)),
+                "draft_capital": "resources/draft_capital/nflverse_draft_picks.json",
+                "draft_capital_sha256": draft_capital.content_sha256,
             },
         )
         pvo_objects.append(pvo)
@@ -380,6 +411,16 @@ def _active_pvos_from_engine_b() -> list[dict[str, Any]]:
         "orphan_records": sorted(orphan_records, key=lambda record: record["gsis_id"]),
         "crosswalk_duplicate_count": getattr(ff_by_gsis, "duplicate_count", 0),
         "prediction_duplicate_count": prediction_duplicate_count,
+        # DG-128: who was handed draft capital. `unmatched` is "no draft row on this gsis" —
+        # undrafted and unmatched are the same fact from here; the snapshot's own
+        # accounting (indexed / gsis_missing / gsis_conflict) says how much of the source
+        # was joinable at all.
+        "draft_capital": {
+            "matched_count": draft_capital_matched,
+            "unmatched_count": draft_capital_unmatched,
+            "age_missing_count": draft_capital_age_missing,
+            **draft_capital.accounting,
+        },
     }
     return batch
 
