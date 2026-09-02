@@ -97,6 +97,14 @@ class PlayerValueObject(BaseModel):
     # ── Bayesian Blend Metadata — Phase 15 ────────────────────────────────────
     dvs_blend_weight_b: Optional[float] = None  # w_B when in blend window; null outside
 
+    # ── DVS band — DG-128 (2026-09-01) ────────────────────────────────────────
+    # How far to trust the number: one holdout RMSE of the engine(s) that produced it, in
+    # DVS units, clamped [0, 100] like the score. Null wherever the score is null. The
+    # basis marker is dvs_engine (a blend's band is strictly wider than a measured one's).
+    # Form and constants: src/dynasty_genius/models/dvs_band.py.
+    dvs_band_low: Optional[float] = None
+    dvs_band_high: Optional[float] = None
+
     # ── Signal completeness ───────────────────────────────────────────────────
     signal_completeness: float = Field(
         ..., ge=0.0, le=1.0, description="Fraction of required signals present"
