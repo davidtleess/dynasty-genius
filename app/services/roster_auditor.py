@@ -25,6 +25,7 @@ from src.dynasty_genius.models.player_value_object import (
     RosterAuditSignals,
 )
 from src.dynasty_genius.pvo_source import resolve_pvo_source
+from src.dynasty_genius.universe_pvo_batch import served_team
 
 _ROOT = Path(__file__).resolve().parents[2]
 _QB_BRIDGE_PATH = _ROOT / "resources" / "nflreadpy_qb_id_map.json"
@@ -233,7 +234,9 @@ def _pvo_from_universe_row(
         player_id=str(row.get("dg_player_id") or row.get("sleeper_player_id")),
         full_name=str(player.get("full_name") or live_player.get("full_name")),
         position=str(player.get("position") or live_player.get("position")),
-        nfl_team=player.get("team") or live_player.get("team"),
+        # The live Sleeper roster row is today's team; the artifact's team is only as
+        # fresh as the snapshot (or the model season) it was built from (DG-137).
+        nfl_team=served_team(live_player, player.get("team")),
         age=player.get("age") or live_player.get("age"),
         is_prospect=not is_veteran,
         sleeper_id=str(identity_ids.get("sleeper_id") or row.get("sleeper_player_id")),
