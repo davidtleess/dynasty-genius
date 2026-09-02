@@ -170,7 +170,7 @@ def test_dead_window_fallback_uses_engine_a_clamp_truth(monkeypatch, clamped):
     """
     _stub_engine_a(monkeypatch, score=100.0, clamped=clamped)
     features = _engine_b_features(30.0, games_t=0)
-    features.update({"pick": 5.0, "round": 1.0, "age": 22.0})
+    features.update({"pick": 5.0, "round": 1.0, "age_at_nfl_entry": 22.0})  # DG-128 (2026-09-01): a veteran's `age` is his CURRENT age; Engine A reads the draft-season age from this key.
 
     pvo = assemble_pvo(_engine_b_identity(), features)
 
@@ -234,7 +234,7 @@ def test_blend_score_is_not_clamped_even_when_a_component_was():
     `if dvs_engine == "blend"` and a mutation probe proved it vacuous.
     """
     features = _engine_b_features(30.0, games_t=ENGINE_B_MIN_GAMES_T - 1)
-    features.update({"pick": 5.0, "round": 1.0, "age": 22.0})
+    features.update({"pick": 5.0, "round": 1.0, "age_at_nfl_entry": 22.0})  # DG-128 (2026-09-01): a veteran's `age` is his CURRENT age; Engine A reads the draft-season age from this key.
 
     pvo = assemble_pvo(_engine_b_identity(), features)
 

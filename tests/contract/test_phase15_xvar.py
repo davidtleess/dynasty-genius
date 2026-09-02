@@ -84,7 +84,10 @@ def test_xvar_formula_qb_higher_than_wr_at_same_dvs():
 def test_engine_a_lambda_applied_for_qb_prospect():
     """5.2: QB prospect uses Engine A lambda (1.315), not Engine B lambda (1.386)."""
     identity = _mock_identity("QB", is_prospect=True)
-    pvo = assemble_pvo(identity, {"pick": 10.0, "round": 1.0, "age": 21.0})
+    # DG-128 (2026-09-01): PlayerIdentity has no is_prospect field — the kwarg on _mock_identity was
+    # silently ignored, so this 'prospect' test never marked a prospect. It passed only because Engine A
+    # read `age` for everyone; now that a veteran's `age` is his current age, say prospect where meant.
+    pvo = assemble_pvo(identity, {"pick": 10.0, "round": 1.0, "age": 21.0}, is_prospect=True)
     assert pvo.dvs_engine == "A"
     assert pvo.xvar is not None and pvo.dynasty_value_score is not None
     expected = round(
@@ -105,7 +108,7 @@ def test_engine_a_lambda_applied_for_qb_prospect():
 def test_engine_a_lambda_applied_for_prospect():
     """5.2: WR prospect uses Engine A replacement and lambda."""
     identity = _mock_identity("WR", is_prospect=True)
-    pvo = assemble_pvo(identity, {"pick": 5.0, "round": 1.0, "age": 21.0})
+    pvo = assemble_pvo(identity, {"pick": 5.0, "round": 1.0, "age": 21.0}, is_prospect=True)  # DG-128: see above
     assert pvo.dvs_engine == "A"
     assert pvo.xvar_anchor == "WR"
     assert pvo.xvar is not None and pvo.dynasty_value_score is not None

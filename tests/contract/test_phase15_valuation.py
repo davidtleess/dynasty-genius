@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from src.dynasty_genius.models.engine_b_contract import (
     ENGINE_B_P90_PPG,
-    ENGINE_B_REPLACEMENT_DVS,
 )
 from src.dynasty_genius.models.player_identity import PlayerIdentity
 from src.dynasty_genius.pvo_assembler import assemble_pvo
@@ -21,9 +20,7 @@ def _mock_identity(position: str, is_prospect: bool = False) -> PlayerIdentity:
 def test_xvar_rank_preservation_within_position():
     """Task 1.3: Verify xVAR rank == DVS rank within position."""
     identity = _mock_identity("WR")
-    p90 = ENGINE_B_P90_PPG["WR"]
-    repl = ENGINE_B_REPLACEMENT_DVS["WR"]
-    
+
     # Higher DVS must yield higher xVAR
     features_low = {
         "engine_b_score": {"predicted_avg_ppg_t1_t2": 10.0, "engine": "test_v2"},
@@ -76,7 +73,8 @@ def test_bayesian_bridge_monotonicity():
     identity = _mock_identity("WR")
     # Low Engine A prior (50), High Engine B likelihood (90)
     features = {
-        "pick": 50.0, "round": 3.0, "age": 22.0, # Yields approx DVS 50
+        "pick": 50.0, "round": 3.0, "age_at_nfl_entry": 22.0,  # Yields approx DVS 50
+        # DG-128 (2026-09-01): a veteran's `age` is his CURRENT age; Engine A reads the draft-season age from this key.
         "engine_b_score": {"predicted_avg_ppg_t1_t2": 13.0, "engine": "test_v2"}, # 13/14.5 -> DVS 89.7
         "feature_season": 2024
     }

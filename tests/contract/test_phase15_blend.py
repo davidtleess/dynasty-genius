@@ -38,7 +38,7 @@ def test_blend_dvs_engine_when_both_present():
         "feature_season": 2024,
         "pick": 10.0,
         "round": 1.0,
-        "age": 22.0,
+        "age_at_nfl_entry": 22.0,  # DG-128 (2026-09-01): a veteran's `age` is his CURRENT age; Engine A reads the draft-season age from this key.
     }
     pvo = assemble_pvo(identity, features)
     assert pvo.dvs_engine == "blend"
@@ -56,7 +56,7 @@ def test_blend_caveat_present_when_blend_fires():
         "feature_season": 2024,
         "pick": 10.0,
         "round": 1.0,
-        "age": 22.0,
+        "age_at_nfl_entry": 22.0,  # DG-128 (2026-09-01): a veteran's `age` is his CURRENT age; Engine A reads the draft-season age from this key.
     }
     pvo = assemble_pvo(identity, features)
     assert pvo.dvs_engine == "blend"
@@ -108,7 +108,7 @@ def _blend_fixture(availability_p: float | None) -> dict:
         "feature_season": 2024,
         "pick": 10.0,
         "round": 1.0,
-        "age": 22.0,
+        "age_at_nfl_entry": 22.0,  # DG-128 (2026-09-01): a veteran's `age` is his CURRENT age; Engine A reads the draft-season age from this key.
     }
     if availability_p is not None:
         features["availability_p"] = availability_p

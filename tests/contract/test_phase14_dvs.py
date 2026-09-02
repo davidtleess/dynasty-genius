@@ -83,7 +83,8 @@ def test_dead_window_caveat_engine_a_fallback_present():
         "engine_b_score": {"predicted_avg_ppg_t1_t2": 12.0, "engine": "test_v2"},
         "games_t": 4, # Dead Window
         "feature_season": 2024,
-        "pick": 10.0, "round": 1.0, "age": 22.0 # Engine A inputs — both engines present → blend
+        "pick": 10.0, "round": 1.0, "age_at_nfl_entry": 22.0,  # Engine A inputs — both engines present → blend
+        # DG-128 (2026-09-01): a veteran's `age` is his CURRENT age; Engine A reads the draft-season age from this key.
     }
     pvo = assemble_pvo(identity, features)
     assert pvo.dvs_engine == "blend"
@@ -139,7 +140,10 @@ def test_engine_a_dvs_path_unchanged():
     features = {
         "pick": 5.0, "round": 1.0, "age": 21.0
     }
-    pvo = assemble_pvo(identity, features)
+    # DG-128 (2026-09-01): PlayerIdentity has no is_prospect field — the kwarg on _mock_identity was
+    # silently ignored, so this 'prospect' test never marked a prospect. It passed only because Engine A
+    # read `age` for everyone; now that a veteran's `age` is his current age, say prospect where meant.
+    pvo = assemble_pvo(identity, features, is_prospect=True)
     assert pvo.dvs_engine == "A"
     assert pvo.dvs_p90_ref == _P90_PPG["WR"]
 

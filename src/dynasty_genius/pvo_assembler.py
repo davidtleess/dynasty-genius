@@ -356,7 +356,16 @@ def assemble_pvo(
     engine_a_result = None
     pick = features.get("pick")
     round_ = features.get("round")
-    age = features.get("age")
+    # Engine A is a rookie model: its `age` is the prospect's DRAFT-season age (20–26).
+    # A veteran's feature row carries `age` = his CURRENT age (that is what Engine B and
+    # the PVO's own `age` field mean by it), so for a veteran the draft-season age has
+    # its own key and there is NO fallback — a prior on a 30-year-old's current age is
+    # a rookie model extrapolated a decade out of distribution, and no prior is more
+    # honest than that one (DG-128). Prospects keep `age`: the two numbers coincide
+    # for them, and the prospect cards set both keys.
+    age = features.get("age_at_nfl_entry")
+    if age is None and is_prospect:
+        age = features.get("age")
     if pick is not None and round_ is not None:
         v3_features = {
             "nfl_pick": float(pick),

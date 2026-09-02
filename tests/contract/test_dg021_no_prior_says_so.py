@@ -74,7 +74,7 @@ def test_the_true_prior_claim_survives_where_it_is_true() -> None:
             "feature_season": 2024,
             "pick": 10.0,
             "round": 1.0,
-            "age": 22.0,
+            "age_at_nfl_entry": 22.0,  # DG-128 (2026-09-01): a veteran's `age` is his CURRENT age; Engine A reads the draft-season age from this key.
         },
     )
     assert pvo.dvs_engine == "A"
