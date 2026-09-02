@@ -72,6 +72,11 @@ def _configure(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, *, snapshot: Pat
     monkeypatch.setattr(producer, "score_inference_partition", lambda **_kwargs: predictions)
     monkeypatch.setattr(producer, "PlayerIdentity", lambda **kwargs: SimpleNamespace(**kwargs))
     monkeypatch.setattr(producer, "compute_dvs_pct_batch", lambda _objects: None)
+    # The served-run pin check reads real model pointers; a test that wants it stubs it
+    # back in.
+    monkeypatch.setattr(
+        producer, "assert_band_sigma_runs_match_served_models", lambda: None
+    )
     monkeypatch.setattr(
         producer,
         "DRAFT_CAPITAL_PATH",
@@ -151,3 +156,19 @@ def test_every_pvo_records_the_runs_its_band_widths_came_from(monkeypatch, tmp_p
         versions = call["source_versions"]
         assert versions["dvs_band_sigma_run_b"] == ENGINE_B_SIGMA_RUN
         assert versions["dvs_band_sigma_run_a"] == ENGINE_A_SIGMA_RUN
+
+
+def test_the_refresh_refuses_to_band_against_runs_the_served_models_did_not_come_from(
+    monkeypatch, tmp_path
+) -> None:
+    # The pin recorded on each PVO is only honest if it was checked against what the
+    # tree actually serves. The refresh must ask before it scores, and stop if told no.
+    producer, calls = _configure(monkeypatch, tmp_path, snapshot=_snapshot(tmp_path))
+
+    def refuse() -> None:
+        raise ValueError("dvs_band_sigma_run_stale:RB:20260915T090000Z")
+
+    monkeypatch.setattr(producer, "assert_band_sigma_runs_match_served_models", refuse)
+    with pytest.raises(ValueError, match=r"^dvs_band_sigma_run_stale:RB:"):
+        producer._active_pvos_from_engine_b()
+    assert calls == []
