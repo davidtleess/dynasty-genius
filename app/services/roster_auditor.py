@@ -12,6 +12,11 @@ from src.dynasty_genius.adapters.nflreadpy_qb_adapter import fetch_qb_nfl_stats
 from src.dynasty_genius.decision_logic.counter_arguments import (
     generate_counter_argument,
 )
+from src.dynasty_genius.features.inference_partition import (
+    PLAYER_COLUMN,
+    InferencePartitionError,
+    player_key,
+)
 from src.dynasty_genius.models.engine_a_contract import QB_CONTEXT_COLUMNS
 from src.dynasty_genius.models.league_context import LeagueContext
 from src.dynasty_genius.models.player_identity import PlayerIdentity
@@ -624,6 +629,38 @@ def _build_qb_context_cards(players: list[dict]) -> list[dict]:
     return cards
 
 
+DUPLICATE_PREDICTION = "engine_b_prediction_duplicate_player"
+
+
+def _index_predictions_by_player(predictions: list[dict]) -> dict[str, dict]:
+    """Key Engine B predictions by gsis ``player_id`` — never last-wins.
+
+    ``score_inference_partition`` promises one prediction per player (DG-133: it scores
+    the assembler's inference season through the shared partition selector, which
+    asserts uniqueness on this same ``PLAYER_COLUMN``). Before that, the service scored
+    every row of the old flag mask, so the 20 players carrying both a washout row and
+    a 2025 row arrived here twice with two different predictions, and the dict
+    comprehension this replaces kept whichever came last in file order — which
+    happened to be the 2025 row on the live table, so the audit was right by luck and
+    would have been silently wrong on any other ordering. A repeated id here now means
+    the upstream promise was broken; refuse it with a bare machine token (raised as
+    ``InferencePartitionError`` so the route answers a governed 503).
+
+    A prediction with no readable ``player_id`` is skipped, not counted as a duplicate
+    of the next unkeyed one: the roster joins on real gsis ids, so an unkeyed row could
+    never have matched a player, and the service does not emit one.
+    """
+    indexed: dict[str, dict] = {}
+    for prediction in predictions:
+        key = player_key(prediction.get(PLAYER_COLUMN))
+        if key is None:
+            continue
+        if key in indexed:
+            raise InferencePartitionError(DUPLICATE_PREDICTION)
+        indexed[key] = prediction
+    return indexed
+
+
 async def run_audit_pvo() -> dict:
     # Lazy import breaks the circular dependency:
     # pvo_assembler imports audit_player from this module at module level,
@@ -633,7 +670,7 @@ async def run_audit_pvo() -> dict:
     players = await get_my_roster()
 
     # Engine B scores generated before any market data — architecture gate.
-    engine_b_scores = {s["player_id"]: s for s in score_inference_partition()}
+    engine_b_scores = _index_predictions_by_player(score_inference_partition())
     rostered_universe_pvos, universe_provenance = _load_rostered_universe_pvos()
 
     pvos = []
@@ -698,7 +735,7 @@ async def run_audit() -> dict:
     # Market values (KTC, ADP, FantasyCalc) must only be appended AFTER this
     # block and must never be passed into score_inference_partition() or
     # predict_player_season(). Architecture gate enforced by test_market_overlay.py.
-    engine_b_scores = {s["player_id"]: s for s in score_inference_partition()}
+    engine_b_scores = _index_predictions_by_player(score_inference_partition())
 
     audited = []
     for p in players:

@@ -16,6 +16,10 @@ import pandas as pd
 from sklearn.impute import SimpleImputer
 
 from src.dynasty_genius.features.feature_source import resolve_feature_source
+from src.dynasty_genius.features.inference_partition import (
+    player_key,
+    select_inference_partition,
+)
 from src.dynasty_genius.models.engine_b_contract import (
     ENGINE_B_EXPERIMENTAL_POSITIONS,
     validate_no_prohibited_features,
@@ -205,11 +209,24 @@ class EngineBService:
         }
 
     def score_inference_partition(self, feature_source=None) -> list[dict[str, Any]]:
-        """Score all inference rows, routing each by position.
+        """Score the inference partition — one prediction per player — routing by position.
 
         Reads the feature CSV through the shared resolver (published runtime when
         available, else the committed seed). A caller may inject an already-resolved
         ``feature_source`` so a single resolution backs both the rows and the predictions.
+
+        The partition is the assembler's inference SEASON, selected by the shared
+        ``select_inference_partition`` (DG-133). It is not "every row that cannot
+        train": since the attrition fix that set also holds complete-window washout
+        rows from earlier seasons, and scoring those produced a second, different
+        prediction for 29 players every morning.
+
+        Fails closed: a present table that is empty, lacks a season column, carries a
+        training row in the inference season or repeats a player raises
+        ``InferencePartitionError`` (a ``ValueError`` whose message is a bare token)
+        rather than returning a partial list. Only an ABSENT table returns ``[]``. A
+        row with no ``player_id`` is skipped, as the producer skips it: it can never
+        be joined to anything, and two of them are not the same player twice.
         """
         if feature_source is None:
             if not _DATASET_PATH.exists() and not (
@@ -221,11 +238,13 @@ class EngineBService:
             )
 
         df = pd.read_csv(feature_source.path)
-        inference_df = df[df["training_eligible"] == False].copy()  # noqa: E712 - preserve pandas mask semantics (CSV bool/int/object dtype)
+        inference_df = select_inference_partition(df)
 
         predictions = []
         for _, row in inference_df.iterrows():
             player_features = row.to_dict()
+            if player_key(player_features.get("player_id")) is None:
+                continue
             pred = self.predict_player_season(player_features)
             if "error" in pred:
                 continue
