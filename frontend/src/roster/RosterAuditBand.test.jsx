@@ -3,9 +3,10 @@
 // DG-128 (2026-09-01) — the band ships with the number, on David's own roster.
 //
 // His ruling: "A prior-dominated estimate must not render with the same
-// authority as a measured one." Two things carry that on this surface: the range
-// printed under the value, and a basis marker on the value cell that the
-// stylesheet reads to render a prior-touched number quieter than a measured one.
+// authority as a measured one." The range printed under the value carries that
+// — a prior-touched number's range is wider. The value cell also rides a basis
+// marker (`data-basis`); David ruled the same evening that nothing greys or
+// lightens the number by its basis, so the marker is a fact, not a style hook.
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { fieldLabel } from "../lib/copy";
@@ -30,7 +31,7 @@ describe("the roster table and the band", () => {
     expect(row.querySelector("[data-basis]").getAttribute("data-basis")).toBe("B");
   });
 
-  it("marks a blended value as a blend so it renders with less authority", () => {
+  it("prints the wider range under a blended value and marks the cell a blend", () => {
     const [measured] = activeAudit().players;
     const blended = {
       ...measured,

@@ -133,8 +133,8 @@ export function ValuationTwoLane({
             {/* DG-128 (2026-09-01): "Scored by" names what PRODUCED the score —
                 the basis the band rides on — and falls back to the lane for a
                 row from before the marker existed. The basis also rides
-                `data-basis` so the stylesheet can render a prior-touched number
-                quieter than a measured one. */}
+                `data-basis` as a marker; nothing styles on it — David ruled
+                2026-09-01 that the number is not greyed by its basis. */}
             <Fact
               label="Scored by"
               value={basisWord(model.dvs_engine) ?? enumFact(model.engine_path)}

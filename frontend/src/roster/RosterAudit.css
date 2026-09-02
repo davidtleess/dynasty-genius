@@ -64,11 +64,12 @@
 }
 
 /* DG-128: the band ships with the number. The range sits under the score on
-   its own line — taller row, never a wider table — in the muted body colour.
-   A number whose basis is a draft-capital prior (A) or a blend of prior and
-   measurement reads quieter than a fully measured one (B): same size, regular
-   weight, muted colour. That is the whole of "a prior-dominated estimate must
-   not render with the same authority as a measured one" — no badge, no hedge. */
+   its own line — taller row, never a wider table — in the muted body colour,
+   under every player who has a number. The range IS how a prior-dominated
+   estimate reads with less authority than a measured one: it is wider. David
+   ruled 2026-09-01 that the number itself is not greyed or lightened by its
+   basis — same weight, same colour, on every row. `data-basis` stays on the
+   value cell as a marker; nothing styles on it. */
 .dg-roster__score {
   display: block;
 }
@@ -83,15 +84,6 @@
   display: block;
   font-size: var(--dg-text-sm);
   color: var(--dg-text);
-}
-
-.dg-roster__value[data-basis="B"] .dg-roster__score {
-  font-weight: 600;
-}
-
-.dg-roster__value[data-basis="A"] .dg-roster__score,
-.dg-roster__value[data-basis="blend"] .dg-roster__score {
-  color: var(--dg-text-muted);
 }
 
 .dg-roster__detail td {
