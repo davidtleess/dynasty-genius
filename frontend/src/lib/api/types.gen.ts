@@ -1979,6 +1979,18 @@ export type PlayerMarketLane = {
  */
 export type PlayerModelLane = {
     /**
+     * Dvs Band High
+     */
+    dvs_band_high?: number | null;
+    /**
+     * Dvs Band Low
+     */
+    dvs_band_low?: number | null;
+    /**
+     * Dvs Engine
+     */
+    dvs_engine?: 'A' | 'B' | 'blend' | null;
+    /**
      * Dynasty Value Score
      */
     dynasty_value_score: number | null;
@@ -2368,6 +2380,14 @@ export type RosterAuditPlayer = {
      * Draft Class
      */
     draft_class?: number | null;
+    /**
+     * Dvs Band High
+     */
+    dvs_band_high?: number | null;
+    /**
+     * Dvs Band Low
+     */
+    dvs_band_low?: number | null;
     /**
      * Dvs Engine
      */
