@@ -32,7 +32,9 @@ EXPECTED_EXISTING_ROW = {
     "player": {
         "full_name": "Rookie Quarterback",
         "position": "QB",
-        "team": "KC",
+        # The snapshot's team, not the PVO's "KC": Sleeper is the authority for the
+        # served team (DG-137).
+        "team": "FA",
         "age": 22.0,
         "years_exp": 0,
         "sleeper_status": "Active",

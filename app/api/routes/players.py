@@ -302,6 +302,17 @@ def _market_and_divergence(
     return market, divergence
 
 
+def _served_team_label(player: dict[str, Any]) -> str | None:
+    """A player Sleeper lists as active but on no NFL roster is a free agent; say
+    so, as the roster audit does (roster_auditor.get_my_roster), instead of serving
+    a blank. Anyone else with no team (inactive, retired) keeps the blank — "FA"
+    would be a claim the data does not make (DG-137)."""
+    team = player.get("team")
+    if team:
+        return str(team)
+    return "FA" if player.get("sleeper_status") == "Active" else None
+
+
 @router.get("/{sleeper_id}", response_model=PlayerDetailResponse)
 def get_player_detail(sleeper_id: str) -> PlayerDetailResponse:
     pvo = _load_player_detail_artifacts()
@@ -318,7 +329,7 @@ def get_player_detail(sleeper_id: str) -> PlayerDetailResponse:
         sleeper_id=sleeper_id,
         name=player.get("full_name"),
         position=player.get("position"),
-        team=player.get("team"),
+        team=_served_team_label(player),
         age=player.get("age"),
         draft_class=row.get("draft_class"),
         nfl_draft_pick=row.get("nfl_draft_pick"),

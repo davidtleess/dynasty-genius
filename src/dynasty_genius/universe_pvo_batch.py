@@ -133,6 +133,21 @@ def _apply_xvar_percentile_overall(rows: list[dict[str, Any]]) -> None:
         row["valuation"]["xvar_percentile_overall"] = round(percentile, 1)
 
 
+def served_team(sleeper_player: dict[str, Any], fallback: str | None) -> str | None:
+    """The NFL team to serve for a player: Sleeper's current team, never the model's.
+
+    A PVO's ``nfl_team`` is the team the player was on in the FEATURE season the
+    model scored (a 2025 fact), while a Sleeper player block carries the team he
+    is on today. Those disagree after every cut, trade and signing, so Sleeper is
+    the authority whenever it spoke — and ``None`` is Sleeper speaking too (no NFL
+    team right now; an empty string reads the same). The fallback is used only
+    for a Sleeper block that carries no ``team`` key at all (DG-137).
+    """
+    if "team" in sleeper_player:
+        return sleeper_player.get("team") or None
+    return fallback
+
+
 def _identity_status(snapshot_row: dict[str, Any], pvo: dict[str, Any] | None) -> str:
     if snapshot_row.get("cohort") == "UNRESOLVED_IDENTITY":
         return "unresolved"
@@ -179,7 +194,7 @@ def build_universe_pvo_batch(
                 "player": {
                     "full_name": (pvo or {}).get("full_name") or player.get("full_name"),
                     "position": (pvo or {}).get("position") or player.get("position"),
-                    "team": (pvo or {}).get("nfl_team") or player.get("team"),
+                    "team": served_team(player, (pvo or {}).get("nfl_team")),
                     "age": (pvo or {}).get("age") or player.get("age"),
                     "years_exp": player.get("years_exp"),
                     "sleeper_status": player.get("sleeper_status"),
