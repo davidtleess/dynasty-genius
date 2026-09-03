@@ -9,6 +9,18 @@ import httpx
 from app.data.sleeper import get_all_players, get_leagues, get_rosters, get_user
 from app.services.engine_b_service import score_inference_partition
 from src.dynasty_genius.adapters.nflreadpy_qb_adapter import fetch_qb_nfl_stats
+from src.dynasty_genius.age_cliff import (
+    CLIFF_AGES as _CLIFF_AGES,
+)
+from src.dynasty_genius.age_cliff import (
+    SIGNAL_DRIVERS as _SIGNAL_DRIVERS,
+)
+from src.dynasty_genius.age_cliff import (
+    SKILL_POSITIONS as _SKILL_POSITIONS,
+)
+from src.dynasty_genius.age_cliff import (
+    cliff_band as _cliff_band,
+)
 from src.dynasty_genius.decision_logic.counter_arguments import (
     generate_counter_argument,
 )
@@ -59,16 +71,21 @@ LEAGUE_ID_ENV = "DYNASTY_SLEEPER_LEAGUE_ID"
 LEAGUE_NAME_ENV = "DYNASTY_SLEEPER_LEAGUE_NAME"
 SEASON_ENV = "DYNASTY_SEASON"
 
-CLIFF_AGES = {"RB": 26, "WR": 28, "TE": 30, "QB": 33}
-SKILL_POSITIONS = set(CLIFF_AGES.keys())
+# DG-140: the cliff rule lives in src.dynasty_genius.age_cliff so the universe
+# batch can restate a stale age verdict with the SAME rule this surface applies
+# live. Re-exported here under their long-standing names — every existing
+# importer of roster_auditor.CLIFF_AGES / SIGNAL_DRIVERS keeps working.
+CLIFF_AGES = _CLIFF_AGES
+SKILL_POSITIONS = _SKILL_POSITIONS
 ENGINE = "roster_auditor_v2"
 ROSTER_CAVEATS = ["no_market_overlay"]
 INTERNAL_VALUE_KEYS = ("internal_valuation", "internal_value", "dynasty_value_score")
-SIGNAL_DRIVERS = {
-    "past_cliff": "age_past_position_cliff",
-    "at_cliff": "age_at_position_cliff",
-    "approaching_cliff": "age_within_two_years_of_position_cliff",
-    "no_age_signal": "age_not_near_position_cliff",
+SIGNAL_DRIVERS = _SIGNAL_DRIVERS
+CLIFF_STATUS_LABELS = {
+    "past_cliff": "Past cliff",
+    "at_cliff": "At cliff",
+    "approaching_cliff": "Approaching",
+    "no_age_signal": "No age signal",
 }
 
 # Superflex PPR per-season PPG anchors for display-context classification.
@@ -517,18 +534,11 @@ def audit_player(player: dict, engine_b_score: Optional[dict] = None) -> Optiona
     cliff_risk = age_cliff_risk(position, age)
     biological_debt = biological_debt_score(player)
 
-    if years_to_cliff < 0:
-        cliff_status = "Past cliff"
-        signal = "past_cliff"
-    elif years_to_cliff == 0:
-        cliff_status = "At cliff"
-        signal = "at_cliff"
-    elif years_to_cliff <= 2:
-        cliff_status = "Approaching"
-        signal = "approaching_cliff"
-    else:
-        cliff_status = "No age signal"
-        signal = "no_age_signal"
+    # DG-140: the banding itself comes from age_cliff, so this surface and the
+    # universe batch cannot drift apart. CLIFF_STATUS_LABELS keeps the display
+    # words, which are this surface's own.
+    signal = _cliff_band(position, age) or "no_age_signal"
+    cliff_status = CLIFF_STATUS_LABELS[signal]
 
     caveats = list(ROSTER_CAVEATS)
     if biological_debt is None:

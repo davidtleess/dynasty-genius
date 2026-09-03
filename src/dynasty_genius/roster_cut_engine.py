@@ -7,14 +7,12 @@ from __future__ import annotations
 
 from pydantic import BaseModel, field_validator
 
+from src.dynasty_genius.age_cliff import CLIFF_AGES as _CLIFF_AGES
+
 # ── Constants ──────────────────────────────────────────────────────────────────
 
-CLIFF_AGES: dict[str, float] = {
-    "RB": 26.0,
-    "WR": 28.0,
-    "TE": 30.0,
-    "QB": 33.0,
-}
+# DG-140: one cliff table for the whole product (this was a third private copy).
+CLIFF_AGES: dict[str, float] = {k: float(v) for k, v in _CLIFF_AGES.items()}
 
 _RESERVE_ALLOW_FLAGS: list[str] = [
     "reserve_allow_out",
