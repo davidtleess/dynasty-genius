@@ -302,6 +302,29 @@ def _restore_bytes(path: Path, prior: Optional[bytes]) -> None:
         path.unlink()
 
 
+def _capture_refusal(capture_report: Any) -> Optional[str]:
+    """The reason a RETURNED capture report refused, or None when it captured.
+
+    The driver's ``abort()`` returns ``{"status": "aborted", "aborted_reason": ...}``
+    rather than raising -- its persisted bare-token report is the contract the DG-131
+    capture and the standalone CLI read, so it must stay a return. Before DG-136 only a
+    *raised* capture failure flipped the outer status, so a refusal exited 0: the
+    standalone launchd label did that twice on 2026-08-31 with no row captured, and the
+    09:00 chain -- which reads nothing but the exit code -- would mark the same morning
+    ``ok``. Fails closed, by the rule the health card applies to this receipt's own
+    top-level ``status``: the driver always writes ``status``, so only a literal ``"ok"``
+    clears the stage -- a report without one, or something that is not a report at all,
+    is a broken contract, not a success."""
+    if not isinstance(capture_report, dict):
+        return f"capture_report_malformed:{type(capture_report).__name__}"
+    status = capture_report.get("status")
+    if status == "ok":
+        return None
+    if status is None:
+        return "capture_report_missing_status"
+    return str(capture_report.get("aborted_reason") or f"capture_{status}")
+
+
 def _publish_runtime(
     *,
     runtime_dir: Path,
@@ -436,6 +459,19 @@ def _publish_runtime(
                     "restored_from_backup": False,
                 }
             )
+        else:
+            # DG-136: a refusal the driver RETURNED is the same abort. The pair stays
+            # published (the refresh succeeded); only the verdict and the exit code change.
+            refusal = _capture_refusal(report["capture_report"])
+            if refusal is not None:
+                report.update(
+                    {
+                        "status": "aborted",
+                        "aborted_stage": "capture",
+                        "aborted_reason": refusal,
+                        "restored_from_backup": False,
+                    }
+                )
 
     return _persist(report)
 
@@ -570,6 +606,23 @@ def run_pvo_refresh(
                     "forbidden_commands_attempted": [],
                 }
             )
+
+    # DG-136: a refusal the driver RETURNED is an abort too (no capture requested → no stage).
+    refusal = _capture_refusal(capture_report) if capture_fn is not None else None
+    if refusal is not None:
+        return _persist(
+            {
+                "status": "aborted",
+                "aborted_stage": "capture",
+                "aborted_reason": refusal,
+                "restored_from_backup": False,
+                "decision_supported": False,
+                "commit_required_for_repo_baseline": True,
+                **refresh_meta,
+                "capture_report": capture_report,
+                "forbidden_commands_attempted": [],
+            }
+        )
 
     return _persist(
         {
