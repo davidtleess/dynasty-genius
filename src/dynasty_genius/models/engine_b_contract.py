@@ -140,7 +140,25 @@ DVS_BLEND_K: dict[str, int] = {
 # Minimum games in feature season required for Engine B DVS eligibility.
 # Below this threshold, a player is in the Dead Window: retain Engine A DVS
 # with explicit caveat, or stay PRE_MODEL if Engine A data is also absent.
-ENGINE_B_MIN_GAMES_T: int = 8
+#
+# DG-143, David's ruling 2026-09-03 (8 -> 4): a player who missed most of a season
+# still gets the model's genuine estimate. His words: "the model is always making
+# its genuine estimate". 114 players were refused a number while the pipeline had
+# already produced a projection for every one of them.
+#
+# The served value already prices the absence -- it is P(plays) x E[points | plays]
+# (pvo_assembler.apply_availability), and measured on the live 2025 population the
+# 4-7 game cohort averages P(plays) 0.488 against 0.847 for 8+ game players. The
+# gate was withholding the number, not the discount.
+#
+# WHAT THIS IS NOT JUSTIFIED BY: an auditor's holdout comparison (RMSE 3.28 for
+# 4-7 games vs 3.19 for 8+) does NOT support it -- that filter conditions on the
+# outcome and so measured only the ~half of the cohort who came back. Scored
+# honestly, ordering for these players is roughly half as good (Spearman 0.380 vs
+# 0.781). This constant rests on David's ruling and on the market agreeing with the
+# result (Spearman 0.711 against FantasyCalc, vs 0.795 for the players already
+# scored; and of the 82 the market declines to price at all, 94% score below 20).
+ENGINE_B_MIN_GAMES_T: int = 4
 
 # ── PPG season-type ruling (DG-024, David 2026-08-19) ────────────────────────
 # David ruled, verbatim, "all games" — Engine B's points-per-game counts every

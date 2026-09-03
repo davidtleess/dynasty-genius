@@ -12,7 +12,11 @@ import pytest
 
 from src.dynasty_genius import pvo_assembler
 from src.dynasty_genius.models.dvs_band import ENGINE_A_V3_HEAD, dvs_band
-from src.dynasty_genius.models.engine_b_contract import DVS_BLEND_K, ENGINE_B_P90_PPG
+from src.dynasty_genius.models.engine_b_contract import (
+    DVS_BLEND_K,
+    ENGINE_B_MIN_GAMES_T,
+    ENGINE_B_P90_PPG,
+)
 from src.dynasty_genius.models.player_identity import PlayerIdentity
 from src.dynasty_genius.pvo_assembler import apply_availability, assemble_pvo
 from src.dynasty_genius.scoring.engine_a import score_prospect
@@ -47,7 +51,7 @@ def test_a_measured_player_ships_one_sigma_b_each_side() -> None:
 
 
 def test_a_blended_player_s_band_uses_the_components_as_they_entered_the_blend() -> None:
-    games_t, projection, availability_p = 4, 12.0, 0.5
+    games_t, projection, availability_p = ENGINE_B_MIN_GAMES_T - 1, 12.0, 0.5
     pvo = assemble_pvo(
         _identity("WR"),
         {
@@ -123,7 +127,7 @@ def test_the_blend_caveat_is_a_token_the_copy_dictionary_can_say() -> None:
         _identity("WR"),
         {
             "engine_b_score": _b_score(12.0),
-            "games_t": 4,
+            "games_t": ENGINE_B_MIN_GAMES_T - 1,
             "feature_season": 2025,
             "pick": 10.0,
             "round": 1.0,
@@ -133,5 +137,5 @@ def test_the_blend_caveat_is_a_token_the_copy_dictionary_can_say() -> None:
         },
     )
     assert pvo.dvs_engine == "blend"
-    assert "engine_ab_blend_low_sample:games=4" in pvo.caveats
+    assert f"engine_ab_blend_low_sample:games={ENGINE_B_MIN_GAMES_T - 1}" in pvo.caveats
     assert not any("w_B" in caveat or "caution" in caveat for caveat in pvo.caveats)
