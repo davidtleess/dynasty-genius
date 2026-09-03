@@ -35,7 +35,9 @@ EXPECTED_EXISTING_ROW = {
         # The snapshot's team, not the PVO's "KC": Sleeper is the authority for the
         # served team (DG-137).
         "team": "FA",
-        "age": 22.0,
+        # The snapshot's age, not the PVO's 22.0: the PVO age is the feature-season
+        # age; Sleeper's is today's (DG-139).
+        "age": 22.5,
         "years_exp": 0,
         "sleeper_status": "Active",
         "dg_status": "ENGINE_A",
