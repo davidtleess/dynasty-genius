@@ -21,6 +21,7 @@ from app.api.routes.players import (
     _evidence_list_field,
 )
 from src.dynasty_genius.eval.backtest_artifact import BacktestResult
+from src.dynasty_genius.eval.served_model_alignment import check_served_alignment
 
 TRUST_DIR = Path("app/data/backtest/trust_surface/latest")
 _VALID = {"VALIDATED", "PROVISIONAL", "EXPERIMENTAL"}
@@ -48,7 +49,11 @@ def load_model_status_by_position(
     the live manifest carries this position's model_version: if the manifest is missing,
     malformed, or lacks the position key, the artifact is treated as unverified
     (trust_status_unavailable) rather than trusted. Stale (R2-4) = the position IS in the
-    manifest but the artifact model_version differs (trust_status_stale). Positions are
+    manifest but the artifact model_version differs (trust_status_stale) — OR, since
+    DG-142, the deployed bundle's bytes do not match the model the published figures
+    were measured on. The version strings are the generic "engine_b_v2" everywhere, so
+    the string comparison alone was unreachable and the badge could not see a retrain.
+    Positions are
     upper-cased and de-duplicated; an empty list yields an empty status map and no
     caveats."""
     manifest = _manifest_versions()
@@ -69,6 +74,23 @@ def load_model_status_by_position(
             elif result.model_version != manifest[pos]:
                 status[pos] = "EXPERIMENTAL"
                 caveats.add("trust_status_stale")
+            elif not (
+                alignment := check_served_alignment(pos, result.model_artifact_hash)
+            ).aligned:
+                # DG-142: the version strings above are the generic "engine_b_v2" on
+                # every position, so that comparison can never notice a retrain. Ask
+                # the served BYTES instead — the same guard the trust surface uses.
+                # Every not-aligned answer refuses, without exception. The two hashes
+                # only choose WHICH caveat: both present = we compared and they differ
+                # (stale); either absent = we could not read enough to compare
+                # (unavailable). On a ticket about a badge asserting what it had not
+                # checked, saying "different build" when nothing could be read would
+                # repeat the defect one level down.
+                status[pos] = "EXPERIMENTAL"
+                if alignment.published_hash and alignment.served_hash:
+                    caveats.add("trust_status_stale")
+                else:
+                    caveats.add("trust_status_unavailable")
             else:
                 status[pos] = value
         except Exception:
