@@ -32,6 +32,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.dynasty_genius.capture.model_forward_capture_driver import (  # noqa: E402
+    TrainingCutoffUnderivable,
     _canon,
     _semantic_projection,
     _sha,
@@ -253,7 +254,9 @@ def _artifact_hashes(
     provenance_hash is LINEAGE-GRADE (the same T2 subset: producer + Engine-B manifest/
     per-position/feature hashes + derived cutoff + Engine-A pointers) so a model/feature/
     producer change is detected even when the scored output is unchanged. Raises
-    FileNotFoundError if required model provenance is unresolvable (caller aborts+restores).
+    FileNotFoundError if required model provenance is unresolvable and
+    ``TrainingCutoffUnderivable`` if the feature table cannot yield the training cutoff
+    (DG-134); the caller aborts + restores on either.
 
     ``feature_source`` may pin a ``ResolvedFeatureSource`` so injected-artifact-reader tests
     hash the seed/runtime they intend, independent of ambient gitignored runtime files after
@@ -545,6 +548,8 @@ def run_pvo_refresh(
         )
     except FileNotFoundError as exc:
         return _restore_and_abort(f"required_provenance_missing:{exc}")
+    except TrainingCutoffUnderivable as exc:
+        return _restore_and_abort(str(exc))
 
     # ── refresh in place; on ANY failure restore both artifacts byte-identical ──
     try:
@@ -560,6 +565,8 @@ def run_pvo_refresh(
         )
     except FileNotFoundError as exc:
         return _restore_and_abort(f"required_provenance_missing:{exc}")
+    except TrainingCutoffUnderivable as exc:
+        return _restore_and_abort(str(exc))
 
     dirty_paths: list[str] = []
     if post_pvo_bytes != pre_pvo_bytes:

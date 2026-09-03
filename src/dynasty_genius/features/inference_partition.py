@@ -112,7 +112,7 @@ def _is_missing(value: Any) -> bool:
     return isinstance(value, float) and math.isnan(value)
 
 
-def _is_training_eligible(value: Any) -> bool:
+def is_training_eligible(value: Any) -> bool:
     """Read one ``training_eligible`` cell however the source dtype delivered it.
 
     Shared by both variants so a CSV string and a pandas scalar answer identically: a
@@ -149,7 +149,7 @@ def _is_training_eligible(value: Any) -> bool:
     raise InferencePartitionError(UNREADABLE_ELIGIBILITY)
 
 
-def _season_of(value: Any) -> int:
+def season_of(value: Any) -> int:
     """Parse one ``feature_season`` cell to an int, refusing blanks and non-integers.
 
     A season that cannot be read cannot be placed in the partition, and skipping it
@@ -189,7 +189,7 @@ def _assert_one_row_per_player(
 ) -> None:
     """The two invariants both variants promise, checked from plain iterables."""
     for eligible in eligibles:
-        if _is_training_eligible(eligible):
+        if is_training_eligible(eligible):
             raise InferencePartitionError(CONTAINS_TRAINING_ROWS)
     seen: set[str] = set()
     for raw in player_ids:
@@ -219,7 +219,7 @@ def select_inference_partition(frame: pd.DataFrame) -> pd.DataFrame:
         raise InferencePartitionError(EMPTY)
 
     seasons = pd.Series(
-        [_season_of(value) for value in frame[SEASON_COLUMN]], index=frame.index
+        [season_of(value) for value in frame[SEASON_COLUMN]], index=frame.index
     )
     season = inference_season_of(seasons)
     partition = frame[seasons == season].copy().reset_index(drop=True)
@@ -249,7 +249,7 @@ def select_inference_records(
         if ELIGIBLE_COLUMN not in row:
             raise InferencePartitionError(NO_ELIGIBILITY_COLUMN)
 
-    seasons = [_season_of(row.get(SEASON_COLUMN)) for row in rows]
+    seasons = [season_of(row.get(SEASON_COLUMN)) for row in rows]
     season = inference_season_of(seasons)
     partition = [row for row, row_season in zip(rows, seasons) if row_season == season]
     if not partition:

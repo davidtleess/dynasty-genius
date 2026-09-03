@@ -610,7 +610,8 @@ def _lineage_bytes(*, model_bytes: bytes = b"rb model v1") -> dict[Path, bytes]:
         ).encode(),
         ENGINE_B_RB_MODEL_PATH: model_bytes,
         ENGINE_B_FEATURE_CSV_PATH: (
-            b"season,training_eligible\n"
+            # The live spelling (DG-134): the cutoff derivation refuses a `season` column.
+            b"feature_season,training_eligible\n"
             b"2022,true\n"
             b"2023,true\n"
             b"2024,false\n"
