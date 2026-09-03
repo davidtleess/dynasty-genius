@@ -6,6 +6,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from src.dynasty_genius.age_cliff import restate_age_verdict
+from src.dynasty_genius.decision_logic.counter_arguments import counter_argument_for
+
 ENGINE_ROUTE_VALUES = frozenset(
     {
         "ENGINE_A",
@@ -189,6 +192,33 @@ def build_universe_pvo_batch(
 
         valuation = _valuation_from_pvo(route, pvo) if pvo else _empty_valuation(route)
         player = source_row.get("player") or {}
+        # DG-140: the age verdict must come from the age we serve. The PVO's
+        # top_drivers/risk_flags were computed in pvo_assembler at the FEATURE-season
+        # age; DG-139 made the row serve Sleeper's current age. Restating the verdict
+        # here — the one place that knows both numbers — is what keeps the sentence on
+        # the card true of the age printed beside it.
+        row_position = (pvo or {}).get("position") or player.get("position")
+        row_age = served_age(player, (pvo or {}).get("age"))
+        row_drivers, row_risk_flags = restate_age_verdict(
+            pvo.get("top_drivers") if pvo else None,
+            pvo.get("risk_flags") if pvo else None,
+            row_position,
+            row_age,
+        )
+        # counter_argument is a FUNCTION of risk_flags (pvo_assembler.py:623 ->
+        # counter_arguments.py:15, where age_past_position_cliff is the priority-1
+        # branch). Restating the flags without it would leave the card asserting a
+        # downside that no longer matches its own evidence — and on the 33 rows that
+        # GAIN the past-cliff flag it would drop the counter-argument entirely, which
+        # Product Constitution Rule 4 makes mandatory. Regenerate only when the flags
+        # actually moved, so every untouched row keeps the producer's exact string.
+        row_counter = pvo.get("counter_argument") if pvo else None
+        if pvo is not None and row_risk_flags != pvo.get("risk_flags"):
+            row_counter = counter_argument_for(
+                row_risk_flags,
+                (valuation or {}).get("dynasty_value_score"),
+                row_position,
+            )
         rows.append(
             {
                 "schema_version": SCHEMA_VERSION,
@@ -206,9 +236,9 @@ def build_universe_pvo_batch(
                 },
                 "player": {
                     "full_name": (pvo or {}).get("full_name") or player.get("full_name"),
-                    "position": (pvo or {}).get("position") or player.get("position"),
+                    "position": row_position,
                     "team": served_team(player, (pvo or {}).get("nfl_team")),
-                    "age": served_age(player, (pvo or {}).get("age")),
+                    "age": row_age,
                     "years_exp": player.get("years_exp"),
                     "sleeper_status": player.get("sleeper_status"),
                     "dg_status": route,
@@ -220,9 +250,9 @@ def build_universe_pvo_batch(
                 "te_yards_per_reception_career": pvo.get("te_yards_per_reception_career") if pvo else None,
                 # Surface-3 (T2): additively preserve the 10 DTO-backed evidence/projection
                 # fields from the source PVO (None when no PVO matched). Existing keys unchanged.
-                "counter_argument": pvo.get("counter_argument") if pvo else None,
-                "risk_flags": pvo.get("risk_flags") if pvo else None,
-                "top_drivers": pvo.get("top_drivers") if pvo else None,
+                "counter_argument": row_counter,
+                "risk_flags": row_risk_flags,
+                "top_drivers": row_drivers,
                 "caveats": pvo.get("caveats") if pvo else None,
                 "draft_class": pvo.get("draft_class") if pvo else None,
                 "nfl_draft_pick": pvo.get("nfl_draft_pick") if pvo else None,

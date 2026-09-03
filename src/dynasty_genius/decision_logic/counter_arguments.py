@@ -8,7 +8,27 @@ def generate_counter_argument(pvo: PlayerValueObject) -> Optional[str]:
 
     Adheres to Product Constitution Rule 4: 'The Counter-Argument is Mandatory.'
     """
-    flags = pvo.risk_flags or []
+    return counter_argument_for(
+        pvo.risk_flags, pvo.dynasty_value_score, pvo.position
+    )
+
+
+def counter_argument_for(
+    risk_flags: Optional[list],
+    dynasty_value_score: Optional[float],
+    position: Optional[str],
+) -> Optional[str]:
+    """The counter-argument implied by these three fields, and nothing else.
+
+    The same rule as ``generate_counter_argument``, reachable without a
+    PlayerValueObject. The universe batch needs it because it restates
+    ``risk_flags`` after assembly (DG-140): the counter-argument is a FUNCTION of
+    the flags, so a restated flag with the assembly-time argument beside it leaves
+    the card asserting a downside that no longer matches its own evidence — and on
+    a row that gains ``age_past_position_cliff`` it would drop the mandatory
+    counter-argument entirely, against Constitution Rule 4.
+    """
+    flags = risk_flags or []
 
     # Priority 1: Specific Risk Flags
     # The Constitution mandates steel-manning the downside path.
@@ -26,9 +46,9 @@ def generate_counter_argument(pvo: PlayerValueObject) -> Optional[str]:
 
     # Priority 2: Top Assets (Internal Value > 80)
     # We use dynasty_value_score as the internal value measure.
-    val = pvo.dynasty_value_score
+    val = dynasty_value_score
     if val is not None and val > 80:
-        pos = (pvo.position or "").upper()
+        pos = (position or "").upper()
         if pos == "QB":
             return "Premium valuation assumes continued high-level rushing or outlier passing efficiency; any dip in mobility or supporting cast could lead to a rapid value correction."
         if pos == "RB":
