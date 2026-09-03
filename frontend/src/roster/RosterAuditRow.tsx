@@ -11,7 +11,7 @@
 import { useState } from "react";
 
 import type { RosterAuditResponse } from "../lib/api";
-import { fieldLabel, likelyRange, liquidityWord, valueWord } from "../lib/copy";
+import { fieldLabel, liquidityWord, valueWord } from "../lib/copy";
 import { PlayerNameButton } from "../player/playerSelection";
 import { TokenNotes } from "../ui/TokenNotes";
 
@@ -30,13 +30,14 @@ export function RosterAuditRow({ player }: { player: Player }) {
   const caveats = player.caveats ?? [];
   const drivers = player.top_drivers?.items ?? [];
   const risks = player.risk_flags?.items ?? [];
-  // DG-128 (2026-09-01): the band ships with the number. `dvs_engine` is the
-  // batch's basis marker for the score — measured (B), draft-capital prior (A)
-  // or a blend — and rides `data-basis` on the value cell the way the grade rides
-  // `data-grade`. It is a marker only: David ruled the same evening that the
-  // number is not greyed by its basis. The range under it is what carries "a
-  // prior-dominated estimate must not render with the same authority" — it is wider.
-  const band = likelyRange(player.dvs_band_low, player.dvs_band_high);
+  // DG-144 (2026-09-03): one number per player. David: "plus or minus 20,
+  // remove it, one number per player." DG-128's range under the value was a
+  // per-position constant (two sigma_B) and is gone from the screen; the API
+  // still ships `dvs_band_low` / `dvs_band_high` and this row does not read
+  // them. `dvs_engine` still rides `data-basis` on the value cell — measured
+  // (B), draft-capital prior (A) or a blend — the way the grade rides
+  // `data-grade`. It is a marker only: David ruled on 2026-09-01 that the
+  // number is not greyed by its basis.
 
   return (
     <>
@@ -81,11 +82,6 @@ export function RosterAuditRow({ player }: { player: Player }) {
             {num(player.dynasty_value_score)}
             {player.dvs_pct != null ? ` (${player.dvs_pct}%)` : ""}
           </span>
-          {band && (
-            <span className="dg-roster__band">
-              {fieldLabel("dvs_band_low")} {band}
-            </span>
-          )}
         </td>
         <td>
           {ra?.signal ? valueWord(ra.signal) : "—"}

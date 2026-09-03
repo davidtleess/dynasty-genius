@@ -10,13 +10,7 @@
 import type { z } from "zod";
 
 import type { zPlayerDetailResponse } from "../lib/api/zod.gen";
-import {
-  basisWord,
-  fieldLabel,
-  likelyRange,
-  sourcedCaveat,
-  valueWord,
-} from "../lib/copy";
+import { basisWord, fieldLabel, sourcedCaveat, valueWord } from "../lib/copy";
 import { TokenNotes } from "../ui/TokenNotes";
 
 type PlayerDetail = z.infer<typeof zPlayerDetailResponse>;
@@ -131,10 +125,12 @@ export function ValuationTwoLane({
             {/* Which model scored him and what state that score is in are both
                 FACTS, not machinery — they stay, said in words. */}
             {/* DG-128 (2026-09-01): "Scored by" names what PRODUCED the score —
-                the basis the band rides on — and falls back to the lane for a
-                row from before the marker existed. The basis also rides
-                `data-basis` as a marker; nothing styles on it — David ruled
-                2026-09-01 that the number is not greyed by its basis. */}
+                its basis — and falls back to the lane for a row from before the
+                marker existed. The basis also rides `data-basis` as a marker;
+                nothing styles on it — David ruled 2026-09-01 that the number is
+                not greyed by its basis. DG-144 (2026-09-03): the "Likely range"
+                fact that sat under the value is gone — "one number per player";
+                the API still carries the band and this card does not read it. */}
             <Fact
               label="Scored by"
               value={basisWord(model.dvs_engine) ?? enumFact(model.engine_path)}
@@ -144,10 +140,6 @@ export function ValuationTwoLane({
               label="Dynasty value"
               value={model.dynasty_value_score}
               basis={model.dvs_engine ?? ""}
-            />
-            <Fact
-              label={fieldLabel("dvs_band_low")}
-              value={likelyRange(model.dvs_band_low, model.dvs_band_high)}
             />
             {/* DG-117: was "Value above replacement (xVAR)" — a fourth name for
                 the quantity the roster surfaces and League Pulse already spell

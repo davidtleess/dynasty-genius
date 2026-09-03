@@ -1,15 +1,16 @@
 // @vitest-environment jsdom
 //
-// DG-128 (2026-09-01) — the band ships with the number, on David's own roster.
+// DG-144 (2026-09-03) — one number per player, on David's own roster.
 //
-// His ruling: "A prior-dominated estimate must not render with the same
-// authority as a measured one." The range printed under the value carries that
-// — a prior-touched number's range is wider. The value cell also rides a basis
-// marker (`data-basis`); David ruled the same evening that nothing greys or
-// lightens the number by its basis, so the marker is a fact, not a style hook.
+// His ruling: "plus or minus 20, remove it, one number per player." The range
+// DG-128 printed under the value was a per-position constant — two sigma_B, so
+// QB 44.8 / RB 45.6 / WR 40.0 / TE 47.2 — describing the position's model error,
+// never the player. The API still ships `dvs_band_low` / `dvs_band_high`; the
+// screen no longer reads them. The basis marker (`data-basis`) is unchanged:
+// David ruled on 2026-09-01 that nothing greys or lightens the number by its
+// basis, and the marker stays a fact, not a style hook.
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { fieldLabel } from "../lib/copy";
 import { activeAudit } from "./fixtures";
 import { RosterAuditTable } from "./RosterAuditTable";
 
@@ -19,19 +20,20 @@ function rowFor(name) {
     .find((row) => within(row).queryByText(name));
 }
 
-describe("the roster table and the band", () => {
-  it("prints the range under a measured value and marks the cell measured", () => {
+describe("the roster table shows one number per player", () => {
+  it("prints the measured value with no range under it, and still marks the cell measured", () => {
     render(<RosterAuditTable players={activeAudit().players} />);
     const row = rowFor("Active WR");
     expect(within(row).getByText("78.5 (81%)")).toBeTruthy();
-    // 78.5 ± 20.0 (WR sigma_B), whole points on screen, under the label the
-    // player card gives the same pair — one phrase, from the dictionary.
-    expect(within(row).getByText("Likely range 59 to 99")).toBeTruthy();
-    expect(fieldLabel("dvs_band_low")).toBe("Likely range");
+    // The fixture carries a band (58.5 to 98.5) exactly as the API ships it;
+    // none of it reaches the row.
+    expect(within(row).queryByText(/range/i)).toBeNull();
+    expect(within(row).queryByText(/59 to 99/)).toBeNull();
+    expect(row.querySelector(".dg-roster__band")).toBeNull();
     expect(row.querySelector("[data-basis]").getAttribute("data-basis")).toBe("B");
   });
 
-  it("prints the wider range under a blended value and marks the cell a blend", () => {
+  it("prints a blended value just as bare, and still marks the cell a blend", () => {
     const [measured] = activeAudit().players;
     const blended = {
       ...measured,
@@ -45,7 +47,10 @@ describe("the roster table and the band", () => {
     };
     render(<RosterAuditTable players={[measured, blended]} />);
     const row = rowFor("Short-Sample WR");
-    expect(within(row).getByText("Likely range 30 to 98")).toBeTruthy();
+    expect(within(row).getByText("63.8 (81%)")).toBeTruthy();
+    expect(within(row).queryByText(/range/i)).toBeNull();
+    expect(within(row).queryByText(/30 to 98/)).toBeNull();
+    expect(row.querySelector(".dg-roster__band")).toBeNull();
     expect(row.querySelector("[data-basis]").getAttribute("data-basis")).toBe("blend");
   });
 
@@ -64,6 +69,7 @@ describe("the roster table and the band", () => {
     render(<RosterAuditTable players={[unscored]} />);
     const row = rowFor("Unscored TE");
     expect(within(row).queryByText(/range/i)).toBeNull();
+    expect(row.querySelector(".dg-roster__band")).toBeNull();
     expect(row.querySelector("[data-basis]").getAttribute("data-basis")).toBe("");
   });
 });
