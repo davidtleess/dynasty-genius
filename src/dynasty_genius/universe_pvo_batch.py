@@ -148,6 +148,19 @@ def served_team(sleeper_player: dict[str, Any], fallback: str | None) -> str | N
     return fallback
 
 
+def served_age(sleeper_player: dict[str, Any], fallback: float | None) -> float | None:
+    """The age to serve for a player: Sleeper's current age, never the model's.
+
+    A PVO's ``age`` is the player's age in the FEATURE season the model scored (a
+    2025 fact — every player is a year older by the time it is on screen), while a
+    Sleeper player block carries his age today. Unlike ``team``, an absent Sleeper
+    age is not Sleeper speaking — it is unknown — so the model's age is an
+    acceptable fallback rather than a stale claim (DG-139).
+    """
+    age = sleeper_player.get("age")
+    return age if age is not None else fallback
+
+
 def _identity_status(snapshot_row: dict[str, Any], pvo: dict[str, Any] | None) -> str:
     if snapshot_row.get("cohort") == "UNRESOLVED_IDENTITY":
         return "unresolved"
@@ -195,7 +208,7 @@ def build_universe_pvo_batch(
                     "full_name": (pvo or {}).get("full_name") or player.get("full_name"),
                     "position": (pvo or {}).get("position") or player.get("position"),
                     "team": served_team(player, (pvo or {}).get("nfl_team")),
-                    "age": (pvo or {}).get("age") or player.get("age"),
+                    "age": served_age(player, (pvo or {}).get("age")),
                     "years_exp": player.get("years_exp"),
                     "sleeper_status": player.get("sleeper_status"),
                     "dg_status": route,
