@@ -48,7 +48,11 @@ from src.dynasty_genius.capture.provenance_discontinuity import (
 )
 from src.dynasty_genius.features.feature_source import resolve_feature_source
 from src.dynasty_genius.features.inference_partition import (
+    ELIGIBLE_COLUMN,
+    SEASON_COLUMN,
     InferencePartitionError,
+    is_training_eligible,
+    season_of,
     select_inference_records,
 )
 from src.dynasty_genius.models.engine_b_contract import ENGINE_B_FEATURES_BY_POSITION
@@ -113,19 +117,42 @@ def map_pvo_row_valuation_fields(row: dict) -> dict[str, Any]:
     }
 
 
+# Bare machine token: the refresh runner writes `str(exc)` into `aborted_reason`.
+TRAINING_CUTOFF_UNDERIVABLE = "capture_training_cutoff_underivable"
+
+
+class TrainingCutoffUnderivable(ValueError):
+    """The feature table cannot yield the training cutoff the provenance subset records."""
+
+
 def _derived_training_cutoff(feature_csv_bytes: bytes) -> Optional[int]:
-    lines = feature_csv_bytes.decode().strip().splitlines()
-    if not lines:
+    """The last season the Engine B model was trained through, read off the feature
+    table as the max ``feature_season`` among ``training_eligible`` rows.
+
+    The column names and the cell normalisers are the partition module's, so this reader
+    and the partition selector can never disagree about which rows are training rows or
+    what a season cell says. A table that cannot yield the cutoff — no season column, no
+    eligibility column, or an eligible row whose season or flag does not read — is
+    REFUSED with ``TRAINING_CUTOFF_UNDERIVABLE`` rather than recorded as ``None`` under a
+    "derived" label. (DG-134: the previous reader looked for a ``season`` column the
+    runtime table never had, swallowed the ``KeyError``, and wrote ``null`` every
+    morning.) ``None`` is returned only when there is nothing to derive from: an empty
+    table, or one whose eligibility column carries no eligible row.
+    """
+    reader = csv.DictReader(io.StringIO(feature_csv_bytes.decode()))
+    header = reader.fieldnames or []
+    if not header:
         return None
-    header = [c.strip() for c in lines[0].split(",")]
+    if SEASON_COLUMN not in header or ELIGIBLE_COLUMN not in header:
+        raise TrainingCutoffUnderivable(TRAINING_CUTOFF_UNDERIVABLE)
     seasons: list[int] = []
-    for line in lines[1:]:
-        record = dict(zip(header, [c.strip() for c in line.split(",")]))
-        if record.get("training_eligible", "").lower() == "true":
-            try:
-                seasons.append(int(record["season"]))
-            except (KeyError, ValueError):
+    for record in reader:
+        try:
+            if not is_training_eligible(record.get(ELIGIBLE_COLUMN)):
                 continue
+            seasons.append(season_of(record.get(SEASON_COLUMN)))
+        except InferencePartitionError as exc:
+            raise TrainingCutoffUnderivable(TRAINING_CUTOFF_UNDERIVABLE) from exc
     return max(seasons) if seasons else None
 
 
@@ -138,8 +165,10 @@ def resolve_provenance_subset(
     """The vintage-defining lineage subset that feeds provenance_hash — SHARED by T2
     capture and T4 refresh so both compute the identical hash. Reads model artifacts
     READ-ONLY; raises FileNotFoundError on a missing REQUIRED artifact (per the engines
-    present among model-supported rows). EXCLUDES git_sha / artifact_sha256 / dates /
-    row_lineage (those are kept out of the vintage hash).
+    present among model-supported rows) and ``TrainingCutoffUnderivable`` when the Engine
+    B feature table cannot yield the training cutoff the subset records. EXCLUDES
+    git_sha / artifact_sha256 / dates / row_lineage (those are kept out of the vintage
+    hash).
 
     ``feature_source`` may be a pinned ``ResolvedFeatureSource`` so injected-artifact-reader
     tests do not depend on ambient gitignored runtime files after a feature-refresh catch-up;
@@ -224,7 +253,8 @@ def _resolve_provenance(
     feature_source: Optional[Any] = None,
 ) -> tuple[dict, dict]:
     """Resolve the §4 provenance block READ-ONLY. Raises FileNotFoundError on a
-    missing REQUIRED artifact (for the engines present among model-supported rows).
+    missing REQUIRED artifact (for the engines present among model-supported rows) and
+    ``TrainingCutoffUnderivable`` when the feature table cannot yield the cutoff.
 
     ``feature_source`` may pin a ``ResolvedFeatureSource`` (hermeticity seam); resolved
     ONCE here so the audit block and the hashed subset agree on a single source."""
@@ -501,6 +531,10 @@ def capture_model_pvo_snapshot(
         )
     except FileNotFoundError as exc:
         return abort(f"required_provenance_missing:{exc}")
+    except TrainingCutoffUnderivable as exc:
+        # The table cannot say what the model was trained through (DG-134). Nothing has
+        # been appended yet; the bare token is the report's aborted_reason.
+        return abort(str(exc))
 
     # ── 3-hash vintage model ──
     semantic_output_hash = _sha(_canon([_semantic_projection(r) for r in players]))

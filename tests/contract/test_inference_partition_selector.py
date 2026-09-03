@@ -149,7 +149,7 @@ def test_an_unreadable_season_cell_fails_closed_rather_than_skipping_the_row() -
         ip.select_inference_partition(frame)
     for unreadable in ("", "nan", "x", "2025.5", True, 2025.5):
         with pytest.raises(ValueError, match=f"^{ip.NO_SEASON_COLUMN}$"):
-            ip._season_of(unreadable)
+            ip.season_of(unreadable)
 
 
 def test_empty_table_fails_closed() -> None:
@@ -280,10 +280,10 @@ def test_records_twin_agrees_with_the_frame_variant_on_every_writer_spelling(
 
     assert [r["player_id"] for r in from_records] == list(from_frame["player_id"])
     assert sorted(from_frame["player_id"]) == ["00-TRAINED", "00-WASHOUT"]
-    assert {ip._season_of(r["feature_season"]) for r in from_records} == {2025}
-    assert {ip._season_of(v) for v in from_frame["feature_season"]} == {2025}
+    assert {ip.season_of(r["feature_season"]) for r in from_records} == {2025}
+    assert {ip.season_of(v) for v in from_frame["feature_season"]} == {2025}
     assert not any(
-        ip._is_training_eligible(r["training_eligible"]) for r in from_records
+        ip.is_training_eligible(r["training_eligible"]) for r in from_records
     )
 
 
@@ -310,21 +310,21 @@ def test_the_shared_boolean_reader_covers_every_dtype_a_csv_can_deliver() -> Non
         "True", "true", " TRUE ", "1", "1.0", " 1.0 ",
     )
     for truthy in truthies:
-        assert ip._is_training_eligible(truthy) is True, truthy
+        assert ip.is_training_eligible(truthy) is True, truthy
     falsies = (
         False, np.False_, 0, np.int64(0), 0.0, np.float64(0.0),
         "False", "false", "0", "0.0", "", None, np.nan, pd.NA, "nan",
     )
     for falsy in falsies:
-        assert ip._is_training_eligible(falsy) is False, falsy
+        assert ip.is_training_eligible(falsy) is False, falsy
     for unreadable in ("yes", "T", "F", 2, "2", 2.0, -1, "0.5", object()):
         with pytest.raises(ValueError, match=f"^{ip.UNREADABLE_ELIGIBILITY}$"):
-            ip._is_training_eligible(unreadable)
+            ip.is_training_eligible(unreadable)
 
 
 def test_the_shared_season_reader_gives_one_answer_per_spelling() -> None:
     for spelling in (2025, np.int64(2025), 2025.0, np.float64(2025.0), "2025", "2025.0", " 2025 "):
-        assert ip._season_of(spelling) == 2025, spelling
+        assert ip.season_of(spelling) == 2025, spelling
 
 
 # ── 4. no reader still carries the private mask (a best-effort tripwire) ───────────
@@ -427,12 +427,12 @@ _MUST_IGNORE = (
     '# the old mask was frame[frame["training_eligible"] == False]',
     '"""The old mask was frame[frame["training_eligible"] == False]."""\nx = 1',
     'def f():\n    """frame[~frame["training_eligible"]] was the bug."""\n    return 1',
-    # the driver's training-cutoff derivation: == "true" followed by a try block
+    # the driver's training-cutoff derivation until DG-134: == "true" then a try block
     'if record.get("training_eligible", "").lower() == "true":\n    try:\n        pass\n    except KeyError:\n        pass',
     # the assembler's own assignment of the flag
     'merged["training_eligible"] = window_complete & merged[OUTCOME_COLUMN].notna()',
     'assert not partition["training_eligible"].any()',
-    'eligible = ip._is_training_eligible(row["training_eligible"])',
+    'eligible = ip.is_training_eligible(row["training_eligible"])',
 )
 
 
