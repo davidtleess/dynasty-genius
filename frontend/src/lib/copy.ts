@@ -487,8 +487,24 @@ const TOKEN_SENTENCES: Record<string, string> = {
   // (115 of today's joinable rows are unscored). An empty delta list therefore
   // means nothing moved AMONG THE PLAYERS WE COULD COMPARE, which is what the
   // sentence now says.
+  //
+  // DG-150 — the first clause used to say "Our projections were rebuilt on a
+  // newer model run". Under the old formula that was near enough: a microsecond
+  // timestamp in the provenance hash made a new vintage every morning, so the
+  // flag effectively meant "we re-scored". DG-141 (B) took that timestamp and the
+  // daily-renewed Sleeper list hash out of the vintage, and what remains fires
+  // for at least four different causes the payload does NOT distinguish:
+  // a player's captured details moving (team, age, roster status), the compared
+  // population changing, a `governance_version` bump (deliberately still hashed —
+  // capture driver comment at _LINEAGE_KEY), and a genuine model rebuild
+  // (manifest / pickle / feature_csv_sha256 in the provenance subset). The emit
+  // (daily_diff.py:305) carries `status`, `vintage_changed: true`, the window's
+  // two vintage hashes and an EMPTY delta list — no field, no player, no cause.
+  // So the sentence names no cause. It says the two things the payload entails:
+  // something behind the numbers is not what it was yesterday, and no player we
+  // could compare has a different dynasty value.
   vintage_changed_no_score_delta:
-    "Our projections were rebuilt on a newer model run, and none of the players we could compare moved.",
+    "Something behind these numbers changed since yesterday, and none of the players we could compare moved.",
   // daily_diff.py:255-271 — a compared date carried more than one model vintage,
   // so both the window and the per-player deltas would be ambiguous. The producer
   // refuses to emit a comparison rather than fabricate one; say exactly that.
