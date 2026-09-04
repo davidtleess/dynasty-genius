@@ -32,7 +32,14 @@ describe("the copy dictionary", () => {
     );
     // Stale still says stale; unscored still says unscored.
     expect(describeToken("vintage_changed_no_score_delta")).toMatch(
-      /rebuilt on a newer model run/,
+      /changed since yesterday/,
+    );
+    // DG-150: and it must NOT name a cause. After DG-141 (B) the flag fires for
+    // a player's captured details moving, for a governance bump, AND for a real
+    // model rebuild — the payload distinguishes none of them, so the sentence
+    // claims none of them.
+    expect(describeToken("vintage_changed_no_score_delta")).not.toMatch(
+      /model run|rebuilt|model files|new model/i,
     );
     // ...and the SCOPE of that "nothing moved" is stated, because the producer
     // only ever compared players present in both captures (daily_diff.py:349).
