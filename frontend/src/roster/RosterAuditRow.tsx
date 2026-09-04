@@ -11,7 +11,7 @@
 import { useState } from "react";
 
 import type { RosterAuditResponse } from "../lib/api";
-import { fieldLabel, liquidityWord, valueWord } from "../lib/copy";
+import { fieldLabel, liquidityWord, ROOKIE_MARKER, valueWord } from "../lib/copy";
 import { PlayerNameButton } from "../player/playerSelection";
 import { TokenNotes } from "../ui/TokenNotes";
 
@@ -55,7 +55,19 @@ export function RosterAuditRow({ player }: { player: Player }) {
             name={player.full_name}
             context={[player.position, player.nfl_team].filter(Boolean).join(" ")}
             className="dg-roster__name"
-          />{" "}
+          />
+          {/* DG-146 (2026-09-03): "small marker indicating theyre a rookie" —
+              David's answer once DG-144 took away the range that used to set a
+              rookie-model number apart in this table. One word on the row's
+              `is_prospect` flag — today the roster route derives it from the
+              rookie-model basis for league-drafted rookies (DG-147 keys it on
+              the draft class); the value cell is untouched. */}
+          {player.is_prospect && (
+            <>
+              {" "}
+              <span className="dg-roster__rookie">{ROOKIE_MARKER}</span>
+            </>
+          )}{" "}
           <button
             type="button"
             className="dg-roster__expand"

@@ -167,6 +167,17 @@ export function fieldLabel(key: string): string {
   return humanize(key);
 }
 
+/**
+ * DG-146 (2026-09-03): the one word the roster row prints next to a rookie's
+ * name. David, asked whether the table should get a marker back once DG-144
+ * removed the range that used to set a rookie-model number apart: "small
+ * marker indicating theyre a rookie." The row prints it on `is_prospect` — a flag
+ * the roster route derives from the rookie-model basis for players taken in the
+ * league's 2026 draft (roster_auditor.py:220/260; DG-147 moves it onto the draft
+ * class) — and it is minted here so every surface says the same one word.
+ */
+export const ROOKIE_MARKER = "Rookie";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 2 · Value words — the enum a field holds, said the way a manager would say it.
 // ─────────────────────────────────────────────────────────────────────────────
