@@ -119,6 +119,25 @@ def test_a_rookie_with_no_model_row_still_says_rookie_on_the_fact(tmp_path):
     assert row["dynasty_value_score"] is None
 
 
+def test_the_live_rows_experience_wins_over_the_artifacts(tmp_path):
+    """A player the artifact still calls a rookie, whom Sleeper has since rolled
+    to his second year, is not a rookie on screen — the same authority rule team
+    and age follow."""
+    row = _waiver_rookie_row()
+    row["player"]["years_exp"] = 0
+    second_year = {**_WAIVER_ROOKIE_PLAYER, "years_exp": 1}
+    result = _run_with_universe(tmp_path, [row], roster=[second_year, _RB_PLAYER])
+    assert _rookie(result, "13296")["is_prospect"] is False
+
+
+def test_the_artifact_stands_in_when_the_live_row_never_said(tmp_path):
+    live_without_experience = {k: v for k, v in _WAIVER_ROOKIE_PLAYER.items() if k != "years_exp"}
+    result = _run_with_universe(
+        tmp_path, [_waiver_rookie_row()], roster=[live_without_experience, _RB_PLAYER]
+    )
+    assert _rookie(result, "13296")["is_prospect"] is True
+
+
 # ── the live roster row carries Sleeper's fact ───────────────────────────────
 def test_get_my_roster_carries_sleepers_years_of_experience():
     config = {

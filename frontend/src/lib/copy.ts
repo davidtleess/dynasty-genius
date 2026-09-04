@@ -640,10 +640,20 @@ const TOKEN_PATTERNS: {
   },
   {
     // "dynasty_value_score unavailable: Engine B (active player) not yet
-    // validated; model_grade is PRE_MODEL"
+    // validated; model_grade is PRE_MODEL" — and the Engine A (prospect)
+    // variant of the same token.
+    //
+    // DG-147: one fixed sentence used to blame the active-player model for
+    // both. A rookie with no rookie-model row now reaches this caveat through
+    // the ROOKIE contract, so the sentence has to name the model the backend
+    // actually consulted — and for him the honest fact is simply that the
+    // rookie model has not scored him. The missing inputs are said once, by
+    // the completeness caveat above; this line does not repeat them.
     match: (t) => t.startsWith("dynasty_value_score unavailable:"),
-    build: () =>
-      "No dynasty value for him yet — the active-player model has not been validated for his position, so he is unscored.",
+    build: (token) =>
+      token.includes("Engine A")
+        ? "No dynasty value for him yet — the rookie model has not scored him, so he is unscored."
+        : "No dynasty value for him yet — the active-player model has not been validated for his position, so he is unscored.",
   },
 ];
 

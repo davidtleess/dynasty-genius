@@ -273,7 +273,13 @@ def _pvo_from_universe_row(
         # DG-147: "rookie" is a fact about the player, not about which engine
         # scored him or whether this league's draft picked him; the draft class
         # rides along so the row can say which class.
-        is_prospect=_is_rookie(player.get("years_exp"), valuation.get("engine_path")),
+        is_prospect=_is_rookie(
+            # Sleeper's live roster row is the authority on his experience, the
+            # same rule team and age follow two lines up (DG-137 / DG-139); the
+            # artifact's count is a fallback for a live row that never said.
+            live_player.get("years_exp", player.get("years_exp")),
+            valuation.get("engine_path"),
+        ),
         draft_class=row.get("draft_class"),
         sleeper_id=str(identity_ids.get("sleeper_id") or row.get("sleeper_player_id")),
         engine_used="engine_b" if is_veteran else "engine_a",
