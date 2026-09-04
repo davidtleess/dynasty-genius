@@ -167,6 +167,50 @@ def test_a_checkout_behind_its_remote_says_how_far_and_when_it_last_looked(tmp_p
     assert facts["remote_last_fetched_at"] is not None
 
 
+def test_a_worktree_still_knows_when_it_last_heard_from_the_remote(tmp_path):
+    """Every lane on this machine works in a git worktree, where the private
+    git-dir has no FETCH_HEAD — only the shared one does. Reading the wrong
+    directory leaves a behind-count with no age beside it."""
+    origin = _repo(tmp_path, "origin")
+    clone = tmp_path / "clone"
+    _run(["git", "clone", "-q", str(origin), str(clone)], tmp_path)
+    _run(["git", "fetch", "-q"], clone)
+    tree = tmp_path / "tree"
+    _run(["git", "worktree", "add", "-q", "-b", "side", str(tree)], clone)
+
+    facts = checkout_vs_origin(tree)
+    assert facts["remote_last_fetched_at"] is not None
+
+
+def test_a_worktrees_own_fetch_wins_over_an_older_shared_one(tmp_path):
+    """The other direction: the serving checkout on this machine IS a linked
+    worktree, and reading only the shared dir reported yesterday while this tree
+    had fetched minutes before. The remote-tracking ref is shared, so the newest
+    fetch from either place is the honest answer."""
+    origin = _repo(tmp_path, "origin")
+    clone = tmp_path / "clone"
+    _run(["git", "clone", "-q", str(origin), str(clone)], tmp_path)
+    tree = tmp_path / "tree"
+    _run(["git", "worktree", "add", "-q", "-b", "side", str(tree)], clone)
+    common = subprocess.run(
+        ["git", "rev-parse", "--git-common-dir"], cwd=str(tree),
+        capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    shared_fetch_head = Path(common)
+    if not shared_fetch_head.is_absolute():
+        shared_fetch_head = tree / shared_fetch_head
+    shared_fetch_head = shared_fetch_head / "FETCH_HEAD"
+    if shared_fetch_head.exists():
+        import os
+        os.utime(shared_fetch_head, (0, 0))
+
+    _run(["git", "fetch", "-q"], tree)
+
+    stamp = checkout_vs_origin(tree)["remote_last_fetched_at"]
+    assert stamp is not None
+    assert not stamp.startswith("1970"), stamp
+
+
 def test_a_checkout_with_no_upstream_claims_nothing(tmp_path):
     facts = checkout_vs_origin(_repo(tmp_path))
     assert facts["remote_ref"] is None
