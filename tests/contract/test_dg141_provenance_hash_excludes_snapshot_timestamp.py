@@ -3,9 +3,11 @@
 The vintage is the PAIR ``(semantic_output_hash, provenance_hash)``. Until DG-141 the
 lineage subset that feeds ``provenance_hash`` carried ``source_snapshot_captured_at`` — the
 microsecond timestamp of the Sleeper league run the PVO was built from — so the hash was
-new on every morning by construction and ``vintage_changed`` could never be false across
-days. Measured on the live store 2026-09-03: a new vintage pair on 19 of 19 consecutive
-capture dates. The driver's own docstring said dates were excluded; the subset hashed one.
+new on every morning the league run re-stamped it, whether or not anything the hash exists
+to detect had moved. Measured on the live store 2026-09-03: a new vintage pair on 47 of 47
+consecutive capture dates since the daily league run began 2026-07-16 (52 of 69 across the
+whole store; the 17 unchanged pairs all predate the daily run). The driver's own docstring
+said dates were excluded; the subset hashed one.
 
 David's ruling (Q11, 2026-09-03 06:22 ET): "take the timestamp out". Option (a): the
 timestamp leaves the hashed subset, ``semantic_output_hash`` is untouched, no backfill.
@@ -17,9 +19,15 @@ These tests pin:
     ``provenance_hash`` and the second reports ``vintage_changed: false``;
   * the refresh runner's ``provenance_changed`` is likewise false when a refresh only
     re-stamps the snapshot clock (it is the same subset, hashed at both hash sites);
-  * a same-day rerun on the SAME snapshot whose content changed still reports a new
-    vintage — the 2026-09-02 counter-example — because the semantic half carries it;
-  * the audit-only provenance block still records the timestamp, outside the hash.
+  * a rerun on the SAME snapshot clock whose content changed still reports a new
+    vintage — the 2026-09-02 pair, where 208 rows changed content (team labels) and no
+    score moved — because the semantic half carries it;
+  * the audit-only provenance block still records the timestamp, outside the hash;
+  * what this change does NOT do: the semantic half still hashes each row's
+    ``lineage.sleeper_snapshot_hash``, which is new on every daily league run, so two
+    mornings that differ only in that hash still report a new vintage. That is the
+    open decision in front of David; this test documents the boundary, it does not
+    endorse it.
 """
 
 from __future__ import annotations
@@ -110,15 +118,17 @@ def test_two_mornings_on_unchanged_inputs_share_a_provenance_hash_and_no_new_vin
     assert second["vintage_changed"] is False
 
 
-def test_a_same_day_rerun_whose_content_changed_still_reports_a_new_vintage(
+def test_a_rerun_on_the_same_snapshot_clock_whose_content_changed_still_reports_a_new_vintage(
     tmp_path: Path,
 ) -> None:
-    """The 2026-09-02 counter-example: same snapshot clock, 208 rows re-scored."""
+    """The 2026-09-02 counter-example: same snapshot clock, 208 rows changed content
+    (team labels), no score moved. The driver keys ``vintage_changed`` on the pair, never
+    on the date, so the second capture's day is incidental."""
     base = _artifact_bytes(
         {PVO_PATH: _json_bytes(_pvo_artifact(source_snapshot_captured_at=_MORNING_ONE))}
     )
     rerun_pvo = _pvo_artifact(volatile_suffix="b", source_snapshot_captured_at=_MORNING_ONE)
-    rerun_pvo["players"][0]["valuation"]["dynasty_value_score"] = 97.0
+    rerun_pvo["players"][0]["player"]["team"] = "PHI"
     rerun = {**base, PVO_PATH: _json_bytes(rerun_pvo)}
 
     first = _capture(tmp_path, base, day=24, git_sha="git-sha-a")
@@ -139,6 +149,34 @@ def test_the_audit_block_still_records_the_snapshot_timestamp_outside_the_hash(
     report = _capture(tmp_path, artifacts, day=24, git_sha="git-sha-a")
 
     assert report["provenance"]["source_snapshot_captured_at"] == _MORNING_ONE
+
+
+def test_two_mornings_that_differ_only_in_the_sleeper_list_hash_still_report_a_new_vintage(
+    tmp_path: Path,
+) -> None:
+    """The boundary of this change, pinned so nobody reads the green above as "tomorrow
+    the receipt says the basis held". Every PVO row carries ``lineage.sleeper_snapshot_hash``
+    (the league run's ``sleeper_players_hash``), inside the semantic projection; it differed
+    on the 09-01, 09-02 and 09-03 league runs. Provenance now holds; the pair still moves.
+    If David rules the semantic half too, this test inverts and becomes that change's RED."""
+    base = _artifact_bytes(
+        {PVO_PATH: _json_bytes(_pvo_artifact(source_snapshot_captured_at=_MORNING_ONE))}
+    )
+    next_pvo = _pvo_artifact(
+        captured_at="2026-06-24T12:00:00+00:00",
+        volatile_suffix="b",
+        source_snapshot_captured_at=_MORNING_TWO,
+    )
+    for row in next_pvo["players"]:
+        row["lineage"]["sleeper_snapshot_hash"] = "sleeper-snapshot-v2"
+    next_morning = {**base, PVO_PATH: _json_bytes(next_pvo)}
+
+    first = _capture(tmp_path, base, day=24, git_sha="git-sha-a")
+    second = _capture(tmp_path, next_morning, day=25, git_sha="git-sha-b")
+
+    assert first["provenance_hash"] == second["provenance_hash"]
+    assert first["semantic_output_hash"] != second["semantic_output_hash"]
+    assert second["vintage_changed"] is True
 
 
 # ── the refresh runner, which hashes the same subset at both hash sites ──────────────

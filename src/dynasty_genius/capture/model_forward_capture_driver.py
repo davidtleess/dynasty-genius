@@ -184,9 +184,13 @@ def resolve_provenance_subset(
 
     # NOT hashed: ``source_snapshot_captured_at``. It is the league snapshot's own clock
     # (microsecond precision, new on every daily league run), so hashing it made
-    # provenance_hash new every morning by construction and ``vintage_changed`` true on
-    # 19 of 19 consecutive capture dates (DG-141, David's Q11 ruling 2026-09-03: "take the
+    # provenance_hash new on every morning since the daily league run began 2026-07-16
+    # (47 of 47 consecutive capture dates to 09-03) regardless of whether anything the
+    # hash exists to detect had moved (DG-141, David's Q11 ruling 2026-09-03: "take the
     # timestamp out"). The audit block still records it; only the vintage ignores it.
+    # This settles the provenance half only: semantic_output_hash still carries each
+    # row's ``lineage.sleeper_snapshot_hash``, which moves with the same daily run, so
+    # the vintage PAIR keeps changing until that half is ruled on separately.
     subset: dict[str, Any] = {
         "pvo_schema_version": pvo.get("schema_version"),
         "pvo_producer_hash": _sha(read_artifact(PRODUCER_PATH)),
