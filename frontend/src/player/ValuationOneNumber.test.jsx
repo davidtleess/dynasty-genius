@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 //
-// DG-128 (2026-09-01) — the band ships with the number on the player card too,
-// and "Scored by" names what PRODUCED the score (the basis), not merely the lane
-// the player is in.
+// DG-144 (2026-09-03) — one number per player on the player card too. David:
+// "plus or minus 20, remove it, one number per player." The range fact DG-128
+// added is gone; "Scored by" still names what PRODUCED the score (the
+// basis), and the basis marker still rides the value.
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
@@ -11,9 +12,12 @@ import { ValuationTwoLane } from "./ValuationTwoLane";
 const market = { caveats: [], status: "unavailable" };
 const divergence = { delta: null, status: "unavailable" };
 
+function lane() {
+  return screen.getByTestId("player-model-lane");
+}
+
 function fact(label) {
-  const lane = screen.getByTestId("player-model-lane");
-  const dt = within(lane).getByText(label);
+  const dt = within(lane()).getByText(label);
   return dt.nextElementSibling.textContent;
 }
 
@@ -21,8 +25,8 @@ function renderModel(model) {
   render(<ValuationTwoLane model={model} market={market} divergence={divergence} />);
 }
 
-describe("the player card and the band", () => {
-  it("prints the range beside a blended value and names the blend as its basis", () => {
+describe("the player card shows one number per player", () => {
+  it("prints the value and its basis with no range fact, even though the API carries a band", () => {
     renderModel({
       engine_path: "BLEND_AB",
       dvs_engine: "blend",
@@ -38,13 +42,15 @@ describe("the player card and the band", () => {
       projection_3y: null,
     });
     expect(fact("Dynasty value")).toBe("63.8");
-    expect(fact("Likely range")).toBe("30 to 98");
     expect(fact("Scored by")).toBe("A blend of the rookie and active-player models");
-    const lane = screen.getByTestId("player-model-lane");
-    expect(lane.querySelector("[data-basis]").getAttribute("data-basis")).toBe("blend");
+    expect(within(lane()).queryByText(/likely range/i)).toBeNull();
+    expect(within(lane()).queryByText(/30 to 98/)).toBeNull();
+    expect(lane().querySelector("[data-basis]").getAttribute("data-basis")).toBe(
+      "blend",
+    );
   });
 
-  it("says the range is unknown when the number has none", () => {
+  it("prints no range fact for a number the API ships without a band either", () => {
     renderModel({
       engine_path: "ENGINE_B",
       dvs_engine: "B",
@@ -59,7 +65,8 @@ describe("the player card and the band", () => {
       projection_2y: null,
       projection_3y: null,
     });
-    // The lane's own unknown marker, the same one every other absent fact shows.
-    expect(fact("Likely range")).toBe("—");
+    expect(within(lane()).getByText("Dynasty value")).toBeTruthy();
+    expect(within(lane()).queryByText(/likely range/i)).toBeNull();
+    expect(lane().querySelector("[data-basis]").getAttribute("data-basis")).toBe("B");
   });
 });
