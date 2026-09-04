@@ -7,9 +7,11 @@ resolves the read-only provenance block, maps rows into the T1 store, and emits 
 time, or do scheduler work (T3+). Market fields are excluded from the store (counted).
 
 Vintage = semantic_output_hash + provenance_hash. Both EXCLUDE volatile fields
-(captured_at/assembled_at/pipeline_run_id) and provenance_hash also EXCLUDES git_sha
-(audit-only) and the literal artifact_sha256 — so a daily re-score on unchanged
-inputs reports vintage_changed=false (no false new vintage).
+(captured_at/assembled_at/pipeline_run_id); semantic_output_hash also excludes the market
+keys (market_overlay/divergence) and the daily-renewed lineage.sleeper_snapshot_hash
+(DG-141); provenance_hash also EXCLUDES git_sha (audit-only), the literal artifact_sha256
+and source_snapshot_captured_at (DG-141) — so a daily re-score on unchanged inputs reports
+vintage_changed=false (no false new vintage).
 
 Design spec: docs/superpowers/specs/2026-06-24-model-output-forward-capture-brick-design.md
 """
@@ -69,6 +71,19 @@ HEAD_A_V3_MANIFEST_PATH = Path("app/data/models/head_a/v3_manifest.json")
 
 _VOLATILE_ROW_KEYS = frozenset({"captured_at", "assembled_at", "pipeline_run_id"})
 _MARKET_ROW_KEYS = frozenset({"market_overlay", "divergence"})
+# The lineage block is a MIX, so only one field leaves the vintage (DG-141 B, David's
+# ruling 2026-09-04 08:11 ET was "drop the Sleeper player-list hash", and nothing wider):
+#   * ``sleeper_snapshot_hash`` is the league run's own ``sleeper_players_hash``, and
+#     Sleeper renews its player list daily, so hashing it made semantic_output_hash new
+#     every morning — on 09-02→09-03, 11,581 of 12,226 rows differed in nothing else.
+#     It leaves the hash.
+#   * ``governance_version`` is the rule set the rows were produced under. It STAYS: the
+#     provenance subset excludes row lineage, so dropping the whole block would leave a
+#     governance bump hashed by nothing at all and shipping as vintage_changed=false.
+# The whole block is still REQUIRED on every model-supported row and still recorded in
+# ``provenance.row_lineage``; only this one field is excluded from the content hash.
+_LINEAGE_KEY = "lineage"
+_VOLATILE_LINEAGE_KEYS = frozenset({"sleeper_snapshot_hash"})
 
 
 def _sha(raw: bytes) -> str:
@@ -80,12 +95,19 @@ def _canon(obj: Any) -> bytes:
 
 
 def _semantic_projection(row: dict) -> dict:
-    """Row content that defines the model vintage: excludes volatile + market keys."""
-    return {
+    """Row content that defines the model vintage: excludes volatile keys, market keys, and
+    the daily-renewed ``lineage.sleeper_snapshot_hash`` — never the rest of the lineage."""
+    projected = {
         k: v
         for k, v in row.items()
         if k not in _VOLATILE_ROW_KEYS and k not in _MARKET_ROW_KEYS
     }
+    lineage = projected.get(_LINEAGE_KEY)
+    if isinstance(lineage, dict):
+        projected[_LINEAGE_KEY] = {
+            k: v for k, v in lineage.items() if k not in _VOLATILE_LINEAGE_KEYS
+        }
+    return projected
 
 
 def map_pvo_row_valuation_fields(row: dict) -> dict[str, Any]:
@@ -182,9 +204,17 @@ def resolve_provenance_subset(
     needs_b = bool(engines & {"ENGINE_B", "BLEND_AB"})
     needs_a = bool(engines & {"ENGINE_A", "BLEND_AB"})
 
+    # NOT hashed: ``source_snapshot_captured_at``. It is the league snapshot's own clock
+    # (microsecond precision, new on every daily league run), so hashing it made
+    # provenance_hash new on every morning since the daily league run began 2026-07-16
+    # (47 of 47 consecutive capture dates to 09-03) regardless of whether anything the
+    # hash exists to detect had moved (DG-141, David's Q11 ruling 2026-09-03: "take the
+    # timestamp out"). The audit block still records it; only the vintage ignores it.
+    # The semantic half was ruled on in the same ticket (DG-141 B): ``_semantic_projection``
+    # now excludes ``lineage.sleeper_snapshot_hash`` as well, so the vintage PAIR holds
+    # steady across a morning on which no row content moved.
     subset: dict[str, Any] = {
         "pvo_schema_version": pvo.get("schema_version"),
-        "source_snapshot_captured_at": pvo.get("source_snapshot_captured_at"),
         "pvo_producer_hash": _sha(read_artifact(PRODUCER_PATH)),
     }
     if needs_b:
@@ -617,6 +647,14 @@ def capture_model_pvo_snapshot(
     )
 
     # ── store + vintage_changed (was this vintage seen before this write?) ──
+    # NOTE the scope: this asks "seen EVER", not "different from yesterday" (the spec's §5
+    # wording is "vs last captured"). Before DG-141 the two readings coincided, because the
+    # league clock and the Sleeper list hash made every morning's pair unique by
+    # construction. Now that both are out of the vintage, a morning whose content exactly
+    # reverts to some earlier day's would report vintage_changed=false here. The RECEIPT is
+    # unaffected — daily_diff compares the two most recent dates directly rather than asking
+    # this question (what_changed/daily_diff.py:271-275). Reconciling the two is a separate
+    # decision and not part of David's B ruling.
     store = ModelForwardCaptureStore(db_path)
     with sqlite3.connect(Path(db_path)) as conn:
         prior = conn.execute(

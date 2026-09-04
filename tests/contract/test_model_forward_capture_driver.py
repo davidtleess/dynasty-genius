@@ -96,11 +96,12 @@ def _pvo_artifact(
     *,
     captured_at: str = "2026-06-23T12:00:00+00:00",
     volatile_suffix: str = "a",
+    source_snapshot_captured_at: str = "2026-06-23T11:30:00+00:00",
 ) -> dict[str, Any]:
     return {
         "captured_at": captured_at,
         "schema_version": "universe_pvo_batch.v1",
-        "source_snapshot_captured_at": "2026-06-23T11:30:00+00:00",
+        "source_snapshot_captured_at": source_snapshot_captured_at,
         "coverage": {
             "counts_by_engine_path": {
                 "ENGINE_A": 1,
