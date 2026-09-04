@@ -119,18 +119,28 @@ def _fetch_head_written_at(repo_root: Path) -> Optional[str]:
     """When this checkout last heard from the remote. The behind-count is read
     from a remote-tracking ref that only a fetch updates, so without this the
     number could say "nothing to catch up on" when nobody had asked in days."""
-    git_dir = _git(["rev-parse", "--git-dir"], repo_root)
-    if git_dir is None:
+    # BOTH git dirs, newest wins. FETCH_HEAD is a PER-WORKTREE file while the
+    # remote-tracking ref the behind-count reads is SHARED, so a fetch from any
+    # worktree refreshes the number — and reading only one directory gets it
+    # wrong in opposite directions. Measured on this machine, where the serving
+    # checkout is itself a linked worktree: the private dir alone missed the
+    # main checkout's fetch, and the common dir alone reported yesterday while
+    # this tree had fetched minutes earlier.
+    candidates: list[float] = []
+    for flag in ("--git-dir", "--git-common-dir"):
+        git_dir = _git(["rev-parse", flag], repo_root)
+        if git_dir is None:
+            continue
+        path = Path(git_dir)
+        if not path.is_absolute():
+            path = repo_root / path
+        try:
+            candidates.append((path / "FETCH_HEAD").stat().st_mtime)
+        except OSError:
+            continue
+    if not candidates:
         return None
-    fetch_head = Path(git_dir)
-    if not fetch_head.is_absolute():
-        fetch_head = repo_root / fetch_head
-    fetch_head = fetch_head / "FETCH_HEAD"
-    try:
-        stamp = fetch_head.stat().st_mtime
-    except OSError:
-        return None
-    return datetime.fromtimestamp(stamp, tz=timezone.utc).isoformat()
+    return datetime.fromtimestamp(max(candidates), tz=timezone.utc).isoformat()
 
 
 def bundle_vs_checkout(repo_root: Optional[Path] = None) -> dict[str, Any]:
