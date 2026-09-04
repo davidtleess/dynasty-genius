@@ -36,11 +36,13 @@ type LeagueOwnership = PlayerDetail["league_ownership"];
 // "FA" comes from the copy dictionary and nowhere else. An unknown is said as
 // unknown — the capture did not vouch for him — with no label and no date.
 function leagueOwnershipLine(ownership: LeagueOwnership): ReactNode {
-  const asOf =
-    ownership.as_of !== null && ownership.as_of !== undefined
-      ? ` · ${leagueRosterAsOf(ownership.as_of)}`
-      : "";
-  if (ownership.status === "free_agent") {
+  const asOfIso = ownership.as_of ?? null;
+  const asOf = asOfIso === null ? "" : ` · ${leagueRosterAsOf(asOfIso)}`;
+  // The route already collapses an undated snapshot to "unknown"; the card
+  // holds the same line at its own boundary, because the contract's as_of is
+  // nullable for every status and "FA" with no capture time behind it would be
+  // a claim nobody can date.
+  if (ownership.status === "free_agent" && asOfIso !== null) {
     return (
       <>
         <span className="dg-player-detail__fa">{LEAGUE_FREE_AGENT_LABEL}</span>

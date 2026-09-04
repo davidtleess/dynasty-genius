@@ -118,6 +118,22 @@ describe("DG-145 the card says who owns him in your league", () => {
     expect(line.textContent).not.toContain("as of");
   });
 
+  it("never prints FA without a capture time, even if the API called him a free agent", () => {
+    // The route collapses an undated snapshot to "unknown" and a backend test
+    // pins that; the card holds the same line at its own boundary, so the
+    // contract's nullable as_of can never put an undated "FA" on screen.
+    const line = ownershipLine({
+      as_of: null,
+      owner_display_name: null,
+      roster_id: null,
+      status: "free_agent",
+    });
+    expect(within(line).queryByText("FA")).toBeNull();
+    expect(line.textContent).toContain(
+      "Who owns him in your league is unknown right now",
+    );
+  });
+
   it("mints the word once, in the copy dictionary", () => {
     expect(LEAGUE_FREE_AGENT_LABEL).toBe("FA");
   });
