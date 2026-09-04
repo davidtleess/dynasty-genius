@@ -76,12 +76,12 @@ def test_dvs_provenance_fields():
     assert isinstance(pvo.dvs_clamped, bool)
 
 def test_dead_window_caveat_engine_a_fallback_present():
-    """5.4 Dead Window — Phase 15 Blend: games_t < 8 with both Engine A and B inputs -> Bayesian blend DVS."""
+    """5.4 Dead Window — Phase 15 Blend: below the games gate with both Engine A and B inputs -> Bayesian blend DVS."""
     identity = _mock_identity("WR")
     # Player is not a prospect (is_prospect=False default), but has low games_t
     features = {
         "engine_b_score": {"predicted_avg_ppg_t1_t2": 12.0, "engine": "test_v2"},
-        "games_t": 4, # Dead Window
+        "games_t": ENGINE_B_MIN_GAMES_T - 1,  # Dead Window
         "feature_season": 2024,
         "pick": 10.0, "round": 1.0, "age": 22.0 # Engine A inputs — both engines present → blend
     }
@@ -93,7 +93,7 @@ def test_dead_window_caveat_engine_a_fallback_present():
     assert pvo.dynasty_value_score is not None
 
 def test_dead_window_caveat_engine_a_fallback_absent():
-    """5.5 Dead Window Caveat (Fallback Absent): games_t < 8, no Engine A inputs -> DVS None + caveat.
+    """5.5 Dead Window Caveat (Fallback Absent): below the games gate, no Engine A inputs -> DVS None + caveat.
 
     DISCLOSED CONTRACT CHANGE (DG-021, 2026-08-25): this test previously asserted
     ``dvs_engine == "A"`` on a row whose whole premise is that no Engine A result
@@ -103,7 +103,7 @@ def test_dead_window_caveat_engine_a_fallback_absent():
     identity = _mock_identity("WR")
     features = {
         "engine_b_score": {"predicted_avg_ppg_t1_t2": 12.0, "engine": "test_v2"},
-        "games_t": 4,
+        "games_t": ENGINE_B_MIN_GAMES_T - 1,
         "feature_season": 2024
         # No Engine A inputs
     }
@@ -124,11 +124,15 @@ def test_te_g3_deferred_caveat():
     assert any("TE market superiority gate deferred" in c for c in pvo.caveats)
 
 def test_engine_b_dvs_does_not_fire_below_games_gate():
-    """5.7 Engine B DVS Does Not Fire Below Games Gate: games_t=4 -> no Engine B DVS."""
+    """5.7 Engine B DVS Does Not Fire Below Games Gate -> no Engine B DVS.
+
+    Gate-relative, not a magic number: DG-143 moved the gate 8 -> 4 and this test
+    pinned the old value, so it asserted the opposite of its own name.
+    """
     identity = _mock_identity("RB")
     features = {
         "engine_b_score": {"predicted_avg_ppg_t1_t2": 10.0, "engine": "test_v2"},
-        "games_t": 4,
+        "games_t": ENGINE_B_MIN_GAMES_T - 1,
         "feature_season": 2024
     }
     pvo = assemble_pvo(identity, features)

@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import pytest
 
-from src.dynasty_genius.models.engine_b_contract import DVS_BLEND_K
+from src.dynasty_genius.models.engine_b_contract import (
+    DVS_BLEND_K,
+    ENGINE_B_MIN_GAMES_T,
+)
 from src.dynasty_genius.models.player_identity import PlayerIdentity
 from src.dynasty_genius.pvo_assembler import assemble_pvo
 
@@ -30,11 +33,11 @@ def test_blend_weight_monotonicity_wr():
 
 
 def test_blend_dvs_engine_when_both_present():
-    """5.9: 1 <= games_t <= 7 with Engine A and B inputs -> dvs_engine='blend'."""
+    """5.9: 1 <= games_t < the gate, with Engine A and B inputs -> dvs_engine='blend'."""
     identity = _mock_identity("WR")
     features = {
         "engine_b_score": {"predicted_avg_ppg_t1_t2": 12.0, "engine": "test_v2"},
-        "games_t": 4,
+        "games_t": ENGINE_B_MIN_GAMES_T - 1,
         "feature_season": 2024,
         "pick": 10.0,
         "round": 1.0,
@@ -43,7 +46,8 @@ def test_blend_dvs_engine_when_both_present():
     pvo = assemble_pvo(identity, features)
     assert pvo.dvs_engine == "blend"
     assert pvo.dvs_blend_weight_b is not None
-    expected_w = 4 / (4 + DVS_BLEND_K["WR"])
+    _n = ENGINE_B_MIN_GAMES_T - 1
+    expected_w = _n / (_n + DVS_BLEND_K["WR"])
     assert pvo.dvs_blend_weight_b == pytest.approx(expected_w, rel=1e-3)
 
 
@@ -52,7 +56,7 @@ def test_blend_caveat_present_when_blend_fires():
     identity = _mock_identity("WR")
     features = {
         "engine_b_score": {"predicted_avg_ppg_t1_t2": 12.0, "engine": "test_v2"},
-        "games_t": 4,
+        "games_t": ENGINE_B_MIN_GAMES_T - 1,
         "feature_season": 2024,
         "pick": 10.0,
         "round": 1.0,
@@ -78,7 +82,7 @@ def test_blend_single_engine_fallback():
     identity = _mock_identity("WR")
     features = {
         "engine_b_score": {"predicted_avg_ppg_t1_t2": 12.0, "engine": "test_v2"},
-        "games_t": 4,
+        "games_t": ENGINE_B_MIN_GAMES_T - 1,
         "feature_season": 2024,
     }
     pvo = assemble_pvo(identity, features)
@@ -105,7 +109,7 @@ def test_blend_single_engine_fallback():
 def _blend_fixture(availability_p: float | None) -> dict:
     features = {
         "engine_b_score": {"predicted_avg_ppg_t1_t2": 12.0, "engine": "test_v2"},
-        "games_t": 4,
+        "games_t": ENGINE_B_MIN_GAMES_T - 1,
         "feature_season": 2024,
         "pick": 10.0,
         "round": 1.0,
@@ -136,7 +140,7 @@ def test_blend_b_component_pays_the_availability_hurdle():
     assert pvo.dvs_engine == "blend"
 
     dvs_a = score_prospect("WR", 10.0, 1.0, 22.0)["dynasty_value_score"]
-    expected = _expected_blend("WR", 4, dvs_a, 12.0, availability_p=0.5)
+    expected = _expected_blend("WR", ENGINE_B_MIN_GAMES_T - 1, dvs_a, 12.0, availability_p=0.5)
     assert pvo.dynasty_value_score == pytest.approx(expected, abs=0.051), (
         f"blend served {pvo.dynasty_value_score}, expected {expected} with the B component "
         f"discounted by P(plays)=0.5"
@@ -153,5 +157,5 @@ def test_blend_without_availability_is_unchanged():
     identity = _mock_identity("WR")
     pvo = assemble_pvo(identity, _blend_fixture(availability_p=None))
     dvs_a = score_prospect("WR", 10.0, 1.0, 22.0)["dynasty_value_score"]
-    expected = _expected_blend("WR", 4, dvs_a, 12.0, availability_p=None)
+    expected = _expected_blend("WR", ENGINE_B_MIN_GAMES_T - 1, dvs_a, 12.0, availability_p=None)
     assert pvo.dynasty_value_score == pytest.approx(expected, abs=0.051)

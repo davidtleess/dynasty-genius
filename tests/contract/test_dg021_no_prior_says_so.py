@@ -23,6 +23,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 import app.api.routes.players as players_route
+from src.dynasty_genius.models.engine_b_contract import ENGINE_B_MIN_GAMES_T
 from src.dynasty_genius.models.player_identity import PlayerIdentity
 from src.dynasty_genius.pvo_assembler import assemble_pvo
 from src.dynasty_genius.universe_pvo_batch import _route_from_pvo
@@ -46,7 +47,7 @@ def test_a_row_with_no_prior_never_claims_one() -> None:
         _identity(),
         {
             "engine_b_score": {"predicted_avg_ppg_t1_t2": 12.0, "engine": "test_v2"},
-            "games_t": 4,
+            "games_t": ENGINE_B_MIN_GAMES_T - 1,
             "feature_season": 2024,
             # no pick / round / age -> no Engine A result can exist
         },

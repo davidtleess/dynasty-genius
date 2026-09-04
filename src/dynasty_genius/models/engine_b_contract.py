@@ -140,7 +140,30 @@ DVS_BLEND_K: dict[str, int] = {
 # Minimum games in feature season required for Engine B DVS eligibility.
 # Below this threshold, a player is in the Dead Window: retain Engine A DVS
 # with explicit caveat, or stay PRE_MODEL if Engine A data is also absent.
-ENGINE_B_MIN_GAMES_T: int = 8
+#
+# DG-143, David's ruling 2026-09-03 (8 -> 4): a player who missed most of a season
+# still gets the model's genuine estimate. His words: "the model is always making
+# its genuine estimate". 114 players were refused a number while the pipeline had
+# already produced a projection for every one of them.
+#
+# The served value already prices the absence -- it is P(plays) x E[points | plays]
+# (pvo_assembler.apply_availability), and measured on the live 2025 population the
+# 4-7 game cohort averages P(plays) 0.488 against 0.847 for 8+ game players. The
+# gate was withholding the number, not the discount.
+#
+# WHAT THIS IS NOT JUSTIFIED BY: an auditor's holdout comparison (RMSE 3.28 for
+# 4-7 games vs 3.19 for 8+) does NOT support it -- that filter conditions on the
+# outcome and so measured only the ~half of the cohort who came back. Scored
+# honestly, ordering for these players is roughly half as good (Spearman 0.380 vs
+# 0.781). This constant rests on David's ruling. The market check is WEAKER than
+# first reported (DG-143 ticket, closeout audit 2026-09-03 morning): the 0.711
+# Spearman against FantasyCalc was the most favourable of seven daily snapshots;
+# across all seven the new cohort runs 0.634-0.711 (0.643 on 09-03's own market)
+# against a baseline holding 0.788-0.805 -- a gap of ~0.13, not 0.08 -- and at
+# n=32 fifteen percent of random subsets of already-scored players score at or
+# below 0.711 by chance. What stands on its own: of the 82 players the market
+# declines to price at all, 94% score below 20.
+ENGINE_B_MIN_GAMES_T: int = 4
 
 # ── PPG season-type ruling (DG-024, David 2026-08-19) ────────────────────────
 # David ruled, verbatim, "all games" — Engine B's points-per-game counts every
