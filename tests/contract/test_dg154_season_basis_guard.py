@@ -13,11 +13,14 @@ coefficient at every position.
 ruling. It only makes the change require one. Today, with the feed's max season equal to the
 season already published, it is a no-op and the refresh proceeds exactly as before.
 
-Re-derived here before building (2018-2025, `ff_opportunity` weekly, local, no network):
-a four-game mean carries 77% of a full season's variance pooled (23% lost) and 65% at QB
-(35% lost); as pure sampling precision the loss is ~70% at every position. Today's inference
-partition is exactly 505 rows; after a rebase it refills to about 199 players by week 4 and
-about 282 by week 6, and tops out near 438 even at season end.
+Re-derived here before building (2018-2025, `ff_opportunity` weekly, local, no network,
+2,658 player-seasons with >= 8 games): a four-game mean carries 77% of a full season's
+variance pooled (23% lost) and 65% at QB (35% lost); as pure sampling precision the loss is
+69-73% at EVERY position, so that framing is not a QB finding. Today's inference partition is
+exactly 505 rows; after a rebase it refills to about 199 players by week 4, 282 by week 6 and
+446 by week 18 (one consistent week window throughout). The like-for-like end state is the
+runtime table's own completed seasons, which hold 457-501 rows, mean 480 — so the rebased
+board ends the season slightly smaller than today's 505, not dramatically so.
 """
 
 from __future__ import annotations
@@ -194,7 +197,13 @@ def test_both_branches_record_the_basis_decision(tmp_path) -> None:
     assert guarded.count("_write_season_basis_marker(") == 2, (
         "both the refusal and the proceed path must record the decision"
     )
-    assert '"status": "blocked"' in guarded and '"status": "ok"' in guarded
+    assert '"status": "blocked"' in guarded
+    # NOT "ok": nothing is published at this point in the run, so a marker claiming success
+    # here would read `ok` on a morning the publish later blocked.
+    assert '"status": "authorised"' in guarded
+    assert '"status": "ok"' not in guarded
+    # and the refusal must also reach the artifact the freshness contract reads
+    assert "_write_season_basis_refusal_report(" in guarded
 
 
 def test_a_marker_write_failure_never_fails_an_otherwise_good_refresh(tmp_path) -> None:
@@ -203,3 +212,127 @@ def test_a_marker_write_failure_never_fails_an_otherwise_good_refresh(tmp_path) 
     unwritable = tmp_path / "file_not_a_dir"
     unwritable.write_text("x")
     _write_season_basis_marker(unwritable / "nested", {"status": "ok"})  # must not raise
+
+
+# ── review round 1: the refusal must reach the artifact that is actually monitored ───
+
+
+def test_the_refusal_writes_the_report_the_freshness_contract_reads(tmp_path) -> None:
+    """The first cut wrote a NEW sidecar and claimed that made a refusal distinguishable
+    from a break. Nothing read it. `app/config/report_freshness.json` registers
+    `feature_refresh_latest_report.json` for this producer with `status_field: status`,
+    `success_status: [ok, noop]` and `failure_reason_field: blocked_reason` — that is the
+    file an operator's alert consults, so the refusal has to land there."""
+    import json
+
+    from scripts.run_feature_refresh import _write_season_basis_refusal_report
+    from src.dynasty_genius.features.season_basis import SEASON_BASIS_CHANGE_BLOCKED
+
+    _write_season_basis_refusal_report(
+        tmp_path,
+        reason=SEASON_BASIS_CHANGE_BLOCKED,
+        derived=2026,
+        published=2025,
+        detail="No declaration exists.",
+        source_hash="abc123",
+    )
+    report = json.loads((tmp_path / "feature_refresh_latest_report.json").read_text())
+
+    assert report["status"] == "blocked"
+    assert report["blocked_reason"] == SEASON_BASIS_CHANGE_BLOCKED
+    assert report["generated_at"]
+    assert report["derived_inference_season"] == 2026
+    assert report["published_inference_season"] == 2025
+    assert report["decision_supported"] is False
+    assert report["publish_performed"] is False
+
+
+def test_the_blocked_report_cannot_make_the_next_morning_noop_itself_quiet() -> None:
+    """`feature_refresh_runner` refuses to no-op from a prior `blocked` state (its own
+    "noop poisoning" guard). Writing status `blocked` therefore keeps the refusal firing
+    every morning until it is resolved, instead of going quiet after one day."""
+    from pathlib import Path
+
+    import src.dynasty_genius.features.feature_refresh_runner as runner
+
+    source = Path(runner.__file__).read_text()
+    assert 'last_status != "blocked"' in source
+
+
+# ── review round 1: the guard must not fail OPEN on a missing marker ─────────────────
+
+
+def test_a_published_runtime_with_an_unreadable_marker_refuses_rather_than_proceeds(
+    tmp_path,
+) -> None:
+    """The first cut treated "no readable marker" as "nothing to protect". But a runtime CSV
+    can be present with a marker that is missing or corrupt, and proceeding there authorises
+    exactly the rebase this guard exists to stop."""
+    with pytest.raises(SeasonBasisRefusal):
+        authorise_inference_season(
+            derived=2026, published=None, declaration=None, runtime_present=True
+        )
+
+
+def test_a_truly_first_publish_still_proceeds(tmp_path) -> None:
+    assert (
+        authorise_inference_season(
+            derived=2026, published=None, declaration=None, runtime_present=False
+        )
+        == 2026
+    )
+
+
+def test_the_basis_reader_reports_whether_a_runtime_exists_at_all(tmp_path) -> None:
+    import json
+
+    from src.dynasty_genius.features.season_basis import published_basis
+
+    empty = published_basis(tmp_path)
+    assert empty["season"] is None and empty["runtime_present"] is False
+
+    (tmp_path / "engine_b_features_runtime.csv").write_text("player_id\n")
+    corrupt = published_basis(tmp_path)
+    assert corrupt["season"] is None and corrupt["runtime_present"] is True
+
+    (tmp_path / "engine_b_features_runtime.ready.json").write_text(
+        json.dumps({"inference_season": 2025})
+    )
+    good = published_basis(tmp_path)
+    assert good["season"] == 2025 and good["runtime_present"] is True
+
+
+# ── review round 1: prove it end to end, not by grepping the source ──────────────────
+
+
+def test_the_rollover_is_refused_end_to_end_through_main(tmp_path, monkeypatch) -> None:
+    """The wiring tests above are source greps. This one drives the real entry point across
+    the real event: a published 2025 basis, a feed offering 2026, no declaration."""
+    import json
+
+    import scripts.run_feature_refresh as refresh
+
+    runtime = tmp_path / "features_runtime"
+    runtime.mkdir()
+    (runtime / "engine_b_features_runtime.csv").write_text("player_id,feature_season\nx,2025\n")
+    (runtime / "engine_b_features_runtime.ready.json").write_text(
+        json.dumps({"status": "ok", "inference_season": 2025})
+    )
+    before = (runtime / "engine_b_features_runtime.csv").read_text()
+
+    import pandas as pd
+
+    feed = pd.DataFrame(
+        {"season": [2025, 2026], "player_id": ["a", "b"], "week": [1, 1]}
+    )
+    monkeypatch.setattr(refresh, "_load_source", lambda seasons: {"player_stats": feed})
+
+    exit_code = refresh.main(["--runtime-dir", str(runtime)])
+
+    assert exit_code == 1, "the rollover must not publish"
+    report = json.loads((runtime / "feature_refresh_latest_report.json").read_text())
+    assert report["status"] == "blocked"
+    assert report["blocked_reason"] == SEASON_BASIS_CHANGE_BLOCKED
+    assert (runtime / "engine_b_features_runtime.csv").read_text() == before, (
+        "the live board must keep serving the season it was built on"
+    )

@@ -33,6 +33,7 @@ from typing import Any, Optional
 SEASON_BASIS_CHANGE_BLOCKED = "season_basis_change_blocked"
 
 RUNTIME_MARKER_NAME = "engine_b_features_runtime.ready.json"
+RUNTIME_CSV_NAME = "engine_b_features_runtime.csv"
 
 # Where a ruling would be recorded. Absent by design until David makes one — its absence is
 # what keeps the guard closed, so nothing here creates it.
@@ -82,6 +83,21 @@ def published_inference_season(runtime_dir: Path | str) -> Optional[int]:
         return None
 
 
+def published_basis(runtime_dir: Path | str) -> dict[str, Any]:
+    """What the live runtime says its basis is, AND whether a runtime exists at all.
+
+    The two are different questions and conflating them fails OPEN: a runtime CSV can be
+    present while its marker is missing or corrupt, and treating that as "nothing to
+    protect" would authorise exactly the rebase this guard exists to stop. Only a directory
+    with no published runtime is a genuine first publish.
+    """
+    directory = Path(runtime_dir)
+    return {
+        "season": published_inference_season(directory),
+        "runtime_present": (directory / RUNTIME_CSV_NAME).exists(),
+    }
+
+
 def load_declaration(path: Path | str | None = None) -> Optional[dict[str, Any]]:
     """The governed authorisation, or None when there is none. Absence is the normal state."""
     target = Path(path) if path is not None else SEASON_BASIS_DECLARATION
@@ -97,6 +113,7 @@ def authorise_inference_season(
     derived: int,
     published: Optional[int],
     declaration: Optional[dict[str, Any]],
+    runtime_present: bool = False,
 ) -> int:
     """Return the season the refresh may publish on, or refuse.
 
@@ -105,6 +122,18 @@ def authorise_inference_season(
     author and date.
     """
     derived = int(derived)
+    if published is None and runtime_present:
+        # A runtime IS published but will not say what it is built on. Proceeding here would
+        # authorise the rebase on the strength of a file we could not read.
+        raise SeasonBasisRefusal(
+            SEASON_BASIS_CHANGE_BLOCKED,
+            derived=derived,
+            published=None,
+            detail=(
+                "A runtime feature table is published but its ready-marker is missing or "
+                "unreadable, so the season it was built on cannot be established."
+            ),
+        )
     if published is None or int(published) == derived:
         return derived
 

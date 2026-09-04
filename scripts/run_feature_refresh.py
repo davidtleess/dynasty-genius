@@ -39,7 +39,7 @@ from src.dynasty_genius.features.season_basis import (  # noqa: E402
     SeasonBasisRefusal,
     authorise_inference_season,
     load_declaration,
-    published_inference_season,
+    published_basis,
 )
 from src.dynasty_genius.nflverse_usage import (  # noqa: E402
     load_nextgen_from_export,
@@ -320,13 +320,49 @@ def _source_provenance(read_fns: dict, seasons_window: list[int]) -> dict:
 
 
 SEASON_BASIS_MARKER_NAME = "feature_season_basis_status.json"
+REFRESH_REPORT_NAME = "feature_refresh_latest_report.json"
 
 
 def _write_season_basis_marker(runtime_dir, payload: dict) -> None:
-    """Record the basis decision beside the runtime so an alert can tell a REFUSAL from a
-    BREAK without parsing stdout. Never fails the run over its own sidecar."""
+    """Audit detail for the basis decision. Never fails the run over its own sidecar."""
     try:
         target = Path(runtime_dir) / SEASON_BASIS_MARKER_NAME
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            json.dumps(payload, indent=1, sort_keys=True, default=str) + "\n",
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+
+def _write_season_basis_refusal_report(
+    runtime_dir, *, reason: str, derived: int, published, detail: str, source_hash=None
+) -> None:
+    """Write the refusal into the artifact the freshness contract actually reads.
+
+    `app/config/report_freshness.json` registers `feature_refresh_latest_report.json` for
+    this producer with `status_field: status`, `success_status: [ok, noop]` and
+    `failure_reason_field: blocked_reason`. A refusal that only wrote a new sidecar would be
+    invisible: an operator would see the same bare non-zero exit a broken feed produces. The
+    status is `blocked`, which `feature_refresh_runner` already refuses to no-op away from
+    (its noop-poisoning guard), so the refusal keeps firing every morning until it is
+    resolved rather than going quiet after one day.
+    """
+    payload = {
+        "status": "blocked",
+        "blocked_reason": reason,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "publish_performed": False,
+        "refresh_performed": False,
+        "decision_supported": False,
+        "derived_inference_season": derived,
+        "published_inference_season": published,
+        "detail": detail,
+        "source_hash": source_hash,
+    }
+    try:
+        target = Path(runtime_dir) / REFRESH_REPORT_NAME
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(
             json.dumps(payload, indent=1, sort_keys=True, default=str) + "\n",
@@ -427,16 +463,28 @@ def main(argv: list[str] | None = None) -> int:
         # morning nflverse publishes the first row of a new season it REFUSES, because
         # advancing silently rebases every ranked player from a complete season onto the four
         # games he has played so far, on the feature with the largest coefficient at every
-        # position. The refusal writes its OWN marker: this repo's alerting suppresses or
-        # raises on a producer's marker, never on an exit code alone (DG-044's pin contract),
-        # so during the fail-closed window a refusal does not read like a broken feed.
+        # position.
+        basis = published_basis(args.runtime_dir)
         try:
             inference_season = authorise_inference_season(
                 derived=season_end,
-                published=published_inference_season(args.runtime_dir),
+                published=basis["season"],
                 declaration=load_declaration(),
+                runtime_present=basis["runtime_present"],
             )
         except SeasonBasisRefusal as exc:
+            # The refusal goes into the MONITORED report, not only a sidecar: an operator's
+            # alert reads this producer's report and its `blocked_reason`, so a refusal that
+            # wrote nowhere else would look exactly like the broken feed it must be told
+            # apart from (DG-136). The sidecar keeps the fuller audit detail.
+            _write_season_basis_refusal_report(
+                args.runtime_dir,
+                reason=exc.reason,
+                derived=exc.derived,
+                published=exc.published,
+                detail=exc.detail,
+                source_hash=source_hash,
+            )
             _write_season_basis_marker(
                 args.runtime_dir,
                 {
@@ -445,18 +493,25 @@ def main(argv: list[str] | None = None) -> int:
                     "derived_inference_season": exc.derived,
                     "published_inference_season": exc.published,
                     "detail": exc.detail,
+                    "finished_at": datetime.now(timezone.utc).isoformat(),
                     "decision_supported": False,
                 },
             )
             print(f"{exc.reason}: {exc}")
             return 1
+        # AUTHORISED, not "ok": nothing has been published yet at this point, and a marker
+        # that claimed success here would say `ok` on a morning the publish later blocked.
         _write_season_basis_marker(
             args.runtime_dir,
             {
-                "status": "ok",
+                "status": "authorised",
                 "reason": None,
                 "derived_inference_season": season_end,
-                "published_inference_season": inference_season,
+                "published_inference_season": basis["season"],
+                "basis_changed": basis["season"] is not None
+                and basis["season"] != season_end,
+                "runtime_present": basis["runtime_present"],
+                "finished_at": datetime.now(timezone.utc).isoformat(),
                 "decision_supported": False,
             },
         )
