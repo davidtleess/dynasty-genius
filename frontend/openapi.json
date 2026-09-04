@@ -301,6 +301,105 @@
         "title": "BaselineQuestion",
         "type": "object"
       },
+      "BundleVsCheckout": {
+        "additionalProperties": false,
+        "description": "Is the running app built from THIS checkout's code? (DG-121)\n\nEvery field is a fact or a ``None``. ``sha_matches_head`` is never ``False``\nwhen a side is unknown, and ``manifest_source_dirty`` sits BESIDE the\ncomparison rather than inside it: a dirty build can be the same commit and\nstill not be that code, which is the distinction DG-076's review fought for\nand the live state of the bundle on 2026-09-04.",
+        "properties": {
+          "commits_head_ahead_of_bundle": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Commits Head Ahead Of Bundle"
+          },
+          "head_sha": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Head Sha"
+          },
+          "manifest_built_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manifest Built At"
+          },
+          "manifest_present": {
+            "title": "Manifest Present",
+            "type": "boolean"
+          },
+          "manifest_sha_known_to_repo": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manifest Sha Known To Repo"
+          },
+          "manifest_source_dirty": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manifest Source Dirty"
+          },
+          "manifest_source_sha": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manifest Source Sha"
+          },
+          "sha_matches_head": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sha Matches Head"
+          }
+        },
+        "required": [
+          "manifest_present",
+          "manifest_source_sha",
+          "manifest_source_dirty",
+          "manifest_built_at",
+          "manifest_sha_known_to_repo",
+          "head_sha",
+          "sha_matches_head",
+          "commits_head_ahead_of_bundle"
+        ],
+        "title": "BundleVsCheckout",
+        "type": "object"
+      },
       "CapacityCandidate": {
         "description": "One roster player surfaced in the capacity-ordered review list.\n\nRaw value fields are re-joined from the universe PVO (the cut engine exposes\nonly percentile/dvs). Each field carries a provenance status so a consumer\ncan tell an \"ok\" join from an \"unavailable\"/\"pre_model\"/\"unknown_position\"\none without guessing from a null.",
         "properties": {
@@ -506,6 +605,76 @@
           "decision_supported"
         ],
         "title": "CaptureHealthResponse",
+        "type": "object"
+      },
+      "CheckoutVsOrigin": {
+        "additionalProperties": false,
+        "description": "Is this checkout the work that has been landed? (DG-121)\n\nThe second axis exists because the first one alone reads as healthy on the\nexact morning this ticket is about: on 2026-09-04 the bundle was the\ncheckout's own commit while the checkout sat eight commits behind the\nremote, so three of David's rulings were landed and not on his screen.\nRead from local refs only \u2014 a health endpoint does not reach the network \u2014\nso ``remote_last_fetched_at`` ships beside the count and nothing can read it\nas live.",
+        "properties": {
+          "commits_behind_remote": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Commits Behind Remote"
+          },
+          "head_sha": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Head Sha"
+          },
+          "remote_last_fetched_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remote Last Fetched At"
+          },
+          "remote_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remote Ref"
+          },
+          "remote_sha": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remote Sha"
+          }
+        },
+        "required": [
+          "head_sha",
+          "remote_ref",
+          "remote_sha",
+          "commits_behind_remote",
+          "remote_last_fetched_at"
+        ],
+        "title": "CheckoutVsOrigin",
         "type": "object"
       },
       "CohortMetric": {
@@ -5173,6 +5342,24 @@
         "title": "ScenarioResult",
         "type": "object"
       },
+      "ServedBundleFacts": {
+        "additionalProperties": false,
+        "description": "The two axes, deliberately not collapsed into one word.\n\nNo status enum and no cause word: the bundle can be dirty-and-matching,\nclean-and-behind, or both at once, so a single verdict would have to pick\none. What these numbers should SAY on screen is a live design question\n(David, 2026-09-04: \"we need glyphs and symbols, not full sentences\"), and a\nword chosen in the payload would constrain that choice.",
+        "properties": {
+          "bundle_vs_checkout": {
+            "$ref": "#/components/schemas/BundleVsCheckout"
+          },
+          "checkout_vs_origin": {
+            "$ref": "#/components/schemas/CheckoutVsOrigin"
+          }
+        },
+        "required": [
+          "bundle_vs_checkout",
+          "checkout_vs_origin"
+        ],
+        "title": "ServedBundleFacts",
+        "type": "object"
+      },
       "StabilityResult": {
         "properties": {
           "dm_hln_pvalue": {
@@ -5825,6 +6012,9 @@
             "title": "Reports",
             "type": "array"
           },
+          "served_bundle": {
+            "$ref": "#/components/schemas/ServedBundleFacts"
+          },
           "subsystems": {
             "items": {
               "$ref": "#/components/schemas/SubsystemHealth"
@@ -5856,6 +6046,7 @@
           "config_version",
           "subsystems",
           "reports",
+          "served_bundle",
           "disclaimer",
           "decision_supported"
         ],

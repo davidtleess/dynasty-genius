@@ -151,6 +151,59 @@ class ReportHealth(_Strict):
     decision_supported: Literal[False]
 
 
+class BundleVsCheckout(_Strict):
+    """Is the running app built from THIS checkout's code? (DG-121)
+
+    Every field is a fact or a ``None``. ``sha_matches_head`` is never ``False``
+    when a side is unknown, and ``manifest_source_dirty`` sits BESIDE the
+    comparison rather than inside it: a dirty build can be the same commit and
+    still not be that code, which is the distinction DG-076's review fought for
+    and the live state of the bundle on 2026-09-04.
+    """
+
+    manifest_present: bool
+    manifest_source_sha: str | None
+    manifest_source_dirty: bool | None
+    manifest_built_at: str | None
+    manifest_sha_known_to_repo: bool | None
+    head_sha: str | None
+    sha_matches_head: bool | None
+    commits_head_ahead_of_bundle: int | None
+
+
+class CheckoutVsOrigin(_Strict):
+    """Is this checkout the work that has been landed? (DG-121)
+
+    The second axis exists because the first one alone reads as healthy on the
+    exact morning this ticket is about: on 2026-09-04 the bundle was the
+    checkout's own commit while the checkout sat eight commits behind the
+    remote, so three of David's rulings were landed and not on his screen.
+    Read from local refs only — a health endpoint does not reach the network —
+    so ``remote_last_fetched_at`` ships beside the count and nothing can read it
+    as live.
+    """
+
+    head_sha: str | None
+    remote_ref: str | None
+    remote_sha: str | None
+    commits_behind_remote: int | None
+    remote_last_fetched_at: str | None
+
+
+class ServedBundleFacts(_Strict):
+    """The two axes, deliberately not collapsed into one word.
+
+    No status enum and no cause word: the bundle can be dirty-and-matching,
+    clean-and-behind, or both at once, so a single verdict would have to pick
+    one. What these numbers should SAY on screen is a live design question
+    (David, 2026-09-04: "we need glyphs and symbols, not full sentences"), and a
+    word chosen in the payload would constrain that choice.
+    """
+
+    bundle_vs_checkout: BundleVsCheckout
+    checkout_vs_origin: CheckoutVsOrigin
+
+
 class SystemHealthResponse(_Strict):
     overall_status: HealthOverallStatus
     worst_affected_tier: HealthTier | None
@@ -158,6 +211,7 @@ class SystemHealthResponse(_Strict):
     config_version: int
     subsystems: list[SubsystemHealth]
     reports: list[ReportHealth]
+    served_bundle: ServedBundleFacts
     # Exact-copy mandatory disclaimer (Gemini): a Literal type means no code
     # path can serve a weakened version and still validate.
     disclaimer: Literal[

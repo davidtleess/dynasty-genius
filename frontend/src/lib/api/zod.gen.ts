@@ -76,6 +76,28 @@ export const zBackupHealth = z.object({
 });
 
 /**
+ * BundleVsCheckout
+ *
+ * Is the running app built from THIS checkout's code? (DG-121)
+ *
+ * Every field is a fact or a ``None``. ``sha_matches_head`` is never ``False``
+ * when a side is unknown, and ``manifest_source_dirty`` sits BESIDE the
+ * comparison rather than inside it: a dirty build can be the same commit and
+ * still not be that code, which is the distinction DG-076's review fought for
+ * and the live state of the bundle on 2026-09-04.
+ */
+export const zBundleVsCheckout = z.object({
+    commits_head_ahead_of_bundle: z.int().nullable(),
+    head_sha: z.string().nullable(),
+    manifest_built_at: z.string().nullable(),
+    manifest_present: z.boolean(),
+    manifest_sha_known_to_repo: z.boolean().nullable(),
+    manifest_source_dirty: z.boolean().nullable(),
+    manifest_source_sha: z.string().nullable(),
+    sha_matches_head: z.boolean().nullable()
+});
+
+/**
  * CapacityCandidate
  *
  * One roster player surfaced in the capacity-ordered review list.
@@ -125,6 +147,27 @@ export const zCaptureHealthErrorResponse = z.object({
     decision_supported: z.literal(false),
     error: z.string(),
     message: z.string()
+});
+
+/**
+ * CheckoutVsOrigin
+ *
+ * Is this checkout the work that has been landed? (DG-121)
+ *
+ * The second axis exists because the first one alone reads as healthy on the
+ * exact morning this ticket is about: on 2026-09-04 the bundle was the
+ * checkout's own commit while the checkout sat eight commits behind the
+ * remote, so three of David's rulings were landed and not on his screen.
+ * Read from local refs only — a health endpoint does not reach the network —
+ * so ``remote_last_fetched_at`` ships beside the count and nothing can read it
+ * as live.
+ */
+export const zCheckoutVsOrigin = z.object({
+    commits_behind_remote: z.int().nullable(),
+    head_sha: z.string().nullable(),
+    remote_last_fetched_at: z.string().nullable(),
+    remote_ref: z.string().nullable(),
+    remote_sha: z.string().nullable()
 });
 
 /**
@@ -1216,6 +1259,22 @@ export const zRosterCapacityResponse = z.object({
 });
 
 /**
+ * ServedBundleFacts
+ *
+ * The two axes, deliberately not collapsed into one word.
+ *
+ * No status enum and no cause word: the bundle can be dirty-and-matching,
+ * clean-and-behind, or both at once, so a single verdict would have to pick
+ * one. What these numbers should SAY on screen is a live design question
+ * (David, 2026-09-04: "we need glyphs and symbols, not full sentences"), and a
+ * word chosen in the payload would constrain that choice.
+ */
+export const zServedBundleFacts = z.object({
+    bundle_vs_checkout: zBundleVsCheckout,
+    checkout_vs_origin: zCheckoutVsOrigin
+});
+
+/**
  * StabilityResult
  */
 export const zStabilityResult = z.object({
@@ -1459,6 +1518,7 @@ export const zSystemHealthResponse = z.object({
     disclaimer: z.literal('System health reflects pipeline completion, artifact freshness, and model provenance verification. It does not evaluate model accuracy or guarantee trade edge.'),
     overall_status: z.enum(['ok', 'degraded']),
     reports: z.array(zReportHealth),
+    served_bundle: zServedBundleFacts,
     subsystems: z.array(zSubsystemHealth),
     worst_affected_tier: z.enum([
         'core_substrate',
