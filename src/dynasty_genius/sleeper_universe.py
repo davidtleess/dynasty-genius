@@ -87,15 +87,40 @@ def _classify_player(
     return "EXCLUDED"
 
 
+# Sleeper fills an EMPTY starter slot with the literal string "0". It is a hole in
+# a lineup, not a player: it resolves to nothing in the players map, so it reached
+# the artifact as an UNRESOLVED_IDENTITY row with no name and no position — and
+# `if pid` waves it through, because "0" is a perfectly truthy string (DG-148).
+#
+# Measured on the 2026-09-04 13:00 capture: 8 occurrences, all in starter slots,
+# in no roster's `players` list, and the ONLY id anywhere in
+# starters/taxi/reserve missing from `players`. Rostered ids 274 -> 273.
+_EMPTY_SLOT_PLACEHOLDER = "0"
+
+
+def _roster_ids(raw: Any) -> set[str]:
+    """The real player ids in one of a roster's lists, placeholder excluded."""
+    return {
+        str(pid)
+        for pid in raw or []
+        if pid and str(pid) != _EMPTY_SLOT_PLACEHOLDER
+    }
+
+
 def _build_roster_context(rosters: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     context: dict[str, dict[str, Any]] = {}
     for roster in rosters:
         roster_id = roster.get("roster_id")
         owner_id = roster.get("owner_id")
-        starters = {str(pid) for pid in roster.get("starters") or [] if pid}
-        taxi = {str(pid) for pid in roster.get("taxi") or [] if pid}
-        reserve = {str(pid) for pid in roster.get("reserve") or [] if pid}
-        players = {str(pid) for pid in roster.get("players") or [] if pid}
+        # Membership stays the UNION of all four lists. Defining it from
+        # `players` alone would be the tidier rule, and on today's capture it
+        # gives the identical answer — but a real player who ever appeared only
+        # in a starter slot would silently vanish from David's roster, which is a
+        # far worse failure than the one visible junk row this removes.
+        starters = _roster_ids(roster.get("starters"))
+        taxi = _roster_ids(roster.get("taxi"))
+        reserve = _roster_ids(roster.get("reserve"))
+        players = _roster_ids(roster.get("players"))
         for player_id in players | starters | taxi | reserve:
             context[player_id] = {
                 "rostered": True,
