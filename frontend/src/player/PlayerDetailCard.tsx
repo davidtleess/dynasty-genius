@@ -7,9 +7,18 @@
 // told, in a sentence, that he is unscored and what that means for the numbers
 // below; and the model's standing is stated ONCE at the foot of the card,
 // where it belongs, instead of stamped at the top of every region.
+import type { ReactNode } from "react";
 import type { z } from "zod";
 import type { zPlayerDetailResponse } from "../lib/api/zod.gen";
-import { MODEL_STANDING_SENTENCE } from "../lib/copy";
+import {
+  LEAGUE_FREE_AGENT_LABEL,
+  LEAGUE_FREE_AGENT_SENTENCE,
+  LEAGUE_OWNERSHIP_UNKNOWN_SENTENCE,
+  LEAGUE_ROSTERED_BY_PREFIX,
+  LEAGUE_ROSTERED_WITHOUT_MANAGER,
+  leagueRosterAsOf,
+  MODEL_STANDING_SENTENCE,
+} from "../lib/copy";
 import { ReceiptCitation } from "../ui/Receipt";
 import { EvidenceSection } from "./EvidenceSection";
 import { FrozenPredictionStatus } from "./FrozenPredictionStatus";
@@ -17,6 +26,45 @@ import "./PlayerDetail.css";
 import { ValuationTwoLane } from "./ValuationTwoLane";
 
 type PlayerDetail = z.infer<typeof zPlayerDetailResponse>;
+type LeagueOwnership = PlayerDetail["league_ownership"];
+
+// DG-145 (David, 2026-09-03): "free agents should show 'FA' on the card", and
+// "free agent" means "nobody in the league owns" — a LEAGUE fact, not an NFL one.
+// The API serves that fact dated by the league roster capture it came from
+// (rostered by whom / free agent / unknown); this line says it with the capture
+// time on screen, so the age of the fact is stated, never guessed. The word
+// "FA" comes from the copy dictionary and nowhere else. An unknown is said as
+// unknown — the capture did not vouch for him — with no label and no date.
+function leagueOwnershipLine(ownership: LeagueOwnership): ReactNode {
+  const asOf =
+    ownership.as_of !== null && ownership.as_of !== undefined
+      ? ` · ${leagueRosterAsOf(ownership.as_of)}`
+      : "";
+  if (ownership.status === "free_agent") {
+    return (
+      <>
+        <span className="dg-player-detail__fa">{LEAGUE_FREE_AGENT_LABEL}</span>
+        {` · ${LEAGUE_FREE_AGENT_SENTENCE}${asOf}`}
+      </>
+    );
+  }
+  if (ownership.status === "rostered") {
+    const name = ownership.owner_display_name;
+    if (name === null || name === undefined || name === "") {
+      return `${LEAGUE_ROSTERED_WITHOUT_MANAGER}${asOf}`;
+    }
+    return (
+      <>
+        {`${LEAGUE_ROSTERED_BY_PREFIX} `}
+        {/* The manager's handle is text the league wrote, not our vocabulary —
+            DG-109's render rule exempts it by this marker. */}
+        <span data-user-text="">{name}</span>
+        {asOf}
+      </>
+    );
+  }
+  return LEAGUE_OWNERSHIP_UNKNOWN_SENTENCE;
+}
 
 export function PlayerDetailCard({ detail }: { detail: PlayerDetail }) {
   const modeled = detail.model_status === "modeled";
@@ -31,6 +79,9 @@ export function PlayerDetailCard({ detail }: { detail: PlayerDetail }) {
         <p className="dg-player-detail__meta">
           {detail.identity.position} · {detail.identity.team} · age{" "}
           {detail.identity.age}
+        </p>
+        <p className="dg-player-detail__league" data-testid="league-ownership">
+          {leagueOwnershipLine(detail.league_ownership)}
         </p>
         {/* DG-109 put the bare Sleeper id in the receipt layer, labelled, on the
             inspector preview: it is a lookup key, not information about the

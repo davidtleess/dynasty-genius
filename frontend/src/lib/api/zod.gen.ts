@@ -781,6 +781,28 @@ export const zPlayerIdentity = z.object({
 });
 
 /**
+ * PlayerLeagueOwnership
+ *
+ * Where the player stands in David's league (DG-145). Read from the row's
+ * ``league_context`` — the latest league roster capture — and dated by the
+ * artifact's ``source_snapshot_captured_at``, so the card can say how old the
+ * fact is instead of guessing. ``unknown`` means the capture did not vouch for
+ * him: a missing or non-boolean ``rostered`` flag, or an undated snapshot. It is
+ * never dressed up as a free agent. The word "FA" is the frontend's, minted once
+ * in copy.ts; this field carries the fact, not the label.
+ */
+export const zPlayerLeagueOwnership = z.object({
+    as_of: z.string().nullable(),
+    owner_display_name: z.string().nullable(),
+    roster_id: z.int().nullable(),
+    status: z.enum([
+        'rostered',
+        'free_agent',
+        'unknown'
+    ])
+});
+
+/**
  * PlayerMarketLane
  */
 export const zPlayerMarketLane = z.object({
@@ -826,6 +848,7 @@ export const zPlayerDetailResponse = z.object({
     evidence: zPlayerEvidence.nullable(),
     frozen_prediction: zFrozenPredictionField,
     identity: zPlayerIdentity,
+    league_ownership: zPlayerLeagueOwnership,
     market: zPlayerMarketLane,
     model: zPlayerModelLane.nullable(),
     model_status: z.string(),

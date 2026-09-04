@@ -1797,3 +1797,29 @@ function splitLabelledEntries(text: string): [string, string][] {
   }
   return entries;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 10 · DG-145 — who owns him in your league.
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// David, 2026-09-03 05:59 ET: "I think free agents should show 'FA' on the
+// card." Asked that evening whether "free agent" meant no NFL team or nobody in
+// his league (23:35 ET): "1) nobody in the league owns." So "FA" on the card is a
+// LEAGUE fact — the player is on no roster in his 12-team Sleeper league — read
+// from the latest league roster capture, never a training-time fact.
+//
+// The API serves the fact (`league_ownership.status`: rostered | free_agent |
+// unknown) dated by the capture it came from, and never says the word. The word
+// is minted HERE, once, and nowhere else. "unknown" is said as unknown: the
+// capture did not vouch for him, so no label and no date.
+export const LEAGUE_FREE_AGENT_LABEL = "FA";
+export const LEAGUE_FREE_AGENT_SENTENCE = "nobody in your league owns him";
+export const LEAGUE_ROSTERED_BY_PREFIX = "Rostered by";
+export const LEAGUE_ROSTERED_WITHOUT_MANAGER = "Rostered in your league";
+export const LEAGUE_OWNERSHIP_UNKNOWN_SENTENCE =
+  "Who owns him in your league is unknown right now.";
+
+/** The age of the ownership fact, said in the same clock as every other capture. */
+export function leagueRosterAsOf(iso: string): string {
+  return `league roster as of ${formatCaptureTimestamp(iso)}`;
+}

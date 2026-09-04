@@ -1,0 +1,124 @@
+// @vitest-environment jsdom
+
+// DG-145 — David, 2026-09-03: "I think free agents should show 'FA' on the
+// card", and, asked whether that meant no NFL team or nobody in his league:
+// "1) nobody in the league owns." The API serves the fact (rostered by whom, a
+// free agent, or unknown) dated by the league roster capture it came from; the
+// card prints it in one line, and the word "FA" is minted once, in copy.ts.
+import { render, screen, within } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+
+import { LEAGUE_FREE_AGENT_LABEL } from "../lib/copy";
+import { PlayerDetailCard } from "./PlayerDetailCard";
+
+const AS_OF = "2026-09-03T13:00:45.589670+00:00";
+const AS_OF_ON_SCREEN = "Sep 3, 2026, 9:00 AM EDT";
+
+function detail(league_ownership) {
+  return {
+    caveats: ["decision_supported_false"],
+    decision_supported: false,
+    degradation: { message: "No active model score for this player category." },
+    divergence: { delta: null, status: "unavailable" },
+    evidence: null,
+    frozen_prediction: {
+      basis: "store_unavailable_or_ambiguous",
+      coverage: {
+        current_rostered_skill_in_frozen_prediction_cohort_count: 0,
+        current_rostered_skill_not_in_frozen_prediction_cohort_count: 1,
+        current_rostered_skill_player_count: 1,
+      },
+      decision_supported: false,
+      frozen_capture_date: "2026-08-05",
+      message: "Frozen prediction membership is currently unavailable.",
+      season: 2026,
+      status: "unavailable",
+    },
+    identity: {
+      age: 27,
+      draft_class: 2020,
+      name: "Colby Parkinson",
+      nfl_draft_pick: 133,
+      nfl_draft_round: 4,
+      position: "TE",
+      sleeper_id: "6879",
+      team: "LAR",
+    },
+    league_ownership,
+    market: {
+      caveats: ["market_overlay_unavailable"],
+      market_rank_overall: null,
+      market_rank_position: null,
+      market_value: null,
+      source: null,
+      source_timestamp: null,
+      status: "unavailable",
+    },
+    model: null,
+    model_status: "experimental",
+    sleeper_id: "6879",
+    source_timestamps: { market: null, pvo: "2026-09-03T18:00:02Z" },
+  };
+}
+
+function ownershipLine(league_ownership) {
+  render(<PlayerDetailCard detail={detail(league_ownership)} />);
+  return screen.getByTestId("league-ownership");
+}
+
+describe("DG-145 the card says who owns him in your league", () => {
+  it("prints FA for a player nobody in the league owns, dated by the roster capture", () => {
+    const line = ownershipLine({
+      as_of: AS_OF,
+      owner_display_name: null,
+      roster_id: null,
+      status: "free_agent",
+    });
+    expect(within(line).getByText("FA")).toBeTruthy();
+    expect(line.textContent).toContain("nobody in your league owns him");
+    expect(line.textContent).toContain(AS_OF_ON_SCREEN);
+  });
+
+  it("names the manager for a rostered player and never says FA", () => {
+    const line = ownershipLine({
+      as_of: AS_OF,
+      owner_display_name: "Dleess",
+      roster_id: 1,
+      status: "rostered",
+    });
+    expect(line.textContent).toContain("Rostered by Dleess");
+    expect(within(line).queryByText("FA")).toBeNull();
+    expect(line.textContent).toContain(AS_OF_ON_SCREEN);
+    // The handle is text the league wrote, not our vocabulary (DG-109).
+    expect(within(line).getByText("Dleess").hasAttribute("data-user-text")).toBe(true);
+  });
+
+  it("says rostered without a name when the capture had the roster but not the manager", () => {
+    const line = ownershipLine({
+      as_of: AS_OF,
+      owner_display_name: null,
+      roster_id: 7,
+      status: "rostered",
+    });
+    expect(line.textContent).toContain("Rostered in your league");
+    expect(within(line).queryByText("FA")).toBeNull();
+  });
+
+  it("says the ownership is unknown, never FA, when the capture could not vouch for him", () => {
+    const line = ownershipLine({
+      as_of: null,
+      owner_display_name: null,
+      roster_id: null,
+      status: "unknown",
+    });
+    expect(line.textContent).toContain(
+      "Who owns him in your league is unknown right now",
+    );
+    expect(within(line).queryByText("FA")).toBeNull();
+    expect(line.textContent).not.toContain("as of");
+  });
+
+  it("mints the word once, in the copy dictionary", () => {
+    expect(LEAGUE_FREE_AGENT_LABEL).toBe("FA");
+  });
+});

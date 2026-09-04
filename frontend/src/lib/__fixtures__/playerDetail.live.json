@@ -53,6 +53,12 @@
     "sleeper_id": "12508",
     "team": "NYG"
   },
+  "league_ownership": {
+    "as_of": "2026-08-29T13:00:45.000000+00:00",
+    "owner_display_name": "Dleess",
+    "roster_id": 1,
+    "status": "rostered"
+  },
   "market": {
     "caveats": [
       "market_overlay_static_caveat",
