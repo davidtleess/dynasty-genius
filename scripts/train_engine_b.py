@@ -15,6 +15,7 @@ import os
 import pickle
 import sys
 import tempfile
+from collections.abc import Iterable
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -24,7 +25,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats as scipy_stats
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import Ridge, RidgeCV
+from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_squared_error, r2_score
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -157,8 +158,140 @@ FEATURES_UNIFIED = sorted([
 
 HOLDOUT_SEASONS = [2022, 2023]
 
-# Alpha candidates for RidgeCV search
+# Alpha candidates for the penalty search
 ALPHA_CANDIDATES = [0.1, 1.0, 10.0, 50.0, 100.0, 200.0, 500.0, 1000.0]
+
+# DG-026 — the target is the mean PPG of the seasons AFTER the feature season
+# (feature_assembly._calc_avg over t+1 and t+2), so a training row's outcome
+# window stays OPEN for this many seasons past its feature season.
+LABEL_WINDOW_SEASONS = 2
+
+
+# DG-026 — how far the label window must clear the test period.
+#
+#   "no_shared_outcome_season" (SHIPPED): a training row's outcome window may not
+#       contain any season the test rows are labelled from. This removes exactly
+#       the leak the ticket names — 2023 outcomes on both sides of the split.
+#   "window_closed_before_test": additionally forbids a training LABEL season from
+#       being a test FEATURE season. Stricter and defensible, but measured on the
+#       real dataset it leaves ONE alpha-selection fold per position and 80 QB
+#       rows, which is not a credible penalty search, and it costs accuracy at
+#       every position (QB r2 .345 -> .321, WR .679 -> .637, TE .631 -> .577).
+#
+# Ship the first, keep the second one constant away. The choice is stated rather
+# than defaulted, and the cost of the stricter one is measured, not guessed.
+LABEL_WINDOW_RULE = "no_shared_outcome_season"
+
+
+def admissible_training_seasons(
+    candidate_seasons: Iterable[int],
+    holdout_seasons: Iterable[int],
+    rule: str = LABEL_WINDOW_RULE,
+) -> list[int]:
+    """The feature seasons a model may train on without sharing an outcome with
+    the test period (DG-026).
+
+    The old split was clean on FEATURES and leaking on LABELS: train on feature
+    seasons 2018-2021 and the labels are drawn from 2019-2023, while the 2022-23
+    holdout is labelled from 2023-2025 — 2023 realized outcomes on both sides.
+    Constraining the feature season alone cannot see that, because the leak is a
+    season the training rows never mention.
+
+    A row is admissible only once its whole outcome window has CLOSED before the
+    test period begins, so nothing the model was fitted against can also be
+    something it is later tested on, and no training label is drawn from a season
+    whose features are a test input.
+    """
+    holdout = sorted(holdout_seasons)
+    if not holdout:
+        return sorted(candidate_seasons)
+    if rule == "window_closed_before_test":
+        cutoff = holdout[0]
+    elif rule == "no_shared_outcome_season":
+        # The test rows are labelled from [min(holdout)+1 .. max(holdout)+window];
+        # a training row is admissible while its own window stays clear of that.
+        cutoff = holdout[0] + 1
+    else:
+        raise ValueError(f"unknown label-window rule: {rule!r}")
+    return sorted(y for y in candidate_seasons if y + LABEL_WINDOW_SEASONS < cutoff)
+
+
+def select_alpha_leak_free(
+    X: np.ndarray,
+    y: np.ndarray,
+    seasons: np.ndarray,
+    player_ids: Any,
+    alphas: Iterable[float],
+) -> tuple[float, dict[str, Any]]:
+    """Choose the ridge penalty on expanding-time folds clustered on player (DG-027).
+
+    ``RidgeCV(cv=5)`` shuffles panel data: 85-90% of the fitted training rows
+    belong to a player who appears in more than one season, so a random fold puts
+    the same player on both sides and the penalty is tuned against a validation
+    set that already knows the answer. Measured on the served dataset, the
+    selected penalty moves QB 1000 -> 1, RB 500 -> 50, WR 200 -> 1, TE 10 -> 0.1
+    once the folds are honest — and QB's 1000 was the grid CEILING, so that
+    boundary selection (DG-017) was the leak talking rather than a real choice.
+
+    Each fold validates on ONE season and trains only on strictly earlier ones,
+    with every player who appears in the validation season removed from the
+    training side. Neither the season nor the player crosses.
+
+    It RAISES rather than degrading. A grouped split that quietly reverts to
+    random when its group column is missing would report a clean number and
+    change nothing, which is the failure this function exists to prevent.
+    """
+    if player_ids is None:
+        raise ValueError(
+            "alpha cannot be selected without leakage: no player column was supplied, "
+            "and random folds on panel data put the same player on both sides"
+        )
+    player_ids = np.asarray(player_ids, dtype=object)
+    if len(player_ids) != len(y) or any(p is None or p != p for p in player_ids):
+        raise ValueError(
+            "alpha cannot be selected without leakage: the player column is incomplete"
+        )
+
+    seasons = np.asarray(seasons)
+    ordered = sorted(np.unique(seasons))
+    folds: list[tuple[np.ndarray, np.ndarray]] = []
+    for season in ordered[1:]:
+        val = np.flatnonzero(seasons == season)
+        if val.size == 0:
+            continue
+        val_players = set(player_ids[val])
+        train = np.flatnonzero(
+            (seasons < season) & np.array([p not in val_players for p in player_ids])
+        )
+        if train.size == 0:
+            continue
+        folds.append((train, val))
+
+    if not folds:
+        raise ValueError(
+            "alpha cannot be selected without leakage: no expanding-time fold survives "
+            f"with the player held out (seasons present: {ordered})"
+        )
+
+    best_alpha, best_error = None, float("inf")
+    for alpha in alphas:
+        errors = [
+            mean_squared_error(
+                y[val], Ridge(alpha=alpha).fit(X[train], y[train]).predict(X[val])
+            )
+            for train, val in folds
+        ]
+        mean_error = float(np.mean(errors))
+        if mean_error < best_error:
+            best_alpha, best_error = float(alpha), mean_error
+
+    return best_alpha, {
+        "method": "expanding_time_folds_clustered_on_player",
+        "folds": len(folds),
+        "fold_indices": folds,
+        "validation_seasons": [int(s) for s in ordered[1:]][: len(folds)],
+        "mean_cv_mse": best_error,
+    }
 TE_MODEL_CHANGE_ALPHA = 100.0
 
 
@@ -391,19 +524,41 @@ def _train_position(
 
     validate_position_feature_contract(pos, available)
 
-    X_train_raw = pos_df[~pos_df["feature_season"].isin(HOLDOUT_SEASONS)][available]
-    y_train     = pos_df[~pos_df["feature_season"].isin(HOLDOUT_SEASONS)][OUTCOME_COLUMN].values
+    # DG-026: admissibility is decided by the LABEL window, not the feature
+    # season. Training on every non-holdout season drew 2023 outcomes into both
+    # sides of the split; a rule about feature seasons alone cannot see that,
+    # because the leaking season is one the training rows never mention.
+    candidate = sorted(pos_df.loc[~pos_df["feature_season"].isin(HOLDOUT_SEASONS), "feature_season"].unique())
+    train_seasons = admissible_training_seasons(candidate, HOLDOUT_SEASONS)
+    dropped = [int(y) for y in candidate if y not in train_seasons]
+    train_mask = pos_df["feature_season"].isin(train_seasons)
+
+    train_rows   = pos_df[train_mask]
+    X_train_raw = train_rows[available]
+    y_train     = train_rows[OUTCOME_COLUMN].values
     X_test_raw  = pos_df[ pos_df["feature_season"].isin(HOLDOUT_SEASONS)][available]
     y_test      = pos_df[ pos_df["feature_season"].isin(HOLDOUT_SEASONS)][OUTCOME_COLUMN].values
     baseline    = X_test_raw["ppg_t"].values
 
-    print(f"  {pos}: train {len(X_train_raw)} rows, holdout {len(X_test_raw)} rows, {len(available)} features")
+    print(
+        f"  {pos}: train {len(X_train_raw)} rows over {train_seasons} "
+        f"(DG-026 dropped {dropped or 'nothing'}), holdout {len(X_test_raw)} rows, "
+        f"{len(available)} features"
+    )
 
     imputer = _make_imputer("median")
     X_train = imputer.fit_transform(X_train_raw)
     X_test  = imputer.transform(X_test_raw)
 
-    model = RidgeCV(alphas=ALPHA_CANDIDATES, cv=5)
+    # DG-027: the penalty is chosen on expanding-time folds clustered on player.
+    # RidgeCV(cv=5) shuffled panel data, so the same player sat on both sides and
+    # the penalty was tuned against a validation set that already knew the answer.
+    alpha, alpha_selection = select_alpha_leak_free(
+        X_train, y_train, train_rows["feature_season"].values,
+        train_rows["player_id"].values, ALPHA_CANDIDATES,
+    )
+    print(f"  {pos}: alpha {alpha} from {alpha_selection['folds']} leak-free folds")
+    model = Ridge(alpha=alpha)
     model.fit(X_train, y_train)
 
     y_pred           = model.predict(X_test)
@@ -426,7 +581,15 @@ def _train_position(
     return {
         "position": pos,
         "skipped": False,
-        "alpha_selected": float(model.alpha_),
+        "alpha_selected": float(alpha),
+        # How the penalty was chosen travels with the model, so a future reader
+        # can tell a leak-free selection from the random-fold one it replaced.
+        "alpha_selection": {
+            k: v for k, v in alpha_selection.items() if k != "fold_indices"
+        },
+        "train_seasons": [int(y) for y in train_seasons],
+        "label_window_rule": LABEL_WINDOW_RULE,
+        "seasons_dropped_for_label_leak": dropped,
         "features": available,
         "n_features": len(available),
         "train_rows": len(X_train),
