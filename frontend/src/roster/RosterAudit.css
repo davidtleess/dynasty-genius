@@ -161,3 +161,22 @@
   outline: 2px solid var(--dg-focus);
   outline-offset: 2px;
 }
+
+/* DG-146 (2026-09-03): one small word, "Rookie", next to a rookie's name —
+   David: "small marker indicating theyre a rookie." Full text colour, NOT
+   --dg-text-muted: every rookie row carries data-applies="false" and so
+   opacity 0.55, and muted ink composited through that read 2.78:1 on the
+   smoke fixture's prior-scored rows (DG-105), below the 4.5:1 floor. It is
+   quiet through size and a hairline border, never through colour. The value
+   cell is untouched (2026-09-01 ruling: nothing styles on the basis). */
+.dg-roster__rookie {
+  display: inline-block;
+  margin-left: var(--dg-space-1);
+  padding: 0 var(--dg-space-1);
+  border: 1px solid var(--dg-border);
+  border-radius: var(--dg-radius-control);
+  font-size: var(--dg-text-sm);
+  line-height: 1.4;
+  color: var(--dg-text);
+  white-space: nowrap;
+}
