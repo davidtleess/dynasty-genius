@@ -2157,6 +2157,7 @@ export const zWhatChangedModelSection = z.object({
     pvo_staleness: zWhatChangedModelPvoStaleness.nullish(),
     status: z.string(),
     total_movers_count: z.int().nullish(),
+    uniform_factor_by_position: z.record(z.string(), z.number()).nullish(),
     vintage_changed: z.boolean().nullish()
 });
 

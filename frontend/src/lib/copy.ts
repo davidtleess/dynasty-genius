@@ -511,6 +511,18 @@ const TOKEN_SENTENCES: Record<string, string> = {
   // daily_diff.py:255-271 — a compared date carried more than one model vintage,
   // so both the window and the per-player deltas would be ambiguous. The producer
   // refuses to emit a comparison rather than fabricate one; say exactly that.
+  // DG-158 — the morning the denominators change, every compared player in a
+  // position moves by exactly the same factor and no player has changed. The
+  // producer refuses the per-player list rather than print the whole league as
+  // fallers (daily_diff.py, MODEL_UNIFORM_FACTOR_STATUS).
+  //
+  // It opens by saying it is NOT comparing, because a suppressed section that
+  // does not say so is how a refusal reads as a quiet morning. And it never says
+  // nobody moved: real movement may have happened that morning and this is
+  // SUPPRESSING it, not observing its absence — a player who genuinely fell that
+  // day is not covered by any claim here.
+  model_uniform_factor_per_position:
+    "We are not comparing player by player today: every score in a position moved by an identical amount, which is a change of units rather than a change in anyone's outlook.",
   model_multi_vintage_ambiguous:
     "Two different model runs landed on the same day, so we will not claim what moved overnight.",
   baseline_holding:
@@ -1892,3 +1904,18 @@ export function nflTeamLabel(team: string | null | undefined): string {
 export const LEAGUE_TEAM_LABEL = "League team";
 export const LEAGUE_TEAM_UNNAMED_NOTE = "no team name set";
 export const LEAGUE_TEAM_UNKNOWN = "unknown right now";
+
+// DG-158 — the masthead line for the morning the scale changes. It sits beside
+// the freshness sentence so a suppressed section cannot be read as a quiet
+// morning from the top of the page.
+//
+// It says only two things: the scale is new, and comparison is paused. It makes
+// NO claim about who moved. Earlier drafts ended "Nobody moved up or down" —
+// false in the one direction that would cost David a decision, because a player
+// may genuinely have fallen that morning and this is suppressing the comparison,
+// not observing its absence.
+export const SCALE_CHANGED_MASTHEAD =
+  "Today's scores are on a new scale. Player-by-player comparison is paused until tomorrow.";
+
+/** The producer status that means the scale moved, not the players (DG-158). */
+export const MODEL_UNIFORM_FACTOR_STATUS = "model_uniform_factor_per_position";

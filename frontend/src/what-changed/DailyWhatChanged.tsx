@@ -19,8 +19,10 @@ import {
   fieldLabel,
   formatCaptureTimestamp,
   lookupToken,
+  MODEL_UNIFORM_FACTOR_STATUS,
   nflTeamLabel,
   type ReceiptSegment,
+  SCALE_CHANGED_MASTHEAD,
 } from "../lib/copy";
 import { useEndpointResource } from "../lib/useEndpointResource";
 import {
@@ -623,6 +625,15 @@ function MorningHeader({
             aria-hidden="true"
           />
           <span>{sentence}</span>{" "}
+          {/* DG-158: said at the TOP of the page, so a suppressed section cannot
+              be read as a quiet morning without opening anything. It claims
+              nothing about who moved — real movement may have happened and this
+              suppresses the comparison rather than observing its absence. */}
+          {data.daily_diff.model.status === MODEL_UNIFORM_FACTOR_STATUS && (
+            <span className="dg-wc__scale-changed" data-testid="wc-scale-changed">
+              {SCALE_CHANGED_MASTHEAD}
+            </span>
+          )}{" "}
           <button
             type="button"
             className="dg-wc__details"
@@ -1058,6 +1069,12 @@ const NOT_A_FAULT: ReadonlySet<string> = new Set([
   // overnight"). Calling it "came back degraded", as the page did this morning,
   // is the cry-wolf pattern spending the word on a producer behaving correctly.
   "model_multi_vintage_ambiguous",
+  // DG-158: every compared player in a position moved by the same factor, so the
+  // unit changed and no player did. The producer refuses the per-player list
+  // rather than print the whole league as fallers — the same species as the
+  // three above, a refusal rather than a fault. Rendering a correct producer as
+  // "degraded" here is the cry-wolf error with the sign flipped.
+  "model_uniform_factor_per_position",
 ]);
 
 /**
@@ -1480,6 +1497,7 @@ function MarketRows({
 function ModelRegion({ model }: { model: WhatChangedModelSection }) {
   const deltas = model.deltas ?? [];
   const modelWindow = model.comparison_window ?? null;
+  const unitsChanged = model.status === MODEL_UNIFORM_FACTOR_STATUS;
   // These three are raw producer enums. They run through the copy dictionary on
   // the way to the screen — on a quiet day all three are absent, which is
   // exactly why the fixture-pinned test never caught them here.
@@ -1512,10 +1530,18 @@ function ModelRegion({ model }: { model: WhatChangedModelSection }) {
         </p>
       )}
       {deltas.length === 0 ? (
-        <p className="dg-wc__quiet">
-          {compared
-            ? "Projections held steady — no player movement on this tape."
-            : "No day-over-day comparison of our projections on this tape."}
+        <p className="dg-wc__quiet" data-testid="wc-model-quiet">
+          {/* DG-158: this branch is why the wording matters. Wiring the
+              units-change refusal made it REACHABLE on the one morning every
+              score in the product changes, and it would have rendered
+              "Projections held steady — no player movement on this tape."
+              A suppressed comparison is not a quiet morning, and the
+              units-change sentence says so before it says anything else. */}
+          {unitsChanged
+            ? describeToken(MODEL_UNIFORM_FACTOR_STATUS)
+            : compared
+              ? "Projections held steady — no player movement on this tape."
+              : "No day-over-day comparison of our projections on this tape."}
         </p>
       ) : (
         <ModelRows rows={deltas} />

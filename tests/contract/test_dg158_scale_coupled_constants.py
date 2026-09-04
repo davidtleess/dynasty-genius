@@ -245,3 +245,80 @@ def test_the_band_reads_the_same_denominator_the_score_divides_by():
     assert pvo_assembler.ENGINE_B_P90_PPG is ENGINE_B_P90_PPG, (
         "the assembler must divide by the same mapping the band is derived from"
     )
+
+
+# ── 5. a change of units is not a fall, and must not render as one ──────────
+def _rows(scores: dict[str, tuple[str, float]]) -> list[dict]:
+    return [
+        {"player_key": k, "sleeper_id": k, "position": pos, "dynasty_value_score": v}
+        for k, (pos, v) in scores.items()
+    ]
+
+
+def test_a_uniform_per_position_factor_is_recognised_as_a_change_of_units():
+    """On rescale morning every compared player in a position moves by exactly
+    the same factor. Real football never does that: 130 tight ends do not all
+    move 53% in one night. The signature is in the data, so nothing new has to be
+    recorded for the product to notice."""
+    from src.dynasty_genius.what_changed.daily_diff import (
+        detect_uniform_position_factor,
+    )
+
+    prior = _rows({f"te{i}": ("TE", 40.0 + i) for i in range(12)})
+    latest = _rows({f"te{i}": ("TE", (40.0 + i) * 0.4677) for i in range(12)})
+    factors = detect_uniform_position_factor(prior, latest)
+    assert factors is not None
+    assert factors["TE"] == pytest.approx(0.4677, abs=0.001)
+
+
+def test_an_ordinary_morning_is_not_mistaken_for_a_change_of_units():
+    """The guard that matters: this must fire on the one predictable morning and
+    never swallow a real one."""
+    from src.dynasty_genius.what_changed.daily_diff import (
+        detect_uniform_position_factor,
+    )
+
+    prior = _rows({f"wr{i}": ("WR", 50.0 + i) for i in range(20)})
+    latest = _rows({f"wr{i}": ("WR", 50.0 + i + (i % 3) - 1) for i in range(20)})
+    assert detect_uniform_position_factor(prior, latest) is None
+
+
+def test_a_quiet_morning_where_nothing_moved_is_not_a_units_change():
+    from src.dynasty_genius.what_changed.daily_diff import (
+        detect_uniform_position_factor,
+    )
+
+    prior = _rows({f"rb{i}": ("RB", 30.0 + i) for i in range(15)})
+    assert detect_uniform_position_factor(prior, list(prior)) is None
+
+
+def test_too_few_players_in_a_position_is_not_enough_to_claim_a_pattern():
+    """Three players moving alike is a coincidence, not a re-denomination."""
+    from src.dynasty_genius.what_changed.daily_diff import (
+        detect_uniform_position_factor,
+    )
+
+    prior = _rows({f"qb{i}": ("QB", 60.0 + i) for i in range(3)})
+    latest = _rows({f"qb{i}": ("QB", (60.0 + i) * 0.83) for i in range(3)})
+    assert detect_uniform_position_factor(prior, latest) is None
+
+
+def test_it_fires_once_by_construction_and_not_again_the_next_day():
+    """The morning after, both sides are already in the new unit, the factor is
+    1.0, and nothing is reported. The trigger cannot stay armed."""
+    from src.dynasty_genius.what_changed.daily_diff import (
+        detect_uniform_position_factor,
+    )
+
+    rescaled = _rows({f"te{i}": ("TE", (40.0 + i) * 0.4677) for i in range(12)})
+    assert detect_uniform_position_factor(rescaled, list(rescaled)) is None
+
+
+def test_the_refusal_names_no_cause_and_emits_no_per_player_fall():
+    """Every score is lower, and not one player got worse. The product must not
+    list 582 fallers, and must not invent a reason for the move either."""
+    from src.dynasty_genius.what_changed.daily_diff import MODEL_UNIFORM_FACTOR_STATUS
+
+    assert MODEL_UNIFORM_FACTOR_STATUS == "model_uniform_factor_per_position"
+    for banned in ("rescale", "rebuilt", "model_run", "fell", "dropped"):
+        assert banned not in MODEL_UNIFORM_FACTOR_STATUS

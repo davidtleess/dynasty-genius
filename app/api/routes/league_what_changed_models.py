@@ -323,6 +323,11 @@ class WhatChangedModelSection(_Strict):
     # morning, 582 on the morning the scale changes, every one a faller. A capped
     # list without its total is the same silence in a smaller box.
     total_movers_count: Optional[int] = None
+    # DG-158: set only when every compared player in a position moved by one
+    # factor — the signature of a change of UNITS, in which case no per-player
+    # delta is emitted. The observation only: which positions, and by how much.
+    # Nothing here says why they moved.
+    uniform_factor_by_position: Optional[dict[str, float]] = None
     vintage_changed: Optional[bool] = None
     feature_freshness: WhatChangedModelFeatureFreshness | None = None
     pvo_staleness: WhatChangedModelPvoStaleness | None = None

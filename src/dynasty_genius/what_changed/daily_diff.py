@@ -306,6 +306,24 @@ def _build_model_section(
     else:
         status = "ok"
 
+    # DG-158: if every compared player in a position moved by one factor, the
+    # unit changed and no player did. Refuse the per-player list rather than
+    # print the whole league as fallers — the same shape the producer already
+    # uses when it will not claim what moved (model_multi_vintage_ambiguous).
+    uniform = detect_uniform_position_factor(prior_rows, latest_rows)
+    if uniform is not None:
+        return {
+            "status": MODEL_UNIFORM_FACTOR_STATUS,
+            "decision_supported": False,
+            "vintage_changed": vintage_changed,
+            "comparison_window": comparison_window,
+            "deltas": [],
+            "total_movers_count": 0,
+            # The observation, not an explanation of it: which positions moved
+            # alike and by how much. Nothing here says why.
+            "uniform_factor_by_position": {k: round(v, 4) for k, v in sorted(uniform.items())},
+        }
+
     capped = cap_model_deltas(deltas)
     return {
         "status": status,
@@ -333,6 +351,60 @@ def _date_vintage(rows: list[dict]) -> tuple[Optional[str], Optional[str]]:
     """
     pairs = _distinct_vintages(rows)
     return min(pairs) if pairs else (None, None)
+
+
+# DG-158 — a change of UNITS is not a fall, and must not render as one.
+#
+# On the morning the denominators change, every compared score moves by exactly
+# that position's factor and nothing about any player has changed. Direction is
+# the sign of the delta (`_value_direction`, and `value > 0 ? "up" : "down"` on
+# the page), so without this the product tells David that all 582 scored players
+# went down, 263 of them his — the whole league, on one night.
+#
+# The signature is IN THE DATA and needs nothing new recorded: real football
+# never moves 130 tight ends by the same 53% overnight. So the detector reads the
+# comparison it already has, which also means it fires exactly once by
+# construction — the next morning both sides are in the new unit, the factor is
+# 1.0, and nothing is reported.
+MODEL_UNIFORM_FACTOR_STATUS = "model_uniform_factor_per_position"
+
+# A factor is "the same" within half a percent; below this many compared players
+# in a position, alike movement is a coincidence rather than a pattern.
+_UNIFORM_FACTOR_TOLERANCE = 0.005
+_UNIFORM_FACTOR_MIN_PLAYERS = 8
+
+
+def detect_uniform_position_factor(
+    prior_rows: list[dict], latest_rows: list[dict]
+) -> dict[str, float] | None:
+    """Positions where EVERY compared player moved by the same non-unit factor.
+
+    Returns the factor per position, or ``None`` when the morning is ordinary.
+    Deliberately conservative in the direction of saying nothing: a position with
+    too few compared players, or any player who moved differently from his
+    neighbours, disqualifies the whole position.
+    """
+    prior = {r["player_key"]: r for r in prior_rows}
+    latest = {r["player_key"]: r for r in latest_rows}
+    by_position: dict[str, list[float]] = {}
+    for key in set(prior) & set(latest):
+        before, after = prior[key].get("dynasty_value_score"), latest[key].get("dynasty_value_score")
+        if not before or after is None:
+            continue
+        by_position.setdefault(str(prior[key].get("position") or ""), []).append(after / before)
+
+    factors: dict[str, float] = {}
+    for position, ratios in by_position.items():
+        if not position or len(ratios) < _UNIFORM_FACTOR_MIN_PLAYERS:
+            continue
+        low, high = min(ratios), max(ratios)
+        if high - low > _UNIFORM_FACTOR_TOLERANCE:
+            continue
+        factor = sum(ratios) / len(ratios)
+        if abs(factor - 1.0) <= _UNIFORM_FACTOR_TOLERANCE:
+            continue  # nothing moved; that is a quiet morning, not a new unit
+        factors[position] = factor
+    return factors or None
 
 
 # DG-158 — the model lane caps its movers, as the market lane always has.

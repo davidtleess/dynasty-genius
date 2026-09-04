@@ -4450,6 +4450,12 @@ export type WhatChangedModelSection = {
      */
     total_movers_count?: number | null;
     /**
+     * Uniform Factor By Position
+     */
+    uniform_factor_by_position?: {
+        [key: string]: number;
+    } | null;
+    /**
      * Vintage Changed
      */
     vintage_changed?: boolean | null;
