@@ -67,11 +67,20 @@ def _client(
     pvo: dict[str, Any],
     divergence: dict[str, Any],
     frozen_prediction: dict[str, Any] | None = None,
+    league_team_names: dict[int, str | None] | None = None,
 ) -> TestClient:
     monkeypatch.setattr(
         players_route,
         "_load_player_detail_artifacts",
         lambda: pvo,
+        raising=False,
+    )
+    # DG-149: the league team name comes from the league snapshot; tests hand the
+    # route the roster_id → team_name map directly and never touch production data.
+    monkeypatch.setattr(
+        players_route,
+        "_load_league_team_names",
+        lambda: league_team_names or {},
         raising=False,
     )
     monkeypatch.setattr(

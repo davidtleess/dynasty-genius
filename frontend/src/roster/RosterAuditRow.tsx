@@ -11,7 +11,13 @@
 import { useState } from "react";
 
 import type { RosterAuditResponse } from "../lib/api";
-import { fieldLabel, liquidityWord, ROOKIE_MARKER, valueWord } from "../lib/copy";
+import {
+  fieldLabel,
+  liquidityWord,
+  nflTeamLabel,
+  ROOKIE_MARKER,
+  valueWord,
+} from "../lib/copy";
 import { PlayerNameButton } from "../player/playerSelection";
 import { TokenNotes } from "../ui/TokenNotes";
 
@@ -53,7 +59,9 @@ export function RosterAuditRow({ player }: { player: Player }) {
           <PlayerNameButton
             sleeperId={player.sleeper_id}
             name={player.full_name}
-            context={[player.position, player.nfl_team].filter(Boolean).join(" ")}
+            context={[player.position, nflTeamLabel(player.nfl_team)]
+              .filter(Boolean)
+              .join(" ")}
             className="dg-roster__name"
           />
           {/* DG-146 (2026-09-03): "small marker indicating theyre a rookie" —
@@ -83,7 +91,9 @@ export function RosterAuditRow({ player }: { player: Player }) {
           </button>
         </td>
         <td>{player.position}</td>
-        <td>{player.nfl_team ?? "—"}</td>
+        {/* DG-149: "the FA tag if they don't have a team" — the fact arrives as
+            null; the word comes from the one dictionary entry. */}
+        <td>{nflTeamLabel(player.nfl_team)}</td>
         <td>{num(player.age)}</td>
         <td>{valueWord(player.model_grade)}</td>
         {/* DG-117: the "applies" / "n/a" cell is gone — see RosterAuditTable's

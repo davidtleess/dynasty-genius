@@ -790,6 +790,12 @@ export const zPlayerIdentity = z.object({
  * him: a missing or non-boolean ``rostered`` flag, or an undated snapshot. It is
  * never dressed up as a free agent. The word "FA" is the frontend's, minted once
  * in copy.ts; this field carries the fact, not the label.
+ *
+ * ``team_name`` (DG-149, David 2026-09-04: "Team = team they are on in my league
+ * i.e. woodbury riders") is the owning roster's team name as its manager set it
+ * on Sleeper (``users[].metadata.team_name`` in the league snapshot): None when
+ * nobody owns him, when the capture could not vouch for him, or when the manager
+ * never named his team — the handle still says who he is.
  */
 export const zPlayerLeagueOwnership = z.object({
     as_of: z.string().nullable(),
@@ -799,7 +805,8 @@ export const zPlayerLeagueOwnership = z.object({
         'rostered',
         'free_agent',
         'unknown'
-    ])
+    ]),
+    team_name: z.string().nullable()
 });
 
 /**

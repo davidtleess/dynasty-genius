@@ -14,7 +14,7 @@ import { PlayerDetailCard } from "./PlayerDetailCard";
 const AS_OF = "2026-09-03T13:00:45.589670+00:00";
 const AS_OF_ON_SCREEN = "Sep 3, 2026, 9:00 AM EDT";
 
-function detail(league_ownership) {
+function detail(league_ownership, identityOverrides = {}) {
   return {
     caveats: ["decision_supported_false"],
     decision_supported: false,
@@ -43,6 +43,7 @@ function detail(league_ownership) {
       position: "TE",
       sleeper_id: "6879",
       team: "LAR",
+      ...identityOverrides,
     },
     league_ownership,
     market: {
@@ -66,6 +67,97 @@ function ownershipLine(league_ownership) {
   return screen.getByTestId("league-ownership");
 }
 
+const OWNED_BY_DAVID = {
+  as_of: AS_OF,
+  owner_display_name: "Dleess",
+  roster_id: 1,
+  status: "rostered",
+  team_name: "Woodbury Riders",
+};
+
+// DG-149 (David, 2026-09-04 07:35 ET): "a signal on every player NFL Team
+// (including the FA tag if they don't have a team) and Team = team they are on
+// in my league i.e. woodbury riders or if they are a FA they get the FA tag
+// there too. they should be in different spots - no you can leave it by dleess"
+describe("DG-149 two team signals on every player, in different spots", () => {
+  it("prints FA in the NFL-team slot of the header for a player with no NFL team", () => {
+    render(<PlayerDetailCard detail={detail(OWNED_BY_DAVID, { team: null })} />);
+    const header = screen.getByText(/age 27/);
+    expect(header.textContent).toBe("TE · FA · age 27");
+  });
+
+  it("prints the NFL team itself when he has one", () => {
+    render(<PlayerDetailCard detail={detail(OWNED_BY_DAVID, { team: "LAR" })} />);
+    expect(screen.getByText(/age 27/).textContent).toBe("TE · LAR · age 27");
+  });
+
+  it("names the league team he plays for, apart from the NFL team, and keeps the owner line", () => {
+    render(<PlayerDetailCard detail={detail(OWNED_BY_DAVID, { team: null })} />);
+    const league = screen.getByTestId("league-team");
+    expect(league.textContent).toContain("League team");
+    expect(
+      within(league).getByText("Woodbury Riders").hasAttribute("data-user-text"),
+    ).toBe(true);
+    expect(screen.getByTestId("league-ownership").textContent).toContain(
+      "Rostered by Dleess",
+    );
+    expect(league).not.toBe(screen.getByText(/age 27/));
+  });
+
+  it("prints FA as the league team of a player nobody in the league owns", () => {
+    render(
+      <PlayerDetailCard
+        detail={detail({
+          as_of: AS_OF,
+          owner_display_name: null,
+          roster_id: null,
+          status: "free_agent",
+          team_name: null,
+        })}
+      />,
+    );
+    const league = screen.getByTestId("league-team");
+    expect(within(league).getByText("FA")).toBeTruthy();
+  });
+
+  it("falls back to the manager's handle, and says so, when he never named his team", () => {
+    render(
+      <PlayerDetailCard
+        detail={detail({
+          as_of: AS_OF,
+          owner_display_name: "rzalika",
+          roster_id: 5,
+          status: "rostered",
+          team_name: null,
+        })}
+      />,
+    );
+    const league = screen.getByTestId("league-team");
+    expect(within(league).getByText("rzalika").hasAttribute("data-user-text")).toBe(
+      true,
+    );
+    expect(league.textContent).toContain("no team name");
+    expect(within(league).queryByText("FA")).toBeNull();
+  });
+
+  it("says the league team is unknown when the capture could not vouch for him", () => {
+    render(
+      <PlayerDetailCard
+        detail={detail({
+          as_of: null,
+          owner_display_name: null,
+          roster_id: null,
+          status: "unknown",
+          team_name: null,
+        })}
+      />,
+    );
+    const league = screen.getByTestId("league-team");
+    expect(league.textContent).toContain("unknown");
+    expect(within(league).queryByText("FA")).toBeNull();
+  });
+});
+
 describe("DG-145 the card says who owns him in your league", () => {
   it("prints FA for a player nobody in the league owns, dated by the roster capture", () => {
     const line = ownershipLine({
@@ -85,6 +177,7 @@ describe("DG-145 the card says who owns him in your league", () => {
       owner_display_name: "Dleess",
       roster_id: 1,
       status: "rostered",
+      team_name: "Woodbury Riders",
     });
     expect(line.textContent).toContain("Rostered by Dleess");
     expect(within(line).queryByText("FA")).toBeNull();

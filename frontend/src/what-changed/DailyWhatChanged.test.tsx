@@ -1316,6 +1316,21 @@ describe("DailyWhatChanged", () => {
     expect((row as HTMLElement).querySelector("[data-team-id]")).toBeNull();
     expect(within(row as HTMLElement).getByText(/series pending/i)).toBeTruthy();
   });
+
+  // DG-149 (David 2026-09-04): "the FA tag if they don't have a team" — on the
+  // movers too. The team ring stays absent (no NFL team to colour); the word prints.
+  it("prints FA as the NFL team of a mover with no NFL team", async () => {
+    const body = increment1Response();
+    body.daily_diff.model.deltas[0].team_id = null;
+    mockFetch(200, body);
+
+    render(<DailyWhatChanged />);
+
+    await waitFor(() => expect(screen.getByText("Bijan Robinson")).toBeTruthy());
+    const row = screen.getByText("Bijan Robinson").closest("[data-asset-row]");
+    expect(within(row as HTMLElement).getByText("FA")).toBeTruthy();
+    expect((row as HTMLElement).querySelector("[data-team-id]")).toBeNull();
+  });
 });
 
 // SR-16 / DG-081 — the number David acts on is how many of HIS players moved,

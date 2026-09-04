@@ -19,6 +19,7 @@ import {
   fieldLabel,
   formatCaptureTimestamp,
   lookupToken,
+  nflTeamLabel,
   type ReceiptSegment,
 } from "../lib/copy";
 import { useEndpointResource } from "../lib/useEndpointResource";
@@ -325,12 +326,12 @@ function AssetRow({
       <PlayerNameButton
         sleeperId={sleeperId}
         name={name}
-        context={[position, teamId].filter(Boolean).join(" ")}
+        context={[position, nflTeamLabel(teamId)].filter(Boolean).join(" ")}
         className="dg-wc__player-open"
       >
         <PlayerIdentity
           name={name}
-          team={teamId ?? ""}
+          team={nflTeamLabel(teamId)}
           position={position}
           {...headshotProps(sleeperId)}
           teamId={teamId ?? undefined}
@@ -1318,12 +1319,14 @@ function MoverCards({ rows, when }: { rows: WhatChangedMarketDelta[]; when: stri
             <PlayerNameButton
               sleeperId={row.sleeper_id}
               name={name}
-              context={[row.position, row.team_id].filter(Boolean).join(" ")}
+              context={[row.position, nflTeamLabel(row.team_id)]
+                .filter(Boolean)
+                .join(" ")}
               className="dg-wc__player-open"
             >
               <PlayerIdentity
                 name={name}
-                team={row.team_id ?? ""}
+                team={nflTeamLabel(row.team_id)}
                 position={row.position ?? ""}
                 {...headshotProps(row.sleeper_id)}
                 teamId={row.team_id ?? undefined}
@@ -1380,12 +1383,12 @@ function UniverseChipList({
             <PlayerNameButton
               sleeperId={e.sleeper_id}
               name={name}
-              context={[e.position, e.team_id].filter(Boolean).join(" ")}
+              context={[e.position, nflTeamLabel(e.team_id)].filter(Boolean).join(" ")}
               className="dg-wc__player-open"
             >
               <PlayerIdentity
                 name={name}
-                team={e.team_id ?? ""}
+                team={nflTeamLabel(e.team_id)}
                 position={e.position ?? ""}
                 {...headshotProps(e.sleeper_id)}
                 teamId={e.team_id ?? undefined}
@@ -1588,12 +1591,12 @@ function BaselineRosterRows({
             <PlayerNameButton
               sleeperId={r.sleeper_id}
               name={name}
-              context={[r.position, r.team_id].filter(Boolean).join(" ")}
+              context={[r.position, nflTeamLabel(r.team_id)].filter(Boolean).join(" ")}
               className="dg-wc__player-open"
             >
               <PlayerIdentity
                 name={name}
-                team={r.team_id ?? ""}
+                team={nflTeamLabel(r.team_id)}
                 position={r.position ?? ""}
                 {...headshotProps(r.sleeper_id)}
                 teamId={r.team_id ?? undefined}

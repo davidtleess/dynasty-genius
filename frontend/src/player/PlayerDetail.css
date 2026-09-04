@@ -134,7 +134,8 @@
 /* DG-145: who owns him in your league — one line under the identity, muted
    like the standing sentence; the label itself carries a little weight so
    "FA" reads at a glance. Never a directional hue: ownership is a fact. */
-.dg-player-detail__league {
+.dg-player-detail__league,
+.dg-player-detail__league-team {
   margin: 0;
   color: var(--dg-text-muted);
   font-size: var(--dg-text-sm);
