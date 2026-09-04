@@ -76,6 +76,29 @@ function healthResponse(overrides = {}) {
       subsystem({ subsystem_id: "tier_readiness", tier: "daily_diagnostics" }),
     ],
     worst_affected_tier: null,
+    // DG-121: the served-bundle facts are REQUIRED on the response. These
+    // fixtures are about data freshness, so they carry the "nothing
+    // established" shape — which is exactly what the endpoint serves when it
+    // cannot answer, and never a reassuring default.
+    served_bundle: {
+      bundle_vs_checkout: {
+        commits_head_ahead_of_bundle: null,
+        head_sha: null,
+        manifest_built_at: null,
+        manifest_present: false,
+        manifest_sha_known_to_repo: null,
+        manifest_source_dirty: null,
+        manifest_source_sha: null,
+        sha_matches_head: null,
+      },
+      checkout_vs_origin: {
+        commits_behind_remote: null,
+        head_sha: null,
+        remote_last_fetched_at: null,
+        remote_ref: null,
+        remote_sha: null,
+      },
+    },
     ...overrides,
   };
 }

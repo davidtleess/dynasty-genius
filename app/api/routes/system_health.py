@@ -23,7 +23,10 @@ from fastapi.responses import JSONResponse
 
 from app.api.routes.system_health_models import (
     DISCLAIMER,
+    BundleVsCheckout,
+    CheckoutVsOrigin,
     HealthConfigError,
+    ServedBundleFacts,
     SubsystemHealth,
     SystemHealthErrorResponse,
     SystemHealthResponse,
@@ -35,6 +38,7 @@ from app.api.routes.system_health_models import (
 from app.api.routes.system_tier_readiness import (
     _default_model_provenance_status,
 )
+from app.services.served_bundle import bundle_vs_checkout, checkout_vs_origin
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _CONFIG_PATH = _REPO_ROOT / "app" / "config" / "report_freshness.json"
@@ -185,6 +189,38 @@ def get_system_health():
     reports = evaluate_report_freshness(config=config, artifact_facts=facts, now=now)
     overall, worst_tier = rollup_health_status(reports=reports)
 
+    # DG-121: the two facts about what David is actually looking at. Guard-of-
+    # guards, the same rule the subsystem adapters follow: a crashing check
+    # reads as "nothing established" and can never 500 the health light or leak
+    # a filesystem path. Failing EMPTY is the point — the defect this replaces
+    # was silence that read as health.
+    try:
+        bundle_facts = BundleVsCheckout(**bundle_vs_checkout())
+    except Exception:
+        bundle_facts = BundleVsCheckout(
+            manifest_present=False,
+            manifest_source_sha=None,
+            manifest_source_dirty=None,
+            manifest_built_at=None,
+            manifest_sha_known_to_repo=None,
+            head_sha=None,
+            sha_matches_head=None,
+            commits_head_ahead_of_bundle=None,
+        )
+    try:
+        origin_facts = CheckoutVsOrigin(**checkout_vs_origin())
+    except Exception:
+        origin_facts = CheckoutVsOrigin(
+            head_sha=None,
+            remote_ref=None,
+            remote_sha=None,
+            commits_behind_remote=None,
+            remote_last_fetched_at=None,
+        )
+    served_bundle = ServedBundleFacts(
+        bundle_vs_checkout=bundle_facts, checkout_vs_origin=origin_facts
+    )
+
     subsystems: list[SubsystemHealth] = []
     adapters: list[tuple[str, Callable[[], str]]] = [
         ("model_provenance", _MODEL_PROVENANCE_ADAPTER),
@@ -230,6 +266,7 @@ def get_system_health():
         config_version=config.config_version,
         subsystems=subsystems,
         reports=reports,
+        served_bundle=served_bundle,
         disclaimer=DISCLAIMER,  # type: ignore[arg-type]
         decision_supported=False,
     )

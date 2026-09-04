@@ -249,6 +249,29 @@ def test_response_models_lock_disclaimer_enums_recursive_false_and_extra_forbid(
             "config_version": 1,
             "subsystems": [subsystem],
             "reports": [report],
+            # DG-121: REQUIRED, not optional. An absent bundle fact would be the
+            # very silence the detector replaces, so "we could not establish it"
+            # has to be sayable — and this is what it looks like: every value
+            # None, no comparison claimed either way.
+            "served_bundle": {
+                "bundle_vs_checkout": {
+                    "manifest_present": False,
+                    "manifest_source_sha": None,
+                    "manifest_source_dirty": None,
+                    "manifest_built_at": None,
+                    "manifest_sha_known_to_repo": None,
+                    "head_sha": None,
+                    "sha_matches_head": None,
+                    "commits_head_ahead_of_bundle": None,
+                },
+                "checkout_vs_origin": {
+                    "head_sha": None,
+                    "remote_ref": None,
+                    "remote_sha": None,
+                    "commits_behind_remote": None,
+                    "remote_last_fetched_at": None,
+                },
+            },
             "disclaimer": DISCLAIMER,
             "decision_supported": False,
         }
