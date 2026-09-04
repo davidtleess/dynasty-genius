@@ -374,6 +374,14 @@ def assemble_pvo(
     model_version = None
     model_grade = "PRE_MODEL"
     dynasty_value_score = features.get("dynasty_value_score")
+    # DG-157: the UNCAPPED score, kept beside the displayed one. The displayed number stays
+    # clamped to 100 — that is the product's scale and David did not change it — but the
+    # cross-positional value must be derived from what the player actually produces, or every
+    # player above his position's ceiling is priced at the CEILING'S value rather than his own.
+    # Measured on the live artifact before this landed: 17 players shared just three distinct
+    # cross-positional values (TE 2.85, RB 58.05, WR 39.40) plus 57.61 on the other engine.
+    # None when no uncapped value is knowable, in which case the displayed score is used.
+    dvs_uncapped: Optional[float] = None
     dvs_engine: Optional[str] = None
     dvs_p90_ref_val: Optional[float] = None
     dvs_clamped_val: Optional[bool] = None
@@ -449,6 +457,10 @@ def assemble_pvo(
             dvs_raw = _adjusted / _b_p90 * 100.0
             dvs_clamped_flag = dvs_raw > 100.0
             dynasty_value_score = round(min(100.0, max(0.0, dvs_raw)), 1)
+            # Floored at 0 like the displayed score: a negative projection is an absence of
+            # production, not production below replacement, and letting it run negative here
+            # would price it as though it were.
+            dvs_uncapped = round(max(0.0, dvs_raw), 1)
             dvs_engine = "B"
             dvs_p90_ref_val = _b_p90
             dvs_clamped_val = dvs_clamped_flag
@@ -478,6 +490,10 @@ def assemble_pvo(
             if _dvs_a is not None and _dvs_b is not None and 1 <= _n < ENGINE_B_MIN_GAMES_T:
                 _w_b = _n / (_n + _k)
                 dynasty_value_score = round((1 - _w_b) * _dvs_a + _w_b * _dvs_b, 1)
+                # A blend of two already-clamped components has no uncapped counterpart, so
+                # the displayed score IS the best available input here (and dvs_clamped is
+                # False on this path by construction).
+                dvs_uncapped = dynasty_value_score
                 dvs_engine = "blend"
                 dvs_blend_weight_b = round(_w_b, 3)
                 # The band (DG-128) needs the two components exactly as they entered.
@@ -503,6 +519,7 @@ def assemble_pvo(
             elif engine_a_result:
                 # Single-engine fallback: Engine A prior only (n=0 or B inputs absent).
                 dynasty_value_score = engine_a_result["dynasty_value_score"]
+                dvs_uncapped = engine_a_result.get("dvs_uncapped")
                 dvs_engine = "A"
                 dvs_p90_ref_val = _P90_PPG.get(pos_upper)
                 # Dead-window fallback is Engine A only — use its clamp truth.
@@ -569,7 +586,13 @@ def assemble_pvo(
         )
         _repl = _repl_map.get(_xvar_pos, 0.0)
         xvar_lambda = _lambda_map.get(_xvar_pos, 1.0)
-        xvar = round((dynasty_value_score - _repl) * xvar_lambda, 2)
+        # DG-157 (David's decision one, 2026-09-04 18:30 ET). Derived from the UNCAPPED score:
+        # the position ceiling then cancels exactly as the contract's identity says it does,
+        # and a player above his ceiling is priced at his own production instead of sharing
+        # one number with everyone else who cleared it. NO constant moves here — the DG-092
+        # coupled family is untouched, which is why this is safe to land on its own.
+        _xvar_basis = dvs_uncapped if dvs_uncapped is not None else dynasty_value_score
+        xvar = round((_xvar_basis - _repl) * xvar_lambda, 2)
         xvar_anchor = XVAR_ANCHOR_POSITION
         xvar_ceiling_bound = (
             bool(dvs_clamped_val) if dvs_clamped_val is not None else None
