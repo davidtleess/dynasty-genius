@@ -63,7 +63,14 @@ def _git(args: list[str], repo_root: Path) -> Optional[str]:
     return done.stdout.strip() or None
 
 
-def _git_succeeds(args: list[str], repo_root: Path) -> bool:
+def _git_answers(args: list[str], repo_root: Path) -> Optional[bool]:
+    """Whether git answered yes or no — or ``None`` when it could not be asked.
+
+    "git is not here" is not "the answer is no". Collapsing the two is the exact
+    shape of the defect this module exists to end, one field smaller: a
+    commit this repo genuinely never heard of and a commit nobody could look up
+    are different facts, and only the first is a fact.
+    """
     try:
         done = subprocess.run(
             ["git", *args],
@@ -74,7 +81,7 @@ def _git_succeeds(args: list[str], repo_root: Path) -> bool:
             check=False,
         )
     except (OSError, subprocess.SubprocessError):
-        return False
+        return None
     return done.returncode == 0
 
 
@@ -169,10 +176,10 @@ def bundle_vs_checkout(repo_root: Optional[Path] = None) -> dict[str, Any]:
     sha_known_to_repo: Optional[bool] = None
     commits_head_ahead: Optional[int] = None
     if source_sha is not None:
-        sha_known_to_repo = _git_succeeds(
+        sha_known_to_repo = _git_answers(
             ["cat-file", "-e", f"{source_sha}^{{commit}}"], root
         )
-        if sha_known_to_repo and head_sha is not None:
+        if sha_known_to_repo is True and head_sha is not None:
             commits_head_ahead = _count(
                 ["rev-list", "--count", f"{source_sha}..HEAD"], root
             )

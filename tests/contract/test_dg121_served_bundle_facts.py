@@ -233,3 +233,79 @@ def test_the_two_axes_are_independent(tmp_path):
 
     assert bundle_vs_checkout(clone)["sha_matches_head"] is True
     assert checkout_vs_origin(clone)["commits_behind_remote"] == 3
+
+
+# ── the honesty lens, made concrete ─────────────────────────────────────────
+# DG-121's adversarial review died on the account spend limit three times, so
+# the questions it would have asked are pinned here instead of argued.
+def test_a_detached_head_reports_the_commit_and_claims_no_remote(tmp_path):
+    root = _repo(tmp_path)
+    _run(["git", "checkout", "-q", "--detach"], root)
+    _write_manifest(root)
+    assert bundle_vs_checkout(root)["sha_matches_head"] is True
+    origin = checkout_vs_origin(root)
+    assert origin["head_sha"] is not None
+    assert origin["remote_ref"] is None
+    assert origin["commits_behind_remote"] is None
+
+
+def test_a_repository_with_no_commits_asserts_nothing(tmp_path):
+    root = tmp_path / "unborn"
+    root.mkdir()
+    _run(["git", "init", "-q", "-b", "main"], root)
+    facts = bundle_vs_checkout(root)
+    assert facts["head_sha"] is None
+    assert facts["sha_matches_head"] is None
+    assert checkout_vs_origin(root)["commits_behind_remote"] is None
+
+
+def test_a_manifest_that_is_not_text_is_no_manifest(tmp_path):
+    root = _repo(tmp_path)
+    assets = root / "frontend" / "dist" / "assets"
+    assets.mkdir(parents=True)
+    (assets / "build-manifest.json").write_bytes(b"\xff\xfe\x00binary")
+    assert read_manifest(root) is None
+    assert bundle_vs_checkout(root)["manifest_present"] is False
+
+
+def test_without_git_on_the_path_nothing_is_claimed(tmp_path, monkeypatch):
+    """A serving environment with no git must degrade to unknown, not to
+    "current" — the whole point is that it fails where the ritual failed."""
+    root = _repo(tmp_path)
+    _write_manifest(root)
+    monkeypatch.setenv("PATH", str(tmp_path / "empty-bin"))
+    facts = bundle_vs_checkout(root)
+    assert facts["manifest_present"] is True
+    assert facts["head_sha"] is None
+    assert facts["sha_matches_head"] is None
+    # "git is not here" is not "this repo never heard of that commit". Only the
+    # second is a fact, and reporting False for the first is the same collapse
+    # of silence into an answer that this whole module exists to end.
+    assert facts["manifest_sha_known_to_repo"] is None
+    assert facts["commits_head_ahead_of_bundle"] is None
+    assert checkout_vs_origin(root)["commits_behind_remote"] is None
+
+
+def test_the_tickets_four_states_are_all_derivable_from_the_facts(tmp_path):
+    """DG-121 asked for current / drifted / dirty / unknown. This commit ships
+    facts instead, because the presentation is David's open design question —
+    but every state it named must still be computable without guessing."""
+    root = _repo(tmp_path)
+
+    def state(facts: dict) -> str:
+        if not facts["manifest_present"] or facts["head_sha"] is None:
+            return "unknown"
+        if facts["manifest_source_dirty"]:
+            return "dirty"
+        return "current" if facts["sha_matches_head"] else "drifted"
+
+    assert state(bundle_vs_checkout(root)) == "unknown"
+    _write_manifest(root)
+    assert state(bundle_vs_checkout(root)) == "current"
+    _write_manifest(root, source_dirty=True)
+    assert state(bundle_vs_checkout(root)) == "dirty"
+    (root / "later.txt").write_text("x\n")
+    _run(["git", "add", "-A"], root)
+    _run(["git", "commit", "-qm", "later"], root)
+    _write_manifest(root, source_sha=SHA_A)
+    assert state(bundle_vs_checkout(root)) == "drifted"
