@@ -155,9 +155,14 @@ DVS_BLEND_K: dict[str, int] = {
 # 4-7 games vs 3.19 for 8+) does NOT support it -- that filter conditions on the
 # outcome and so measured only the ~half of the cohort who came back. Scored
 # honestly, ordering for these players is roughly half as good (Spearman 0.380 vs
-# 0.781). This constant rests on David's ruling and on the market agreeing with the
-# result (Spearman 0.711 against FantasyCalc, vs 0.795 for the players already
-# scored; and of the 82 the market declines to price at all, 94% score below 20).
+# 0.781). This constant rests on David's ruling. The market check is WEAKER than
+# first reported (DG-143 ticket, closeout audit 2026-09-03 morning): the 0.711
+# Spearman against FantasyCalc was the most favourable of seven daily snapshots;
+# across all seven the new cohort runs 0.634-0.711 (0.643 on 09-03's own market)
+# against a baseline holding 0.788-0.805 -- a gap of ~0.13, not 0.08 -- and at
+# n=32 fifteen percent of random subsets of already-scored players score at or
+# below 0.711 by chance. What stands on its own: of the 82 players the market
+# declines to price at all, 94% score below 20.
 ENGINE_B_MIN_GAMES_T: int = 4
 
 # ── PPG season-type ruling (DG-024, David 2026-08-19) ────────────────────────
