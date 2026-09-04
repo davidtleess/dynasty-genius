@@ -1833,7 +1833,11 @@ function splitLabelledEntries(text: string): [string, string][] {
 // unknown) dated by the capture it came from, and never says the word. The word
 // is minted HERE, once, and nowhere else. "unknown" is said as unknown: the
 // capture did not vouch for him, so no label and no date.
-export const LEAGUE_FREE_AGENT_LABEL = "FA";
+// DG-149 (David, 2026-09-04 07:35 ET): the same word in both team spots —
+// "the FA tag if they don't have a team" (NFL) and "if they are a FA they get
+// the FA tag there too" (league). One constant; both labels read it.
+export const FREE_AGENT_LABEL = "FA";
+export const LEAGUE_FREE_AGENT_LABEL = FREE_AGENT_LABEL;
 export const LEAGUE_FREE_AGENT_SENTENCE = "nobody in your league owns him";
 export const LEAGUE_ROSTERED_BY_PREFIX = "Rostered by";
 export const LEAGUE_ROSTERED_WITHOUT_MANAGER = "Rostered in your league";
@@ -1844,3 +1848,28 @@ export const LEAGUE_OWNERSHIP_UNKNOWN_SENTENCE =
 export function leagueRosterAsOf(iso: string): string {
   return `league roster as of ${formatCaptureTimestamp(iso)}`;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 11 · DG-149 — two team signals on every player, in different spots.
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// David, 2026-09-04 07:35 ET, verbatim: "there should be a signal on every
+// player NFL Team (including the FA tag if they don't have a team) and Team =
+// team they are on in my league i.e. woodbury riders or if they are a FA they
+// get the FA tag there too. they should be in different spots - no you can
+// leave it by dleess"
+//
+// NFL team: the API serves the fact (Sleeper's team, or null). The word "FA"
+// for a player with no NFL team is minted HERE, once, and printed by the card
+// header, the roster row and the movers — never per surface. DG-137's
+// Active-only rule on the card and the roster row's own "FA" are retired.
+export function nflTeamLabel(team: string | null | undefined): string {
+  return team ? team : FREE_AGENT_LABEL;
+}
+
+// League team: the name his manager gave the team on Sleeper, in its own
+// labelled spot apart from the NFL team. The owner line below it stays as it
+// is ("no you can leave it by dleess").
+export const LEAGUE_TEAM_LABEL = "League team";
+export const LEAGUE_TEAM_UNNAMED_NOTE = "no team name set";
+export const LEAGUE_TEAM_UNKNOWN = "unknown right now";

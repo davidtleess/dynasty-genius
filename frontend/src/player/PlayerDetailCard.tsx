@@ -11,13 +11,18 @@ import type { ReactNode } from "react";
 import type { z } from "zod";
 import type { zPlayerDetailResponse } from "../lib/api/zod.gen";
 import {
+  FREE_AGENT_LABEL,
   LEAGUE_FREE_AGENT_LABEL,
   LEAGUE_FREE_AGENT_SENTENCE,
   LEAGUE_OWNERSHIP_UNKNOWN_SENTENCE,
   LEAGUE_ROSTERED_BY_PREFIX,
   LEAGUE_ROSTERED_WITHOUT_MANAGER,
+  LEAGUE_TEAM_LABEL,
+  LEAGUE_TEAM_UNKNOWN,
+  LEAGUE_TEAM_UNNAMED_NOTE,
   leagueRosterAsOf,
   MODEL_STANDING_SENTENCE,
+  nflTeamLabel,
 } from "../lib/copy";
 import { ReceiptCitation } from "../ui/Receipt";
 import { EvidenceSection } from "./EvidenceSection";
@@ -68,6 +73,34 @@ function leagueOwnershipLine(ownership: LeagueOwnership): ReactNode {
   return LEAGUE_OWNERSHIP_UNKNOWN_SENTENCE;
 }
 
+// DG-149: the league TEAM he plays for, in its own labelled spot apart from the
+// NFL team in the header. The team name is the manager's own text; a manager
+// who never named his team is shown by his handle, and the line says so. "FA"
+// here is the same word as the header's, from the same dictionary entry.
+function leagueTeamLine(ownership: LeagueOwnership): ReactNode {
+  const dated = ownership.as_of !== null && ownership.as_of !== undefined;
+  if (ownership.status === "free_agent" && dated) {
+    return <span className="dg-player-detail__fa">{FREE_AGENT_LABEL}</span>;
+  }
+  if (ownership.status === "rostered") {
+    const teamName = ownership.team_name;
+    if (teamName !== null && teamName !== undefined && teamName !== "") {
+      return <span data-user-text="">{teamName}</span>;
+    }
+    const owner = ownership.owner_display_name;
+    if (owner !== null && owner !== undefined && owner !== "") {
+      return (
+        <>
+          <span data-user-text="">{owner}</span>
+          {` · ${LEAGUE_TEAM_UNNAMED_NOTE}`}
+        </>
+      );
+    }
+    return LEAGUE_ROSTERED_WITHOUT_MANAGER;
+  }
+  return LEAGUE_TEAM_UNKNOWN;
+}
+
 export function PlayerDetailCard({ detail }: { detail: PlayerDetail }) {
   const modeled = detail.model_status === "modeled";
 
@@ -79,8 +112,12 @@ export function PlayerDetailCard({ detail }: { detail: PlayerDetail }) {
       <header className="dg-player-detail__header">
         <h2 className="dg-player-detail__title">{detail.identity.name}</h2>
         <p className="dg-player-detail__meta">
-          {detail.identity.position} · {detail.identity.team} · age{" "}
+          {detail.identity.position} · {nflTeamLabel(detail.identity.team)} · age{" "}
           {detail.identity.age}
+        </p>
+        <p className="dg-player-detail__league-team" data-testid="league-team">
+          {`${LEAGUE_TEAM_LABEL}: `}
+          {leagueTeamLine(detail.league_ownership)}
         </p>
         <p className="dg-player-detail__league" data-testid="league-ownership">
           {leagueOwnershipLine(detail.league_ownership)}

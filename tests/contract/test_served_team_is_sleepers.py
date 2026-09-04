@@ -166,7 +166,11 @@ def test_roster_audit_falls_back_to_the_artifacts_team_only_when_live_never_spok
 
 
 # ── player-detail route ─────────────────────────────────────────────────────
-def test_player_detail_serves_fa_for_an_active_player_with_no_team(monkeypatch):
+def test_player_detail_serves_the_fact_for_an_active_player_with_no_team(monkeypatch):
+    """DG-149 (David 2026-09-04 07:35 ET: the FA tag on every player with no NFL
+    team): the route serves Sleeper's fact — no team — for Active and Inactive
+    alike; the word "FA" is the frontend's, minted once. This used to serve "FA"
+    for Active only (DG-137's call, overruled)."""
     row = _pvo_row()
     row["player"]["team"] = None
     assert row["player"]["sleeper_status"] == "Active"
@@ -175,7 +179,7 @@ def test_player_detail_serves_fa_for_an_active_player_with_no_team(monkeypatch):
     response = client.get("/api/players/13269")
 
     assert response.status_code == 200
-    assert response.json()["identity"]["team"] == "FA"
+    assert response.json()["identity"]["team"] is None
 
 
 def test_player_detail_keeps_the_blank_for_an_inactive_player_with_no_team(monkeypatch):

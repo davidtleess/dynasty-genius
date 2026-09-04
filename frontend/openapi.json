@@ -3479,7 +3479,7 @@
         "type": "object"
       },
       "PlayerLeagueOwnership": {
-        "description": "Where the player stands in David's league (DG-145). Read from the row's\n``league_context`` \u2014 the latest league roster capture \u2014 and dated by the\nartifact's ``source_snapshot_captured_at``, so the card can say how old the\nfact is instead of guessing. ``unknown`` means the capture did not vouch for\nhim: a missing or non-boolean ``rostered`` flag, or an undated snapshot. It is\nnever dressed up as a free agent. The word \"FA\" is the frontend's, minted once\nin copy.ts; this field carries the fact, not the label.",
+        "description": "Where the player stands in David's league (DG-145). Read from the row's\n``league_context`` \u2014 the latest league roster capture \u2014 and dated by the\nartifact's ``source_snapshot_captured_at``, so the card can say how old the\nfact is instead of guessing. ``unknown`` means the capture did not vouch for\nhim: a missing or non-boolean ``rostered`` flag, or an undated snapshot. It is\nnever dressed up as a free agent. The word \"FA\" is the frontend's, minted once\nin copy.ts; this field carries the fact, not the label.\n\n``team_name`` (DG-149, David 2026-09-04: \"Team = team they are on in my league\ni.e. woodbury riders\") is the owning roster's team name as its manager set it\non Sleeper (``users[].metadata.team_name`` in the league snapshot): None when\nnobody owns him, when the capture could not vouch for him, or when the manager\nnever named his team \u2014 the handle still says who he is.",
         "properties": {
           "as_of": {
             "anyOf": [
@@ -3522,13 +3522,25 @@
             ],
             "title": "Status",
             "type": "string"
+          },
+          "team_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Name"
           }
         },
         "required": [
           "status",
           "owner_display_name",
           "roster_id",
-          "as_of"
+          "as_of",
+          "team_name"
         ],
         "title": "PlayerLeagueOwnership",
         "type": "object"

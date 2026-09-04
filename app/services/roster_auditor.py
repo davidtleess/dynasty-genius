@@ -535,7 +535,9 @@ async def get_my_roster(league_context: Optional[LeagueContext] = None) -> list[
             "player_id": pid,
             "full_name": f"{p.get('first_name', '')} {p.get('last_name', '')}".strip(),
             "position":  p.get("position", ""),
-            "team":      p.get("team") or "FA",
+            # DG-149: the fact, never the word — a missing NFL team is served as
+            # null and the frontend prints "FA" from its one dictionary entry.
+            "team":      p.get("team"),
             "age":       p.get("age"),
             "years_exp": p.get("years_exp"),
             "gsis_id":   p.get("gsis_id"),

@@ -64,6 +64,7 @@ function modeledDetail(overrides = {}) {
       owner_display_name: "Dleess",
       roster_id: 1,
       status: "rostered",
+      team_name: "Woodbury Riders",
     },
     market: {
       caveats: ["market_overlay_static_caveat"],

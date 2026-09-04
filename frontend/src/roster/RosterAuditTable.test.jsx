@@ -18,6 +18,16 @@ describe("RosterAuditTable", () => {
     expect(within(rows[0]).getByText("Scored by the active-player model")).toBeTruthy();
   });
 
+  // DG-149 (David 2026-09-04): "the FA tag if they don't have a team" — on the
+  // roster row too. The API serves the fact (null); the word comes from copy.ts.
+  it("prints FA in the team cell for a player with no NFL team", () => {
+    const audit = activeAudit();
+    audit.players[0].nfl_team = null;
+    render(<RosterAuditTable players={audit.players} />);
+    const row = within(screen.getByRole("table")).getAllByRole("row")[1];
+    expect(within(row).getByText("FA")).toBeTruthy();
+  });
+
   it("shows '—' for absent scores and de-emphasizes non-applicable rows", () => {
     render(<RosterAuditTable players={realPvoAudit().players} />);
     const row = within(screen.getByRole("table")).getAllByRole("row")[1];

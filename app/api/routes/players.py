@@ -18,6 +18,7 @@ from typing import Any, Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from src.dynasty_genius.league_capture import load_production_league_set
 from src.dynasty_genius.outcome_loop.frozen_prediction_membership import (
     resolve_frozen_prediction_membership,
 )
@@ -77,12 +78,19 @@ class PlayerLeagueOwnership(BaseModel):
     fact is instead of guessing. ``unknown`` means the capture did not vouch for
     him: a missing or non-boolean ``rostered`` flag, or an undated snapshot. It is
     never dressed up as a free agent. The word "FA" is the frontend's, minted once
-    in copy.ts; this field carries the fact, not the label."""
+    in copy.ts; this field carries the fact, not the label.
+
+    ``team_name`` (DG-149, David 2026-09-04: "Team = team they are on in my league
+    i.e. woodbury riders") is the owning roster's team name as its manager set it
+    on Sleeper (``users[].metadata.team_name`` in the league snapshot): None when
+    nobody owns him, when the capture could not vouch for him, or when the manager
+    never named his team — the handle still says who he is."""
 
     status: Literal["rostered", "free_agent", "unknown"]
     owner_display_name: str | None
     roster_id: int | None
     as_of: str | None
+    team_name: str | None
 
 
 class PlayerModelLane(BaseModel):
@@ -318,7 +326,44 @@ def _market_and_divergence(
     return market, divergence
 
 
-def _league_ownership(row: dict[str, Any], artifact: dict[str, Any]) -> PlayerLeagueOwnership:
+def _league_team_names_from_snapshot(snapshot: dict[str, Any]) -> dict[str, str]:
+    """manager's Sleeper user id → the team name he set for this league.
+
+    Keyed on the MANAGER, never on the roster slot: a team name is his, so a
+    snapshot of a different vintage than the valuation artifact can only ever
+    give a stale name for the right manager — it can never hang one manager's
+    team name on another's roster. A manager who never named his team is absent
+    from the map, and the caller says so rather than inventing one.
+    """
+    names: dict[str, str] = {}
+    for user in snapshot.get("users") or []:
+        if not isinstance(user, dict) or user.get("user_id") is None:
+            continue
+        team_name = (user.get("metadata") or {}).get("team_name")
+        if isinstance(team_name, str) and team_name.strip():
+            names[str(user["user_id"])] = team_name.strip()
+    return names
+
+
+def _load_league_team_names(path: Path | None = None) -> dict[str, str]:
+    """Read the marker-pinned league snapshot (the same set the trade routes read)
+    for roster → team name. Best-effort enrichment: an absent or unreadable
+    snapshot yields no names, never an error — ownership itself is served from
+    the universe row and does not depend on this."""
+    try:
+        snapshot_path = path if path is not None else load_production_league_set().paths["snapshot.json"]
+        with open(snapshot_path) as handle:
+            snapshot = json.load(handle)
+    except (OSError, ValueError, KeyError, TypeError):
+        return {}
+    return _league_team_names_from_snapshot(snapshot) if isinstance(snapshot, dict) else {}
+
+
+def _league_ownership(
+    row: dict[str, Any],
+    artifact: dict[str, Any],
+    team_names: dict[str, str] | None = None,
+) -> PlayerLeagueOwnership:
     """The one rule for who owns him in David's league (DG-145).
 
     David, 2026-09-03 23:35 ET, on what "free agent" means: "nobody in the league
@@ -333,31 +378,31 @@ def _league_ownership(row: dict[str, Any], artifact: dict[str, Any]) -> PlayerLe
     rostered = context.get("rostered") if isinstance(context, dict) else None
     if not isinstance(rostered, bool) or as_of is None:
         return PlayerLeagueOwnership(
-            status="unknown", owner_display_name=None, roster_id=None, as_of=as_of
+            status="unknown", owner_display_name=None, roster_id=None, as_of=as_of, team_name=None
         )
     if not rostered:
         return PlayerLeagueOwnership(
-            status="free_agent", owner_display_name=None, roster_id=None, as_of=as_of
+            status="free_agent", owner_display_name=None, roster_id=None, as_of=as_of, team_name=None
         )
     owner = context.get("owner_display_name")
     roster_id = context.get("roster_id")
+    roster_id = int(roster_id) if isinstance(roster_id, int) and not isinstance(roster_id, bool) else None
     return PlayerLeagueOwnership(
         status="rostered",
         owner_display_name=str(owner) if owner else None,
-        roster_id=int(roster_id) if isinstance(roster_id, int) and not isinstance(roster_id, bool) else None,
+        roster_id=roster_id,
         as_of=as_of,
+        team_name=(team_names or {}).get(str(context.get("owner_user_id"))),
     )
 
 
-def _served_team_label(player: dict[str, Any]) -> str | None:
-    """A player Sleeper lists as active but on no NFL roster is a free agent; say
-    so, as the roster audit does (roster_auditor.get_my_roster), instead of serving
-    a blank. Anyone else with no team (inactive, retired) keeps the blank — "FA"
-    would be a claim the data does not make (DG-137)."""
+def _served_nfl_team(player: dict[str, Any]) -> str | None:
+    """The NFL team as a FACT: Sleeper's team, or None when he has none. DG-149
+    (David 2026-09-04: "the FA tag if they don't have a team", on every player)
+    retired DG-137's Active-only "FA" here — the word now has one home, the
+    frontend copy dictionary, and it prints for any player with no NFL team."""
     team = player.get("team")
-    if team:
-        return str(team)
-    return "FA" if player.get("sleeper_status") == "Active" else None
+    return str(team) if team else None
 
 
 @router.get("/{sleeper_id}", response_model=PlayerDetailResponse)
@@ -376,7 +421,7 @@ def get_player_detail(sleeper_id: str) -> PlayerDetailResponse:
         sleeper_id=sleeper_id,
         name=player.get("full_name"),
         position=player.get("position"),
-        team=_served_team_label(player),
+        team=_served_nfl_team(player),
         age=player.get("age"),
         draft_class=row.get("draft_class"),
         nfl_draft_pick=row.get("nfl_draft_pick"),
@@ -436,7 +481,7 @@ def get_player_detail(sleeper_id: str) -> PlayerDetailResponse:
     return PlayerDetailResponse(
         sleeper_id=sleeper_id,
         identity=identity,
-        league_ownership=_league_ownership(row, pvo),
+        league_ownership=_league_ownership(row, pvo, _load_league_team_names()),
         model_status=model_status,
         model=model,
         evidence=evidence,

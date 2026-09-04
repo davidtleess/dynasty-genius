@@ -79,6 +79,7 @@ def test_a_player_nobody_in_the_league_owns_is_a_free_agent_dated_by_the_capture
         "owner_display_name": None,
         "roster_id": None,
         "as_of": SNAPSHOT_AT,
+        "team_name": None,
     }
 
 
@@ -89,6 +90,7 @@ def test_a_rostered_player_is_served_with_his_manager(monkeypatch):
         "owner_display_name": "Dleess",
         "roster_id": 1,
         "as_of": SNAPSHOT_AT,
+        "team_name": None,
     }
 
 
@@ -101,6 +103,7 @@ def test_a_rostered_player_whose_manager_name_is_missing_is_still_rostered(monke
         "owner_display_name": None,
         "roster_id": 7,
         "as_of": SNAPSHOT_AT,
+        "team_name": None,
     }
 
 
@@ -130,6 +133,7 @@ def test_an_undated_snapshot_never_yields_a_free_agent_claim(monkeypatch):
         "owner_display_name": None,
         "roster_id": None,
         "as_of": None,
+        "team_name": None,
     }
 
 
@@ -146,5 +150,5 @@ def test_league_ownership_is_a_required_part_of_the_card_contract():
     schemas = main_app.openapi()["components"]["schemas"]
     assert "league_ownership" in schemas["PlayerDetailResponse"]["required"]
     ownership = schemas["PlayerLeagueOwnership"]
-    assert set(ownership["required"]) == {"status", "owner_display_name", "roster_id", "as_of"}
+    assert set(ownership["required"]) == {"status", "owner_display_name", "roster_id", "as_of", "team_name"}
     assert set(ownership["properties"]["status"]["enum"]) == {"rostered", "free_agent", "unknown"}
