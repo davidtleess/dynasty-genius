@@ -23,11 +23,13 @@ These tests pin:
     vintage — the 2026-09-02 pair, where 208 rows changed content (team labels) and no
     score moved — because the semantic half carries it;
   * the audit-only provenance block still records the timestamp, outside the hash;
-  * and the other half, on David's ruling "B" (2026-09-04 08:11 ET): ``lineage`` leaves
-    the semantic projection too, so two mornings that differ only in the league run's
-    Sleeper player-list hash share a vintage and the receipt can read quiet. The block
-    stays REQUIRED per model-supported row and recorded in ``provenance.row_lineage``;
-    a row missing it still aborts the capture.
+  * and the other half, on David's ruling "B" (2026-09-04 08:11 ET): ``lineage``'s
+    ``sleeper_snapshot_hash`` leaves the semantic projection too, so two mornings that
+    differ only in the league run's Sleeper player-list hash share a vintage and the
+    receipt can read quiet. ONLY that field: ``governance_version`` stays inside the hash
+    (the provenance subset excludes row lineage, so nothing else would catch a bump), and
+    the whole block stays REQUIRED per model-supported row and recorded in
+    ``provenance.row_lineage`` — a row missing it still aborts before any write.
 """
 
 from __future__ import annotations
@@ -38,6 +40,10 @@ from pathlib import Path
 from src.dynasty_genius.capture import model_forward_capture_driver as driver
 from src.dynasty_genius.capture.model_forward_capture_driver import (
     capture_model_pvo_snapshot,
+)
+from src.dynasty_genius.capture.model_forward_capture_store import (
+    MODEL_PVO_SOURCE,
+    ModelForwardCaptureStore,
 )
 from tests.contract import test_pvo_refresh_runner as refresh_fixtures
 from tests.contract.test_model_forward_capture_driver import (
@@ -183,6 +189,32 @@ def test_two_mornings_that_differ_only_in_the_sleeper_list_hash_share_a_vintage(
     assert recorded["sleeper:9509"]["sleeper_snapshot_hash"] == "sleeper-snapshot-v2"
 
 
+def test_a_changed_governance_version_still_trips_the_vintage(tmp_path: Path) -> None:
+    """David ruled on the Sleeper player-list hash, not on the whole lineage block. The
+    block also carries ``governance_version`` — the rule set the rows were produced under —
+    and nothing else hashes it: ``resolve_provenance_subset`` excludes row lineage by its
+    own docstring. If the whole block left the projection, a governance bump would ship
+    with ``vintage_changed: false``, which is the exact failure this ticket exists to end."""
+    base = _artifact_bytes(
+        {PVO_PATH: _json_bytes(_pvo_artifact(source_snapshot_captured_at=_MORNING_ONE))}
+    )
+    bumped = _pvo_artifact(
+        captured_at="2026-06-24T12:00:00+00:00",
+        volatile_suffix="b",
+        source_snapshot_captured_at=_MORNING_TWO,
+    )
+    for row in bumped["players"]:
+        row["lineage"]["governance_version"] = "2.0.0"
+    next_morning = {**base, PVO_PATH: _json_bytes(bumped)}
+
+    first = _capture(tmp_path, base, day=24, git_sha="git-sha-a")
+    second = _capture(tmp_path, next_morning, day=25, git_sha="git-sha-b")
+
+    assert first["provenance_hash"] == second["provenance_hash"]
+    assert first["semantic_output_hash"] != second["semantic_output_hash"]
+    assert second["vintage_changed"] is True
+
+
 def test_a_row_whose_lineage_block_is_missing_is_still_refused(tmp_path: Path) -> None:
     """Dropping lineage from the hash must not drop the REQUIREMENT: a model-supported row
     without its snapshot hash still aborts the whole capture before any write (spec §4)."""
@@ -194,6 +226,8 @@ def test_a_row_whose_lineage_block_is_missing_is_still_refused(tmp_path: Path) -
 
     assert report["status"] == "aborted"
     assert "row_lineage_sleeper_snapshot_hash" in report["aborted_reason"]
+    store = ModelForwardCaptureStore(tmp_path / "model_forward.db")
+    assert store.get_raw_entries("2026-06-24", MODEL_PVO_SOURCE, "any", "any") == []
 
 
 def test_a_refresh_that_only_brings_a_new_sleeper_list_reports_semantic_unchanged(
