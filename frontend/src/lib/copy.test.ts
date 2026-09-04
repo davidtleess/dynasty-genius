@@ -31,8 +31,8 @@ describe("the copy dictionary", () => {
       /not a proven market-beater/,
     );
     // Stale still says stale; unscored still says unscored.
-    expect(describeToken("vintage_changed_no_score_delta")).toMatch(
-      /changed since yesterday/,
+    expect(describeToken("vintage_changed_no_score_delta")).toBe(
+      "no compared player moved",
     );
     // DG-150: and it must NOT name a cause. After DG-141 (B) the flag fires for
     // a player's captured details moving, for a governance bump, AND for a real
@@ -41,13 +41,16 @@ describe("the copy dictionary", () => {
     expect(describeToken("vintage_changed_no_score_delta")).not.toMatch(
       /model run|rebuilt|model files|new model/i,
     );
-    // ...and the SCOPE of that "nothing moved" is stated, because the producer
-    // only ever compared players present in both captures (daily_diff.py:349).
-    // An earlier draft said "not one player's score moved" — a universal
-    // negative over the whole league that the producer never computes.
-    expect(describeToken("vintage_changed_no_score_delta")).toMatch(
-      /none of the players we could compare moved/,
-    );
+    // ...and the SCOPE survives the shortening. The producer only ever compared
+    // players present in BOTH captures (daily_diff.py:349), so "compared" is
+    // load-bearing: an earlier draft said "not one player's score moved", a
+    // universal negative over the whole league the producer never computes.
+    expect(describeToken("vintage_changed_no_score_delta")).toMatch(/compared/);
+    // DG-150 under the glyph ruling: a fragment, not a sentence. No capital, no
+    // full stop, nothing for a reader to mistake for a claim of its own.
+    const fragment = describeToken("vintage_changed_no_score_delta");
+    expect(fragment).not.toMatch(/^[A-Z]/);
+    expect(fragment).not.toMatch(/\.$/);
     expect(valueWord("PRE_MODEL")).toBe("Not scored yet");
   });
 
