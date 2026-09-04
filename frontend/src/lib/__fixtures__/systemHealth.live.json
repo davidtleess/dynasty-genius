@@ -114,6 +114,25 @@
       "tier": "core_substrate"
     }
   ],
+  "served_bundle": {
+    "bundle_vs_checkout": {
+      "commits_head_ahead_of_bundle": 0,
+      "head_sha": "c7ac34842e937b3b3c88af742f75dfc7a03216fc",
+      "manifest_built_at": "2026-09-04T12:15:09.477Z",
+      "manifest_present": true,
+      "manifest_sha_known_to_repo": true,
+      "manifest_source_dirty": true,
+      "manifest_source_sha": "c7ac34842e937b3b3c88af742f75dfc7a03216fc",
+      "sha_matches_head": true
+    },
+    "checkout_vs_origin": {
+      "commits_behind_remote": 8,
+      "head_sha": "c7ac34842e937b3b3c88af742f75dfc7a03216fc",
+      "remote_last_fetched_at": "2026-09-04T13:31:22.624227+00:00",
+      "remote_ref": "origin/main",
+      "remote_sha": "ea06764553101549b02925e737564c30e85c28a6"
+    }
+  },
   "subsystems": [
     {
       "basis": "adapter_status:ok",
