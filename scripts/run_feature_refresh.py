@@ -35,6 +35,12 @@ from src.dynasty_genius.features.feature_refresh_runner import (  # noqa: E402
     compute_source_hash,
     run_feature_refresh,
 )
+from src.dynasty_genius.features.season_basis import (  # noqa: E402
+    SeasonBasisRefusal,
+    authorise_inference_season,
+    load_declaration,
+    published_inference_season,
+)
 from src.dynasty_genius.nflverse_usage import (  # noqa: E402
     load_nextgen_from_export,
     nextgen_export_provenance,
@@ -313,6 +319,23 @@ def _source_provenance(read_fns: dict, seasons_window: list[int]) -> dict:
     }
 
 
+SEASON_BASIS_MARKER_NAME = "feature_season_basis_status.json"
+
+
+def _write_season_basis_marker(runtime_dir, payload: dict) -> None:
+    """Record the basis decision beside the runtime so an alert can tell a REFUSAL from a
+    BREAK without parsing stdout. Never fails the run over its own sidecar."""
+    try:
+        target = Path(runtime_dir) / SEASON_BASIS_MARKER_NAME
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            json.dumps(payload, indent=1, sort_keys=True, default=str) + "\n",
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Regenerate the engine_b feature candidate (source-hash-gated)."
@@ -397,7 +420,46 @@ def main(argv: list[str] | None = None) -> int:
         # CH1: the provenance rides ALONGSIDE the frames, never as one of them — the
         # builder must keep receiving exactly the loader frames it always received.
         stream_provenance = read_fns.pop("__stream_provenance__", {})
-        inference_season = season_end
+
+        # DG-154: the basis must not change because a FEED published. Nothing here decides
+        # which season the board should be built on — that is David's ruling — it only makes
+        # the change require one. Today derived == published and this is invisible. On the
+        # morning nflverse publishes the first row of a new season it REFUSES, because
+        # advancing silently rebases every ranked player from a complete season onto the four
+        # games he has played so far, on the feature with the largest coefficient at every
+        # position. The refusal writes its OWN marker: this repo's alerting suppresses or
+        # raises on a producer's marker, never on an exit code alone (DG-044's pin contract),
+        # so during the fail-closed window a refusal does not read like a broken feed.
+        try:
+            inference_season = authorise_inference_season(
+                derived=season_end,
+                published=published_inference_season(args.runtime_dir),
+                declaration=load_declaration(),
+            )
+        except SeasonBasisRefusal as exc:
+            _write_season_basis_marker(
+                args.runtime_dir,
+                {
+                    "status": "blocked",
+                    "reason": exc.reason,
+                    "derived_inference_season": exc.derived,
+                    "published_inference_season": exc.published,
+                    "detail": exc.detail,
+                    "decision_supported": False,
+                },
+            )
+            print(f"{exc.reason}: {exc}")
+            return 1
+        _write_season_basis_marker(
+            args.runtime_dir,
+            {
+                "status": "ok",
+                "reason": None,
+                "derived_inference_season": season_end,
+                "published_inference_season": inference_season,
+                "decision_supported": False,
+            },
+        )
 
         def publish_fn(candidate_path, **kwargs):
             return publish_runtime(
