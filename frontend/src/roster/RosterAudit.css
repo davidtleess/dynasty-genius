@@ -167,8 +167,9 @@
    --dg-text-muted: every rookie row carries data-applies="false" and so
    opacity 0.55, and muted ink composited through that read 2.78:1 on the
    smoke fixture's prior-scored rows (DG-105), below the 4.5:1 floor. It is
-   quiet through size and a hairline border, never through colour. The value
-   cell is untouched (2026-09-01 ruling: nothing styles on the basis). */
+   quiet through size, never through colour. The border is decorative — through
+   that same opacity it reads ~1.2:1 and carries nothing; the WORD is the
+   marker. The value cell is untouched (2026-09-01: nothing styles on the basis). */
 .dg-roster__rookie {
   display: inline-block;
   margin-left: var(--dg-space-1);
