@@ -213,24 +213,54 @@
   color: var(--dg-text-muted);
 }
 
+/* DG-156: the SHAPE carries the state, colour only reinforces it. Three states
+   were told apart by background hue alone, so a reader who cannot separate
+   those hues saw one identical circle every morning.
+
+   THE DEFAULT IS NOW "NO READING", and that inversion is the point. The base
+   used to be `background: var(--dg-chrome)` — a FILLED neutral dot — and only
+   `ok` and `attention` overrode it, so `unknown` (which had no rule at all)
+   rendered as a filled dot: a check that could not answer looked exactly like a
+   check that answered fine, on the front page, every morning. Hollow is now the
+   fallback, so any state nobody styled fails toward "we did not get an answer"
+   rather than toward silence that reads as success. */
 .dg-wc__freshness-dot {
   display: inline-block;
   width: var(--dg-space-2);
   height: var(--dg-space-2);
   margin-inline-end: var(--dg-space-2);
   border-radius: var(--dg-radius-round);
-  background: var(--dg-chrome);
+  border: 1px solid var(--dg-border-strong);
+  background: transparent;
 }
 
 /* The dot restates the sentence beside it and is never the only channel: the
-   words say which feeds are behind and why. Green is arithmetic-free here —
-   it means "nothing on this page is flagged", which the sentence also says. */
+   words say which feeds are behind and why. It stays `aria-hidden` for exactly
+   that reason — the sentence is the accessible channel, and giving the mark a
+   name of its own would announce the same fact twice (Greg overruled his own
+   rule to that effect, 2026-09-04). Green is arithmetic-free here — it means
+   "nothing on this page is flagged", which the sentence also says. */
+
+/* ● filled — "Current": the check ran and today's answer is today's. */
 .dg-wc__freshness-dot[data-status="ok"] {
+  border-color: var(--dg-up);
   background: var(--dg-up);
 }
 
+/* ◐ half — "Limited": an answer exists, with a named limit. Half-filled rather
+   than a second hue, so it is still distinguishable from both neighbours with
+   no colour perception at all, and in either theme. */
 .dg-wc__freshness-dot[data-status="attention"] {
-  background: var(--dg-caveat);
+  border-color: var(--dg-caveat);
+  background: linear-gradient(90deg, var(--dg-caveat) 0 50%, transparent 50% 100%);
+}
+
+/* ○ hollow — "No reading": the check could not answer. Never rendered as ok;
+   stated explicitly rather than left to inherit, because inheriting is how this
+   state came to look like the resting one. */
+.dg-wc__freshness-dot[data-status="unknown"] {
+  border-color: var(--dg-border-strong);
+  background: transparent;
 }
 
 .dg-wc__details {
