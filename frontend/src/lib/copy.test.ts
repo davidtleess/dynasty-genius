@@ -224,3 +224,24 @@ describe("DG-111 the retired disclosure line", () => {
     expect(findRawCopy(MODEL_STANDING_SENTENCE)).toEqual([]);
   });
 });
+
+// DG-147: a rookie with no rookie-model row reaches the "unscored" caveat
+// through the ROOKIE contract, so the sentence must name that model, not the
+// active-player one it used to blame for every variant of the token.
+describe("DG-147 the unscored caveat names the model the backend consulted", () => {
+  it("says the rookie model has not scored him for the Engine A variant", () => {
+    const note = lookupToken(
+      "dynasty_value_score unavailable: Engine A (prospect) not yet validated; model_grade is PRE_MODEL",
+    );
+    expect(note.text).toBe(
+      "No dynasty value for him yet — the rookie model has not scored him, so he is unscored.",
+    );
+  });
+
+  it("keeps the active-player wording for the Engine B variant", () => {
+    const note = lookupToken(
+      "dynasty_value_score unavailable: Engine B (active player) not yet validated; model_grade is PRE_MODEL",
+    );
+    expect(note.text).toContain("the active-player model has not been validated");
+  });
+});
