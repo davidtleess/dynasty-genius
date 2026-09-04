@@ -58,8 +58,10 @@ export function RosterAuditRow({ player }: { player: Player }) {
           />
           {/* DG-146 (2026-09-03): "small marker indicating theyre a rookie" —
               David's answer once DG-144 took away the range that used to set a
-              rookie-model number apart in this table. One word, keyed on the
-              player fact, not the model basis; the value cell is untouched. */}
+              rookie-model number apart in this table. One word on the row's
+              `is_prospect` flag — today the roster route derives it from the
+              rookie-model basis for league-drafted rookies (DG-147 keys it on
+              the draft class); the value cell is untouched. */}
           {player.is_prospect && (
             <>
               {" "}

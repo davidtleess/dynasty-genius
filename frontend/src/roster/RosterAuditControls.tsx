@@ -21,7 +21,9 @@ const GROUP_OPTIONS: { value: GroupKey; label: string }[] = [
 const PROSPECT_OPTIONS: { value: ProspectFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "active", label: "Active" },
-  { value: "prospects", label: "Prospects" },
+  // DG-146 (2026-09-03): the row prints "Rookie" on the same `is_prospect`
+  // flag this option filters on; one fact, one word on the screen (DG-117).
+  { value: "prospects", label: "Rookies" },
 ];
 
 export interface ControlsState {

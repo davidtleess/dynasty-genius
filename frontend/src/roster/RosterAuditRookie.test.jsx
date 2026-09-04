@@ -5,9 +5,10 @@
 // David, 23:35 ET, answering whether the roster table should get a marker back
 // now that DG-144 removed the range that used to make a rookie-model number
 // look different from a measured one: "small marker indicating theyre a rookie."
-// The word is keyed on the player fact (`is_prospect`), not on the model basis;
-// the number itself is untouched — his 2026-09-01 ruling that nothing greys or
-// lightens the value by its basis still stands.
+// The word prints on the row's `is_prospect` flag (which the roster route
+// derives from the rookie-model basis for league-drafted rookies — DG-147 keys
+// it on the draft class); the number itself is untouched — his 2026-09-01 ruling
+// that nothing greys or lightens the value by its basis still stands.
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ROOKIE_MARKER } from "../lib/copy";
@@ -28,10 +29,17 @@ describe("the roster table marks rookies", () => {
       player_id: "p-rookie",
       sleeper_id: "r-1",
       full_name: "Rookie WR",
+      // The shape the roster route actually serves for a rookie (live row,
+      // Kaelon Black, 2026-09-04): rookie-model grade, model status does not
+      // apply (so the row renders at opacity 0.55), no percentile.
       is_prospect: true,
       draft_class: 2026,
       dvs_engine: "A",
+      model_grade: "PROSPECT_C",
+      model_status_applies: false,
       dynasty_value_score: 61.6,
+      dvs_pct: null,
+      caveats: ["current_draft_rookie_engine_a_value_preserved"],
     };
     render(<RosterAuditTable players={[veteran, rookie]} />);
 
@@ -44,7 +52,8 @@ describe("the roster table marks rookies", () => {
     expect(rookieRow.querySelector("[data-basis]").getAttribute("data-basis")).toBe(
       "A",
     );
-    expect(within(rookieRow).getByText("61.6 (81%)")).toBeTruthy();
+    expect(within(rookieRow).getByText("61.6")).toBeTruthy();
+    expect(rookieRow.getAttribute("data-applies")).toBe("false");
 
     const veteranRow = rowFor("Active WR");
     expect(veteranRow.querySelector(".dg-roster__rookie")).toBeNull();
