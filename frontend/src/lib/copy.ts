@@ -167,6 +167,16 @@ export function fieldLabel(key: string): string {
   return humanize(key);
 }
 
+/**
+ * DG-146 (2026-09-03): the one word the roster row prints next to a rookie's
+ * name. David, asked whether the table should get a marker back once DG-144
+ * removed the range that used to set a rookie-model number apart: "small
+ * marker indicating theyre a rookie." Keyed on the player fact (`is_prospect`),
+ * never on the model basis, and minted here so every surface that ever needs
+ * the word says the same one.
+ */
+export const ROOKIE_MARKER = "Rookie";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 2 · Value words — the enum a field holds, said the way a manager would say it.
 // ─────────────────────────────────────────────────────────────────────────────
