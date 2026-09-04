@@ -128,8 +128,8 @@ export function ValuationTwoLane({
                 its basis — and falls back to the lane for a row from before the
                 marker existed. The basis also rides `data-basis` as a marker;
                 nothing styles on it — David ruled 2026-09-01 that the number is
-                not greyed by its basis. DG-144 (2026-09-03): the "Likely range"
-                fact that sat under the value is gone — "one number per player";
+                not greyed by its basis. DG-144 (2026-09-03): the range fact
+                that sat under the value is gone — "one number per player";
                 the API still carries the band and this card does not read it. */}
             <Fact
               label="Scored by"

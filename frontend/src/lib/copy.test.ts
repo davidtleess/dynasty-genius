@@ -83,15 +83,17 @@ describe("the copy dictionary", () => {
 
   // DG-128 (2026-09-01): the blend's caveat, screened before any blend row serves
   // (the range-only cut serves none; the held fill would). The backend's caveat is a
-  // token carrying the one number a manager can use (his pro games); the weight and
-  // the uncertainty ride on their own fields, so the sentence must neither quote a
-  // weight nor hedge — "interpret with caution" is exactly what David struck.
-  it("says the short-sample blend as pedigree plus a wider range, never as a hedge", () => {
+  // token carrying the one number a manager can use (his pro games); the weight
+  // rides on its own field, so the sentence must neither quote a weight nor hedge —
+  // "interpret with caution" is exactly what David struck. DG-144 (2026-09-03): the
+  // clause that pointed at a wider range went with the range — "one number per
+  // player" — so the sentence may not mention a range either.
+  it("says the short-sample blend as pedigree, never as a hedge and never as a range", () => {
     const text = describeToken("engine_ab_blend_low_sample:games=6");
     expect(text).toBe(
-      "Only 6 pro games on record, so his number leans partly on his draft pedigree — the range around it is wider for that.",
+      "Only 6 pro games on record, so his number leans partly on his draft pedigree.",
     );
-    expect(text).not.toMatch(/caution|w_B|blend/i);
+    expect(text).not.toMatch(/caution|w_B|blend|range/i);
     expect(findRawCopy(text)).toEqual([]);
     expect(describeToken("engine_ab_blend_low_sample:games=1")).toMatch(
       /^Only 1 pro game on record/,

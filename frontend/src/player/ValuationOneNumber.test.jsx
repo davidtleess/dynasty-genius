@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 //
 // DG-144 (2026-09-03) — one number per player on the player card too. David:
-// "plus or minus 20, remove it, one number per player." The "Likely range" fact
-// DG-128 added is gone; "Scored by" still names what PRODUCED the score (the
+// "plus or minus 20, remove it, one number per player." The range fact DG-128
+// added is gone; "Scored by" still names what PRODUCED the score (the
 // basis), and the basis marker still rides the value.
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";

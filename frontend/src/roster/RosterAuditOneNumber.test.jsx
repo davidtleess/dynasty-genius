@@ -3,9 +3,11 @@
 // DG-144 (2026-09-03) — one number per player, on David's own roster.
 //
 // His ruling: "plus or minus 20, remove it, one number per player." The range
-// DG-128 printed under the value was a per-position constant — two sigma_B, so
-// QB 44.8 / RB 45.6 / WR 40.0 / TE 47.2 — describing the position's model error,
-// never the player. The API still ships `dvs_band_low` / `dvs_band_high`; the
+// DG-128 printed under the value was a per-position, per-basis constant — two
+// sigma of the engine that produced the number (QB 44.8 / RB 45.6 / WR 40.0 /
+// TE 47.2 for measured rows, wider still for rookie-model rows) — describing
+// that engine's model error at that position, never the player. The API still
+// ships `dvs_band_low` / `dvs_band_high`; the
 // screen no longer reads them. The basis marker (`data-basis`) is unchanged:
 // David ruled on 2026-09-01 that nothing greys or lightens the number by its
 // basis, and the marker stays a fact, not a style hook.

@@ -32,7 +32,8 @@ export function RosterAuditRow({ player }: { player: Player }) {
   const risks = player.risk_flags?.items ?? [];
   // DG-144 (2026-09-03): one number per player. David: "plus or minus 20,
   // remove it, one number per player." DG-128's range under the value was a
-  // per-position constant (two sigma_B) and is gone from the screen; the API
+  // per-position, per-basis constant — two sigma of the engine that produced
+  // the number, never a figure about the player — and is gone from the screen; the API
   // still ships `dvs_band_low` / `dvs_band_high` and this row does not read
   // them. `dvs_engine` still rides `data-basis` on the value cell — measured
   // (B), draft-capital prior (A) or a blend — the way the grade rides

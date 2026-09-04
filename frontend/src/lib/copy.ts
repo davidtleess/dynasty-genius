@@ -134,8 +134,10 @@ const FIELD_LABELS: Record<string, string> = {
   dynasty_value_score: "Dynasty value",
   // DG-144 (2026-09-03): `dvs_band_low` / `dvs_band_high` have no label on
   // purpose. David: "plus or minus 20, remove it, one number per player." The
-  // API still ships the pair; no surface reads it, and a surface that starts to
-  // will trip the dictionary's missing-label warning rather than find a word.
+  // API still ships the pair; no surface reads it. A surface that starts to
+  // gets fieldLabel()'s console warning and the humanized fallback ("Dvs band
+  // low"), which the render rule would not catch — so a label is added here
+  // deliberately or the surface is wrong, never both silently.
   xvar: VALUE_OVER_REPLACEMENT,
   xvar_percentile_position: "Position percentile",
   projection_1y: "1-year projection",
@@ -596,16 +598,18 @@ const TOKEN_PATTERNS: {
     // DG-128 (2026-09-01) — "engine_ab_blend_low_sample:games=6", the first blend
     // rows ever served. Under the eight-game gate a veteran's number is part his
     // measured production, part his draft pedigree; the weight rides on its own
-    // field and the uncertainty on the band. The old prose quoted the weight
-    // ("w_B=0.44") and hedged ("interpret with caution") — both struck. Only the
-    // number a manager can act on survives: how many pro games we have on him.
+    // field. The old prose quoted the weight ("w_B=0.44") and hedged ("interpret
+    // with caution") — both struck. Only the number a manager can act on
+    // survives: how many pro games we have on him. DG-144 (2026-09-03): the
+    // closing clause about a wider range went with the range itself — David:
+    // "one number per player" — so the sentence ends at the pedigree.
     match: (t) => /^engine_ab_blend_low_sample:games=(\d+)$/.exec(t),
     build: (t) => {
       const games = Number(
         /^engine_ab_blend_low_sample:games=(\d+)$/.exec(t)?.[1] ?? "0",
       );
       const noun = games === 1 ? "pro game" : "pro games";
-      return `Only ${games} ${noun} on record, so his number leans partly on his draft pedigree — the range around it is wider for that.`;
+      return `Only ${games} ${noun} on record, so his number leans partly on his draft pedigree.`;
     },
   },
   {
