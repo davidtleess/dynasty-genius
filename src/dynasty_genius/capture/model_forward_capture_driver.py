@@ -182,9 +182,13 @@ def resolve_provenance_subset(
     needs_b = bool(engines & {"ENGINE_B", "BLEND_AB"})
     needs_a = bool(engines & {"ENGINE_A", "BLEND_AB"})
 
+    # NOT hashed: ``source_snapshot_captured_at``. It is the league snapshot's own clock
+    # (microsecond precision, new on every daily league run), so hashing it made
+    # provenance_hash new every morning by construction and ``vintage_changed`` true on
+    # 19 of 19 consecutive capture dates (DG-141, David's Q11 ruling 2026-09-03: "take the
+    # timestamp out"). The audit block still records it; only the vintage ignores it.
     subset: dict[str, Any] = {
         "pvo_schema_version": pvo.get("schema_version"),
-        "source_snapshot_captured_at": pvo.get("source_snapshot_captured_at"),
         "pvo_producer_hash": _sha(read_artifact(PRODUCER_PATH)),
     }
     if needs_b:
