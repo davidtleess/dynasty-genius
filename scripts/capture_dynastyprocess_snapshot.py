@@ -23,7 +23,11 @@ someone asks — including 2025, which the filing called a permanent gap and whi
 2025-09-05 commit.
 
 Two risks remain and neither has a clock: the upstream repository disappearing, and someone
-rewriting its history. A local mirror is the only defence against either.
+rewriting its history. Measured, so nobody reaches for the wrong defence: a blobless history
+clone is 1.4 MB and takes seconds, but it does NOT survive the repository disappearing,
+because blobs are fetched on demand; a full mirror did not finish a ten-minute clone. The
+defence that actually works is the one this script performs — keep the extracted CSV in our
+own archive, where it no longer depends on the upstream existing.
 
 Writes ONLY the snapshot and its provenance sidecar. Never clobbers an existing snapshot: if
 one is already there and differs, that is a LOUD failure, because these files are the evidence
