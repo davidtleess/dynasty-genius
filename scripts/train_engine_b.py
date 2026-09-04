@@ -216,6 +216,113 @@ def admissible_training_seasons(
     return sorted(y for y in candidate_seasons if y + LABEL_WINDOW_SEASONS < cutoff)
 
 
+# DG-153 — the guards on the unseen-player figure, both calibrated on the served
+# dataset rather than picked from the air.
+#
+#   MIN_UNSEEN_PLAYERS: QB has 26 distinct unseen players and a 90% bootstrap
+#       interval 0.65 wide; TE has 54 and an interval 0.24 wide. Below ~30 the
+#       figure stops being a measurement.
+#   MAX_UNSEEN_R2_INTERVAL_WIDTH: an interval wider than this cannot separate
+#       "worse than guessing the average" from "useful", so the point estimate is
+#       withheld even when the player count clears the floor. QB's [-0.365,
+#       +0.286] is exactly that case: it spans zero and it is not a finding.
+MIN_UNSEEN_PLAYERS = 30
+MAX_UNSEEN_R2_INTERVAL_WIDTH = 0.40
+_UNSEEN_BOOTSTRAP_DRAWS = 2000
+_UNSEEN_BOOTSTRAP_SEED = 11
+
+# These travel in the artifact, not only in the ticket. A number that leaves its
+# caveats behind gets quoted as settled by the next person to read it.
+UNSEEN_CAVEATS = [
+    "single split, point estimate, no repeats",
+    "the direction is solid — no position scores better on unseen players — "
+    "while the magnitudes are rough",
+    "unseen means absent from the rows the model was FITTED on, not from the "
+    "training file",
+]
+
+
+def unseen_player_metrics(
+    *,
+    model: Any,
+    imputer: Any,
+    features: list[str],
+    holdout: pd.DataFrame,
+    trained_player_ids: Any,
+    outcome_column: str = OUTCOME_COLUMN,
+) -> dict[str, Any]:
+    """How the model scores on holdout players it was never fitted on (DG-153).
+
+    Every other number here is measured on a holdout that shares most of its
+    players with training, so it largely reports skill at RE-RATING someone the
+    model has already met. This is the other question — the waiver pickup and the
+    rookie — and it is the one nothing answered.
+
+    ``trained_player_ids`` must be the players in the FITTED rows. The fit drops
+    rows and DG-026 drops a whole feature season, so a player can sit in the
+    training file and still be unseen by the model; reading the file would call
+    him seen and quietly inflate this figure.
+
+    It REFUSES rather than reporting. Below the player floor, or when the
+    bootstrap interval is too wide to separate "worse than the average" from
+    "useful", the estimate is withheld and the reason named — a confident number
+    off 18 rows is how a measurement becomes a claim.
+    """
+    trained = set(trained_player_ids)
+    unseen = holdout[~holdout["player_id"].isin(trained)]
+    n_rows = int(len(unseen))
+    n_players = int(unseen["player_id"].nunique()) if n_rows else 0
+
+    base: dict[str, Any] = {
+        "unseen_rows": n_rows,
+        "unseen_players": n_players,
+        "minimum_unseen_players": MIN_UNSEEN_PLAYERS,
+        "maximum_r2_interval_width": MAX_UNSEEN_R2_INTERVAL_WIDTH,
+        "definition": "holdout players absent from the fitted training rows",
+        "caveats": list(UNSEEN_CAVEATS),
+        "r2": None,
+        "spearman": None,
+        "r2_interval": None,
+        "r2_interval_width": None,
+        "interval_method": f"bootstrap_{_UNSEEN_BOOTSTRAP_DRAWS}_percentile_90",
+        "decision_supported": False,
+    }
+
+    if n_players < MIN_UNSEEN_PLAYERS:
+        return {**base, "status": "insufficient_unseen_players"}
+
+    X = unseen[features]
+    if imputer is not None:
+        X = imputer.transform(X)
+    y_true = unseen[outcome_column].values
+    y_pred = model.predict(X)
+
+    rng = np.random.default_rng(_UNSEEN_BOOTSTRAP_SEED)
+    draws = []
+    for _ in range(_UNSEEN_BOOTSTRAP_DRAWS):
+        idx = rng.integers(0, n_rows, n_rows)
+        if len(np.unique(y_true[idx])) < 3:
+            continue
+        draws.append(r2_score(y_true[idx], y_pred[idx]))
+    low, high = (float(v) for v in np.percentile(draws, [5, 95]))
+    width = float(high - low)
+
+    measured = {
+        **base,
+        "r2_interval": [low, high],
+        "r2_interval_width": width,
+    }
+    if width > MAX_UNSEEN_R2_INTERVAL_WIDTH:
+        return {**measured, "status": "estimate_too_unstable"}
+
+    return {
+        **measured,
+        "status": "measured",
+        "r2": float(r2_score(y_true, y_pred)),
+        "spearman": _safe_spearman(y_true, y_pred),
+    }
+
+
 def select_alpha_leak_free(
     X: np.ndarray,
     y: np.ndarray,
@@ -564,6 +671,23 @@ def _train_position(
     y_pred           = model.predict(X_test)
     metrics_v2       = _score(y_test, y_pred)
     metrics_baseline = _score(y_test, baseline)
+    # DG-153: the same model, scored on holdout players it was never fitted on.
+    # Every other metric here is measured on a holdout that shares most of its
+    # players with training, so it reports skill at RE-RATING someone already
+    # met; this reports the waiver pickup and the rookie, and refuses when the
+    # sample cannot carry a number.
+    metrics_unseen = unseen_player_metrics(
+        model=model,
+        imputer=imputer,
+        features=available,
+        holdout=pos_df[pos_df["feature_season"].isin(HOLDOUT_SEASONS)],
+        trained_player_ids=train_rows["player_id"],
+    )
+    print(
+        f"  {pos}: unseen players {metrics_unseen['unseen_players']} "
+        f"({metrics_unseen['unseen_rows']} rows) -> {metrics_unseen['status']}"
+        + (f", r2 {metrics_unseen['r2']:+.3f}" if metrics_unseen["r2"] is not None else "")
+    )
     improvements, promotion_warranted = _gate(metrics_v2, metrics_baseline)
 
     artifact_name = f"{pos.lower()}_v2.pkl"
@@ -595,6 +719,7 @@ def _train_position(
         "train_rows": len(X_train),
         "test_rows": len(X_test),
         "metrics_v2": metrics_v2,
+        "metrics_unseen_players": metrics_unseen,
         "metrics_v1_1": v1_1_metrics.get(pos),
         "metrics_v1_0": v1_0_metrics.get(pos),
         "metrics_baseline": metrics_baseline,
