@@ -35,11 +35,14 @@ from tests.contract.test_surface3_player_detail_endpoint import (
     _pvo_row,
 )
 
-# The league on 2026-09-03: 9 of 12 managers named their team; rzalika (5) did not.
-TEAM_NAMES: dict[int, str | None] = {1: "Woodbury Riders", 5: None, 9: "Seidmans Sasquatches"}
+# The league on 2026-09-03: 9 of 12 managers named their team; rzalika did not.
+# Keyed on the manager's Sleeper user id, which is what the artifact's
+# league_context.owner_user_id carries. "user-1" is _rostered_row's owner.
+TEAM_NAMES: dict[str, str] = {"user-1": "Woodbury Riders"}
 
 
-def _get(monkeypatch, artifact, team_names=TEAM_NAMES):
+def _get(monkeypatch, artifact, team_names=None):
+    team_names = TEAM_NAMES if team_names is None else team_names
     client = _client(
         monkeypatch, pvo=artifact, divergence=_divergence(), league_team_names=team_names
     )
@@ -101,7 +104,9 @@ def test_an_owned_player_carries_his_league_team_name(monkeypatch):
 
 
 def test_a_manager_who_never_named_his_team_yields_no_team_name_but_keeps_his_handle(monkeypatch):
-    body = _get(monkeypatch, _artifact(_rostered_row(owner="rzalika", roster_id=5))).json()
+    body = _get(
+        monkeypatch, _artifact(_rostered_row(owner="rzalika", roster_id=5)), team_names={}
+    ).json()
     assert body["league_ownership"]["status"] == "rostered"
     assert body["league_ownership"]["team_name"] is None
     assert body["league_ownership"]["owner_display_name"] == "rzalika"
@@ -119,25 +124,36 @@ def test_a_missing_league_snapshot_yields_no_team_name_and_still_says_rostered(m
     assert body["league_ownership"]["team_name"] is None
 
 
-def test_the_team_name_reader_maps_each_roster_to_its_managers_team_name(tmp_path):
+def test_the_team_name_reader_maps_each_manager_to_his_team_name(tmp_path):
     snapshot = {
-        "rosters": [
-            {"roster_id": 1, "owner_id": "u1"},
-            {"roster_id": 5, "owner_id": "u5"},
-            {"roster_id": 7, "owner_id": "u-gone"},
-        ],
+        "rosters": [{"roster_id": 1, "owner_id": "u1"}, {"roster_id": 5, "owner_id": "u5"}],
         "users": [
             {"user_id": "u1", "display_name": "Dleess", "metadata": {"team_name": "Woodbury Riders"}},
             {"user_id": "u5", "display_name": "rzalika", "metadata": {}},
+            {"user_id": "u6", "display_name": "blank", "metadata": {"team_name": "   "}},
+            {"user_id": "u7", "display_name": "odd", "metadata": {"team_name": 12}},
+            {"display_name": "no id", "metadata": {"team_name": "Nameless"}},
         ],
     }
-    assert players_route._league_team_names_from_snapshot(snapshot) == {1: "Woodbury Riders", 5: None, 7: None}
+    assert players_route._league_team_names_from_snapshot(snapshot) == {"u1": "Woodbury Riders"}
     path = tmp_path / "snapshot.json"
     path.write_text(json.dumps(snapshot))
-    assert players_route._load_league_team_names(path) == {1: "Woodbury Riders", 5: None, 7: None}
+    assert players_route._load_league_team_names(path) == {"u1": "Woodbury Riders"}
     assert players_route._load_league_team_names(tmp_path / "absent.json") == {}
     (tmp_path / "bad.json").write_text("{not json")
     assert players_route._load_league_team_names(tmp_path / "bad.json") == {}
+
+
+def test_a_snapshot_of_another_vintage_cannot_hang_a_name_on_the_wrong_manager(monkeypatch):
+    """The name is the MANAGER's, so a snapshot older or newer than the artifact
+    yields a stale name for the right manager, never another manager's team."""
+    body = _get(
+        monkeypatch,
+        _artifact(_rostered_row(owner="Dleess", roster_id=1)),
+        team_names={"someone-else": "Florida Man"},
+    ).json()
+    assert body["league_ownership"]["team_name"] is None
+    assert body["league_ownership"]["owner_display_name"] == "Dleess"
 
 
 # ── one word, one home ───────────────────────────────────────────────────────

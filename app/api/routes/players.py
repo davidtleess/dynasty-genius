@@ -326,30 +326,26 @@ def _market_and_divergence(
     return market, divergence
 
 
-def _league_team_names_from_snapshot(snapshot: dict[str, Any]) -> dict[int, str | None]:
-    """roster_id → the team name its manager set on Sleeper, from the league
-    snapshot's ``rosters`` (owner_id) and ``users`` (metadata.team_name). A roster
-    whose owner is not among the users, or whose manager never named his team,
-    maps to None so the caller can fall back to the handle and say so."""
-    users_by_id: dict[str, dict[str, Any]] = {
-        str(user.get("user_id")): user
-        for user in (snapshot.get("users") or [])
-        if isinstance(user, dict) and user.get("user_id") is not None
-    }
-    names: dict[int, str | None] = {}
-    for roster in snapshot.get("rosters") or []:
-        if not isinstance(roster, dict):
+def _league_team_names_from_snapshot(snapshot: dict[str, Any]) -> dict[str, str]:
+    """manager's Sleeper user id → the team name he set for this league.
+
+    Keyed on the MANAGER, never on the roster slot: a team name is his, so a
+    snapshot of a different vintage than the valuation artifact can only ever
+    give a stale name for the right manager — it can never hang one manager's
+    team name on another's roster. A manager who never named his team is absent
+    from the map, and the caller says so rather than inventing one.
+    """
+    names: dict[str, str] = {}
+    for user in snapshot.get("users") or []:
+        if not isinstance(user, dict) or user.get("user_id") is None:
             continue
-        roster_id = roster.get("roster_id")
-        if not isinstance(roster_id, int) or isinstance(roster_id, bool):
-            continue
-        owner = users_by_id.get(str(roster.get("owner_id")), {})
-        team_name = (owner.get("metadata") or {}).get("team_name")
-        names[roster_id] = str(team_name) if isinstance(team_name, str) and team_name.strip() else None
+        team_name = (user.get("metadata") or {}).get("team_name")
+        if isinstance(team_name, str) and team_name.strip():
+            names[str(user["user_id"])] = team_name.strip()
     return names
 
 
-def _load_league_team_names(path: Path | None = None) -> dict[int, str | None]:
+def _load_league_team_names(path: Path | None = None) -> dict[str, str]:
     """Read the marker-pinned league snapshot (the same set the trade routes read)
     for roster → team name. Best-effort enrichment: an absent or unreadable
     snapshot yields no names, never an error — ownership itself is served from
@@ -366,7 +362,7 @@ def _load_league_team_names(path: Path | None = None) -> dict[int, str | None]:
 def _league_ownership(
     row: dict[str, Any],
     artifact: dict[str, Any],
-    team_names: dict[int, str | None] | None = None,
+    team_names: dict[str, str] | None = None,
 ) -> PlayerLeagueOwnership:
     """The one rule for who owns him in David's league (DG-145).
 
@@ -396,7 +392,7 @@ def _league_ownership(
         owner_display_name=str(owner) if owner else None,
         roster_id=roster_id,
         as_of=as_of,
-        team_name=(team_names or {}).get(roster_id) if roster_id is not None else None,
+        team_name=(team_names or {}).get(str(context.get("owner_user_id"))),
     )
 
 
