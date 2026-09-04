@@ -306,12 +306,16 @@ def _build_model_section(
     else:
         status = "ok"
 
+    capped = cap_model_deltas(deltas)
     return {
         "status": status,
         "decision_supported": False,
         "vintage_changed": vintage_changed,
         "comparison_window": comparison_window,
-        "deltas": deltas,
+        "deltas": capped["deltas"],
+        # DG-158: the slice is capped; the count is not. A morning that moved 582
+        # players says so, and shows the 25 worth reading.
+        "total_movers_count": capped["total_movers_count"],
     }
 
 
@@ -329,6 +333,27 @@ def _date_vintage(rows: list[dict]) -> tuple[Optional[str], Optional[str]]:
     """
     pairs = _distinct_vintages(rows)
     return min(pairs) if pairs else (None, None)
+
+
+# DG-158 — the model lane caps its movers, as the market lane always has.
+#
+# `_market_deltas` has capped at `top_n = 25` and reported `total_movers_count`
+# since it was written; the model lane returned every delta. Measured: 387 live
+# on an ordinary morning, and 582 on the morning the scale changes — every one a
+# faller, 263 of them David's. A list of the entire league is not a report of
+# what moved, and on rescale morning it is the product telling him everything he
+# owns went down.
+MODEL_TOP_MOVERS_CAP = 25
+
+
+def cap_model_deltas(deltas: list[dict], cap: int = MODEL_TOP_MOVERS_CAP) -> dict:
+    """The biggest movers, capped, and an honest count of how many there were.
+
+    Capping without reporting the total is the same silence in a smaller box, so
+    the count always ships beside the slice.
+    """
+    ordered = sorted(deltas, key=lambda row: abs(row.get("value_delta") or 0.0), reverse=True)
+    return {"deltas": ordered[:cap], "total_movers_count": len(ordered)}
 
 
 def _model_score_deltas(

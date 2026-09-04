@@ -4446,6 +4446,10 @@ export type WhatChangedModelSection = {
      */
     status: string;
     /**
+     * Total Movers Count
+     */
+    total_movers_count?: number | null;
+    /**
      * Vintage Changed
      */
     vintage_changed?: boolean | null;

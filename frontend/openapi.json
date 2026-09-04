@@ -8176,6 +8176,17 @@
             "title": "Status",
             "type": "string"
           },
+          "total_movers_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Movers Count"
+          },
           "vintage_changed": {
             "anyOf": [
               {
