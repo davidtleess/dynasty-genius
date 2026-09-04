@@ -172,13 +172,12 @@ def _load_rostered_universe_pvos(
         if sleeper_id is None or context.get("rostered") is not True:
             continue
         engine_path = valuation.get("engine_path")
-        # ENGINE_A rows are current-draft rookie valuations and only apply to a
-        # player actually in that draft. ENGINE_B rows are the active-player
-        # valuations and carry no draft concept -- requiring in_current_draft
-        # here is what confined this index to rookies and left every veteran to
-        # the gsis-keyed fallback below, which Sleeper cannot satisfy.
-        if engine_path == "ENGINE_A" and context.get("in_current_draft") is not True:
-            continue
+        # ENGINE_A rows are the rookie model's valuations, ENGINE_B / blend rows
+        # the active-player model's; either applies to any ROSTERED player who
+        # carries one. DG-147: this used to require `in_current_draft` as well
+        # for ENGINE_A -- picked in THIS league's draft -- which dropped a rookie
+        # acquired off waivers or onto a taxi squad to the gsis-keyed fallback
+        # below (no number, no "Rookie" word) while his card scored him.
         if engine_path != "ENGINE_A" and engine_path not in _VETERAN_ENGINE_PATHS:
             continue
         indexed[str(sleeper_id)] = row
@@ -201,6 +200,20 @@ def _roster_audit_signals_from_player(player: dict) -> RosterAuditSignals | None
         caveats=audited.get("caveats", []),
         decision_supported=False,
     )
+
+
+def _is_rookie(years_exp: Any, engine_path: str | None) -> bool:
+    """Whether the roster row may call him a rookie (DG-147).
+
+    A fact about the player, read the way Sleeper states it: ``years_exp == 0``
+    is a rookie and any other count is not. Only when Sleeper is silent does the
+    engine stand in -- a row the rookie model scored is the current class, since
+    that model scores nothing else. Neither this league's draft nor the engine
+    path decides it when the fact is on the row.
+    """
+    if isinstance(years_exp, (int, float)) and not isinstance(years_exp, bool):
+        return int(years_exp) == 0
+    return engine_path == "ENGINE_A"
 
 
 def _pvo_from_universe_row(
@@ -257,7 +270,11 @@ def _pvo_from_universe_row(
         # Same rule for age: the artifact's is the model's feature-season age, a year
         # stale on screen; the live roster row carries today's (DG-139).
         age=served_age(live_player, player.get("age")),
-        is_prospect=not is_veteran,
+        # DG-147: "rookie" is a fact about the player, not about which engine
+        # scored him or whether this league's draft picked him; the draft class
+        # rides along so the row can say which class.
+        is_prospect=_is_rookie(player.get("years_exp"), valuation.get("engine_path")),
+        draft_class=row.get("draft_class"),
         sleeper_id=str(identity_ids.get("sleeper_id") or row.get("sleeper_player_id")),
         engine_used="engine_b" if is_veteran else "engine_a",
         model_version=valuation.get("model_version"),
@@ -514,6 +531,7 @@ async def get_my_roster(league_context: Optional[LeagueContext] = None) -> list[
             "position":  p.get("position", ""),
             "team":      p.get("team") or "FA",
             "age":       p.get("age"),
+            "years_exp": p.get("years_exp"),
             "gsis_id":   p.get("gsis_id"),
         })
 
@@ -729,7 +747,11 @@ async def run_audit_pvo() -> dict:
         if score is not None:
             features["engine_b_score"] = score
 
-        pvos.append(assemble_pvo(identity, features))
+        # DG-147: a rookie with no model row is still a rookie; the word rests
+        # on Sleeper's fact carried by the live roster row.
+        pvos.append(
+            assemble_pvo(identity, features, is_prospect=_is_rookie(p.get("years_exp"), None))
+        )
 
     pvos.sort(
         key=lambda pvo: (
