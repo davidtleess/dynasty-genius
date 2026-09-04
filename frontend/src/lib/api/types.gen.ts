@@ -1897,6 +1897,7 @@ export type PlayerDetailResponse = {
     evidence: PlayerEvidence | null;
     frozen_prediction: FrozenPredictionField;
     identity: PlayerIdentity;
+    league_ownership: PlayerLeagueOwnership;
     market: PlayerMarketLane;
     model: PlayerModelLane | null;
     /**
@@ -1961,6 +1962,36 @@ export type PlayerIdentity = {
      * Team
      */
     team: string | null;
+};
+
+/**
+ * PlayerLeagueOwnership
+ *
+ * Where the player stands in David's league (DG-145). Read from the row's
+ * ``league_context`` — the latest league roster capture — and dated by the
+ * artifact's ``source_snapshot_captured_at``, so the card can say how old the
+ * fact is instead of guessing. ``unknown`` means the capture did not vouch for
+ * him: a missing or non-boolean ``rostered`` flag, or an undated snapshot. It is
+ * never dressed up as a free agent. The word "FA" is the frontend's, minted once
+ * in copy.ts; this field carries the fact, not the label.
+ */
+export type PlayerLeagueOwnership = {
+    /**
+     * As Of
+     */
+    as_of: string | null;
+    /**
+     * Owner Display Name
+     */
+    owner_display_name: string | null;
+    /**
+     * Roster Id
+     */
+    roster_id: number | null;
+    /**
+     * Status
+     */
+    status: 'rostered' | 'free_agent' | 'unknown';
 };
 
 /**

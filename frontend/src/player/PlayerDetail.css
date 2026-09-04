@@ -130,3 +130,16 @@
 .dg-evidence__risk--age-cliff-amber {
   color: var(--dg-cliff, oklch(0.68 0.16 70));
 }
+
+/* DG-145: who owns him in your league — one line under the identity, muted
+   like the standing sentence; the label itself carries a little weight so
+   "FA" reads at a glance. Never a directional hue: ownership is a fact. */
+.dg-player-detail__league {
+  margin: 0;
+  color: var(--dg-text-muted);
+  font-size: var(--dg-text-sm);
+}
+
+.dg-player-detail__fa {
+  font-weight: var(--dg-weight-semibold);
+}

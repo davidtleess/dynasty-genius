@@ -45,6 +45,12 @@ function playerDetail() {
       sleeper_id: "13269",
       team: "LVR",
     },
+    league_ownership: {
+      as_of: "2026-09-03T13:00:45.589670+00:00",
+      owner_display_name: "Dleess",
+      roster_id: 1,
+      status: "rostered",
+    },
     market: {
       caveats: ["market_overlay_static_caveat"],
       market_rank_overall: 42,

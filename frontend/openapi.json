@@ -3302,6 +3302,9 @@
           "identity": {
             "$ref": "#/components/schemas/PlayerIdentity"
           },
+          "league_ownership": {
+            "$ref": "#/components/schemas/PlayerLeagueOwnership"
+          },
           "market": {
             "$ref": "#/components/schemas/PlayerMarketLane"
           },
@@ -3341,6 +3344,7 @@
         "required": [
           "sleeper_id",
           "identity",
+          "league_ownership",
           "model_status",
           "model",
           "evidence",
@@ -3472,6 +3476,61 @@
           "nfl_draft_round"
         ],
         "title": "PlayerIdentity",
+        "type": "object"
+      },
+      "PlayerLeagueOwnership": {
+        "description": "Where the player stands in David's league (DG-145). Read from the row's\n``league_context`` \u2014 the latest league roster capture \u2014 and dated by the\nartifact's ``source_snapshot_captured_at``, so the card can say how old the\nfact is instead of guessing. ``unknown`` means the capture did not vouch for\nhim: a missing or non-boolean ``rostered`` flag, or an undated snapshot. It is\nnever dressed up as a free agent. The word \"FA\" is the frontend's, minted once\nin copy.ts; this field carries the fact, not the label.",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "owner_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Display Name"
+          },
+          "roster_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roster Id"
+          },
+          "status": {
+            "enum": [
+              "rostered",
+              "free_agent",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "owner_display_name",
+          "roster_id",
+          "as_of"
+        ],
+        "title": "PlayerLeagueOwnership",
         "type": "object"
       },
       "PlayerMarketLane": {

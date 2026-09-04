@@ -70,6 +70,21 @@ class PlayerIdentity(BaseModel):
     nfl_draft_round: int | None
 
 
+class PlayerLeagueOwnership(BaseModel):
+    """Where the player stands in David's league (DG-145). Read from the row's
+    ``league_context`` — the latest league roster capture — and dated by the
+    artifact's ``source_snapshot_captured_at``, so the card can say how old the
+    fact is instead of guessing. ``unknown`` means the capture did not vouch for
+    him: a missing or non-boolean ``rostered`` flag, or an undated snapshot. It is
+    never dressed up as a free agent. The word "FA" is the frontend's, minted once
+    in copy.ts; this field carries the fact, not the label."""
+
+    status: Literal["rostered", "free_agent", "unknown"]
+    owner_display_name: str | None
+    roster_id: int | None
+    as_of: str | None
+
+
 class PlayerModelLane(BaseModel):
     engine_path: str | None
     model_grade: str | None
@@ -155,6 +170,7 @@ class FrozenPredictionField(BaseModel):
 class PlayerDetailResponse(BaseModel):
     sleeper_id: str
     identity: PlayerIdentity
+    league_ownership: PlayerLeagueOwnership
     model_status: str
     model: PlayerModelLane | None
     evidence: PlayerEvidence | None
@@ -302,6 +318,37 @@ def _market_and_divergence(
     return market, divergence
 
 
+def _league_ownership(row: dict[str, Any], artifact: dict[str, Any]) -> PlayerLeagueOwnership:
+    """The one rule for who owns him in David's league (DG-145).
+
+    David, 2026-09-03 23:35 ET, on what "free agent" means: "nobody in the league
+    owns." The row's ``league_context.rostered`` is that fact as of the league
+    roster capture the artifact was built from; ``source_snapshot_captured_at``
+    dates it. Without a boolean flag and a date there is no fact to serve, only
+    ``unknown`` — never a free-agent claim the capture did not make.
+    """
+    as_of = artifact.get("source_snapshot_captured_at")
+    as_of = as_of if isinstance(as_of, str) and as_of else None
+    context = row.get("league_context")
+    rostered = context.get("rostered") if isinstance(context, dict) else None
+    if not isinstance(rostered, bool) or as_of is None:
+        return PlayerLeagueOwnership(
+            status="unknown", owner_display_name=None, roster_id=None, as_of=as_of
+        )
+    if not rostered:
+        return PlayerLeagueOwnership(
+            status="free_agent", owner_display_name=None, roster_id=None, as_of=as_of
+        )
+    owner = context.get("owner_display_name")
+    roster_id = context.get("roster_id")
+    return PlayerLeagueOwnership(
+        status="rostered",
+        owner_display_name=str(owner) if owner else None,
+        roster_id=int(roster_id) if isinstance(roster_id, int) and not isinstance(roster_id, bool) else None,
+        as_of=as_of,
+    )
+
+
 def _served_team_label(player: dict[str, Any]) -> str | None:
     """A player Sleeper lists as active but on no NFL roster is a free agent; say
     so, as the roster audit does (roster_auditor.get_my_roster), instead of serving
@@ -389,6 +436,7 @@ def get_player_detail(sleeper_id: str) -> PlayerDetailResponse:
     return PlayerDetailResponse(
         sleeper_id=sleeper_id,
         identity=identity,
+        league_ownership=_league_ownership(row, pvo),
         model_status=model_status,
         model=model,
         evidence=evidence,
