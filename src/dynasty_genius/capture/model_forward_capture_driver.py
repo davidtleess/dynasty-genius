@@ -69,6 +69,12 @@ HEAD_A_V3_MANIFEST_PATH = Path("app/data/models/head_a/v3_manifest.json")
 
 _VOLATILE_ROW_KEYS = frozenset({"captured_at", "assembled_at", "pipeline_run_id"})
 _MARKET_ROW_KEYS = frozenset({"market_overlay", "divergence"})
+# Lineage is provenance, not content: every row carries the league run's
+# ``sleeper_players_hash`` as ``lineage.sleeper_snapshot_hash``, and Sleeper renews its
+# player list daily, so hashing it made semantic_output_hash new on every morning
+# (11,581 of 12,226 rows on 09-02→09-03 differed in nothing else). The block is still
+# required per model-supported row and recorded in provenance.row_lineage (DG-141 B).
+_LINEAGE_ROW_KEYS = frozenset({"lineage"})
 
 
 def _sha(raw: bytes) -> str:
@@ -80,11 +86,13 @@ def _canon(obj: Any) -> bytes:
 
 
 def _semantic_projection(row: dict) -> dict:
-    """Row content that defines the model vintage: excludes volatile + market keys."""
+    """Row content that defines the model vintage: excludes volatile, market and lineage keys."""
     return {
         k: v
         for k, v in row.items()
-        if k not in _VOLATILE_ROW_KEYS and k not in _MARKET_ROW_KEYS
+        if k not in _VOLATILE_ROW_KEYS
+        and k not in _MARKET_ROW_KEYS
+        and k not in _LINEAGE_ROW_KEYS
     }
 
 

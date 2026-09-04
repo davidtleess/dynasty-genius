@@ -23,11 +23,11 @@ These tests pin:
     vintage — the 2026-09-02 pair, where 208 rows changed content (team labels) and no
     score moved — because the semantic half carries it;
   * the audit-only provenance block still records the timestamp, outside the hash;
-  * what this change does NOT do: the semantic half still hashes each row's
-    ``lineage.sleeper_snapshot_hash``, which is new on every daily league run, so two
-    mornings that differ only in that hash still report a new vintage. That is the
-    open decision in front of David; this test documents the boundary, it does not
-    endorse it.
+  * and the other half, on David's ruling "B" (2026-09-04 08:11 ET): ``lineage`` leaves
+    the semantic projection too, so two mornings that differ only in the league run's
+    Sleeper player-list hash share a vintage and the receipt can read quiet. The block
+    stays REQUIRED per model-supported row and recorded in ``provenance.row_lineage``;
+    a row missing it still aborts the capture.
 """
 
 from __future__ import annotations
@@ -151,14 +151,15 @@ def test_the_audit_block_still_records_the_snapshot_timestamp_outside_the_hash(
     assert report["provenance"]["source_snapshot_captured_at"] == _MORNING_ONE
 
 
-def test_two_mornings_that_differ_only_in_the_sleeper_list_hash_still_report_a_new_vintage(
+def test_two_mornings_that_differ_only_in_the_sleeper_list_hash_share_a_vintage(
     tmp_path: Path,
 ) -> None:
-    """The boundary of this change, pinned so nobody reads the green above as "tomorrow
-    the receipt says the basis held". Every PVO row carries ``lineage.sleeper_snapshot_hash``
-    (the league run's ``sleeper_players_hash``), inside the semantic projection; it differed
-    on the 09-01, 09-02 and 09-03 league runs. Provenance now holds; the pair still moves.
-    If David rules the semantic half too, this test inverts and becomes that change's RED."""
+    """The other half, David's ruling "B" (2026-09-04 08:11 ET). Every PVO row carries
+    ``lineage.sleeper_snapshot_hash`` (the league run's ``sleeper_players_hash``), and
+    Sleeper renews its player list daily — three different hashes on the 09-01, 09-02 and
+    09-03 runs. Hashing it into the content half made ``semantic_output_hash`` new every
+    morning too: on 09-02 -> 09-03, swapping only that hash back reconciles 11,581 of
+    12,226 rows. Lineage is provenance, not content, so it leaves the projection."""
     base = _artifact_bytes(
         {PVO_PATH: _json_bytes(_pvo_artifact(source_snapshot_captured_at=_MORNING_ONE))}
     )
@@ -175,8 +176,55 @@ def test_two_mornings_that_differ_only_in_the_sleeper_list_hash_still_report_a_n
     second = _capture(tmp_path, next_morning, day=25, git_sha="git-sha-b")
 
     assert first["provenance_hash"] == second["provenance_hash"]
-    assert first["semantic_output_hash"] != second["semantic_output_hash"]
-    assert second["vintage_changed"] is True
+    assert first["semantic_output_hash"] == second["semantic_output_hash"]
+    assert second["vintage_changed"] is False
+    # Still RECORDED per row in the audit block; only the vintage ignores it.
+    recorded = {e["player_key"]: e["lineage"] for e in second["provenance"]["row_lineage"]}
+    assert recorded["sleeper:9509"]["sleeper_snapshot_hash"] == "sleeper-snapshot-v2"
+
+
+def test_a_row_whose_lineage_block_is_missing_is_still_refused(tmp_path: Path) -> None:
+    """Dropping lineage from the hash must not drop the REQUIREMENT: a model-supported row
+    without its snapshot hash still aborts the whole capture before any write (spec §4)."""
+    pvo = _pvo_artifact(source_snapshot_captured_at=_MORNING_ONE)
+    del pvo["players"][0]["lineage"]["sleeper_snapshot_hash"]
+    artifacts = _artifact_bytes({PVO_PATH: _json_bytes(pvo)})
+
+    report = _capture(tmp_path, artifacts, day=24, git_sha="git-sha-a")
+
+    assert report["status"] == "aborted"
+    assert "row_lineage_sleeper_snapshot_hash" in report["aborted_reason"]
+
+
+def test_a_refresh_that_only_brings_a_new_sleeper_list_reports_semantic_unchanged(
+    tmp_path: Path,
+) -> None:
+    runner = refresh_fixtures._load_runner()
+    pvo, coverage = refresh_fixtures._write_pair(tmp_path)
+
+    def refresh_with_a_new_sleeper_list(
+        *, pvo_artifact_path: Path, coverage_artifact_path: Path
+    ) -> None:
+        payload = json.loads(pvo_artifact_path.read_text())
+        payload["source_snapshot_captured_at"] = _MORNING_TWO
+        for row in payload["players"]:
+            row["lineage"]["sleeper_snapshot_hash"] = "sleeper-snapshot-v2"
+        pvo_artifact_path.write_text(json.dumps(payload, sort_keys=True))
+        coverage_artifact_path.write_text(coverage_artifact_path.read_text())
+
+    report = runner.run_pvo_refresh(
+        pvo_artifact_path=pvo,
+        coverage_artifact_path=coverage,
+        report_path=None,
+        refresh_fn=refresh_with_a_new_sleeper_list,
+        capture_fn=None,
+        read_artifact=refresh_fixtures._fixture_reader(pvo, coverage),
+        feature_source=refresh_fixtures._fixture_feature_source(),
+    )
+
+    assert report["status"] == "ok"
+    assert report["semantic_changed"] is False
+    assert report["provenance_changed"] is False
 
 
 # ── the refresh runner, which hashes the same subset at both hash sites ──────────────
