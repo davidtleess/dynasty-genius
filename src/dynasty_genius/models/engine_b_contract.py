@@ -7,35 +7,61 @@ Phase 6 (v2): per-position feature contracts enforce hard exclusion — excluded
 features are dropped from the X matrix entirely, never zero-filled.
 See docs/superpowers/plans/2026-05-12-engine-b-v2-stratification.md.
 
+DG-159 (2026-09-04) — ONE DENOMINATOR. David's ruling, relayed the same evening:
+
+    "we need to put the tight ends on the same kind of scale as the rest of the
+     players ... It can't have its own scale; it can have a calibration to the
+     position, but it has to be on the same scale."
+
+and, on the value: the ceiling must be "the absolute best player in the league, or
+something mathematically achievable because we believe it is a Hall of Fame level
+Dynasty asset", and "not unreachable or extremely reachable". He chose 20.1 knowing
+every cross-positional number on his screen drops about 28% and that the best tight
+end goes from 100 to about 47.
+
+Every displayed score is now ``ppg / DVS_SCALE_ANCHOR_PPG[pos] * 100``, and the anchor
+is the same number at every position. Position scarcity lives entirely in the
+replacement line, which is the "calibration to the position" half of his sentence.
+
+**ENGINE_B_P90_PPG is NOT the denominator any more, and must not be edited to become
+one.** It stays what it always measured: the 90th percentile of each position's own
+outcome distribution. That is what makes the ceiling of a position sayable —
+``P90[TE] / anchor * 100 = 46.8`` is the honest statement that the best tight end is
+worth 46.8 on this scale. Overwrite these with 20.1s and that number cannot be computed
+from anything left in the code, and two guards built for this change go quiet with every
+test still green (decision_logic/counter_arguments.py's derived "top fifth" threshold
+becomes a hard 80 that three of four positions can never reach; see
+tests/contract/test_dg159_one_scale.py, which pins the separation).
+
+The coupled set, all four members derived from the anchor in models/dvs_scale.py:
+
+    lambda[pos]          = anchor[pos] / anchor[XVAR_ANCHOR_POSITION]     -> 1.000
+    replacement_dvs[pos] = REPLACEMENT_PPG[pos] / anchor[pos] * 100
+    sigma[pos]           = model_rmse[pos]      / anchor[pos] * 100       (models/dvs_band.py)
+
+and the cancellation identity survives the change of denominator unaltered:
+
+    unclamped xVAR = (DVS - replacement_DVS) * lambda = (ppg - replacement_ppg) * 100 / anchor
+
 RETRACTED EDIT — DO NOT APPLY (SR-13 / DG-092; retraction 2026-08-20):
 an earlier SEASON-BRIEF.md instructed that ``XVAR_LAMBDA_ENGINE_B['TE']``
-should be 0.703 rather than the shipped 0.648, claiming "every TE is
+should be 0.703 rather than the then-shipped 0.648, claiming "every TE is
 undervalued ~8% in every cross-positional comparison". That finding is
 RETRACTED. If you are reading a copy of the brief that still says it, the
-copy is stale — this docstring is the record.
+copy is stale — this docstring is the record. Under four denominators the
+position ceiling cancelled, so TE was not undervalued by the lambda at all;
+under one denominator every lambda is 1.000 and there is nothing left to
+mis-set. Either way, editing a lambda alone CREATES a distortion rather than
+removing one. DVS_SCALE_ANCHOR_PPG, XVAR_LAMBDA_*, REPLACEMENT_PPG and
+ENGINE_*_REPLACEMENT_DVS are one coupled system: move them together (new
+derivation + David approval) or none. The coupled-identity contract tests in
+tests/contract/test_phase15_xvar.py and tests/contract/test_dg159_one_scale.py
+fail if any one moves alone.
 
-The lambdas are not free parameters. The cancellation identity:
-
-    XVAR_LAMBDA_ENGINE_B[pos] = ENGINE_B_P90_PPG[pos] / ENGINE_B_P90_PPG['WR']
-    (exact at 3-decimal rounding, all four: QB 1.386, RB 1.083, WR 1.000, TE 0.648)
-
-and because ``dvs_raw = projection_2y / _b_p90 * 100.0`` (pvo_assembler.py:407),
-the position P90 CANCELS in the unclamped xVAR:
-
-    unclamped xVAR = (DVS - replacement_DVS) * lambda
-                   = (ppg - replacement_ppg) * 100 / P90['WR']
-
-No position-specific scale survives, so TE is not undervalued by the lambda at
-all. Editing the lambda alone breaks the cancellation and CREATES a genuine
-8.4% TE distortion where none exists today. ENGINE_B_P90_PPG,
-XVAR_LAMBDA_ENGINE_B, and ENGINE_B_REPLACEMENT_DVS are one coupled system:
-move all three together (new diagnostic + David approval) or none. The
-coupled-identity contract tests in tests/contract/test_phase15_xvar.py fail
-if any one moves alone.
-
-The REAL TE defect is clamp ORDERING at pvo_assembler.py:408-409 — 11 of 89
-TEs sit at the DVS ceiling (vs QB 0/37, RB 5/99, WR 6/163) — the subject of
-dropped SR-17, measurement preserved in that test module's docstring.
+The clamp-ordering defect this docstring used to name as "the REAL TE defect"
+(11 of 89 TEs at the ceiling) was fixed in DG-157: the cross-positional value
+now comes off the UNCAPPED score, so a player at the ceiling is no longer
+priced at it.
 """
 from __future__ import annotations
 
@@ -46,11 +72,19 @@ OUTCOME_COLUMN = "avg_ppg_t1_t2"
 OUTCOME_SEASON_COLUMNS = frozenset({"ppg_t1", "ppg_t2", "games_t1", "games_t2"})
 FEATURE_SEASON_COL = "feature_season"
 
-# ── Engine B DVS Normalization Constants ──────────────────────────────────────
-# P90 of avg_ppg_t1_t2 from engine_b_features_v2.csv, May 2026 diagnostic.
-# Used as position-specific ceiling for dynasty_value_score normalization.
-# Frozen at May 2026 values. Recompute only when Engine B training distribution
-# materially changes — requires a new diagnostic run and David approval.
+# ── What each position actually produces ─────────────────────────────────────
+# P90 of avg_ppg_t1_t2 from engine_b_features_v2.csv, May 2026 diagnostic. A
+# measured fact about each position's outcome distribution — NOT a scale choice,
+# and since DG-159 no longer the denominator anything is divided by.
+#
+# Its remaining job is to say how high a position can reach on the shared scale:
+# `P90[pos] / DVS_SCALE_ANCHOR_PPG[pos] * 100` is that position's ceiling — QB 100,
+# RB 78.1, WR 72.1, TE 46.8. Overwriting these with the anchor destroys that
+# statement and silently disarms the derived counter-argument threshold; see the
+# module docstring and tests/contract/test_dg159_one_scale.py.
+#
+# Frozen at May 2026 values. Recompute only when the Engine B training
+# distribution materially changes — new diagnostic run and David approval.
 ENGINE_B_P90_PPG: dict[str, float] = {
     "QB": 20.1,
     "RB": 15.7,
@@ -58,40 +92,104 @@ ENGINE_B_P90_PPG: dict[str, float] = {
     "TE": 9.4,
 }
 
+# ── The one denominator every displayed score is divided by ──────────────────
+# DG-159. David's ruling, 2026-09-04: one scale for every position, anchored at
+# 20.1 points a game. The same value at all four positions IS the ruling — a
+# position-varying entry here would be four scales again wearing one name.
+#
+# 20.1 is the quarterback P90: the most points a game any position is expected to
+# produce, so a score of 100 means "the best any football player is projected to
+# be", and no position's ceiling exceeds it. That satisfies both halves of what he
+# asked for — achievable, because a real quarterback reaches it, and not extremely
+# reachable, because only one position can.
+#
+# Consequences he was told before choosing, measured on the 2026-09-04T18:00:04Z
+# artifact: every cross-positional number falls by a uniform factor of about 0.72
+# (a change of unit, not of meaning — every ordering, sign and ratio is preserved),
+# and the best tight end goes from a pinned 100 to about 47.
+DVS_SCALE_ANCHOR_PPG: dict[str, float] = {
+    "QB": 20.1,
+    "RB": 20.1,
+    "WR": 20.1,
+    "TE": 20.1,
+}
+
 # ── VAR Replacement Baselines (12-team Superflex Full PPR) ────────────────────
-# Rank N such that the Nth active player by predicted PPG defines replacement level.
-# QB: 12 × 2 slots = 24 starters + 1 = QB25 (Superflex-native; NOT 1QB-derived).
-# RB: 12 × 2 = 24 + ~9 flex (40% RB in Full PPR) = RB33.
-# WR: 12 × 3 = 36 + ~7 flex (60% WR in Full PPR) + buffer = WR53.
-# TE: 12 × 1 = 12 + 1 buffer = TE13.
+# Rank N such that the Nth-best player at the position defines replacement level.
+# David's 2026-08-31 ruling 5: "Compute it as an order statistic from the real
+# lineup structure. 'Replacement TE = the 12th-best TE, because your league starts
+# 12.'"
+#
+# DG-159 corrects two of the four, on his 2026-09-04 ruling to take both. His
+# league starts QB/RB/RB/WR/WR/TE/FLEX/FLEX/SUPER_FLEX across 12 teams: 12
+# dedicated quarterback seats, 24 running back, 24 receiver, 12 tight end, and 36
+# shared. The four ranks that shipped demanded 48 of those 36 shared places, so no
+# split of the flex could make them jointly true (DG-160's shared-slot budget;
+# features/replacement_reasoning.py). Receiver alone demanded 28, from a comment
+# deriving WR53 as "12 x 3 = 36" — a third dedicated receiver slot the league does
+# not have. It starts two.
+#
+# These are the counts an optimally-filled league week produces: every scored
+# player ordered by his served points a game, dedicated seats filled first, then
+# the 24 flex and 12 superflex places to the best eligible remaining. Measured on
+# the 2026-09-04T18:00:04Z artifact (582 scored players):
+#
+#     QB  12 dedicated + 12 superflex = 24 started  ->  QB25   (unchanged)
+#     RB  24 dedicated +  4 flex      = 28 started  ->  RB29   (was 33)
+#     WR  24 dedicated + 20 flex      = 44 started  ->  WR45   (was 53)
+#     TE  12 dedicated +  0           = 12 started  ->  TE13   (unchanged)
+#
+# The 36 shared places are exactly consumed, which is the budget balancing rather
+# than a split being assumed. QB and TE were already right and do not move: a
+# correction that moved all four would have been fitting, not deriving.
+#
+# The running-back and receiver ranks are decided at a margin of 0.175 points a
+# game, and one player sits across it — Jordyn Tyson, a receiver Sleeper marks
+# Inactive, at 10.94. Counting him gives RB29/WR45; excluding him gives RB30/WR44.
+# He is counted, because availability is already inside every served score
+# (`apply_availability` in pvo_assembler.py) and filtering on status on top of that
+# would discount him twice. The alternative is worth 1.10 cross-positional points
+# to every receiver, and the choice is recorded here rather than left implicit.
 ENGINE_B_VAR_THRESHOLDS: dict[str, int] = {
     "QB": 25,
-    "RB": 33,
-    "WR": 53,
+    "RB": 29,
+    "WR": 45,
     "TE": 13,
 }
 
 # ── Cross-Positional Scarcity Multipliers (Λ_pos) ─────────────────────────────
-# Derived from P90 ratios relative to the WR anchor (WR = 1.000).
-# Allows comparing DVS points above replacement across positions.
+# lambda[pos] = DVS_SCALE_ANCHOR_PPG[pos] / DVS_SCALE_ANCHOR_PPG[XVAR_ANCHOR_POSITION]
+# (models/dvs_scale.py: derive_lambda). Its only job is to convert a position's
+# own scale into the anchor's before points above replacement are compared.
+#
+# Under one denominator there is no position-specific scale left to convert, so
+# every multiplier is 1.000. That is the cancellation identity doing its job, not
+# being switched off — the arithmetic it guaranteed is unchanged:
+#
+#     unclamped xVAR = (DVS - replacement_DVS) * 1.000
+#                    = (ppg - replacement_ppg) * 100 / anchor
 #
 # DO NOT edit any single value here. "TE should be 0.703" is RETRACTED
-# (2026-08-20) — see the module docstring: lambda[pos] = P90[pos]/P90['WR']
-# exactly, the position P90 cancels in unclamped xVAR, and a lambda-only edit
-# CREATES an 8.4% TE distortion. tests/contract/test_phase15_xvar.py enforces
-# the coupled identity.
+# (2026-08-20) — see the module docstring. A lambda-only edit CREATES a
+# distortion rather than removing one. tests/contract/test_phase15_xvar.py and
+# tests/contract/test_dg159_one_scale.py enforce the coupled identity.
 XVAR_LAMBDA_ENGINE_B: dict[str, float] = {
-    "QB": 1.386,
-    "RB": 1.083,
+    "QB": 1.000,
+    "RB": 1.000,
     "WR": 1.000,
-    "TE": 0.648,
+    "TE": 1.000,
 }
 
+# Engine A scored a prospect against ITS OWN four ceilings, so its multipliers used
+# to differ from Engine B's and the two engines' cross-positional values were on
+# different units — a rookie and a veteran with the same points above replacement
+# did not carry the same number (Engine A's were inflated about 14%). One
+# denominator serves both engines, so the two tables are now the same table.
 XVAR_LAMBDA_ENGINE_A: dict[str, float] = {
-    "QB": 1.315,
-    "RB": 1.150,
+    "QB": 1.000,
+    "RB": 1.000,
     "WR": 1.000,
-    "TE": 0.717,
+    "TE": 1.000,
 }
 
 XVAR_ANCHOR_POSITION: str = "WR"
@@ -104,25 +202,55 @@ TRADE_PARITY_BAND: float = 0.10
 CONSOLIDATION_KAPPA: float = 0.04
 CONSOLIDATION_FLOOR: float = 0.80
 
-# ── Replacement DVS Baselines — Phase 14 Calibration Audit ──────────────────
-# Hardcoded from Phase 14 calibration audit (var_batch_20260516_190328.json).
-# Formula: Replacement_PPG / POSITION_P90_PPG * 100. Frozen at May 2026 values.
-# Do NOT refresh dynamically from inference-time predictions.
-ENGINE_B_REPLACEMENT_DVS: dict[str, float] = {
-    "QB": 64.2,  # 12.91 / 20.1
-    "RB": 46.4,  # 7.29 / 15.7
-    "WR": 60.6,  # 8.79 / 14.5
-    "TE": 95.6,  # 8.99 / 9.4
+# ── What a replacement player produces, in points a game ─────────────────────
+# The Nth-best player at each position, N from ENGINE_B_VAR_THRESHOLDS, measured on
+# the served scale (`apply_availability(projection_2y, availability_p)`, which is
+# what the score itself divides — see pvo_assembler.py). Frozen here rather than
+# recomputed at inference time: a replacement level that moved whenever anyone
+# else's projection moved would shift every player's number for reasons no card
+# could explain.
+#
+# DG-159 derives these for the first time. They previously existed ONLY as inline
+# comments on the two tables below — QB 12.91 / RB 7.29 / WR 8.79 / TE 8.99 — citing
+# app/data/backtest/phase14/var_batch_20260516_190328.json as their source. That
+# artifact does not contain them; it holds 13.47 / 8.59 / 8.65 / 9.76. Nor does any
+# feature season of engine_b_features_v2.csv reproduce them at the shipped ranks,
+# nor any population of the served artifact. The numbers were unreachable by any
+# derivation, which is why they are computed and dated here instead.
+#
+# Measured on the 2026-09-04T18:00:04Z artifact, 582 scored players across both
+# engines. Re-derive with a dated diagnostic and David's approval, never silently:
+# these move ENGINE_*_REPLACEMENT_DVS with them.
+REPLACEMENT_PPG: dict[str, float] = {
+    "QB": 12.26,  # QB25
+    "RB": 9.09,  # RB29
+    "WR": 9.05,  # WR45
+    "TE": 8.41,  # TE13
 }
 
-# Derived from inference-time baselines normalized by Engine A P90 constants.
-# Ensures xVAR calculation is consistent for prospects.
-ENGINE_A_REPLACEMENT_DVS: dict[str, float] = {
-    "QB": 77.3,  # 12.91 / 16.7
-    "RB": 49.9,  # 7.29 / 14.6
-    "WR": 69.2,  # 8.79 / 12.7
-    "TE": 98.8,  # 8.99 / 9.1
+# ── Where replacement sits on the shared 0-100 scale ─────────────────────────
+# replacement_dvs[pos] = REPLACEMENT_PPG[pos] / DVS_SCALE_ANCHOR_PPG[pos] * 100
+# (models/dvs_scale.py: derive_replacement_dvs).
+#
+# This line is the "calibration to the position" David's ruling keeps: on one scale
+# a tight end reads low because a tight end produces less football, and what makes
+# him startable is that his 46.8 ceiling still clears a replacement at 41.8. That
+# comparison is the card's job to show — the raw number alone would mislead.
+#
+# One table serves both engines. Two existed only because the engines divided by
+# different ceilings; replacement level is a fact about the LEAGUE's lineup
+# structure and does not depend on which model scored the player.
+ENGINE_B_REPLACEMENT_DVS: dict[str, float] = {
+    "QB": 61.0,  # 12.26 / 20.1
+    "RB": 45.2,  # 9.09 / 20.1
+    "WR": 45.0,  # 9.05 / 20.1
+    "TE": 41.8,  # 8.41 / 20.1
 }
+
+# The same table. Kept as a separate name because the assembler selects by engine;
+# tests/contract/test_dg159_one_scale.py pins that they are equal, so a future edit
+# to one alone is caught rather than silently splitting the two engines' units again.
+ENGINE_A_REPLACEMENT_DVS: dict[str, float] = dict(ENGINE_B_REPLACEMENT_DVS)
 
 # ── Bayesian Blending Constants ──────────────────────────────────────────────
 

@@ -61,11 +61,18 @@ def current_dvs_scale_token() -> str:
     Derived rather than hand-set so it cannot be forgotten: change the
     denominators and the token changes with them, which is what turns the next
     rescale into a declared movement without anyone remembering to declare it.
-    """
-    from src.dynasty_genius.models.engine_b_contract import ENGINE_B_P90_PPG
 
-    return "p90:" + "/".join(
-        f"{pos}={ENGINE_B_P90_PPG[pos]:g}" for pos in sorted(ENGINE_B_P90_PPG)
+    DG-159: it must read the DENOMINATOR, which since 2026-09-04 is
+    DVS_SCALE_ANCHOR_PPG and no longer ENGINE_B_P90_PPG. Pointed at the P90s it
+    would have gone on returning the same token across the rescale, every one of
+    the 80 moved cards would have classified as `undeclared_drift`, and the refresh
+    would have exited 1 — the rookie and pick boards simply not rebuilding on the
+    morning the scale changed, which is the outage this function exists to prevent.
+    """
+    from src.dynasty_genius.models.engine_b_contract import DVS_SCALE_ANCHOR_PPG
+
+    return "anchor:" + "/".join(
+        f"{pos}={DVS_SCALE_ANCHOR_PPG[pos]:g}" for pos in sorted(DVS_SCALE_ANCHOR_PPG)
     )
 
 

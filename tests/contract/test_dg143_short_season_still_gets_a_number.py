@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from src.dynasty_genius.models.engine_b_contract import (
     ENGINE_B_MIN_GAMES_T,
-    ENGINE_B_P90_PPG,
+    DVS_SCALE_ANCHOR_PPG,
 )
 from src.dynasty_genius.models.player_identity import PlayerIdentity
 from src.dynasty_genius.pvo_assembler import apply_availability, assemble_pvo
@@ -51,7 +51,7 @@ def test_a_seven_game_receiver_is_served_a_number():
     assert pvo.dynasty_value_score is not None
     assert pvo.dvs_engine == "B", "the pure Engine B lane, not the blend"
     expected = round(
-        min(100.0, max(0.0, apply_availability(11.233, 0.885) / ENGINE_B_P90_PPG["WR"] * 100.0)),
+        min(100.0, max(0.0, apply_availability(11.233, 0.885) / DVS_SCALE_ANCHOR_PPG["WR"] * 100.0)),
         1,
     )
     assert pvo.dynasty_value_score == expected

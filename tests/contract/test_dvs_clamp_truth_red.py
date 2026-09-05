@@ -57,7 +57,7 @@ def _score_with_raw_ppg(monkeypatch, ppg: float, pos: str = "WR") -> dict:
 
 def test_engine_a_reports_not_clamped_when_raw_rounds_up_to_one_hundred(monkeypatch):
     """The exact defect: raw 99.9958… rounds to 100.0 but truncated nothing."""
-    p90 = engine_a_module._P90_PPG["WR"]
+    p90 = engine_a_module.DVS_SCALE_ANCHOR_PPG["WR"]  # DG-159: one denominator, not the position P90
     ppg = p90 * 0.9999589041095889  # raw score 99.99589…
     result = _score_with_raw_ppg(monkeypatch, ppg)
 
@@ -67,7 +67,7 @@ def test_engine_a_reports_not_clamped_when_raw_rounds_up_to_one_hundred(monkeypa
 
 def test_engine_a_reports_not_clamped_at_exactly_one_hundred(monkeypatch):
     """Boundary: raw exactly 100.0 loses nothing, so it is not clamped."""
-    result = _score_with_raw_ppg(monkeypatch, engine_a_module._P90_PPG["WR"])
+    result = _score_with_raw_ppg(monkeypatch, engine_a_module.DVS_SCALE_ANCHOR_PPG["WR"])
 
     assert result["dynasty_value_score"] == 100.0
     assert result["dvs_clamped"] is False
@@ -75,7 +75,7 @@ def test_engine_a_reports_not_clamped_at_exactly_one_hundred(monkeypatch):
 
 def test_engine_a_reports_clamped_when_raw_exceeds_one_hundred(monkeypatch):
     """A genuinely truncated score must say so."""
-    p90 = engine_a_module._P90_PPG["WR"]
+    p90 = engine_a_module.DVS_SCALE_ANCHOR_PPG["WR"]  # DG-159: one denominator, not the position P90
     result = _score_with_raw_ppg(monkeypatch, p90 * 1.25)  # raw 125.0
 
     assert result["dynasty_value_score"] == 100.0
@@ -84,7 +84,7 @@ def test_engine_a_reports_clamped_when_raw_exceeds_one_hundred(monkeypatch):
 
 def test_engine_a_reports_not_clamped_for_an_ordinary_score(monkeypatch):
     """Control: a mid-range score is neither clamped nor mislabelled."""
-    p90 = engine_a_module._P90_PPG["WR"]
+    p90 = engine_a_module.DVS_SCALE_ANCHOR_PPG["WR"]  # DG-159: one denominator, not the position P90
     result = _score_with_raw_ppg(monkeypatch, p90 * 0.60)
 
     assert result["dynasty_value_score"] == 60.0

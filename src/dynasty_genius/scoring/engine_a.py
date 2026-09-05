@@ -6,9 +6,15 @@ the latest model run and normalizes predictions to a 0-100 dynasty_value_score.
 Fires only for prospects (is_prospect=True) when pick, round, and age are all
 present. Veterans remain PRE_MODEL until Engine B is trained.
 
-Normalization: y24_ppg / POSITION_P90_PPG * 100, clamped to [0, 100].
-p90 is derived from the full training distribution (see train_models.py stats).
-A first-round elite pick scores ~80-100; late-round speculative picks score 0-30.
+Normalization: y24_ppg / DVS_SCALE_ANCHOR_PPG * 100, clamped to [0, 100].
+
+DG-159 (2026-09-04) moved that denominator off this engine's own four ceilings and
+onto the one every position and both engines share, on David's ruling: "normalize the
+rookie rankings into the same scale as everyone else". Before it, a rookie was ranked
+against other rookies and a veteran against other veterans, and the same number meant
+different football — a top-five receiver read 87 and a veteran reading 87 was worth
+14% more. A first-round elite pick now scores in the 50s or 70s depending on position,
+because that is where he sits against what the best football player produces.
 """
 
 from __future__ import annotations
@@ -26,6 +32,7 @@ from src.dynasty_genius.models.artifact_verification import (
     load_pre_spec_grandfather,
     verify_artifact,
 )
+from src.dynasty_genius.models.engine_b_contract import DVS_SCALE_ANCHOR_PPG
 
 logger = logging.getLogger(__name__)
 
@@ -34,9 +41,18 @@ MODELS_DIR = ROOT / "app" / "data" / "models"
 LATEST_POINTER = MODELS_DIR / "latest.json"
 V3_MANIFEST_POINTER = MODELS_DIR / "head_a" / "v3_manifest.json"
 
-# p90 of y24_ppg from the full training distribution (prospects_with_outcomes.csv).
-# Used as the soft ceiling for dynasty_value_score normalization.
-# Elite-range picks (~top 5) score 80-100; p90 picks score exactly 80.
+# p90 of y24_ppg from the full training distribution (prospects_with_outcomes.csv):
+# what a strong prospect at each position is expected to produce.
+#
+# DG-159: this is NO LONGER the denominator. Until 2026-09-04 a prospect's score was
+# his points a game over his position's own Engine A ceiling, which meant a rookie
+# tight end at 100 and a rookie quarterback at 100 were not the same claim — and
+# neither matched the veteran scale, which used a different set of four ceilings
+# again. Every score on both engines is now divided by DVS_SCALE_ANCHOR_PPG, so a
+# rookie's number and a veteran's number finally mean the same thing.
+#
+# It survives as the position's expected reach, which is what makes a prospect card
+# able to say how close to the top of his own position a rookie projects.
 _P90_PPG: dict[str, float] = {
     "WR": 12.7,
     "RB": 14.6,
@@ -151,8 +167,8 @@ class EngineAScorer:
         X = np.array([[pick, round_, age]])
         y24_ppg = float(model.predict(X)[0])
 
-        p90 = _P90_PPG[pos]
-        raw_score = max(0.0, y24_ppg) / p90 * 100.0
+        # DG-159: the shared denominator, not this position's own ceiling.
+        raw_score = max(0.0, y24_ppg) / DVS_SCALE_ANCHOR_PPG[pos] * 100.0
         dynasty_value_score = round(min(100.0, raw_score), 2)
         # Clamp truth is knowable only HERE, before rounding: a raw 99.996 rounds
         # to 100.0 while truncating nothing, so an output-based `>= 100.0` guess
@@ -258,8 +274,8 @@ class EngineAV3Scorer:
         X = np.array([[features[feat] for feat in contract]])
         y_ppg = float(model.predict(X)[0])
 
-        p90 = _P90_PPG[pos]
-        raw_score = max(0.0, y_ppg) / p90 * 100.0
+        # DG-159: the shared denominator, as the v2 head above.
+        raw_score = max(0.0, y_ppg) / DVS_SCALE_ANCHOR_PPG[pos] * 100.0
         dynasty_value_score = round(min(100.0, raw_score), 2)
 
         # Same clamp-truth rule as the v2 head above: measured pre-round.

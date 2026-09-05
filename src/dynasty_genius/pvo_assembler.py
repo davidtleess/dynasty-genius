@@ -22,10 +22,10 @@ from src.dynasty_genius.decision_logic.counter_arguments import (
 from src.dynasty_genius.models.dvs_band import dvs_band
 from src.dynasty_genius.models.engine_b_contract import (
     DVS_BLEND_K,
+    DVS_SCALE_ANCHOR_PPG,
     ENGINE_A_REPLACEMENT_DVS,
     ENGINE_B_FEATURES_BY_POSITION,
     ENGINE_B_MIN_GAMES_T,
-    ENGINE_B_P90_PPG,
     ENGINE_B_REPLACEMENT_DVS,
     XVAR_ANCHOR_POSITION,
     XVAR_LAMBDA_ENGINE_A,
@@ -38,7 +38,6 @@ from src.dynasty_genius.models.player_value_object import (
     RosterAuditSignals,
 )
 from src.dynasty_genius.scoring.engine_a import (
-    _P90_PPG,
     score_prospect,
     score_prospect_v3,
 )
@@ -398,7 +397,7 @@ def assemble_pvo(
         # DVS engine A always populates provenance if score is present
         dynasty_value_score = engine_a_result["dynasty_value_score"]
         dvs_engine = "A"
-        dvs_p90_ref_val = _P90_PPG.get(identity.position.upper())
+        dvs_p90_ref_val = DVS_SCALE_ANCHOR_PPG.get(identity.position.upper())
         # Consume the producer's clamp truth; never re-infer it from the rounded
         # output (a raw 99.996 rounds to 100.0 and would read as clamped).
         dvs_clamped_val = engine_a_result.get("dvs_clamped")
@@ -429,8 +428,10 @@ def assemble_pvo(
                 caveats.append(caveat)
 
         # DVS normalization — Engine B path.
-        # Formula: clamp(predicted_avg_ppg_t1_t2 / POSITION_P90_PPG_B * 100, 0, 100)
-        # P90 constants are Engine B-native (May 2026 diagnostic from engine_b_features_v2.csv).
+        # Formula: clamp(predicted_avg_ppg_t1_t2 / DVS_SCALE_ANCHOR_PPG * 100, 0, 100)
+        # DG-159: one denominator for every position and both engines, so a score
+        # means the same thing wherever it appears. Position scarcity is carried by
+        # the replacement line instead, which is what David's ruling asked for.
         # Veterans with games_t below ENGINE_B_MIN_GAMES_T are routed to the Dead Window
         # fallback below; this block runs only for Engine B-eligible players.
         games_t = features.get("games_t")
@@ -439,22 +440,22 @@ def assemble_pvo(
         # than treating as either certain attrition or certain availability.
         availability_p = features.get("availability_p")
         pos_upper = identity.position.upper()
-        _b_p90 = ENGINE_B_P90_PPG.get(pos_upper)
+        _anchor = DVS_SCALE_ANCHOR_PPG.get(pos_upper)
         _below_games_gate = (
             games_t is not None
             and float(games_t) < ENGINE_B_MIN_GAMES_T
         )
 
         if (projection_2y is not None
-                and _b_p90 is not None
+                and _anchor is not None
                 and not _below_games_gate):
             # HURDLE: expected value is what he scores TIMES the chance he is there to
             # score it. projection_2y is E[points | plays]; availability is P(plays).
-            # Applied BEFORE the existing normalisation so ENGINE_B_P90_PPG,
+            # Applied BEFORE the normalisation so DVS_SCALE_ANCHOR_PPG,
             # XVAR_LAMBDA_ENGINE_B and ENGINE_B_REPLACEMENT_DVS all keep their meaning —
             # they are one coupled system (DG-092) and this moves none of them.
             _adjusted = apply_availability(projection_2y, availability_p)
-            dvs_raw = _adjusted / _b_p90 * 100.0
+            dvs_raw = _adjusted / _anchor * 100.0
             dvs_clamped_flag = dvs_raw > 100.0
             dynasty_value_score = round(min(100.0, max(0.0, dvs_raw)), 1)
             # Floored at 0 like the displayed score: a negative projection is an absence of
@@ -462,7 +463,9 @@ def assemble_pvo(
             # would price it as though it were.
             dvs_uncapped = round(max(0.0, dvs_raw), 1)
             dvs_engine = "B"
-            dvs_p90_ref_val = _b_p90
+            # The denominator this score was actually divided by, served so a card's
+            # points a game are recoverable from it exactly.
+            dvs_p90_ref_val = _anchor
             dvs_clamped_val = dvs_clamped_flag
 
         # Dead Window bridge: player has exited prospect status and Engine B feature data
@@ -481,8 +484,8 @@ def assemble_pvo(
             # P(plays) to it too would count attrition twice.
             # Clamp Engine B component to 0–100 before entering the blend formula.
             _dvs_b_raw = (
-                apply_availability(projection_2y, availability_p) / _b_p90 * 100.0
-                if (projection_2y is not None and _b_p90)
+                apply_availability(projection_2y, availability_p) / _anchor * 100.0
+                if (projection_2y is not None and _anchor)
                 else None
             )
             _dvs_b = round(min(100.0, max(0.0, _dvs_b_raw)), 1) if _dvs_b_raw is not None else None
@@ -507,7 +510,7 @@ def assemble_pvo(
                 # Component-level truncation is a DIFFERENT fact; exposing it
                 # would need its own named field, deliberately not invented here.
                 dvs_clamped_val = False
-                dvs_p90_ref_val = _P90_PPG.get(pos_upper)  # Engine A prior dominates blend window
+                dvs_p90_ref_val = DVS_SCALE_ANCHOR_PPG.get(pos_upper)  # one denominator, either engine
                 # DG-128 (2026-09-01): a token, not prose. The old sentence carried
                 # "w_B=…" (a raw key the render rule refuses) and "interpret with
                 # caution" (hedging David struck from the screen). The weight rides
@@ -521,7 +524,7 @@ def assemble_pvo(
                 dynasty_value_score = engine_a_result["dynasty_value_score"]
                 dvs_uncapped = engine_a_result.get("dvs_uncapped")
                 dvs_engine = "A"
-                dvs_p90_ref_val = _P90_PPG.get(pos_upper)
+                dvs_p90_ref_val = DVS_SCALE_ANCHOR_PPG.get(pos_upper)
                 # Dead-window fallback is Engine A only — use its clamp truth.
                 dvs_clamped_val = engine_a_result.get("dvs_clamped")
                 _dw_caveat = (

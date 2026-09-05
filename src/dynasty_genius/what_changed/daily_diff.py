@@ -368,42 +368,77 @@ def _date_vintage(rows: list[dict]) -> tuple[Optional[str], Optional[str]]:
 # 1.0, and nothing is reported.
 MODEL_UNIFORM_FACTOR_STATUS = "model_uniform_factor_per_position"
 
-# A factor is "the same" within half a percent; below this many compared players
-# in a position, alike movement is a coincidence rather than a pattern.
+# A factor within half a percent of 1 is indistinguishable from nothing having
+# moved; below this many compared players in a group, alike movement is a
+# coincidence rather than a pattern.
 _UNIFORM_FACTOR_TOLERANCE = 0.005
 _UNIFORM_FACTOR_MIN_PLAYERS = 8
+
+# Every displayed score is rounded to one decimal, so a stored 5.9 is anything in
+# [5.85, 5.95). That is the whole reason this cannot be done by comparing ratios.
+_DVS_ROUNDING_HALF_STEP = 0.05
 
 
 def detect_uniform_position_factor(
     prior_rows: list[dict], latest_rows: list[dict]
 ) -> dict[str, float] | None:
-    """Positions where EVERY compared player moved by the same non-unit factor.
+    """Groups where ONE factor explains every compared player's move.
 
-    Returns the factor per position, or ``None`` when the morning is ordinary.
-    Deliberately conservative in the direction of saying nothing: a position with
-    too few compared players, or any player who moved differently from his
-    neighbours, disqualifies the whole position.
+    Returns the factor per ``position/engine`` group, or ``None`` when the morning
+    is ordinary. Deliberately conservative in the direction of saying nothing: too
+    few compared players, or any player no single factor can account for,
+    disqualifies the whole group.
+
+    Two things about the real move made the obvious version of this miss it
+    entirely, measured on the 2026-09-04 artifact (it fired at none of the four
+    positions, so the report would have listed all 582 scored players as fallers):
+
+    **The engine, not just the position.** The two engines divided by different
+    ceilings, so on the morning they are unified an Engine A receiver and an
+    Engine B receiver move by DIFFERENT factors. Grouping by position alone mixes
+    them and no single factor fits, which reads exactly like an ordinary morning.
+
+    **One-decimal rounding.** Scores are stored to 1 dp, so the ratio of two small
+    scores is coarse: a receiver at 0.1 -> 0.1 has a ratio of 1.0 whatever the true
+    factor was, and at 5.9 -> 2.8 the ratio is 0.4746 against a true 0.4677. A
+    tolerance wide enough to admit those would fire on ordinary mornings. So the
+    test is not "are the ratios close" but "is there a factor consistent with every
+    player once the rounding is carried" — each pair admits the interval
+    ``[(after - 0.05) / (before + 0.05), (after + 0.05) / (before - 0.05)]`` and the
+    group is a change of units when those intervals share a point that is not 1.
+    Nothing is tuned: the interval is the rounding the scores already carry.
     """
     prior = {r["player_key"]: r for r in prior_rows}
     latest = {r["player_key"]: r for r in latest_rows}
-    by_position: dict[str, list[float]] = {}
+    by_group: dict[str, list[tuple[float, float]]] = {}
     for key in set(prior) & set(latest):
         before, after = prior[key].get("dynasty_value_score"), latest[key].get("dynasty_value_score")
-        if not before or after is None:
+        if not before or after is None or before <= _DVS_ROUNDING_HALF_STEP:
             continue
-        by_position.setdefault(str(prior[key].get("position") or ""), []).append(after / before)
+        position = str(prior[key].get("position") or "")
+        if not position:
+            continue
+        engine = str(prior[key].get("engine_path") or "")
+        group = f"{position}/{engine}" if engine else position
+        by_group.setdefault(group, []).append((float(before), float(after)))
 
     factors: dict[str, float] = {}
-    for position, ratios in by_position.items():
-        if not position or len(ratios) < _UNIFORM_FACTOR_MIN_PLAYERS:
+    for group, pairs in by_group.items():
+        if len(pairs) < _UNIFORM_FACTOR_MIN_PLAYERS:
             continue
-        low, high = min(ratios), max(ratios)
-        if high - low > _UNIFORM_FACTOR_TOLERANCE:
-            continue
-        factor = sum(ratios) / len(ratios)
-        if abs(factor - 1.0) <= _UNIFORM_FACTOR_TOLERANCE:
-            continue  # nothing moved; that is a quiet morning, not a new unit
-        factors[position] = factor
+        low = max(
+            (after - _DVS_ROUNDING_HALF_STEP) / (before + _DVS_ROUNDING_HALF_STEP)
+            for before, after in pairs
+        )
+        high = min(
+            (after + _DVS_ROUNDING_HALF_STEP) / (before - _DVS_ROUNDING_HALF_STEP)
+            for before, after in pairs
+        )
+        if low > high:
+            continue  # no single factor accounts for them: an ordinary morning
+        if low <= 1.0 + _UNIFORM_FACTOR_TOLERANCE and high >= 1.0 - _UNIFORM_FACTOR_TOLERANCE:
+            continue  # consistent with nothing having moved, which is not a new unit
+        factors[group] = (low + high) / 2.0
     return factors or None
 
 

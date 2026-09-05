@@ -17,10 +17,10 @@ from typing import Literal, Optional
 from pydantic import BaseModel, field_validator
 
 from src.dynasty_genius.models.engine_b_contract import (
+    DVS_SCALE_ANCHOR_PPG,
     ENGINE_A_REPLACEMENT_DVS,
     XVAR_LAMBDA_ENGINE_A,
 )
-from src.dynasty_genius.scoring.engine_a import ENGINE_A_P90_PPG
 
 _SKILL = ("QB", "RB", "WR", "TE")
 
@@ -37,14 +37,19 @@ _BASE_PICK_CAVEATS = [
 
 
 def player_xvar_from_ppg(y24_ppg: float, position: str) -> float:
-    """Realized Year-2+3 PPG -> DVS (clamped 0-100) -> xVAR, using position constants.
+    """Realized Year-2+3 PPG -> DVS (clamped 0-100) -> xVAR, using the shared scale.
 
-    DVS = clamp(y24_ppg / P90_pos * 100, 0, 100);
+    DVS = clamp(y24_ppg / DVS_SCALE_ANCHOR_PPG[pos] * 100, 0, 100);
     xVAR = (DVS - ENGINE_A_REPLACEMENT_DVS[pos]) * XVAR_LAMBDA_ENGINE_A[pos].
     Sub-replacement outcomes are intentionally NOT clamped (xVAR may be negative).
+
+    DG-159: this divides by the SAME denominator a player's card does. It is the
+    fourth place in the codebase that turns points a game into a score, and the one
+    easiest to forget, because it is not a card — it prices draft picks. Left on the
+    old per-position ceilings it would have valued a pick against a scale no player
+    was on any more, and picks are traded FOR players.
     """
-    p90 = ENGINE_A_P90_PPG[position]
-    dvs = max(0.0, min(100.0, y24_ppg / p90 * 100.0))
+    dvs = max(0.0, min(100.0, y24_ppg / DVS_SCALE_ANCHOR_PPG[position] * 100.0))
     return (dvs - ENGINE_A_REPLACEMENT_DVS[position]) * XVAR_LAMBDA_ENGINE_A[position]
 
 

@@ -15,7 +15,7 @@ from src.dynasty_genius.models.dvs_band import ENGINE_A_V3_HEAD, dvs_band
 from src.dynasty_genius.models.engine_b_contract import (
     DVS_BLEND_K,
     ENGINE_B_MIN_GAMES_T,
-    ENGINE_B_P90_PPG,
+    DVS_SCALE_ANCHOR_PPG,
 )
 from src.dynasty_genius.models.player_identity import PlayerIdentity
 from src.dynasty_genius.pvo_assembler import apply_availability, assemble_pvo
@@ -70,7 +70,7 @@ def test_a_blended_player_s_band_uses_the_components_as_they_entered_the_blend()
 
     dvs_a = score_prospect("WR", 10.0, 1.0, 22.0)["dynasty_value_score"]
     adjusted = apply_availability(projection, availability_p)
-    dvs_b = round(min(100.0, max(0.0, adjusted / ENGINE_B_P90_PPG["WR"] * 100.0)), 1)
+    dvs_b = round(min(100.0, max(0.0, adjusted / DVS_SCALE_ANCHOR_PPG["WR"] * 100.0)), 1)
     w_b = games_t / (games_t + DVS_BLEND_K["WR"])
     expected = dvs_band(pvo.dynasty_value_score, "WR", engine="blend", w_b=w_b, dvs_a=dvs_a, dvs_b=dvs_b)
     assert (pvo.dvs_band_low, pvo.dvs_band_high) == pytest.approx(expected, abs=0.051)

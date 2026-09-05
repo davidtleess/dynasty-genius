@@ -86,18 +86,28 @@ def test_pvo_governance_flags():
     assert data["market_overlay"] is None
     assert data["decision_supported"] is False
 
-def test_counter_argument_present_when_scored():
-    """counter_argument is present when dynasty_value_score is non-null."""
-    payload = {
-        "name": "Marvin Harrison Jr.",
-        "position": "WR",
-        "pick": 4,
-        "round": 1,
-        "age": 21.8
-    }
+def test_counter_argument_present_for_a_top_asset_rookie():
+    """A rookie in the top fifth of his position's scale gets the mandatory
+    counter-argument (Constitution Rule 4).
+
+    DG-159 changed WHO that is, and the change is real rather than cosmetic. The
+    threshold used to be a flat 80 on a scale where every position's ceiling was 100,
+    including the rookie engine's own four ceilings — so a rookie was ranked against
+    other rookies and a veteran against other veterans, and the same number meant
+    different football. It is now 80% of the position's real ceiling on the shared
+    scale, and both engines are measured against it.
+
+    Measured across the served artifact, the population carrying this argument goes
+    57 -> 52. The five it loses are receivers scored by the rookie engine, whose own
+    ceiling (12.7 points a game) sits below the receiver position's (14.5) — they were
+    never in the top fifth of what a receiver can be, only of what the rookie model
+    predicts. A top-four rookie receiver is one of them, which is why this test no
+    longer uses one.
+    """
+    payload = {"name": "Ashton Jeanty", "position": "RB", "pick": 4, "round": 1, "age": 21.8}
     response = client.post("/api/rookies/score", json=payload)
     data = response.json()
-    
-    if data["dynasty_value_score"] is not None:
-        assert data["counter_argument"] is not None
-        assert len(data["counter_argument"]) > 0
+
+    assert data["dynasty_value_score"] is not None
+    assert data["counter_argument"] is not None
+    assert len(data["counter_argument"]) > 0

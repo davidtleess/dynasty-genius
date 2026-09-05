@@ -122,11 +122,11 @@ def _blend_fixture(availability_p: float | None) -> dict:
 
 def _expected_blend(position: str, games_t: int, dvs_a: float, projection: float,
                     availability_p: float | None) -> float:
-    from src.dynasty_genius.models.engine_b_contract import ENGINE_B_P90_PPG
+    from src.dynasty_genius.models.engine_b_contract import DVS_SCALE_ANCHOR_PPG
     from src.dynasty_genius.pvo_assembler import apply_availability
 
     adjusted = apply_availability(projection, availability_p)
-    dvs_b = round(min(100.0, max(0.0, adjusted / ENGINE_B_P90_PPG[position] * 100.0)), 1)
+    dvs_b = round(min(100.0, max(0.0, adjusted / DVS_SCALE_ANCHOR_PPG[position] * 100.0)), 1)
     w_b = games_t / (games_t + DVS_BLEND_K[position])
     return round((1 - w_b) * dvs_a + w_b * dvs_b, 1)
 

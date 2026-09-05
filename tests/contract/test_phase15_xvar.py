@@ -2,10 +2,12 @@
 
 SR-13 (DG-092) also lives here: the coupled-constant identity guard. The
 "TE lambda should be 0.703" finding from an earlier SEASON-BRIEF.md is
-RETRACTED (2026-08-20) — lambda[pos] = P90[pos]/P90['WR'] exactly for all
-four positions, and the position P90 cancels in unclamped xVAR
-(pvo_assembler.py:407), so a lambda-only edit CREATES an 8.4% TE distortion
-where none exists. See the engine_b_contract.py module docstring.
+RETRACTED (2026-08-20) — lambda[pos] = anchor[pos]/anchor['WR'] exactly for
+all four positions, so a lambda-only edit CREATES a distortion rather than
+removing one. DG-159 replaced four position denominators with one shared
+anchor (20.1, David's ruling 2026-09-04), which makes every lambda 1.000 and
+every replacement baseline a division by the same number; the identity itself
+is unchanged. See the engine_b_contract.py module docstring.
 
 Clamp measurement, preserved from dropped SR-17 (model_forward_capture.db,
 capture_date 2026-08-20, engine_path ENGINE_B, dynasty_value_score >= 100):
@@ -22,9 +24,10 @@ from __future__ import annotations
 import pytest
 
 from src.dynasty_genius.models.engine_b_contract import (
+    DVS_SCALE_ANCHOR_PPG,
     ENGINE_A_REPLACEMENT_DVS,
-    ENGINE_B_P90_PPG,
     ENGINE_B_REPLACEMENT_DVS,
+    REPLACEMENT_PPG,
     XVAR_LAMBDA_ENGINE_A,
     XVAR_LAMBDA_ENGINE_B,
 )
@@ -43,7 +46,13 @@ def _mock_identity(position: str, is_prospect: bool = False) -> PlayerIdentity:
 
 
 def test_xvar_formula_wr():
-    """5.1: WR DVS=100, replacement=60.6, lambda=1.000 -> xVAR=39.4."""
+    """5.1: xVAR = (DVS - replacement) x lambda, on the served number.
+
+    DG-159: 14.5 points a game used to BE the receiver ceiling and so scored 100.
+    On one denominator it scores 72.1, because 14.5 is not what the best football
+    player produces — 20.1 is. The formula is unchanged; what a receiver at the top
+    of his own position is worth on the shared scale is the thing that moved.
+    """
     identity = _mock_identity("WR")
     features = {
         "engine_b_score": {"predicted_avg_ppg_t1_t2": 14.5, "engine": "test_v2"},
@@ -51,8 +60,10 @@ def test_xvar_formula_wr():
         "feature_season": 2024,
     }
     pvo = assemble_pvo(identity, features)
+    assert pvo.dynasty_value_score == pytest.approx(72.1, abs=0.1)
     expected_xvar = round(
-        (100.0 - ENGINE_B_REPLACEMENT_DVS["WR"]) * XVAR_LAMBDA_ENGINE_B["WR"],
+        (pvo.dynasty_value_score - ENGINE_B_REPLACEMENT_DVS["WR"])
+        * XVAR_LAMBDA_ENGINE_B["WR"],
         2,
     )
     assert pvo.xvar == pytest.approx(expected_xvar, abs=0.1)
@@ -60,7 +71,13 @@ def test_xvar_formula_wr():
 
 
 def test_xvar_formula_qb_higher_than_wr_at_same_dvs():
-    """5.1: QB lambda > WR lambda, so QB xVAR exceeds WR xVAR at same DVS."""
+    """5.1: the quarterback at his position's ceiling outvalues the receiver at his.
+
+    It used to be the lambda that carried this — a bigger multiplier on the same
+    score. DG-159 removes the multiplier and the ordering survives, because it was
+    never really about the multiplier: 20.1 points a game beats 14.5, and one
+    denominator is what lets the two numbers say so directly.
+    """
     wr_pvo = assemble_pvo(
         _mock_identity("WR"),
         {
@@ -81,25 +98,31 @@ def test_xvar_formula_qb_higher_than_wr_at_same_dvs():
     assert qb_pvo.xvar > wr_pvo.xvar
 
 
-def test_engine_a_lambda_applied_for_qb_prospect():
-    """5.2: QB prospect uses Engine A lambda (1.315), not Engine B lambda (1.386)."""
+def test_a_prospect_and_a_veteran_are_now_on_the_same_cross_positional_unit():
+    """5.2, rewritten by DG-159. This test used to assert the OPPOSITE — that a QB
+    prospect must get Engine A's lambda (1.315) and not Engine B's (1.386) — and
+    that difference was the defect, not the contract. The two engines divided by
+    different ceilings, so a rookie and a veteran with the same points above
+    replacement carried cross-positional values about 14% apart, and 80 of the 582
+    scored players were on the wrong side of it.
+
+    One denominator serves both engines, so the two constants are now equal by
+    construction and the prospect's value is the veteran's arithmetic.
+    """
     identity = _mock_identity("QB", is_prospect=True)
     pvo = assemble_pvo(identity, {"pick": 10.0, "round": 1.0, "age": 21.0})
     assert pvo.dvs_engine == "A"
     assert pvo.xvar is not None and pvo.dynasty_value_score is not None
+
+    assert XVAR_LAMBDA_ENGINE_A["QB"] == XVAR_LAMBDA_ENGINE_B["QB"]
+    assert ENGINE_A_REPLACEMENT_DVS["QB"] == ENGINE_B_REPLACEMENT_DVS["QB"]
+
     expected = round(
         (pvo.dynasty_value_score - ENGINE_A_REPLACEMENT_DVS["QB"])
         * XVAR_LAMBDA_ENGINE_A["QB"],
         2,
     )
     assert pvo.xvar == pytest.approx(expected, abs=0.1)
-    # Confirm Engine B QB lambda was NOT applied.
-    wrong = round(
-        (pvo.dynasty_value_score - ENGINE_B_REPLACEMENT_DVS["QB"])
-        * XVAR_LAMBDA_ENGINE_B["QB"],
-        2,
-    )
-    assert pvo.xvar != pytest.approx(wrong, abs=0.01)
 
 
 def test_engine_a_lambda_applied_for_prospect():
@@ -134,62 +157,53 @@ def test_xvar_ceiling_bound_when_clamped():
 
 _XVAR_POSITIONS = ("QB", "RB", "WR", "TE")
 
-# Replacement-level PPG (12-team Superflex Full PPR), Phase 14 calibration
-# audit (var_batch_20260516_190328.json). Source of record: the inline
-# comments on ENGINE_B_REPLACEMENT_DVS in
-# src/dynasty_genius/models/engine_b_contract.py:111-115
-# ("QB": 64.2,  # 12.91 / 20.1 ... "TE": 95.6,  # 8.99 / 9.4). No
-# REPLACEMENT_PPG constant exists in the code; the same numerators also
-# appear in the ENGINE_A_REPLACEMENT_DVS inline comments (same file, e.g.
-# "QB": 77.3,  # 12.91 / 16.7 — Engine A side unguarded, out of SR-13 scope)
-# and in the SR-13 section of docs/strategies/2026-08-20-dg-SEASON-BUILD-SPEC.md.
-# Restated here so the coupled identity is executable. If a new calibration
-# audit moves these, it moves the DVS values on the same line (BOTH engines'
-# comments), and this test forces the Engine B pair to move together.
-_REPLACEMENT_PPG: dict[str, float] = {
-    "QB": 12.91,
-    "RB": 7.29,
-    "WR": 8.79,
-    "TE": 8.99,
-}
+# Replacement-level PPG (12-team Superflex Full PPR). Until DG-159 this test
+# carried its own copy of the four numbers, because none existed in the code —
+# they lived only in inline comments citing var_batch_20260516_190328.json, an
+# artifact that does not contain them (it holds 13.47 / 8.59 / 8.65 / 9.76). A
+# restated copy is exactly how a constant with no derivation survives: the test
+# and the code agreed with each other and neither agreed with anything measured.
+# They are now a derived, dated constant and this reads it.
+_REPLACEMENT_PPG = REPLACEMENT_PPG
 
 
 @pytest.mark.parametrize("pos", _XVAR_POSITIONS)
-def test_sr13_lambda_is_exact_p90_ratio(pos: str) -> None:
-    """SR-13: XVAR_LAMBDA_ENGINE_B[pos] == round(P90[pos]/P90['WR'], 3).
+def test_sr13_lambda_is_exact_scale_ratio(pos: str) -> None:
+    """SR-13: XVAR_LAMBDA_ENGINE_B[pos] == round(anchor[pos]/anchor['WR'], 3).
 
-    The lambdas are P90 ratios, not free parameters. The position P90 cancels
-    in unclamped xVAR (pvo_assembler.py:407), so editing the lambda alone
-    creates a cross-positional distortion — that is exactly what the RETRACTED
-    "TE should be 0.703" edit would have done (an 8.4% TE distortion where
-    none exists).
+    The lambdas convert a position's own scale into the anchor's; they are not
+    free parameters. Editing one alone creates a cross-positional distortion —
+    exactly what the RETRACTED "TE should be 0.703" edit would have done.
+    Under DG-159's single denominator the ratio is 1.000 everywhere, which is
+    the identity holding rather than being switched off.
     """
-    expected = round(ENGINE_B_P90_PPG[pos] / ENGINE_B_P90_PPG["WR"], 3)
+    expected = round(DVS_SCALE_ANCHOR_PPG[pos] / DVS_SCALE_ANCHOR_PPG["WR"], 3)
     assert XVAR_LAMBDA_ENGINE_B[pos] == pytest.approx(expected, abs=0.001), (
         f"XVAR_LAMBDA_ENGINE_B[{pos!r}] = {XVAR_LAMBDA_ENGINE_B[pos]} but "
-        f"P90[{pos!r}]/P90['WR'] = {expected}. The 'TE lambda should be 0.703' "
-        "finding is RETRACTED (2026-08-20; SR-13/DG-092) — do NOT edit one "
-        "constant alone. ENGINE_B_P90_PPG, XVAR_LAMBDA_ENGINE_B, and "
-        "ENGINE_B_REPLACEMENT_DVS move together (new diagnostic + David "
-        "approval) or not at all. See engine_b_contract.py's module docstring."
+        f"anchor[{pos!r}]/anchor['WR'] = {expected}. The 'TE lambda should be "
+        "0.703' finding is RETRACTED (2026-08-20; SR-13/DG-092) — do NOT edit "
+        "one constant alone. DVS_SCALE_ANCHOR_PPG, XVAR_LAMBDA_ENGINE_B, "
+        "REPLACEMENT_PPG and ENGINE_B_REPLACEMENT_DVS move together (new "
+        "derivation + David approval) or not at all. See engine_b_contract.py's "
+        "module docstring."
     )
 
 
 @pytest.mark.parametrize("pos", _XVAR_POSITIONS)
 def test_sr13_replacement_dvs_derives_from_replacement_ppg(pos: str) -> None:
-    """SR-13: ENGINE_B_REPLACEMENT_DVS[pos] == round(repl_PPG/P90[pos]*100, 1).
+    """SR-13: ENGINE_B_REPLACEMENT_DVS[pos] == round(repl_PPG/anchor[pos]*100, 1).
 
     Same coupled system as the lambda test: replacement DVS is replacement PPG
-    normalized by the SAME position P90 the lambda is built from. Moving the
-    P90 without recomputing this (or vice versa) silently shifts every xVAR
-    for the position.
+    normalized by the SAME denominator the lambda is built from and the score
+    divides by. Moving the anchor without recomputing this (or vice versa)
+    silently shifts every xVAR for the position.
     """
-    expected = round(_REPLACEMENT_PPG[pos] / ENGINE_B_P90_PPG[pos] * 100, 1)
+    expected = round(_REPLACEMENT_PPG[pos] / DVS_SCALE_ANCHOR_PPG[pos] * 100, 1)
     assert ENGINE_B_REPLACEMENT_DVS[pos] == pytest.approx(expected, abs=0.05), (
         f"ENGINE_B_REPLACEMENT_DVS[{pos!r}] = {ENGINE_B_REPLACEMENT_DVS[pos]} "
-        f"but replacement_PPG/P90*100 = {expected} "
-        f"({_REPLACEMENT_PPG[pos]} / {ENGINE_B_P90_PPG[pos]} * 100). These "
-        "constants are one coupled system with ENGINE_B_P90_PPG and "
+        f"but replacement_PPG/anchor*100 = {expected} "
+        f"({_REPLACEMENT_PPG[pos]} / {DVS_SCALE_ANCHOR_PPG[pos]} * 100). These "
+        "constants are one coupled system with DVS_SCALE_ANCHOR_PPG and "
         "XVAR_LAMBDA_ENGINE_B (SR-13/DG-092) — never move one alone. See "
         "engine_b_contract.py's module docstring."
     )

@@ -1,19 +1,29 @@
 """DG-158 — the four constants written in SCORE UNITS, and the scale moving under them.
 
-Fred's rescale replaces the per-position denominators with a single anchor, so every
-displayed score moves by that position's factor (Engine B: QB 1.0000, RB 0.7811,
-WR 0.7214, TE 0.4677). Four things elsewhere are expressed in score points and do
-not move with it. Each was silently coupled to a scale nobody thought of them as
-depending on, and each is pinned here so the NEXT rescale needs no hand-edit.
+DG-159 replaced the per-position denominators with a single anchor, so every displayed
+score moved by that position's factor (Engine B: QB 1.0000, RB 0.7811, WR 0.7214,
+TE 0.4677; Engine A separately: 0.8308, 0.7264, 0.6318, 0.4527). Four things elsewhere
+are expressed in score points and did not move with it. Each was silently coupled to a
+scale nobody thought of them as depending on, and each is pinned here so the NEXT
+rescale needs no hand-edit.
 
 Measured before building, on the served artifact:
   * the counter-argument population goes 57 -> 9, all quarterbacks, because clearing
-    80 would require 102.4 / 110.9 / 171.0 today at RB / WR / TE and scores clamp at 100;
+    80 would require 102.4 / 110.9 / 171.0 at RB / WR / TE and scores clamp at 100;
   * 80 prospect cards move and the refresh exits 1, so the boards do not rebuild;
   * the model movers list is uncapped — 387 live, 582 on rebase morning, all fallers;
   * the TE band becomes 1.01x the whole TE scale.
+
+**Two of the five were wired to ENGINE_B_P90_PPG, which DG-159 deliberately does not
+move** — the P90s stay a measured fact about each position so that a position's ceiling
+on the shared scale is still sayable. Repointed at DVS_SCALE_ANCHOR_PPG in DG-159; the
+tests below are what a wrong wiring shows up in, and the ones that read the anchor now
+say so.
 """
 from __future__ import annotations
+
+import json
+from pathlib import Path
 
 import pytest
 
@@ -28,12 +38,17 @@ POSITIONS = ("QB", "RB", "WR", "TE")
 
 
 # ── 1. the counter-argument threshold rides the scale ───────────────────────
-def test_today_the_threshold_is_still_eighty():
-    """Behaviour-preserving on the scale as it stands: the constant was 80 on a
-    0-100 scale, and that is 80% of the ceiling. Nobody gains or loses an
-    argument on the day this lands."""
+def test_the_threshold_is_eighty_percent_of_whatever_the_ceiling_is():
+    """When DG-158 landed, all four ceilings were 100 and this asserted a flat 80 —
+    behaviour-preserving, nobody gaining or losing an argument on landing day. DG-159
+    moved the ceilings, and the whole point of a derived threshold is that this
+    assertion follows them instead of pinning a number that stopped being reachable."""
+    from src.dynasty_genius.decision_logic.counter_arguments import position_ceiling
+
     for pos in POSITIONS:
-        assert top_asset_threshold(pos) == pytest.approx(80.0)
+        assert top_asset_threshold(pos) == pytest.approx(0.80 * position_ceiling(pos))
+    assert top_asset_threshold("QB") == pytest.approx(80.0, abs=0.1)
+    assert top_asset_threshold("TE") == pytest.approx(37.4, abs=0.1)
 
 
 def test_the_threshold_follows_a_rescaled_ceiling_instead_of_standing_still(monkeypatch):
@@ -198,21 +213,24 @@ def test_the_band_keeps_its_size_relative_to_the_scale_when_the_anchor_moves():
     uses, the band is the SAME real quantity — one holdout RMSE — and its share
     of the scale does not move at all."""
     from src.dynasty_genius.models.dvs_band import DVS_SIGMA_B
-    from src.dynasty_genius.models.engine_b_contract import ENGINE_B_P90_PPG
+    from src.dynasty_genius.models.engine_b_contract import (
+        DVS_SCALE_ANCHOR_PPG,
+        ENGINE_B_P90_PPG,
+    )
 
-    today = dict(ENGINE_B_P90_PPG)
-    anchored = {pos: 20.1 for pos in POSITIONS}
-    recomputed, _ = _sigma_from_artifacts(anchored)
+    before = dict(ENGINE_B_P90_PPG)
+    # What the band was before the anchor moved: each position's own ceiling was 100,
+    # and sigma was its error over that ceiling.
+    per_position, _ = _sigma_from_artifacts(dict(ENGINE_B_P90_PPG))
     for pos in POSITIONS:
-        ceiling_today = 100.0
-        ceiling_anchored = ENGINE_B_P90_PPG[pos] / anchored[pos] * 100.0
-        share_today = DVS_SIGMA_B[pos] / ceiling_today
-        share_anchored = recomputed[pos] / ceiling_anchored
-        assert share_anchored == pytest.approx(share_today, abs=0.01), (
+        ceiling_now = ENGINE_B_P90_PPG[pos] / DVS_SCALE_ANCHOR_PPG[pos] * 100.0
+        share_before = per_position[pos] / 100.0
+        share_now = DVS_SIGMA_B[pos] / ceiling_now
+        assert share_now == pytest.approx(share_before, abs=0.01), (
             f"{pos}: the band changed size relative to its own scale "
-            f"({share_today:.3f} -> {share_anchored:.3f})"
+            f"({share_before:.3f} -> {share_now:.3f})"
         )
-    assert today == dict(ENGINE_B_P90_PPG), "the test must not mutate the contract"
+    assert before == dict(ENGINE_B_P90_PPG), "the test must not mutate the contract"
 
 
 def test_the_two_engines_sigmas_are_computed_apart_even_where_they_coincide():
@@ -223,27 +241,59 @@ def test_the_two_engines_sigmas_are_computed_apart_even_where_they_coincide():
     A wrong with nothing anywhere to reveal it — a silent failure hiding inside a
     coincidence."""
     from src.dynasty_genius.models.dvs_band import DVS_SIGMA_A, DVS_SIGMA_B
+    from src.dynasty_genius.models.engine_b_contract import DVS_SCALE_ANCHOR_PPG
 
-    assert DVS_SIGMA_B["TE"] == DVS_SIGMA_A["TE"], "the coincidence this guards is gone; re-read the test"
-    b, a = _sigma_from_artifacts({pos: 20.1 for pos in POSITIONS})
-    assert b["TE"] != a["TE"], (
-        "recomputed against one anchor the two engines' TE errors must differ; "
-        "equal values here mean one was copied from the other"
+    b, a = _sigma_from_artifacts(DVS_SCALE_ANCHOR_PPG)
+    assert (DVS_SIGMA_B["TE"], DVS_SIGMA_A["TE"]) == (b["TE"], a["TE"])
+    assert DVS_SIGMA_B["TE"] != DVS_SIGMA_A["TE"], (
+        "against one denominator the two engines' TE errors must differ (2.2223 ppg "
+        "against 2.1520); equal values mean one was copied from the other"
     )
 
 
 def test_the_band_reads_the_same_denominator_the_score_divides_by():
-    """The one path where piece 4 could go quiet: a NEW anchor constant added
-    BESIDE the old one, so the score uses the new denominator while the band's
-    provenance test still passes against the old. They must be the same object."""
-    from src.dynasty_genius import pvo_assembler
-    from src.dynasty_genius.models import (
-        dvs_band,  # noqa: F401  (imported for the pin below)
-    )
-    from src.dynasty_genius.models.engine_b_contract import ENGINE_B_P90_PPG
+    """The one path where piece 4 could go quiet: a NEW anchor constant added BESIDE
+    the old one, so the score uses the new denominator while the band's provenance
+    test still passes against the old.
 
-    assert pvo_assembler.ENGINE_B_P90_PPG is ENGINE_B_P90_PPG, (
-        "the assembler must divide by the same mapping the band is derived from"
+    DG-159 did add exactly such a constant, which is what this guards. It is checked
+    by DIVIDING rather than by comparing imports: `pvo_assembler.X is X` was true
+    whether or not the assembler used X, so it could not have caught the thing it
+    names. Here the assembler scores a player of known points a game and the band's
+    denominator is read back out of the score itself.
+    """
+    from src.dynasty_genius.models.dvs_band import DVS_SIGMA_B, ENGINE_B_SIGMA_RUN
+    from src.dynasty_genius.models.player_identity import PlayerIdentity
+    from src.dynasty_genius.pvo_assembler import assemble_pvo
+
+    ppg = 12.0
+    pvo = assemble_pvo(
+        PlayerIdentity(
+            dg_id="denominator-probe",
+            full_name="Denominator Probe",
+            position="TE",
+            is_prospect=False,
+            verification_status="VERIFIED_NFL_DRAFT",
+        ),
+        {
+            "engine_b_score": {"predicted_avg_ppg_t1_t2": ppg, "engine": "test_v2"},
+            "games_t": 10,
+            "feature_season": 2024,
+        },
+    )
+    scoring_denominator = ppg / pvo.dynasty_value_score * 100.0
+
+    report = json.loads(
+        (
+            Path(__file__).resolve().parents[2] / "app/data/models/engine_b/runs"
+            / ENGINE_B_SIGMA_RUN / "validation_report_te.json"
+        ).read_text()
+    )
+    band_denominator = report["metrics_v2"]["rmse"] / DVS_SIGMA_B["TE"] * 100.0
+
+    assert scoring_denominator == pytest.approx(band_denominator, rel=0.005), (
+        f"the score divides by {scoring_denominator:.2f} points a game and the band by "
+        f"{band_denominator:.2f}; the band would describe a scale nothing is on"
     )
 
 

@@ -28,19 +28,24 @@ def test_engine_a_p90_public_constant_present():
     assert set(ENGINE_A_P90_PPG) == {"QB", "RB", "WR", "TE"}
 
 
-def test_player_xvar_from_ppg_uses_position_constants():
-    # WR: P90=12.7, replacement_DVS=69.2, lambda=1.0
-    # DVS = min(100, 12.7/12.7*100) = 100.0; xVAR = (100-69.2)*1.0
-    assert round(player_xvar_from_ppg(12.7, "WR"), 2) == 30.8
+def test_player_xvar_from_ppg_uses_the_shared_scale_constants():
+    # DG-159: WR anchor 20.1, replacement_DVS 45.0, lambda 1.0.
+    # DVS = min(100, 12.7/20.1*100) = 63.2; xVAR = (63.2 - 45.0) * 1.0.
+    # It used to divide by the 12.7 receiver P90, so 12.7 ppg clamped at 100 and a
+    # pick was priced against a scale no player's card is on any more.
+    assert round(player_xvar_from_ppg(12.7, "WR"), 2) == 18.18
 
 
 def test_player_xvar_from_ppg_clamps_dvs_at_100():
-    assert player_xvar_from_ppg(50.0, "WR") == player_xvar_from_ppg(12.7, "WR")
+    # DG-159: the ceiling a receiver has to clear is the shared 20.1 anchor, not the
+    # 12.7 receiver P90 — which is why 12.7 now scores 63.2 rather than clamping.
+    assert player_xvar_from_ppg(50.0, "WR") == player_xvar_from_ppg(20.1, "WR")
+    assert player_xvar_from_ppg(12.7, "WR") < player_xvar_from_ppg(20.1, "WR")
 
 
 def test_player_xvar_from_ppg_zero_ppg_is_negative_or_floor():
-    # DVS=0 -> xVAR=(0-69.2)*1.0 = -69.2. Do not clamp sub-replacement here.
-    assert round(player_xvar_from_ppg(0.0, "WR"), 1) == -69.2
+    # DVS=0 -> xVAR=(0-45.0)*1.0 = -45.0. Do not clamp sub-replacement here.
+    assert round(player_xvar_from_ppg(0.0, "WR"), 1) == -45.0
 
 
 def _fixture_df() -> pd.DataFrame:
@@ -68,8 +73,8 @@ def test_build_slot_curve_aggregates_xvar_per_slot():
     curve = build_slot_curve(_fixture_df(), mature_years=(2015, 2016), board_size=3)
 
     slot_one = curve["slots"]["1"]
-    # QB 16.7 -> DVS 100 -> xVAR (100-77.3)*1.315 = 29.8505.
-    assert round(slot_one["expected_xvar"], 2) == 29.85
+    # QB 16.7 -> DVS 83.1 -> xVAR (83.1 - 61.0) * 1.000 = 22.0846.
+    assert round(slot_one["expected_xvar"], 2) == 22.08
     assert slot_one["n_years"] == 2
     assert slot_one["positions"] == {"QB": 2}
     assert curve["mature_years_used"] == [2015, 2016]
@@ -105,9 +110,9 @@ def test_build_slot_curve_prices_picks_as_non_negative_option_value():
     slot_one = curve["slots"]["1"]
 
     assert min(slot_one["raw_samples"]) < 0
-    assert round(min(slot_one["raw_samples"]), 1) == -69.2
-    assert slot_one["priced_samples"] == [30.8, 0.0]
-    assert slot_one["expected_xvar"] == 15.4
+    assert round(min(slot_one["raw_samples"]), 1) == -45.0
+    assert slot_one["priced_samples"] == [18.1841, 0.0]
+    assert slot_one["expected_xvar"] == 9.092
 
 
 def test_smooth_and_tier_clamps_monotonic_non_increasing():
