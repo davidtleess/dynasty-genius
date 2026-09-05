@@ -2460,6 +2460,89 @@ export type RealizedOutcomeScorecardResponse = {
 };
 
 /**
+ * ReplacementBudgetView
+ *
+ * Whether all four replacement ranks can be true at once in this league.
+ *
+ * The detector. It asks no behavioural question — only whether the ranks jointly demand more
+ * flex and superflex places than the league has, which is arithmetic.
+ */
+export type ReplacementBudgetView = {
+    /**
+     * Available
+     */
+    available: number;
+    /**
+     * Demanded
+     */
+    demanded: number;
+    /**
+     * Explanation
+     */
+    explanation: string;
+    /**
+     * Largest Demand
+     */
+    largest_demand?: string | null;
+    /**
+     * Over Subscribed By
+     */
+    over_subscribed_by: number;
+    /**
+     * Status
+     */
+    status: 'agrees' | 'disagrees';
+};
+
+/**
+ * ReplacementReasoningView
+ *
+ * DG-160: how one position's replacement level was derived, in David's own terms.
+ *
+ * His 2026-08-31 ruling 5: "let the derived number stand and show the reasoning … Replacement
+ * TE = the 12th-best TE, because your league starts 12." Read from the LIVE league snapshot
+ * rather than from the comment above the constant, because that comment is what was wrong.
+ */
+export type ReplacementReasoningView = {
+    /**
+     * Assumption
+     */
+    assumption?: string;
+    /**
+     * Dedicated Starters
+     */
+    dedicated_starters: number;
+    /**
+     * Flex Is Assumed
+     */
+    flex_is_assumed?: boolean;
+    /**
+     * Points Per Game
+     */
+    points_per_game?: number | null;
+    /**
+     * Position
+     */
+    position: string;
+    /**
+     * Rank
+     */
+    rank: number;
+    /**
+     * Reason
+     */
+    reason: string;
+    /**
+     * Shared Places Assumed
+     */
+    shared_places_assumed: number;
+    /**
+     * Shared Places Available
+     */
+    shared_places_available: number;
+};
+
+/**
  * ReportHealth
  */
 export type ReportHealth = {
@@ -2665,6 +2748,11 @@ export type RosterAuditResponse = {
      * Reason
      */
     reason: string;
+    replacement_budget?: ReplacementBudgetView | null;
+    /**
+     * Replacement Reasoning
+     */
+    replacement_reasoning?: Array<ReplacementReasoningView>;
     /**
      * Status
      */

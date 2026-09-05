@@ -4447,6 +4447,115 @@
         "title": "RealizedOutcomeScorecardResponse",
         "type": "object"
       },
+      "ReplacementBudgetView": {
+        "description": "Whether all four replacement ranks can be true at once in this league.\n\nThe detector. It asks no behavioural question \u2014 only whether the ranks jointly demand more\nflex and superflex places than the league has, which is arithmetic.",
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "integer"
+          },
+          "demanded": {
+            "title": "Demanded",
+            "type": "integer"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "largest_demand": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Largest Demand"
+          },
+          "over_subscribed_by": {
+            "title": "Over Subscribed By",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "agrees",
+              "disagrees"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "demanded",
+          "available",
+          "over_subscribed_by",
+          "status",
+          "explanation"
+        ],
+        "title": "ReplacementBudgetView",
+        "type": "object"
+      },
+      "ReplacementReasoningView": {
+        "description": "DG-160: how one position's replacement level was derived, in David's own terms.\n\nHis 2026-08-31 ruling 5: \"let the derived number stand and show the reasoning \u2026 Replacement\nTE = the 12th-best TE, because your league starts 12.\" Read from the LIVE league snapshot\nrather than from the comment above the constant, because that comment is what was wrong.",
+        "properties": {
+          "assumption": {
+            "default": "",
+            "title": "Assumption",
+            "type": "string"
+          },
+          "dedicated_starters": {
+            "title": "Dedicated Starters",
+            "type": "integer"
+          },
+          "flex_is_assumed": {
+            "default": false,
+            "title": "Flex Is Assumed",
+            "type": "boolean"
+          },
+          "points_per_game": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Points Per Game"
+          },
+          "position": {
+            "title": "Position",
+            "type": "string"
+          },
+          "rank": {
+            "title": "Rank",
+            "type": "integer"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "shared_places_assumed": {
+            "title": "Shared Places Assumed",
+            "type": "integer"
+          },
+          "shared_places_available": {
+            "title": "Shared Places Available",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "position",
+          "rank",
+          "reason",
+          "dedicated_starters",
+          "shared_places_assumed",
+          "shared_places_available"
+        ],
+        "title": "ReplacementReasoningView",
+        "type": "object"
+      },
       "ReportHealth": {
         "additionalProperties": false,
         "properties": {
@@ -4876,6 +4985,23 @@
           "reason": {
             "title": "Reason",
             "type": "string"
+          },
+          "replacement_budget": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReplacementBudgetView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "replacement_reasoning": {
+            "items": {
+              "$ref": "#/components/schemas/ReplacementReasoningView"
+            },
+            "title": "Replacement Reasoning",
+            "type": "array"
           },
           "status": {
             "enum": [
