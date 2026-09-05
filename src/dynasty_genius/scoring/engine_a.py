@@ -167,8 +167,10 @@ class EngineAScorer:
         X = np.array([[pick, round_, age]])
         y24_ppg = float(model.predict(X)[0])
 
-        # DG-159: the shared denominator, not this position's own ceiling.
-        raw_score = max(0.0, y24_ppg) / DVS_SCALE_ANCHOR_PPG[pos] * 100.0
+        # DG-159: the shared denominator, not this position's own ceiling. Bound to a
+        # name so the number divided by and the number reported cannot be two things.
+        denominator = DVS_SCALE_ANCHOR_PPG[pos]
+        raw_score = max(0.0, y24_ppg) / denominator * 100.0
         dynasty_value_score = round(min(100.0, raw_score), 2)
         # Clamp truth is knowable only HERE, before rounding: a raw 99.996 rounds
         # to 100.0 while truncating nothing, so an output-based `>= 100.0` guess
@@ -184,6 +186,13 @@ class EngineAScorer:
             # DG-157: the pre-clamp score, so the cross-positional value can be built
             # from what the player produces rather than from the ceiling he hit.
             "dvs_uncapped": round(max(0.0, raw_score), 2),
+            # DG-159: the denominator THIS scorer divided by, reported rather than
+            # restated downstream. The assembler used to fill `dvs_p90_ref` from the
+            # contract constant, so a scorer given a private ceiling would still have
+            # published the anchor — and points a game are recovered from that field. A
+            # served fact has to come from where it happened. `y24_ppg_raw` below makes
+            # the claim checkable: score, points a game and denominator must agree.
+            "dvs_scale_denominator": denominator,
             "engine_used": "engine_a_rookie_forecast_ridge",
             "model_version": self._version,
             "model_grade": _ENGINE_A_GRADES[pos],
@@ -274,8 +283,10 @@ class EngineAV3Scorer:
         X = np.array([[features[feat] for feat in contract]])
         y_ppg = float(model.predict(X)[0])
 
-        # DG-159: the shared denominator, as the v2 head above.
-        raw_score = max(0.0, y_ppg) / DVS_SCALE_ANCHOR_PPG[pos] * 100.0
+        # DG-159: the shared denominator, as the v2 head above, bound to a name for the
+        # same reason.
+        denominator = DVS_SCALE_ANCHOR_PPG[pos]
+        raw_score = max(0.0, y_ppg) / denominator * 100.0
         dynasty_value_score = round(min(100.0, raw_score), 2)
 
         # Same clamp-truth rule as the v2 head above: measured pre-round.
@@ -293,6 +304,7 @@ class EngineAV3Scorer:
             # DG-157: the pre-clamp score, so the cross-positional value can be built
             # from what the player produces rather than from the ceiling he hit.
             "dvs_uncapped": round(max(0.0, raw_score), 2),
+            "dvs_scale_denominator": denominator,
             "engine_used": "engine_a_v3_head_a_ridge",
             "model_version": "head_a_te_v3_ridge",
             "model_grade": _ENGINE_A_V3_GRADES[pos],

@@ -370,3 +370,108 @@ def test_an_ordinary_morning_is_still_not_mistaken_for_a_change_of_units():
     finally:
         con.close()
     assert fired == [], f"claimed a change of units on an ordinary morning: {fired}"
+
+
+# ── 7. the guard that replaces DG-092's, and why it is not weaker ───────────
+#
+# The old coupled-identity guard read `lambda[pos] == P90[pos] / P90['WR']`. Under one
+# denominator that becomes `anchor/anchor`, which is 1.000 whatever anyone does — a guard
+# that has stopped guarding while still passing. What it USED to catch was a second
+# denominator entering the system: a lambda edited on its own, or one position's ceiling
+# moved without its replacement baseline. Those are still the failures worth catching, so
+# the replacement asks the question the constants cannot answer about themselves — it
+# SCORES players and reads the denominator back out of the served numbers.
+
+
+def _served_denominator(position: str, ppg: float) -> float:
+    """The number the code actually divided this player's points a game by.
+
+    Recovered from the score rather than read from a constant: the input is chosen, the
+    output is served, and the division is whatever the code really did.
+    """
+    from src.dynasty_genius.models.player_identity import PlayerIdentity
+    from src.dynasty_genius.pvo_assembler import assemble_pvo
+
+    identity = PlayerIdentity(
+        dg_id=f"denominator-{position}",
+        full_name="Denominator Probe",
+        position=position,
+        is_prospect=False,
+        verification_status="VERIFIED_NFL_DRAFT",
+    )
+    pvo = assemble_pvo(
+        identity,
+        {
+            "engine_b_score": {"predicted_avg_ppg_t1_t2": ppg, "engine": "test_v2"},
+            "games_t": 12,
+            "feature_season": 2025,
+            "availability_p": 1.0,
+        },
+    )
+    return ppg / pvo.dynasty_value_score * 100.0
+
+
+@pytest.mark.parametrize("pos", POSITIONS)
+def test_the_veteran_engine_divides_every_position_by_the_anchor(pos: str):
+    """Measured by scoring, not by reading a constant or an import. `module.X is X` was
+    true whether or not the module used X, which is how a guard of this shape goes quiet."""
+    assert _served_denominator(pos, 8.0) == pytest.approx(
+        DVS_SCALE_ANCHOR_PPG[pos], rel=0.002
+    )
+
+
+@pytest.mark.parametrize("pos", POSITIONS)
+def test_the_rookie_engine_divides_by_the_same_number_the_veteran_engine_does(pos: str):
+    """David's second ruling of the day — "normalize the rookie rankings into the same
+    scale as everyone else" — stated as an executable fact rather than a constant that
+    happens to match. A second anchor added for the rookie engine passes every test above
+    and fails this one."""
+    from src.dynasty_genius.models.player_identity import PlayerIdentity
+    from src.dynasty_genius.pvo_assembler import assemble_pvo
+    from src.dynasty_genius.scoring.engine_a import EngineAScorer
+
+    scored = EngineAScorer().score(position=pos, pick=10.0, round_=1.0, age=21.0)
+
+    # Recovered from what the scorer SERVED — its own points a game over its own score —
+    # so a private ceiling reintroduced anywhere on this path shows up as a number, not
+    # as a constant agreeing with itself. Comparing the reported denominator to the
+    # recovered one is what makes the reported field checkable rather than decorative.
+    recovered = scored["y24_ppg_raw"] / scored["dynasty_value_score"] * 100.0
+    assert recovered == pytest.approx(scored["dvs_scale_denominator"], rel=0.002), (
+        "the rookie engine reports a denominator it did not divide by"
+    )
+
+    veteran_denominator = _served_denominator(pos, 8.0)
+    assert recovered == pytest.approx(veteran_denominator, rel=0.002), (
+        f"{pos}: the rookie engine divides by {recovered:.2f} points a game and the "
+        f"veteran engine by {veteran_denominator:.2f} — two scales again"
+    )
+
+    pvo = assemble_pvo(
+        PlayerIdentity(
+            dg_id=f"rookie-{pos}",
+            full_name="Rookie Probe",
+            position=pos,
+            is_prospect=True,
+            verification_status="VERIFIED_NFL_DRAFT",
+        ),
+        {"pick": 10.0, "round": 1.0, "age": 21.0},
+        is_prospect=True,
+    )
+    assert pvo.dynasty_value_score == pytest.approx(scored["dynasty_value_score"], abs=0.6)
+    assert pvo.dvs_p90_ref == pytest.approx(recovered, rel=0.002), (
+        "the served row names a denominator the scorer did not use"
+    )
+
+
+def test_a_second_denominator_cannot_hide_in_a_second_constant(monkeypatch):
+    """The reintroduction this guard exists to stop: someone adds a private ceiling back
+    for one engine or one position. The score moves and this notices, where a test that
+    only compares constants to each other would not."""
+    from src.dynasty_genius.models import engine_b_contract
+
+    monkeypatch.setitem(engine_b_contract.DVS_SCALE_ANCHOR_PPG, "TE", 9.4)
+    assert _served_denominator("TE", 8.0) == pytest.approx(9.4, rel=0.002)
+    assert _served_denominator("TE", 8.0) != pytest.approx(
+        DVS_SCALE_ANCHOR_PPG["QB"], rel=0.002
+    ), "a per-position denominator must be visible in the served score, and it is"
