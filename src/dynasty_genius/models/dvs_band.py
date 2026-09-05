@@ -9,9 +9,23 @@ new dated section; this module is never bent to a second form to see which reads
 
 Half-widths in DVS points, one holdout RMSE each:
 
-    sigma_B[pos]    = rmse(validation_report_{pos}.json, ENGINE_B_SIGMA_RUN, metrics_v2) / ENGINE_B_P90_PPG[pos] * 100
-    sigma_A[pos]    = rmse({POS}_metadata.json,          ENGINE_A_SIGMA_RUN, metrics)    / ENGINE_A_P90_PPG[pos] * 100
-    sigma_A_v3[TE]  = oof_rmse(scripts/promote_head_a_te_v3.py, ENGINE_A_V3_SIGMA_RUN)   / ENGINE_A_P90_PPG[TE]  * 100
+    sigma_B[pos]    = rmse(validation_report_{pos}.json, ENGINE_B_SIGMA_RUN, metrics_v2) / DVS_SCALE_ANCHOR_PPG[pos] * 100
+    sigma_A[pos]    = rmse({POS}_metadata.json,          ENGINE_A_SIGMA_RUN, metrics)    / DVS_SCALE_ANCHOR_PPG[pos] * 100
+    sigma_A_v3[TE]  = oof_rmse(scripts/promote_head_a_te_v3.py, ENGINE_A_V3_SIGMA_RUN)   / DVS_SCALE_ANCHOR_PPG[TE]  * 100
+
+DG-159 moved that denominator, and sigma is the member of this family most easily
+forgotten: it is stored in SCORE points while the error it represents is a fact in
+points per game. Leave it behind while the scale shrinks and the band silently
+describes a scale that no longer exists — measured before the change, a tight-end
+band left at 23.6 would have spanned 1.57x the whole replacement-to-best range.
+Recomputed against the same denominator the score divides by, it is the same real
+quantity and its share of the scale does not move at all.
+
+The two engines' tight-end sigmas both used to read 23.6 and meant different
+football — 2.2223 points a game against Engine B's old ceiling, 2.1520 against
+Engine A's. One denominator separates them (11.1 and 10.7). The coincidence is
+gone, which matters: identical stored values invite fixing one and copying it
+across, and that would get Engine A wrong with nothing anywhere to reveal it.
 
     measured  (dvs_engine B):      DVS ± sigma_B
     prior     (dvs_engine A):      DVS ± sigma_A   — or sigma_A_v3 where the v3 TE head produced the number
@@ -33,8 +47,9 @@ as independent error terms conventionally are. By construction the blended band 
 than the measured band (w_B < 1), narrows monotonically as n grows, and tends to the measured band
 as w_B → 1. It is a 1-RMSE band — roughly 68% if errors were normal — and it is NOT scaled by
 P(plays), which leaves it wider than the arithmetic would give (conservative; P carries model error
-of its own that this absorbs in part). A measured Engine B player sits at ±20–23 points of a
-100-point scale. That is the served model's published error; the band's job is to show it.
+of its own that this absorbs in part). A measured Engine B player sits at ±11–22 points of a
+100-point scale, narrowest at tight end where the model is surest in points a game. That is the
+served model's published error; the band's job is to show it.
 
 Provenance is tested, not asserted: tests/contract/test_dg128_dvs_band.py recomputes every
 pinned value from the tracked artifacts named here. And it is enforced at serving time, not only
@@ -71,26 +86,28 @@ ENGINE_A_LATEST_PATH = _ROOT / "app/data/models/latest.json"
 ENGINE_A_V3_MANIFEST_PATH = _ROOT / "app/data/models/head_a/v3_manifest.json"
 
 # One holdout RMSE of E[points | plays] on the 2022-23 holdout, in DVS points.
+# (4.5086 / 3.5856 / 2.8972 / 2.2223 points a game, over the 20.1 anchor.)
 DVS_SIGMA_B: dict[str, float] = {
     "QB": 22.4,
-    "RB": 22.8,
-    "WR": 20.0,
-    "TE": 23.6,
+    "RB": 17.8,
+    "WR": 14.4,
+    "TE": 11.1,
 }
 
 # One holdout RMSE of y24_ppg on the 2021 holdout (10-35 rows per position), in DVS points.
+# (6.6720 / 2.9770 / 4.1120 / 2.1520 points a game, over the same anchor.)
 DVS_SIGMA_A: dict[str, float] = {
-    "QB": 40.0,
-    "RB": 20.4,
-    "WR": 32.4,
-    "TE": 23.6,
+    "QB": 33.2,
+    "RB": 14.8,
+    "WR": 20.5,
+    "TE": 10.7,
 }
 
 # One out-of-fold RMSE of best3of4_ppg for the v3 TE head (2.7051 PPG, 4-fold LOOCV over the
 # 2018-21 classes; scripts/promote_head_a_te_v3.py), in DVS points. Only the heads the v3
 # pointer may name belong here; a promoted head with no entry is refused, not defaulted.
 DVS_SIGMA_A_V3: dict[str, float] = {
-    "TE": 29.7,
+    "TE": 13.5,
 }
 
 

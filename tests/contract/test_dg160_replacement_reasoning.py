@@ -200,12 +200,22 @@ def test_the_reasoning_reaches_the_roster_audit_response() -> None:
     assert set(by_position) == {"QB", "RB", "WR", "TE"}
     assert "tight end" in by_position["TE"].reason.lower()
     assert by_position["TE"].shared_places_assumed == 0
-    assert by_position["WR"].shared_places_assumed == 28
+    # DG-159 corrected the receiver rank from 53 to 45, so the demand it makes on the
+    # shared places falls from 28 to 20 and the four ranks now fit the 36 his league has.
+    assert by_position["WR"].shared_places_assumed == 20
+    assert by_position["WR"].points_per_game == 9.05, (
+        "the sentence must quote the points a game the score is actually measured "
+        "against, not a figure back-derived through a denominator it no longer uses"
+    )
 
     assert out.replacement_budget is not None
-    assert out.replacement_budget.status == "disagrees"
-    assert out.replacement_budget.over_subscribed_by == 12
-    assert out.replacement_budget.largest_demand == "WR"
+    # DG-160 built this detector and it read "disagrees", over-subscribed by 12, with
+    # receiver the largest demand. DG-159 corrected the two ranks it caught, so it now
+    # reads "agrees" — the detector finding nothing is the fix landing, and this
+    # assertion is what would catch a future rank that breaks the budget again.
+    assert out.replacement_budget.status == "agrees"
+    assert out.replacement_budget.over_subscribed_by == 0
+    assert out.replacement_budget.demanded == out.replacement_budget.available == 36
 
 
 def test_no_lineup_means_no_invented_explanation() -> None:

@@ -378,17 +378,19 @@ def _build_replacement_reasoning(
     teams = league.get("teams")
     if not roster_positions or not teams:
         return [], None
+    # DG-159: read the points a game directly. This used to back-derive them as
+    # `replacement_DVS / 100 * P90`, which was only ever right while the score's
+    # denominator WAS the position P90 — and the moment those parted the sentence would
+    # have gone on reading confidently while quoting a number no player is measured
+    # against (receiver replacement would have shown as 6.53 rather than 9.05).
     from src.dynasty_genius.models.engine_b_contract import (
-        ENGINE_B_P90_PPG,
-        ENGINE_B_REPLACEMENT_DVS,
         ENGINE_B_VAR_THRESHOLDS,
+        REPLACEMENT_PPG,
     )
 
     views: list[ReplacementReasoningView] = []
     for position, rank in ENGINE_B_VAR_THRESHOLDS.items():
-        ceiling = ENGINE_B_P90_PPG.get(position)
-        replacement = ENGINE_B_REPLACEMENT_DVS.get(position)
-        ppg = round(replacement / 100 * ceiling, 2) if ceiling and replacement else None
+        ppg = REPLACEMENT_PPG.get(position)
         out = explain_replacement(
             position=position,
             shipped_rank=rank,

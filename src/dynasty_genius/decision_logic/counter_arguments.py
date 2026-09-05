@@ -1,6 +1,9 @@
 from typing import Optional
 
-from src.dynasty_genius.models.engine_b_contract import ENGINE_B_P90_PPG
+from src.dynasty_genius.models.engine_b_contract import (
+    DVS_SCALE_ANCHOR_PPG,
+    ENGINE_B_P90_PPG,
+)
 from src.dynasty_genius.models.player_value_object import PlayerValueObject
 
 # DG-158 — "top asset" is a share of the scale, not a number of points on it.
@@ -21,11 +24,17 @@ from src.dynasty_genius.models.player_value_object import PlayerValueObject
 # moves, the threshold moves with it and the rule keeps meaning "the top fifth".
 TOP_ASSET_SCALE_SHARE = 0.80
 
-# The denominator the displayed score is divided by, per position. Today that IS
-# each position's own P90, so every ceiling is 100. Fred's rescale replaces these
-# with a single anchor; this reads the same constant the score does, so the two
-# cannot drift apart.
-SCALE_ANCHOR_PPG = ENGINE_B_P90_PPG
+# The denominator the displayed score is divided by. DG-159 made it a single anchor
+# for every position, so the ceilings are no longer 100: QB 100, RB 78.1, WR 72.1,
+# TE 46.8. This reads the same constant the score divides by, so the two cannot
+# drift apart.
+#
+# It must NOT be aliased back to ENGINE_B_P90_PPG. That was its value while the two
+# were the same thing, and `position_ceiling` would then be P90/P90*100 — identically
+# 100 whatever anyone does to either, so the threshold silently returns to a hard 80
+# that three of four positions can never reach, and 41 players lose the MANDATORY
+# counter-argument with every test in this file still green.
+SCALE_ANCHOR_PPG = DVS_SCALE_ANCHOR_PPG
 
 
 def position_ceiling(position: str) -> float:

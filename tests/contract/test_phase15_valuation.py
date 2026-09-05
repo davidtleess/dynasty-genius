@@ -1,8 +1,11 @@
 """Tests for Phase 15 Cross-Positional Architecture and Bayesian Bridge."""
 from __future__ import annotations
 
+import pytest
+
 from src.dynasty_genius.models.engine_b_contract import (
-    ENGINE_B_P90_PPG,
+    DVS_SCALE_ANCHOR_PPG,
+    ENGINE_B_REPLACEMENT_DVS,
     ENGINE_B_REPLACEMENT_DVS,
 )
 from src.dynasty_genius.models.player_identity import PlayerIdentity
@@ -21,7 +24,7 @@ def _mock_identity(position: str, is_prospect: bool = False) -> PlayerIdentity:
 def test_xvar_rank_preservation_within_position():
     """Task 1.3: Verify xVAR rank == DVS rank within position."""
     identity = _mock_identity("WR")
-    p90 = ENGINE_B_P90_PPG["WR"]
+    p90 = DVS_SCALE_ANCHOR_PPG["WR"]  # DG-159: the denominator the score uses
     repl = ENGINE_B_REPLACEMENT_DVS["WR"]
     
     # Higher DVS must yield higher xVAR
@@ -40,35 +43,37 @@ def test_xvar_rank_preservation_within_position():
     assert pvo_high.dynasty_value_score > pvo_low.dynasty_value_score
     assert pvo_high.xvar > pvo_low.xvar
 
-def test_xvar_scarcity_multiplier():
-    """Task 1.3: Verify QB scarcity multiplier (QB > WR at same DVS parity)."""
-    # A QB at DVS 80 and a WR at DVS 80
-    qb_identity = _mock_identity("QB")
-    wr_identity = _mock_identity("WR")
-    
-    # Calculate PPG that gives exactly DVS 80
-    qb_ppg = 0.80 * ENGINE_B_P90_PPG["QB"]
-    wr_ppg = 0.80 * ENGINE_B_P90_PPG["WR"]
-    
-    features_qb = {
-        "engine_b_score": {"predicted_avg_ppg_t1_t2": qb_ppg, "engine": "test_v2"},
-        "games_t": 10, "feature_season": 2024
+def test_xvar_scarcity_is_carried_by_replacement_not_by_a_multiplier():
+    """Task 1.3, restated by DG-159. Scarcity is a property of the REPLACEMENT LINE.
+
+    This test used to compare a quarterback and a receiver "at the same DVS 80" and
+    assert the quarterback won on his 1.386 multiplier. On four denominators those two
+    80s were not the same football — 16.1 points a game against 11.6 — so the
+    comparison was between two different players, and the multiplier existed to convert
+    between the scales rather than to express scarcity.
+
+    On one denominator the same score IS the same points a game, and the comparison
+    becomes the real one. The receiver comes out ahead, and that is correct value over
+    replacement rather than a regression: the 25th-best quarterback in this superflex
+    league still produces 12.26 a game, while the 45th-best receiver produces 9.05. A
+    quarterback at 16.1 is 3.8 above what his position gives away; a receiver at 16.1
+    is 7.1 above. Quarterback scarcity shows up where it actually lives — quarterbacks
+    reach scores receivers cannot (test_xvar_formula_qb_higher_than_wr_at_same_dvs).
+    """
+    same_ppg = 0.80 * DVS_SCALE_ANCHOR_PPG["QB"]
+    features = {
+        "engine_b_score": {"predicted_avg_ppg_t1_t2": same_ppg, "engine": "test_v2"},
+        "games_t": 10,
+        "feature_season": 2024,
     }
-    features_wr = {
-        "engine_b_score": {"predicted_avg_ppg_t1_t2": wr_ppg, "engine": "test_v2"},
-        "games_t": 10, "feature_season": 2024
-    }
-    
-    pvo_qb = assemble_pvo(qb_identity, features_qb)
-    pvo_wr = assemble_pvo(wr_identity, features_wr)
-    
-    assert pvo_qb.dynasty_value_score == 80.0
-    assert pvo_wr.dynasty_value_score == 80.0
-    
-    # xVAR = (DVS - DVS_repl) * Λ
-    # qb_xvar = (80 - 64.2) * 1.386 = 21.90
-    # wr_xvar = (80 - 60.6) * 1.000 = 19.40
-    assert pvo_qb.xvar > pvo_wr.xvar
+    pvo_qb = assemble_pvo(_mock_identity("QB"), dict(features))
+    pvo_wr = assemble_pvo(_mock_identity("WR"), dict(features))
+
+    assert pvo_qb.dynasty_value_score == pvo_wr.dynasty_value_score == 80.0
+
+    assert pvo_qb.xvar == pytest.approx(80.0 - ENGINE_B_REPLACEMENT_DVS["QB"], abs=0.05)
+    assert pvo_wr.xvar == pytest.approx(80.0 - ENGINE_B_REPLACEMENT_DVS["WR"], abs=0.05)
+    assert pvo_wr.xvar > pvo_qb.xvar
     assert pvo_qb.xvar_anchor == "WR"
 
 def test_bayesian_bridge_monotonicity():

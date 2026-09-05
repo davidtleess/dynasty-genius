@@ -26,25 +26,27 @@ from src.dynasty_genius.models.dvs_band import (
     assert_band_sigma_runs_match_served_models,
     dvs_band,
 )
-from src.dynasty_genius.models.engine_b_contract import ENGINE_B_P90_PPG
-from src.dynasty_genius.scoring.engine_a import ENGINE_A_P90_PPG
+from src.dynasty_genius.models.engine_b_contract import DVS_SCALE_ANCHOR_PPG
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_a_measured_player_carries_one_holdout_rmse_each_side() -> None:
-    assert dvs_band(50.0, "WR", engine="B") == (30.0, 70.0)
+    # sigma_B[WR] = 2.8972 ppg over the 20.1 anchor = 14.4 score points.
+    assert dvs_band(50.0, "WR", engine="B") == (35.6, 64.4)
 
 
 def test_a_prior_only_player_carries_engine_a_s_own_error() -> None:
-    assert dvs_band(50.0, "WR", engine="A") == (17.6, 82.4)
+    # sigma_A[WR] = 4.1120 ppg over the same anchor = 20.5 — wider than the measured
+    # model's, which is the point of carrying the two apart.
+    assert dvs_band(50.0, "WR", engine="A") == (29.5, 70.5)
 
 
 def test_a_te_prospect_scored_by_the_v3_head_carries_that_head_s_own_error() -> None:
     # The v3 TE head produced the number, so its out-of-fold error is the band — not the
     # v2 ridge's, which is a different model with a narrower (11-row) published error.
-    assert dvs_band(80.0, "TE", engine="A", prior_head=ENGINE_A_V3_HEAD) == (50.3, 100.0)
-    assert dvs_band(80.0, "TE", engine="A") == (56.4, 100.0)
+    assert dvs_band(80.0, "TE", engine="A", prior_head=ENGINE_A_V3_HEAD) == (66.5, 93.5)
+    assert dvs_band(80.0, "TE", engine="A") == (69.3, 90.7)
 
 
 def test_a_v3_head_without_a_published_error_is_refused_not_guessed() -> None:
@@ -63,10 +65,13 @@ def test_a_blend_over_a_v3_prior_carries_that_head_s_error_in_the_unresolved_sha
 
 def test_the_blended_band_is_root_sum_square_of_b_error_and_the_unresolved_share() -> None:
     w_b, dvs_a, dvs_b = 0.5, 80.0, 60.0
-    half = math.sqrt(20.0**2 + ((1 - w_b) * (32.4 + abs(dvs_a - dvs_b))) ** 2)
+    half = math.sqrt(14.4**2 + ((1 - w_b) * (20.5 + abs(dvs_a - dvs_b))) ** 2)
     low, high = dvs_band(70.0, "WR", engine="blend", w_b=w_b, dvs_a=dvs_a, dvs_b=dvs_b)
     assert low == round(70.0 - half, 1)
-    assert high == 100.0  # 70 + 32.96 clamps like the score does
+    # DG-159: this case used to clamp (70 + 32.96 on the old scale). One denominator
+    # narrows every band except quarterback's, so it no longer reaches the ceiling —
+    # the clamp itself is exercised in test_the_band_is_clamped_to_the_score_s_scale.
+    assert high == round(70.0 + half, 1)
 
 
 def test_the_blended_band_is_strictly_wider_than_measured_and_tends_to_it() -> None:
@@ -103,8 +108,10 @@ def test_a_score_no_engine_produced_has_no_error_to_claim() -> None:
 
 
 def test_the_band_is_clamped_to_the_score_s_scale() -> None:
+    # Quarterback is the one position whose sigma_B does not move: the anchor IS its old
+    # ceiling, so 4.5086 ppg is 22.4 score points before and after.
     assert dvs_band(5.0, "QB", engine="B") == (0.0, 27.4)
-    assert dvs_band(95.0, "QB", engine="A") == (55.0, 100.0)
+    assert dvs_band(95.0, "QB", engine="A") == (61.8, 100.0)
 
 
 def test_a_blend_without_its_components_is_refused_not_guessed() -> None:
@@ -131,7 +138,7 @@ def test_sigma_b_is_the_engine_b_holdout_rmse_in_dvs_units(position: str) -> Non
         ).read_text()
     )
     assert DVS_SIGMA_B[position] == round(
-        report["metrics_v2"]["rmse"] / ENGINE_B_P90_PPG[position] * 100.0, 1
+        report["metrics_v2"]["rmse"] / DVS_SCALE_ANCHOR_PPG[position] * 100.0, 1
     )
 
 
@@ -141,7 +148,7 @@ def test_sigma_a_is_the_engine_a_holdout_rmse_in_dvs_units(position: str) -> Non
         (ROOT / "app/data/models/runs" / ENGINE_A_SIGMA_RUN / f"{position}_metadata.json").read_text()
     )
     assert DVS_SIGMA_A[position] == round(
-        metadata["metrics"]["rmse"] / ENGINE_A_P90_PPG[position] * 100.0, 1
+        metadata["metrics"]["rmse"] / DVS_SCALE_ANCHOR_PPG[position] * 100.0, 1
     )
 
 
@@ -151,7 +158,7 @@ def test_sigma_a_v3_is_the_promotion_s_out_of_fold_rmse_in_dvs_units() -> None:
     # best3of4_ppg) as a constant. That constant is the surviving record.
     script = (ROOT / "scripts/promote_head_a_te_v3.py").read_text()
     oof_rmse = float(re.search(r"^\s*oof_rmse = ([0-9.]+)", script, re.M).group(1))
-    assert DVS_SIGMA_A_V3 == {"TE": round(oof_rmse / ENGINE_A_P90_PPG["TE"] * 100.0, 1)}
+    assert DVS_SIGMA_A_V3 == {"TE": round(oof_rmse / DVS_SCALE_ANCHOR_PPG["TE"] * 100.0, 1)}
 
 
 def test_sigma_a_v3_is_pinned_to_the_v3_head_the_tree_serves() -> None:

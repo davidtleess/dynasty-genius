@@ -47,11 +47,26 @@ def qb_identity():
 # ── 1. Elite pick scores high ────────────────────────────────────────────────
 
 def test_elite_wr_prospect_scores_high(wr_identity):
+    """DG-159: "high" is high FOR A RECEIVER, and the shared scale says so out loud.
+
+    This asserted > 70 when a receiver's score was his points a game over the rookie
+    engine's own receiver ceiling, so 70 meant "70% of what a good rookie receiver
+    does". On one denominator the receiver position tops out at 72.1 and the rookie
+    engine's own reach at 63.2, so a top-5 receiver landing at 54.9 is the same football
+    described honestly — it is 87% of what the rookie model can say about a receiver.
+    Pinned as a share of that reach rather than as a number on a scale that moved.
+    """
+    from src.dynasty_genius.models.engine_b_contract import DVS_SCALE_ANCHOR_PPG
     from src.dynasty_genius.pvo_assembler import assemble_pvo
+    from src.dynasty_genius.scoring.engine_a import ENGINE_A_P90_PPG
+
     pvo = assemble_pvo(wr_identity, {"pick": 5, "round": 1, "age": 21.0}, is_prospect=True)
     assert pvo.model_grade == "PROSPECT_C"
     assert pvo.dynasty_value_score is not None
-    assert pvo.dynasty_value_score > 70, f"Expected > 70, got {pvo.dynasty_value_score}"
+    rookie_reach = ENGINE_A_P90_PPG["WR"] / DVS_SCALE_ANCHOR_PPG["WR"] * 100.0
+    assert pvo.dynasty_value_score > 0.70 * rookie_reach, (
+        f"Expected > {0.70 * rookie_reach:.1f}, got {pvo.dynasty_value_score}"
+    )
     assert pvo.engine_used == "engine_a_rookie_forecast_ridge"
 
 

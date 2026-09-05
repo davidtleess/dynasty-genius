@@ -7,7 +7,7 @@ from src.dynasty_genius.models.engine_b_contract import (
 )
 from src.dynasty_genius.models.player_identity import PlayerIdentity
 from src.dynasty_genius.pvo_assembler import assemble_pvo
-from src.dynasty_genius.scoring.engine_a import _P90_PPG
+from src.dynasty_genius.models.engine_b_contract import DVS_SCALE_ANCHOR_PPG
 
 
 def _mock_identity(position: str, is_prospect: bool = False) -> PlayerIdentity:
@@ -22,7 +22,7 @@ def _mock_identity(position: str, is_prospect: bool = False) -> PlayerIdentity:
 def test_engine_b_dvs_formula_wr():
     """5.1 DVS Formula: WR P90 = 14.5; 14.5 PPG -> DVS 100.0, 7.25 PPG -> DVS 50.0."""
     identity = _mock_identity("WR")
-    p90 = ENGINE_B_P90_PPG["WR"]
+    p90 = DVS_SCALE_ANCHOR_PPG["WR"]
     
     # Test P90 point
     features = {
@@ -72,7 +72,9 @@ def test_dvs_provenance_fields():
     }
     pvo = assemble_pvo(identity, features)
     assert pvo.dvs_engine == "B"
-    assert pvo.dvs_p90_ref == ENGINE_B_P90_PPG["RB"]
+    # DG-159: the served reference is the denominator the score was divided by, which
+    # is now the shared anchor rather than the position P90.
+    assert pvo.dvs_p90_ref == DVS_SCALE_ANCHOR_PPG["RB"]
     assert isinstance(pvo.dvs_clamped, bool)
 
 def test_dead_window_caveat_engine_a_fallback_present():
@@ -146,7 +148,7 @@ def test_engine_a_dvs_path_unchanged():
     }
     pvo = assemble_pvo(identity, features)
     assert pvo.dvs_engine == "A"
-    assert pvo.dvs_p90_ref == _P90_PPG["WR"]
+    assert pvo.dvs_p90_ref == DVS_SCALE_ANCHOR_PPG["WR"]
 
 def test_var_null_for_pre_model():
     """5.9 VAR Null for PRE_MODEL: DVS is None -> VAR is None."""

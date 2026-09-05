@@ -34,7 +34,7 @@ def test_v3_head_reports_clamp_truth_measured_before_rounding(monkeypatch):
     """The second Engine A head must obey the same pre-round rule."""
     scorer = engine_a_module.EngineAV3Scorer()
     monkeypatch.setattr(scorer, "_load", lambda: True)
-    p90 = engine_a_module._P90_PPG["TE"]
+    p90 = engine_a_module.DVS_SCALE_ANCHOR_PPG["TE"]  # DG-159: one denominator, not the position P90
     monkeypatch.setattr(
         scorer, "_models", {"TE": _StubModel(p90 * 0.9999589)}, raising=False
     )
@@ -52,7 +52,7 @@ def test_v3_head_reports_not_clamped_at_exactly_one_hundred(monkeypatch):
     """Boundary: raw exactly 100.0 truncates nothing."""
     scorer = engine_a_module.EngineAV3Scorer()
     monkeypatch.setattr(scorer, "_load", lambda: True)
-    p90 = engine_a_module._P90_PPG["TE"]
+    p90 = engine_a_module.DVS_SCALE_ANCHOR_PPG["TE"]  # DG-159: one denominator, not the position P90
     monkeypatch.setattr(scorer, "_models", {"TE": _StubModel(p90)}, raising=False)
     contract = engine_a_module.HEAD_A_V3_FEATURE_CONTRACTS["TE"]
 
@@ -66,7 +66,7 @@ def test_v3_head_reports_clamped_above_one_hundred(monkeypatch):
     """A hardcoded False in the v3 producer must fail here."""
     scorer = engine_a_module.EngineAV3Scorer()
     monkeypatch.setattr(scorer, "_load", lambda: True)
-    p90 = engine_a_module._P90_PPG["TE"]
+    p90 = engine_a_module.DVS_SCALE_ANCHOR_PPG["TE"]  # DG-159: one denominator, not the position P90
     monkeypatch.setattr(scorer, "_models", {"TE": _StubModel(p90 * 1.25)}, raising=False)
     contract = engine_a_module.HEAD_A_V3_FEATURE_CONTRACTS["TE"]
 

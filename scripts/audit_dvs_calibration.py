@@ -17,7 +17,7 @@ from sklearn.isotonic import IsotonicRegression
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.dynasty_genius.models.engine_b_contract import ENGINE_B_P90_PPG
+from src.dynasty_genius.models.engine_b_contract import DVS_SCALE_ANCHOR_PPG
 
 
 def _calculate_ece(y_true: np.ndarray, y_prob: np.ndarray, n_bins: int = 10) -> float:
@@ -63,7 +63,11 @@ def run_calibration_audit(
         pass
 
     results_by_pos = {}
-    for pos, p90 in ENGINE_B_P90_PPG.items():
+    # DG-159: divide by the denominator the SERVED score uses. Spearman would not
+    # notice (it is a rank), but the calibration error would — it is measured on the
+    # 0-100 scale, so against the old per-position ceilings this would report the
+    # calibration of a scale no card is on.
+    for pos, p90 in DVS_SCALE_ANCHOR_PPG.items():
         pos_df = df[df["position"] == pos].dropna(subset=["predicted_ppg", "realized_ppg"])
         if pos_df.empty:
             continue
