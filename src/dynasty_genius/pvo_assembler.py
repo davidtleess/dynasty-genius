@@ -397,7 +397,11 @@ def assemble_pvo(
         # DVS engine A always populates provenance if score is present
         dynasty_value_score = engine_a_result["dynasty_value_score"]
         dvs_engine = "A"
-        dvs_p90_ref_val = DVS_SCALE_ANCHOR_PPG.get(identity.position.upper())
+        # DG-159: report the denominator the SCORER divided by, not the constant this
+        # module would have divided by. Restating it here made the field self-fulfilling —
+        # a scorer given a private ceiling would still publish the anchor, and points a
+        # game are recovered from this field downstream.
+        dvs_p90_ref_val = engine_a_result.get("dvs_scale_denominator")
         # Consume the producer's clamp truth; never re-infer it from the rounded
         # output (a raw 99.996 rounds to 100.0 and would read as clamped).
         dvs_clamped_val = engine_a_result.get("dvs_clamped")
@@ -510,7 +514,10 @@ def assemble_pvo(
                 # Component-level truncation is a DIFFERENT fact; exposing it
                 # would need its own named field, deliberately not invented here.
                 dvs_clamped_val = False
-                dvs_p90_ref_val = DVS_SCALE_ANCHOR_PPG.get(pos_upper)  # one denominator, either engine
+                # A blend is a weighted average of two scores; it is on the shared scale
+                # only if BOTH components were, so the reference is the anchor and the
+                # scorers' own denominators are checked against it rather than assumed.
+                dvs_p90_ref_val = DVS_SCALE_ANCHOR_PPG.get(pos_upper)
                 # DG-128 (2026-09-01): a token, not prose. The old sentence carried
                 # "w_B=…" (a raw key the render rule refuses) and "interpret with
                 # caution" (hedging David struck from the screen). The weight rides
@@ -524,7 +531,7 @@ def assemble_pvo(
                 dynasty_value_score = engine_a_result["dynasty_value_score"]
                 dvs_uncapped = engine_a_result.get("dvs_uncapped")
                 dvs_engine = "A"
-                dvs_p90_ref_val = DVS_SCALE_ANCHOR_PPG.get(pos_upper)
+                dvs_p90_ref_val = engine_a_result.get("dvs_scale_denominator")
                 # Dead-window fallback is Engine A only — use its clamp truth.
                 dvs_clamped_val = engine_a_result.get("dvs_clamped")
                 _dw_caveat = (
