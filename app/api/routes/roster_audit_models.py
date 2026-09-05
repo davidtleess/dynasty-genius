@@ -219,6 +219,40 @@ class RosterAuditPlayer(BaseModel):
 ROSTER_AUDIT_PLAYER_FIELDS: frozenset[str] = frozenset(RosterAuditPlayer.model_fields)
 
 
+class ReplacementReasoningView(BaseModel):
+    """DG-160: how one position's replacement level was derived, in David's own terms.
+
+    His 2026-08-31 ruling 5: "let the derived number stand and show the reasoning … Replacement
+    TE = the 12th-best TE, because your league starts 12." Read from the LIVE league snapshot
+    rather than from the comment above the constant, because that comment is what was wrong.
+    """
+
+    position: str
+    rank: int
+    points_per_game: float | None = None
+    reason: str
+    dedicated_starters: int
+    shared_places_assumed: int
+    shared_places_available: int
+    flex_is_assumed: bool = False
+    assumption: str = ""
+
+
+class ReplacementBudgetView(BaseModel):
+    """Whether all four replacement ranks can be true at once in this league.
+
+    The detector. It asks no behavioural question — only whether the ranks jointly demand more
+    flex and superflex places than the league has, which is arithmetic.
+    """
+
+    demanded: int
+    available: int
+    over_subscribed_by: int
+    status: Literal["agrees", "disagrees"]
+    largest_demand: str | None = None
+    explanation: str
+
+
 class RosterAuditResponse(BaseModel):
     status: Literal["active", "degraded"]
     engine: str
@@ -230,6 +264,8 @@ class RosterAuditResponse(BaseModel):
     players: list[RosterAuditPlayer] = Field(default_factory=list)
     qb_context_cards: list[QBContextCard] = Field(default_factory=list)
     dropped_player_count: int = 0
+    replacement_reasoning: list[ReplacementReasoningView] = Field(default_factory=list)
+    replacement_budget: ReplacementBudgetView | None = None
     decision_supported: Literal[False] = False
 
 
@@ -320,6 +356,76 @@ def _map_qb(raw: dict) -> QBContextCard:
     )
 
 
+def _build_replacement_reasoning(
+    audit: dict,
+) -> tuple[list[ReplacementReasoningView], ReplacementBudgetView | None]:
+    """Derive the on-screen reasoning from the league structure the audit carries.
+
+    Returns empty when the audit does not carry a lineup — an explanation invented without the
+    league's own slots would be the exact failure this exists to catch.
+    """
+    from src.dynasty_genius.features.replacement_reasoning import (
+        audit_shared_slot_budget,
+        explain_replacement,
+        load_league_structure,
+    )
+
+    # An injected league wins (tests), otherwise read the captured snapshot. If neither is
+    # available, show NOTHING: a derivation stated without the league's own slots is a
+    # confident sentence resting on a structure nobody checked.
+    league = audit.get("league") or load_league_structure() or {}
+    roster_positions = league.get("roster_positions")
+    teams = league.get("teams")
+    if not roster_positions or not teams:
+        return [], None
+    from src.dynasty_genius.models.engine_b_contract import (
+        ENGINE_B_P90_PPG,
+        ENGINE_B_REPLACEMENT_DVS,
+        ENGINE_B_VAR_THRESHOLDS,
+    )
+
+    views: list[ReplacementReasoningView] = []
+    for position, rank in ENGINE_B_VAR_THRESHOLDS.items():
+        ceiling = ENGINE_B_P90_PPG.get(position)
+        replacement = ENGINE_B_REPLACEMENT_DVS.get(position)
+        ppg = round(replacement / 100 * ceiling, 2) if ceiling and replacement else None
+        out = explain_replacement(
+            position=position,
+            shipped_rank=rank,
+            roster_positions=roster_positions,
+            teams=int(teams),
+            replacement_ppg=ppg,
+            thresholds=dict(ENGINE_B_VAR_THRESHOLDS),
+        )
+        views.append(
+            ReplacementReasoningView(
+                position=out["position"],
+                rank=out["rank"],
+                points_per_game=out["points_per_game"],
+                reason=out["reason"],
+                dedicated_starters=out["dedicated"],
+                shared_places_assumed=out["shared_places_demanded"],
+                shared_places_available=out["shared_places_available"],
+                flex_is_assumed=out["flex_is_assumed"],
+                assumption=out["assumption"],
+            )
+        )
+    b = audit_shared_slot_budget(
+        thresholds=dict(ENGINE_B_VAR_THRESHOLDS),
+        roster_positions=roster_positions,
+        teams=int(teams),
+    )
+    budget = ReplacementBudgetView(
+        demanded=b["demanded"],
+        available=b["available"],
+        over_subscribed_by=b["over_subscribed_by"],
+        status=b["status"].value,
+        largest_demand=b["largest_demand"],
+        explanation=b["explanation"],
+    )
+    return views, budget
+
+
 def assemble_response(audit: dict) -> RosterAuditResponse:
     """Map run_audit_pvo output into the typed RosterAuditResponse. Isolated unmappable
     rows are dropped, counted, named (player_row_dropped_corrupt), and degrade the status;
@@ -346,6 +452,10 @@ def assemble_response(audit: dict) -> RosterAuditResponse:
     status_map, trust_caveats = load_model_status_by_position(
         [p.position for p in mapped]
     )
+    # DG-160: the derivation goes on screen beside the number it produced. Built from the
+    # league snapshot the audit was run against, so a rank his lineup cannot support is
+    # visible rather than buried in a constant's comment.
+    reasoning, budget = _build_replacement_reasoning(audit)
     caveats = list(audit.get("caveats", [])) + trust_caveats
     status = "active"
     if dropped:
@@ -357,6 +467,8 @@ def assemble_response(audit: dict) -> RosterAuditResponse:
     if trust_caveats:
         status = "degraded"
     return RosterAuditResponse(
+        replacement_reasoning=reasoning,
+        replacement_budget=budget,
         status=status,
         engine=audit.get("engine", "pvo_assembler_v1"),
         reason=audit.get("reason", ""),

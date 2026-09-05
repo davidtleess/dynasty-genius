@@ -1048,6 +1048,44 @@ export const zRealizedOutcomeScorecardErrorResponse = z.object({
 });
 
 /**
+ * ReplacementBudgetView
+ *
+ * Whether all four replacement ranks can be true at once in this league.
+ *
+ * The detector. It asks no behavioural question — only whether the ranks jointly demand more
+ * flex and superflex places than the league has, which is arithmetic.
+ */
+export const zReplacementBudgetView = z.object({
+    available: z.int(),
+    demanded: z.int(),
+    explanation: z.string(),
+    largest_demand: z.string().nullish(),
+    over_subscribed_by: z.int(),
+    status: z.enum(['agrees', 'disagrees'])
+});
+
+/**
+ * ReplacementReasoningView
+ *
+ * DG-160: how one position's replacement level was derived, in David's own terms.
+ *
+ * His 2026-08-31 ruling 5: "let the derived number stand and show the reasoning … Replacement
+ * TE = the 12th-best TE, because your league starts 12." Read from the LIVE league snapshot
+ * rather than from the comment above the constant, because that comment is what was wrong.
+ */
+export const zReplacementReasoningView = z.object({
+    assumption: z.string().optional().default(''),
+    dedicated_starters: z.int(),
+    flex_is_assumed: z.boolean().optional().default(false),
+    points_per_game: z.number().nullish(),
+    position: z.string(),
+    rank: z.int(),
+    reason: z.string(),
+    shared_places_assumed: z.int(),
+    shared_places_available: z.int()
+});
+
+/**
  * ReportHealth
  */
 export const zReportHealth = z.object({
@@ -1152,6 +1190,8 @@ export const zRosterAuditResponse = z.object({
     players: z.array(zRosterAuditPlayer).optional(),
     qb_context_cards: z.array(zQbContextCard).optional(),
     reason: z.string(),
+    replacement_budget: zReplacementBudgetView.nullish(),
+    replacement_reasoning: z.array(zReplacementReasoningView).optional(),
     status: z.enum(['active', 'degraded'])
 });
 
