@@ -1,6 +1,51 @@
 from typing import Optional
 
+from src.dynasty_genius.models.engine_b_contract import ENGINE_B_P90_PPG
 from src.dynasty_genius.models.player_value_object import PlayerValueObject
+
+# DG-158 — "top asset" is a share of the scale, not a number of points on it.
+#
+# This gate read `val > 80` on a 0-100 scale, which meant "the top fifth". The
+# 80 was only ever correct because every position's ceiling was 100. Replace the
+# per-position denominators with a single anchor and the ceilings stop being 100:
+# measured on the served artifact, clearing 80 would then require a player to
+# score 102.4 today at running back, 110.9 at receiver and 171.0 at tight end,
+# and scores clamp at 100 — so the MANDATORY counter-argument (Constitution
+# Rule 4) becomes unreachable at three of four positions on each engine, and 41
+# players lose it with no risk flag to catch them. Silently: nobody edits this
+# file, the arithmetic just stops reaching it.
+#
+# So the threshold is now derived. `SCALE_ANCHOR_PPG` is the denominator each
+# position's score is expressed against; while it equals the position's own P90
+# the ceiling is 100 and the threshold is 80, exactly as today. When the anchor
+# moves, the threshold moves with it and the rule keeps meaning "the top fifth".
+TOP_ASSET_SCALE_SHARE = 0.80
+
+# The denominator the displayed score is divided by, per position. Today that IS
+# each position's own P90, so every ceiling is 100. Fred's rescale replaces these
+# with a single anchor; this reads the same constant the score does, so the two
+# cannot drift apart.
+SCALE_ANCHOR_PPG = ENGINE_B_P90_PPG
+
+
+def position_ceiling(position: str) -> float:
+    """The highest displayed score this position can reach, on today's scale.
+
+    ``score = ppg / anchor * 100`` and the best player is at his position's P90,
+    so the ceiling is ``P90 / anchor * 100`` — 100 while the anchor is the
+    position's own P90, and less once a single anchor serves every position.
+    """
+    pos = (position or "").upper()
+    return ENGINE_B_P90_PPG[pos] / SCALE_ANCHOR_PPG[pos] * 100.0
+
+
+def top_asset_threshold(position: str) -> float:
+    """The score above which a player is a top asset, in today's units.
+
+    A KeyError for an unknown position is deliberate: guessing a threshold for a
+    position nobody has scaled is how a silent default gets in.
+    """
+    return TOP_ASSET_SCALE_SHARE * position_ceiling(position)
 
 
 def generate_counter_argument(pvo: PlayerValueObject) -> Optional[str]:
@@ -44,10 +89,11 @@ def counter_argument_for(
             "signal limited coaching trust and a fragile path to weekly relevance."
         )
 
-    # Priority 2: Top Assets (Internal Value > 80)
-    # We use dynasty_value_score as the internal value measure.
+    # Priority 2: Top Assets — the top fifth of this position's scale.
+    # DG-158: was a literal `> 80`, which silently stopped firing when the scale
+    # moved beneath it. `top_asset_threshold` is 80.0 while the ceiling is 100.
     val = dynasty_value_score
-    if val is not None and val > 80:
+    if val is not None and val > top_asset_threshold(position):
         pos = (position or "").upper()
         if pos == "QB":
             return "Premium valuation assumes continued high-level rushing or outlier passing efficiency; any dip in mobility or supporting cast could lead to a rapid value correction."

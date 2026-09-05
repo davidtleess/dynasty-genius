@@ -317,6 +317,17 @@ class WhatChangedModelSection(_Strict):
     decision_supported: Literal[False]
     comparison_window: Optional[WhatChangedModelComparisonWindow] = None
     deltas: Optional[list[WhatChangedModelDelta]] = None
+    # DG-158: `deltas` is now the biggest movers, CAPPED, and this is how many
+    # there really were. The market lane has shipped the pair since it was
+    # written; the model lane returned the whole league — 387 on an ordinary
+    # morning, 582 on the morning the scale changes, every one a faller. A capped
+    # list without its total is the same silence in a smaller box.
+    total_movers_count: Optional[int] = None
+    # DG-158: set only when every compared player in a position moved by one
+    # factor — the signature of a change of UNITS, in which case no per-player
+    # delta is emitted. The observation only: which positions, and by how much.
+    # Nothing here says why they moved.
+    uniform_factor_by_position: Optional[dict[str, float]] = None
     vintage_changed: Optional[bool] = None
     feature_freshness: WhatChangedModelFeatureFreshness | None = None
     pvo_staleness: WhatChangedModelPvoStaleness | None = None

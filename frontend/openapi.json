@@ -8176,6 +8176,31 @@
             "title": "Status",
             "type": "string"
           },
+          "total_movers_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Movers Count"
+          },
+          "uniform_factor_by_position": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uniform Factor By Position"
+          },
           "vintage_changed": {
             "anyOf": [
               {

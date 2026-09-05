@@ -346,7 +346,13 @@ def test_report_emitter_adds_increment1_row_assets_and_baseline_rows(tmp_path: P
         for row in report["daily_diff"]["market"]["roster_deltas"]
         if row["sleeper_id"] == "9509"
     )
-    model_row = report["daily_diff"]["model"]["deltas"][0]
+    # DG-158: the model deltas are now ordered by SIZE of movement, because the
+    # list is capped at 25 and an alphabetical cap would keep an arbitrary 25.
+    # This row was selected by position in the old ordering; select it the way
+    # the market row three lines above already does, by the id it means.
+    model_row = next(
+        row for row in report["daily_diff"]["model"]["deltas"] if row["sleeper_id"] == "9509"
+    )
 
     assert market_row["team_id"] == "ATL"
     assert market_row["market_series"]["basis"] == "fc_forward_capture_joinable.value"

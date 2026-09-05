@@ -39,6 +39,60 @@ REPORT_PATH = ROOT / "docs" / "validation" / "phase15-2026-rookie-rank-refresh.m
 
 _DVS_INVARIANCE_TOLERANCE = 0.01
 
+# DG-158 — a rescale is a DECLARED movement, not a drift.
+#
+# The invariance gate exists to catch CONTAMINATION: an enrichment run that
+# quietly moves a score (enrich_te_prospects_cfbd_2026.py sets a baseline
+# precisely so this refresh passes cleanly). It is not a claim that a score may
+# never change — but as written it exits 1 on any move over 0.01, so the tight-end
+# rescale, which moves 80 of the 82 cards, would stop the rookie and pick boards
+# rebuilding at all on the morning it ships.
+#
+# So the run declares which scale it is on. A move WITH a new declaration is
+# expected and reported; a move WITHOUT one is still a fault and still stops the
+# run. Deleting the check to let the rescale through would trade a one-morning
+# outage for a permanently blind detector.
+DVS_SCALE_TOKEN_FIELD = "dvs_scale"
+
+
+def current_dvs_scale_token() -> str:
+    """A name for the scale these scores are on, DERIVED from the denominators.
+
+    Derived rather than hand-set so it cannot be forgotten: change the
+    denominators and the token changes with them, which is what turns the next
+    rescale into a declared movement without anyone remembering to declare it.
+    """
+    from src.dynasty_genius.models.engine_b_contract import ENGINE_B_P90_PPG
+
+    return "p90:" + "/".join(
+        f"{pos}={ENGINE_B_P90_PPG[pos]:g}" for pos in sorted(ENGINE_B_P90_PPG)
+    )
+
+
+# What a card with no recorded scale is assumed to be on: the scale as it stood
+# when this field was introduced. A baseline written before DG-158 therefore
+# compares equal today, so an undeclared drift is still caught on the first run.
+DEFAULT_DVS_SCALE_TOKEN = "p90:QB=20.1/RB=15.7/TE=9.4/WR=14.5"
+
+
+def classify_dvs_movement(
+    *,
+    baseline_dvs: float | None,
+    new_dvs: float | None,
+    declared_scale: str,
+    baseline_scale: str,
+) -> str:
+    """Why this card's score differs from its baseline: ``unchanged``,
+    ``declared_rescale`` (the run is on a different, named scale) or
+    ``undeclared_drift`` (same scale, different number — the fault this gate was
+    built for). A declaration covers ONE move: the next run on that same scale is
+    held to invariance again."""
+    if baseline_dvs is None or new_dvs is None:
+        return "unchanged"
+    if abs(new_dvs - baseline_dvs) <= _DVS_INVARIANCE_TOLERANCE:
+        return "unchanged"
+    return "declared_rescale" if declared_scale != baseline_scale else "undeclared_drift"
+
 
 # ── Rank computation ──────────────────────────────────────────────────────────
 
@@ -81,8 +135,12 @@ def _build_pvo_dicts(
     identity_players: list[dict],
     cards_by_name_pos: dict[tuple[str, str], dict],
     identity_data: dict,
-) -> tuple[list[dict], list[str]]:
-    """Assemble PVOs for 80 verified 2026 players. Returns (pvo_dicts, dvs_warnings)."""
+) -> tuple[list[dict], list[str], list[str]]:
+    """Assemble PVOs for 80 verified 2026 players.
+
+    Returns ``(pvo_dicts, dvs_warnings, rescaled)`` — DG-158 adds the third: cards
+    that moved because the run declared a NEW scale, which is expected movement
+    rather than the drift this gate exists to catch."""
     # DG-128: the band ships with the number, and its width is the scoring head's own
     # published error. Refuse to score a single card if the heads this tree serves are not
     # the runs those widths were pinned to (a re-promoted v3 TE head nobody re-pinned).
@@ -90,6 +148,8 @@ def _build_pvo_dicts(
 
     pvos: list[dict] = []
     warnings: list[str] = []
+    rescaled: list[str] = []
+    declared_scale = current_dvs_scale_token()
 
     for p in identity_players:
         key = (p["full_name"], p["position"])
@@ -175,19 +235,31 @@ def _build_pvo_dicts(
         d.setdefault("position_class_rank", None)
         d.setdefault("rank_delta", None)
 
-        # DVS invariance check (tolerance 0.01 — any drift is an error, not noise)
+        # DVS invariance check (tolerance 0.01). DG-158: a move on a DECLARED new
+        # scale is expected and recorded; a move on the same scale is still the
+        # contamination this gate was built to catch, and still stops the run.
         new_dvs = d.get("dynasty_value_score")
-        if baseline_dvs is not None and new_dvs is not None:
-            if abs(new_dvs - baseline_dvs) > _DVS_INVARIANCE_TOLERANCE:
-                warnings.append(
-                    f"DVS drift for {p['full_name']} {p['position']}: "
-                    f"baseline={baseline_dvs} refreshed={new_dvs} "
-                    f"delta={abs(new_dvs - baseline_dvs):.4f}"
-                )
+        d[DVS_SCALE_TOKEN_FIELD] = declared_scale
+        verdict = classify_dvs_movement(
+            baseline_dvs=baseline_dvs,
+            new_dvs=new_dvs,
+            declared_scale=declared_scale,
+            baseline_scale=(existing.get(DVS_SCALE_TOKEN_FIELD) or DEFAULT_DVS_SCALE_TOKEN),
+        )
+        if verdict == "undeclared_drift":
+            warnings.append(
+                f"DVS drift for {p['full_name']} {p['position']}: "
+                f"baseline={baseline_dvs} refreshed={new_dvs} "
+                f"delta={abs(new_dvs - baseline_dvs):.4f}"
+            )
+        elif verdict == "declared_rescale":
+            rescaled.append(
+                f"{p['full_name']} {p['position']}: {baseline_dvs} -> {new_dvs}"
+            )
 
         pvos.append(d)
 
-    return pvos, warnings
+    return pvos, warnings, rescaled
 
 
 # ── Report ────────────────────────────────────────────────────────────────────
@@ -378,7 +450,7 @@ def main() -> None:
     # 2027 watchlist — not in identity file, carry forward unchanged
     watchlist = [c for c in baseline_cards if c.get("draft_class") == 2027]
 
-    pvos_2026, dvs_warnings = _build_pvo_dicts(
+    pvos_2026, dvs_warnings, dvs_rescaled = _build_pvo_dicts(
         identity_players,
         cards_by_name_pos,
         identity_data,
@@ -390,8 +462,18 @@ def main() -> None:
         for w in dvs_warnings:
             print(f"  {w}")
         sys.exit(1)
+    elif dvs_rescaled:
+        # DG-158: expected movement on a declared new scale. Reported in full and
+        # counted, never waved through silently — the boards rebuild, and the run
+        # says exactly which cards moved and onto what.
+        print(
+            f"DVS invariance: {len(dvs_rescaled)} card(s) moved on a DECLARED new scale "
+            f"({current_dvs_scale_token()}); no undeclared drift."
+        )
+        for line in dvs_rescaled:
+            print(f"  {line}")
     else:
-        print("DVS invariance: OK — all 74 scored players match baseline exactly")
+        print("DVS invariance: OK — all scored players match baseline exactly")
 
     scored_count = sum(1 for p in pvos_2026 if p.get("dynasty_value_score") is not None)
     pre_model_count = sum(1 for p in pvos_2026 if p.get("model_grade") == "PRE_MODEL")
