@@ -45,4 +45,21 @@ describe("DG-158 a change of units is announced, not disguised", () => {
   it("keeps the masthead line short enough to sit beside the freshness sentence", () => {
     expect(SCALE_CHANGED_MASTHEAD.length).toBeLessThanOrEqual(100);
   });
+
+  it("states the SCOPE of what was checked, because the status is global", () => {
+    // The detector only verifies a position with at least 8 compared players,
+    // while the status it sets covers the whole section. Measured: TE verified
+    // over 12 players and QB carrying 5 returns {TE} alone and still fires. An
+    // unqualified "every score in a position" would assert the uniform move for
+    // a position nothing checked — the same overclaim that was refused one line
+    // up in the masthead.
+    expect(SECTION).toMatch(/positions we could check/i);
+  });
+
+  it("predicts nothing about tomorrow", () => {
+    // Unconditionally true when it renders. The factor IS 1.0 the next morning
+    // by construction, but only absent a second declared change.
+    expect(SCALE_CHANGED_MASTHEAD).not.toMatch(/tomorrow|resumes|will\b/i);
+    expect(SCALE_CHANGED_MASTHEAD).toMatch(/for today/i);
+  });
 });
