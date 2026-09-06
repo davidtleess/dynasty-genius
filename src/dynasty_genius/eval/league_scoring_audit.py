@@ -489,3 +489,24 @@ def build_audit_manifest(*, sources: dict, settings: dict, classification: dict,
         "meaning": "Counts come from the weekly source; play-by-play supplies the special-teams / own-vs-opponent / lost split. "
                    "A disagreement is unresolved, never patched. The Sleeper comparison covers rostered players only.",
     }
+
+
+OFFENSIVE_POSITIONS = frozenset({"QB", "RB", "WR", "TE"})
+
+
+def window_delta_summary(components: pd.DataFrame, settings: dict) -> dict:
+    """League − research points over the championship window, split so that defenders' recovery
+    touchdowns (individual keys that would apply, but to players this league never starts) are
+    never read as the league's offensive effect."""
+    w = components[components["championship_window"]]
+    delta = league_points(w, settings) - research_ppr_from_components(w)
+    offense = w["position"].isin(OFFENSIVE_POSITIONS) if "position" in w else pd.Series(False, index=w.index)
+
+    def block(mask: pd.Series) -> dict:
+        d = delta[mask]
+        return {"player_weeks": int(mask.sum()), "nonzero_player_weeks": int((d.abs() > TOL).sum()),
+                "sum": float(round(d.sum(), 3)) if len(d) else 0.0, "min": float(d.min()) if len(d) else 0.0,
+                "max": float(d.max()) if len(d) else 0.0,
+                "unresolved_player_weeks": int((w.loc[mask, "attribution_status"] == "unresolved").sum())}
+
+    return {"window_delta_offense": block(offense), "window_delta_other": block(~offense)}

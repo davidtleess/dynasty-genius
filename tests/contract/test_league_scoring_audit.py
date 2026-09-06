@@ -563,6 +563,9 @@ def test_cli_writes_an_immutable_run_with_hashed_sources_and_refuses_to_overwrit
                                  "quarantine_reaudit.csv", "report.md"}
     assert m["sources"]["weekly"]["sha256"] and m["coverage"]["status_exact"] == 1 and m["league_scoring_exact"] is False
     assert m["launch"]["git_head"] and m["season"] == 2025
+    report = (run / "report.md").read_text()
+    assert "offensive positions (QB/RB/WR/TE)" in report and "other positions" in report
+    assert m["coverage"]["window_delta_offense"]["nonzero_player_weeks"] == 0
     second = subprocess.run(cmd, capture_output=True, text=True)
     assert second.returncode == 1 and "exists" in (second.stderr + second.stdout)
 

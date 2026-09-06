@@ -60,11 +60,12 @@ def _render(m: dict, rec: pd.DataFrame, comps: pd.DataFrame) -> str:
     lines.append(show[["week", "sleeper_id", "gsis_id", "sleeper_points", "research_ppr", "league_points", "diff_vs_research",
                        "diff_vs_league", "unresolved_reason", "reconciliation_reason", "status"]].to_string(index=False) if len(show) else "none")
     lines.append("\n## Championship-window population deltas (all weekly rows, weeks 1–17; league − research)\n")
-    w = comps[comps.championship_window]
-    delta = lsa.league_points(w, m["scoring_settings"]) - lsa.research_ppr_from_components(w)
-    lines.append(f"- player-weeks with a nonzero delta: {int((delta.abs() > lsa.TOL).sum())} of {len(w)}; sum {round(float(delta.sum()), 2)}; "
-                 f"min {round(float(delta.min()), 2)} max {round(float(delta.max()), 2)}" if len(w) else "- no championship-window rows")
-    lines.append(f"- weekly rows unresolved in the window: {int((w.attribution_status == 'unresolved').sum())}")
+    for label, key in (("offensive positions (QB/RB/WR/TE)", "window_delta_offense"), ("other positions", "window_delta_other")):
+        b = c[key]
+        lines.append(f"- {label}: player-weeks {b['player_weeks']}, nonzero delta {b['nonzero_player_weeks']}, sum {b['sum']}, "
+                     f"min {b['min']} max {b['max']}, unresolved {b['unresolved_player_weeks']}")
+    lines.append("- recovery touchdowns by defenders would score under the individual key fum_rec_td, but this league starts no "
+                 "defender; the offensive line is the league-relevant effect")
     return "\n".join(lines) + "\n"
 
 
@@ -109,7 +110,7 @@ def main(argv: list[str] | None = None) -> int:
         if "season" in quar:
             quar = quar[pd.to_numeric(quar["season"], errors="coerce") == args.season]
         quar_audit = lsa.audit_quarantine(quar, settings)
-        counts = lsa.coverage_counts(comps, rec, sleeper, identity)
+        counts = {**lsa.coverage_counts(comps, rec, sleeper, identity), **lsa.window_delta_summary(comps, settings)}
         kickers = bool(weekly["position"].isin(["K", "P"]).any()) if "position" in weekly else False
         qual = lsa.exact_qualification(classification, counts, kicker_rows_present=kickers)
     except lsa.ScoringAuditError as err:
