@@ -481,3 +481,54 @@ def test_reconciliation_labels_week_18_outside_the_championship_window():
     identity = pd.DataFrame({"sleeper_id": ["11"], "gsis_id": ["00-1"], "identity_status": ["resolved"]})
     r = lsa.reconcile(comps, sleeper, identity, SETTINGS).iloc[0]
     assert r.status == "exact" and bool(r.championship_window) is False
+
+
+# ── Task 7: quarantine re-audit, coverage counts, exact qualification, manifest ───────────────
+
+def test_quarantine_rows_are_rescored_under_league_keys_with_original_columns_kept():
+    q = weekly([dict(player_id=None, week=14, fumbles_lost_total=1, fantasy_points_ppr=-2.0),
+                dict(player_id=None, week=1, special_teams_tds=1, fantasy_points_ppr=6.0),
+                dict(player_id=None, week=2, fantasy_points_ppr=0.0)])
+    q["team"] = ["AAA", "BBB", "CCC"]
+    q["quarantine_reason"] = ["unattributed", "unattributed", "placeholder"]
+    a = lsa.audit_quarantine(q, SETTINGS)
+    assert a.nonzero_under_league_keys.tolist() == [True, True, False]
+    assert a.league_points_if_scored.tolist() == [-2.0, 6.0, 0.0]
+    assert a.quarantine_reason.tolist() == ["unattributed", "unattributed", "placeholder"]
+    assert a.team.tolist() == ["AAA", "BBB", "CCC"]
+
+
+def test_exact_qualification_is_never_granted_in_this_increment_and_names_its_reasons():
+    q = lsa.exact_qualification({"unknown": ["bonus_x"], "kicker": ["xpm"]}, {"status_unresolved": 3}, kicker_rows_present=True)
+    assert q["league_scoring_exact"] is False
+    assert "rostered player-weeks only; not full-universe proof" in q["reasons"]
+    assert any(r.startswith("unknown_scoring_keys") for r in q["reasons"])
+    assert "unresolved_player_weeks: 3" in q["reasons"]
+    assert "kicker_keys_unsupported_for_present_kickers" in q["reasons"]
+    clean = lsa.exact_qualification({"unknown": [], "kicker": []}, {"status_unresolved": 0}, kicker_rows_present=False)
+    assert clean["league_scoring_exact"] is False and clean["reasons"] == ["rostered player-weeks only; not full-universe proof", "unresolved_player_weeks: 0"]
+
+
+def test_coverage_counts_separate_the_championship_window_and_every_status():
+    comps = _components([dict(player_id="00-1", week=17), dict(player_id="00-1", week=18)])
+    sleeper = pd.DataFrame({"week": [17, 18], "sleeper_id": ["11", "11"], "sleeper_points": [0.0, 0.0], "roster_id": 1,
+                            "status": "ok", "duplicates_collapsed": [1, 0]})
+    identity = pd.DataFrame({"sleeper_id": ["11"], "gsis_id": ["00-1"], "identity_status": ["resolved"]})
+    rec = lsa.reconcile(comps, sleeper, identity, SETTINGS)
+    c = lsa.coverage_counts(comps, rec, sleeper, identity)
+    assert c["weekly_player_weeks_reg"] == 2 and c["weekly_player_weeks_championship"] == 1
+    assert c["sleeper_player_weeks"] == 2 and c["sleeper_player_weeks_championship"] == 1 and c["sleeper_players"] == 1
+    assert c["status_exact"] == 2 and c["status_unresolved"] == 0 and c["status_exact_championship"] == 1
+    assert c["sleeper_duplicate_observations_collapsed"] == 1 and c["sleeper_conflicting_duplicates"] == 0
+    assert c["population_note"] == "rostered player-weeks only; not full-universe proof"
+
+
+def test_manifest_carries_schema_sources_settings_sha_and_qualification():
+    m = lsa.build_audit_manifest(sources={"weekly": {"path": "w", "sha256": "a" * 64, "bytes": 1}}, settings=SETTINGS,
+                                 classification=lsa.classify_scoring_keys(SETTINGS), counts={"status_exact": 1},
+                                 qualification={"league_scoring_exact": False, "reasons": ["x"]},
+                                 launch={"git_head": "h"}, outputs={"components.csv": "b" * 64})
+    assert m["schema_version"] == "dg177_league_scoring_audit_v1"
+    assert m["settings_sha256"] == lsa.settings_sha256(SETTINGS)
+    assert m["league_scoring_exact"] is False and m["championship_window"] == {"weeks": [1, 17], "week_18_included": False}
+    assert "fum_rec" in m["team_keys_never_applied_to_individuals"] and "fum_rec" not in m["individual_keys_credited"]

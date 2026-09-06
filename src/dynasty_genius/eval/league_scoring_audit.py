@@ -362,3 +362,87 @@ def reconcile(components: pd.DataFrame, sleeper: pd.DataFrame, identity: pd.Data
             "diff_vs_research", "diff_vs_league", "attribution_status", "unresolved_reason", "reconciliation_reason",
             "championship_window", "status"]
     return r[cols].sort_values(["week", "sleeper_id"]).reset_index(drop=True)
+
+
+# ── quarantine re-audit, coverage counts, exact qualification, manifest ───────────────────────
+
+POPULATION_NOTE = "rostered player-weeks only; not full-universe proof"
+SCHEMA_VERSION = "dg177_league_scoring_audit_v1"
+
+
+def audit_quarantine(quarantine: pd.DataFrame, settings: dict) -> pd.DataFrame:
+    """Re-score the PPR quarantine under the league's individual keys. Every original column
+    (including the original quarantine reason / exception) is kept; no play-by-play split is
+    attempted for unidentified rows, so only weekly-count components can move them."""
+    q = quarantine.copy()
+    for c in WEEKLY_COMPONENT_COLUMNS:
+        q[c] = _num(q, c) if c in q else 0.0
+    q["extra_fumbles_lost"] = (q["fumbles_lost_total"] - q["sack_fumbles_lost"] - q["rushing_fumbles_lost"]
+                              - q["receiving_fumbles_lost"]).clip(lower=0)
+    for c in SPLIT_COLUMNS:
+        q[c] = 0
+    q["league_points_if_scored"] = league_points(q, settings)
+    q["nonzero_under_league_keys"] = q["league_points_if_scored"].abs() > TOL
+    return q
+
+
+def coverage_counts(components: pd.DataFrame, reconciliation: pd.DataFrame, sleeper: pd.DataFrame, identity: pd.DataFrame) -> dict:
+    st = reconciliation["status"].value_counts()
+    champ = reconciliation[reconciliation["championship_window"]]["status"].value_counts()
+    unresolved = components.loc[components["attribution_status"] == "unresolved", "unresolved_reason"].value_counts()
+    return {
+        "weekly_player_weeks_reg": int(len(components)),
+        "weekly_player_weeks_championship": int(components["championship_window"].sum()),
+        "sleeper_player_weeks": int(len(sleeper)),
+        "sleeper_player_weeks_championship": int(sleeper["week"].isin(list(CHAMPIONSHIP_WEEKS)).sum()),
+        "sleeper_players": int(sleeper["sleeper_id"].nunique()),
+        "identity_resolved": int((identity["identity_status"] == "resolved").sum()),
+        "identity_unmapped": int((identity["identity_status"] == "unmapped").sum()),
+        "identity_ambiguous": int((identity["identity_status"] == "ambiguous").sum()),
+        "status_exact": int(st.get("exact", 0)), "status_attributed_difference": int(st.get("attributed_difference", 0)),
+        "status_absent_zero": int(st.get("absent_zero", 0)), "status_unresolved": int(st.get("unresolved", 0)),
+        "status_exact_championship": int(champ.get("exact", 0)),
+        "status_attributed_difference_championship": int(champ.get("attributed_difference", 0)),
+        "status_absent_zero_championship": int(champ.get("absent_zero", 0)),
+        "status_unresolved_championship": int(champ.get("unresolved", 0)),
+        "reconciliation_unresolved_by_reason": {k: int(v) for k, v in
+                                               reconciliation.loc[reconciliation["status"] == "unresolved", "reconciliation_reason"].value_counts().items()},
+        "components_unresolved_by_reason": {k: int(v) for k, v in unresolved.items()},
+        "sleeper_duplicate_observations_collapsed": int(sleeper["duplicates_collapsed"].sum()) if "duplicates_collapsed" in sleeper else 0,
+        "sleeper_conflicting_duplicates": int((sleeper["status"] == RECON_CONFLICT).sum()),
+        "population_note": POPULATION_NOTE,
+    }
+
+
+def exact_qualification(classification: dict, counts: dict, kicker_rows_present: bool) -> dict:
+    """Always False in this increment; the reasons are named so a later increment cannot inherit
+    a qualification it did not earn."""
+    reasons = [POPULATION_NOTE]
+    if classification.get("unknown"):
+        reasons.append(f"unknown_scoring_keys: {classification['unknown']}")
+    reasons.append(f"unresolved_player_weeks: {int(counts.get('status_unresolved', 0))}")
+    if kicker_rows_present and classification.get("kicker"):
+        reasons.append("kicker_keys_unsupported_for_present_kickers")
+    return {"league_scoring_exact": False, "reasons": reasons}
+
+
+def build_audit_manifest(*, sources: dict, settings: dict, classification: dict, counts: dict, qualification: dict,
+                         launch: dict, outputs: dict) -> dict:
+    return {
+        "schema_version": SCHEMA_VERSION, "producer": "DG-177 league scoring component audit (report-only)",
+        "sources": sources, "settings_sha256": settings_sha256(settings), "scoring_settings": settings,
+        "key_classification": classification, "research_preset": RESEARCH_PPR_PRESET,
+        "individual_keys_credited": sorted(INDIVIDUAL_KEYS & set(settings)),
+        "team_keys_never_applied_to_individuals": sorted(TEAM_KEYS & set(settings)),
+        "event_grain": ["game_id", "play_id", "event_slot", "event_type", "player_id"],
+        "special_teams_classification": "special_teams_play == 1 AND play type in {punt, kickoff, field_goal, extra_point}; "
+                                        "a disagreement marks every event of the play ambiguous (st_classifier_conflict)",
+        "slot_capacity_policy": "the two numbered fumble slots are not a universal ledger; more FUMBLES tokens than slots, an "
+                                "unpaired recovery slot, or a play-level lost flag disagreeing with every slot marks the play "
+                                "ambiguous (slot_capacity); the weekly lost total stays the scoring authority",
+        "championship_window": {"weeks": [CHAMPIONSHIP_WEEKS.start, CHAMPIONSHIP_WEEKS.stop - 1], "week_18_included": False},
+        "coverage": counts, "league_scoring_exact": qualification["league_scoring_exact"],
+        "qualification_reasons": qualification["reasons"], "launch": launch, "outputs": outputs,
+        "meaning": "Counts come from the weekly source; play-by-play supplies the special-teams / own-vs-opponent / lost split. "
+                   "A disagreement is unresolved, never patched. The Sleeper comparison covers rostered players only.",
+    }
