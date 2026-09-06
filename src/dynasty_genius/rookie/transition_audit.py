@@ -30,10 +30,14 @@ __all__ = [
     "VeteranRun",
     "classify_draft_status",
     "coverage_ledger",
+    "fold_sign_summary",
     "join_transition",
     "load_rookie_run",
     "load_veteran_run",
+    "metrics_by",
     "overlap_classes",
+    "paired_bootstrap",
+    "paired_metrics",
     "rookie_draft_time_frame",
     "verify_same_target",
     "veteran_horizon1_frame",
@@ -386,3 +390,106 @@ def veteran_population_ledger(rookie: RookieRun, veteran: VeteranRun, joined: pd
     out["experience_note"] = ("experience is computed from the draft table for drafted players only; rows without a draft "
                               "record carry no experience (DG-177 seasons_played is left-censored at 2005)")
     return out
+
+
+# ----------------------------------------------------------------------------- metrics
+
+def _calibration_line(pred: np.ndarray, actual: np.ndarray) -> tuple[float, float]:
+    """Slope and intercept of actual on predicted (1 and 0 when calibrated); NaN when undefined."""
+    if len(pred) < 3 or float(np.nanstd(pred)) == 0.0:
+        return float("nan"), float("nan")
+    slope, intercept = np.polyfit(pred, actual, 1)
+    return float(slope), float(intercept)
+
+
+def paired_metrics(joined: pd.DataFrame) -> dict:
+    """Accuracy (RMSE, MAE) and BIAS reported apart, appearance Brier and reliability, points calibration,
+    and the paired differences (veteran minus rookie; negative favours the veteran)."""
+    n = int(len(joined))
+    out: dict = {"n": n}
+    if n == 0:
+        return out
+    actual = joined["points"].to_numpy(float)
+    appeared = joined["appeared"].to_numpy(float)
+    for side in ("rookie", "veteran"):
+        err = joined[f"err_{side}"].to_numpy(float)
+        p = joined[f"{side}_p_appear"].to_numpy(float)
+        slope, intercept = _calibration_line(joined[f"{side}_e_points"].to_numpy(float), actual)
+        out[side] = {
+            "rmse": float(np.sqrt(np.mean(err ** 2))), "mae": float(np.mean(np.abs(err))), "bias": float(np.mean(err)),
+            "brier_appear": float(np.mean((p - appeared) ** 2)), "appear_base_rate": float(np.mean(appeared)),
+            "mean_p_appear": float(np.mean(p)),
+            "points_calibration_slope": slope, "points_calibration_intercept": intercept,
+        }
+    out["paired"] = {
+        "mean_sq_err_diff": float(np.mean(joined["sq_err_veteran"] - joined["sq_err_rookie"])),
+        "mean_abs_err_diff": float(np.mean(joined["abs_err_veteran"] - joined["abs_err_rookie"])),
+        "brier_diff": float(np.mean((joined["veteran_p_appear"] - appeared) ** 2 - (joined["rookie_p_appear"] - appeared) ** 2)),
+        "share_veteran_closer": float(np.mean(joined["veteran_closer"].astype(float))),
+        "sign_convention": "veteran minus rookie; negative favours the veteran forecast",
+    }
+    bins = min(10, n)
+    deciles = pd.qcut(joined["veteran_p_appear"].rank(method="first"), q=bins, labels=False)
+    rel = []
+    for d, g in joined.groupby(deciles, sort=True):
+        rel.append({"decile": int(d), "n": int(len(g)), "mean_p_rookie": float(g["rookie_p_appear"].mean()),
+                    "mean_p_veteran": float(g["veteran_p_appear"].mean()), "observed": float(g["appeared"].mean())})
+    out["reliability"] = rel
+    return out
+
+
+def metrics_by(joined: pd.DataFrame, by: str) -> dict[str, dict]:
+    return {str(key): paired_metrics(g) for key, g in joined.groupby(by, sort=True)}
+
+
+def fold_sign_summary(joined: pd.DataFrame) -> dict:
+    """Each draft class is one temporal fold; kept as a table beside the bootstrap, which does not resample folds."""
+    folds = {}
+    for cls, g in joined.groupby("draft_season", sort=True):
+        folds[str(int(cls))] = {"n": int(len(g)),
+                                "mean_sq_err_diff": float(np.mean(g["sq_err_veteran"] - g["sq_err_rookie"])),
+                                "mean_abs_err_diff": float(np.mean(g["abs_err_veteran"] - g["abs_err_rookie"]))}
+    better = sum(1 for f in folds.values() if f["mean_sq_err_diff"] < 0)
+    return {"by_draft_class": folds, "classes_veteran_better": better, "classes_total": len(folds),
+            "meaning": ("each draft class is one temporal fold; the count of classes where the veteran side has lower "
+                        "mean squared error preserves the fold structure the bootstrap does not resample")}
+
+
+DEFAULT_STATISTICS = ("mean_sq_err_diff", "mean_abs_err_diff", "brier_diff")
+BOOTSTRAP_CONDITIONAL_ON = ("both frozen fits and the realized seasons; player-sampling variability only — not model, "
+                            "not selection, not season uncertainty, and not a forecast interval")
+
+
+def paired_bootstrap(joined: pd.DataFrame, *, seed: int, draws: int, unit: str = "player_id",
+                     statistic_columns: dict[str, str] | None = None) -> dict:
+    """Percentile interval of mean paired differences, resampling UNITS (players) with replacement.
+
+    Justification of the unit: a player contributes one row per experience stratum and those rows share
+    his career; resampling rows would treat them as independent. The interval is conditional on both
+    frozen fits and on the realized seasons: it is player-sampling variability only — not model,
+    selection or season uncertainty, and not a forecast interval. Temporal folds are reported beside it
+    (fold_sign_summary), not resampled. Deterministic given the seed.
+    """
+    frame = joined.copy()
+    if statistic_columns is None:
+        frame["mean_sq_err_diff"] = frame["sq_err_veteran"] - frame["sq_err_rookie"]
+        frame["mean_abs_err_diff"] = frame["abs_err_veteran"] - frame["abs_err_rookie"]
+        frame["brier_diff"] = ((frame["veteran_p_appear"] - frame["appeared"]) ** 2
+                               - (frame["rookie_p_appear"] - frame["appeared"]) ** 2)
+        statistic_columns = {k: k for k in DEFAULT_STATISTICS}
+    units = frame[unit].astype(str).to_numpy()
+    uniq, inverse = np.unique(units, return_inverse=True)
+    n_units = len(uniq)
+    rng = np.random.default_rng(seed)
+    sums = {name: np.bincount(inverse, weights=frame[col].to_numpy(float), minlength=n_units)
+            for name, col in statistic_columns.items()}
+    counts = np.bincount(inverse, minlength=n_units).astype(float)
+    result: dict = {"seed": int(seed), "draws": int(draws), "unit": unit, "level": 0.90, "n_units": int(n_units),
+                    "n_rows": int(len(frame)), "conditional_on": BOOTSTRAP_CONDITIONAL_ON,
+                    "folds": "draft classes are not resampled; see fold_sign_summary"}
+    index_draws = rng.integers(0, n_units, size=(draws, n_units))
+    for name, col in statistic_columns.items():
+        point = float(frame[col].mean())
+        stats = sums[name][index_draws].sum(axis=1) / counts[index_draws].sum(axis=1)
+        result[name] = {"point": point, "lo": float(np.percentile(stats, 5)), "hi": float(np.percentile(stats, 95))}
+    return result

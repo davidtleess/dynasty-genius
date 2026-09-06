@@ -401,3 +401,61 @@ def test_veteran_population_ledger_separates_drafted_no_record_unknown(runs):
     assert row[(2015, "drafted_other_position")] == 1  # the linebacker
     assert row[(2015, "no_draft_record")] == 1  # 00-U: absent from the draft table = unknown draft status
     assert (2015, "undrafted") not in row.index
+
+
+# ---------------------------------------------------------------- Task 5: metrics and bootstrap
+
+def _toy_joined(errors_rookie, errors_veteran, players=None, experience=None):
+    n = len(errors_rookie)
+    pts = np.full(n, 100.0)
+    d = pd.DataFrame({
+        "player_id": players or [f"p{i}" for i in range(n)], "draft_season": [2015] * n, "draft_position": ["WR"] * n,
+        "experience": experience or [1] * n, "thin_history": [False] * n,
+        "appeared": [1.0] * n, "points": pts,
+        "rookie_e_points": pts + np.asarray(errors_rookie, dtype=float),
+        "veteran_e_points": pts + np.asarray(errors_veteran, dtype=float),
+        "rookie_p_appear": [0.8] * n, "veteran_p_appear": [0.9] * n,
+    })
+    for side in ("rookie", "veteran"):
+        d[f"err_{side}"] = d[f"{side}_e_points"] - d["points"]
+        d[f"abs_err_{side}"] = d[f"err_{side}"].abs()
+        d[f"sq_err_{side}"] = d[f"err_{side}"] ** 2
+    d["veteran_closer"] = d["abs_err_veteran"] < d["abs_err_rookie"]
+    return d
+
+
+def test_bias_is_reported_apart_from_accuracy():
+    from src.dynasty_genius.rookie.transition_audit import paired_metrics
+    m = paired_metrics(_toy_joined([10, 10, 10, 10], [10, -10, 10, -10]))
+    assert m["rookie"]["bias"] == pytest.approx(10.0) and m["rookie"]["rmse"] == pytest.approx(10.0)
+    assert m["veteran"]["bias"] == pytest.approx(0.0) and m["veteran"]["rmse"] == pytest.approx(10.0)
+    assert m["paired"]["mean_sq_err_diff"] == pytest.approx(0.0)
+    assert m["n"] == 4 and m["rookie"]["brier_appear"] == pytest.approx((1 - 0.8) ** 2)
+    assert m["rookie"]["mae"] == pytest.approx(10.0) and m["paired"]["share_veteran_closer"] == pytest.approx(0.0)
+
+
+def test_fold_summary_keeps_each_draft_class_as_a_temporal_fold():
+    from src.dynasty_genius.rookie.transition_audit import fold_sign_summary
+    d = _toy_joined([10, 10, 10, 10], [5, 5, 20, 20])
+    d["draft_season"] = [2014, 2014, 2015, 2015]
+    f = fold_sign_summary(d)
+    assert f["classes_total"] == 2 and f["classes_veteran_better"] == 1
+    assert f["by_draft_class"]["2014"]["n"] == 2 and f["by_draft_class"]["2014"]["mean_sq_err_diff"] < 0
+    assert f["by_draft_class"]["2015"]["mean_sq_err_diff"] > 0
+
+
+def test_bootstrap_is_deterministic_and_resamples_players_as_units():
+    from src.dynasty_genius.rookie.transition_audit import paired_bootstrap
+    # each player has one row at k=1 with signed diff +x and one at k=2 with -x: resampling PLAYERS gives exactly 0
+    # on every draw; resampling rows would not.
+    players = ["a", "b", "c", "d", "a", "b", "c", "d"]
+    d = _toy_joined([0] * 8, [3, 5, 7, 9, -3, -5, -7, -9], players=players, experience=[1, 1, 1, 1, 2, 2, 2, 2])
+    d["signed_diff"] = d["err_veteran"]
+    one = paired_bootstrap(d, seed=7, draws=50, statistic_columns={"signed": "signed_diff"})
+    two = paired_bootstrap(d, seed=7, draws=50, statistic_columns={"signed": "signed_diff"})
+    assert one == two
+    assert one["signed"]["lo"] == pytest.approx(0.0) and one["signed"]["hi"] == pytest.approx(0.0)
+    assert one["unit"] == "player_id" and one["draws"] == 50 and one["level"] == 0.90 and one["n_units"] == 4
+    default = paired_bootstrap(d, seed=7, draws=50)
+    assert set(default) >= {"mean_sq_err_diff", "mean_abs_err_diff", "brier_diff", "conditional_on", "folds"}
+    assert default["mean_sq_err_diff"]["lo"] <= default["mean_sq_err_diff"]["point"] <= default["mean_sq_err_diff"]["hi"]
