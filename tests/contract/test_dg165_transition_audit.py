@@ -459,3 +459,68 @@ def test_bootstrap_is_deterministic_and_resamples_players_as_units():
     default = paired_bootstrap(d, seed=7, draws=50)
     assert set(default) >= {"mean_sq_err_diff", "mean_abs_err_diff", "brier_diff", "conditional_on", "folds"}
     assert default["mean_sq_err_diff"]["lo"] <= default["mean_sq_err_diff"]["point"] <= default["mean_sq_err_diff"]["hi"]
+
+
+# ---------------------------------------------------------------- Task 6: writer, report, CLI
+
+def test_write_audit_hashes_every_output_records_input_manifests_and_refuses_a_second_call(runs, tmp_path):
+    from src.dynasty_genius.rookie.transition_audit import (
+        load_rookie_run,
+        load_veteran_run,
+        run_audit,
+        write_audit,
+    )
+    rookie_dir, vet_dir = runs
+    r, v = load_rookie_run(rookie_dir), load_veteran_run(vet_dir)
+    result = run_audit(r, v, experiences=(1, 2), seed=3, draws=20)
+    out = tmp_path / "runs" / "20990101T000000Z" / "dg165_transition_audit"
+    out.mkdir(parents=True)
+    manifest = write_audit(out, result, rookie=r, veteran=v, seed=3, draws=20, experiences=(1, 2), git_sha="abc")
+    for name, sha in manifest["outputs_sha256"].items():
+        assert hashlib.sha256((out / name).read_bytes()).hexdigest() == sha
+    assert {"joined_rows.csv", "coverage_ledger.csv", "veteran_population_ledger.csv", "metrics.json", "REPORT.md"} <= set(manifest["outputs_sha256"])
+    assert manifest["inputs"]["rookie"]["verified"]["out_of_time_predictions.csv"] == r.verified["out_of_time_predictions.csv"]
+    assert manifest["inputs"]["rookie"]["manifest_sha256"] == hashlib.sha256((rookie_dir / "manifest.json").read_bytes()).hexdigest()
+    assert manifest["inputs"]["veteran"]["manifest_sha256"] == hashlib.sha256((vet_dir / "manifest.json").read_bytes()).hexdigest()
+    assert manifest["binding"]["status"] == "same_target"
+    metrics = json.loads((out / "metrics.json").read_text())
+    assert metrics["experiences"]["1"]["overall"]["n"] == 3
+    assert metrics["experiences"]["1"]["coverage_counts"]["no_veteran_row_no_window_appearance"] == 1
+    assert metrics["experiences"]["1"]["raw_source_population_excluded"] is None  # fixture manifest declares no raw population
+    caveats = metrics["definitions"]["caveats"]
+    assert "policy menu" in json.dumps(caveats) and "player-sampling" in json.dumps(caveats) and "role" in json.dumps(caveats)
+    report = (out / "REPORT.md").read_text()
+    assert "n = 3" in report and "no_veteran_row_no_window_appearance" in report and "not" in report.lower()
+    with pytest.raises(FileExistsError):
+        write_audit(out, result, rookie=r, veteran=v, seed=3, draws=20, experiences=(1, 2), git_sha="abc")
+
+
+def test_report_numbers_come_from_metrics_not_prose(runs, tmp_path):
+    from src.dynasty_genius.rookie.transition_audit import (
+        load_rookie_run,
+        load_veteran_run,
+        render_report,
+        run_audit,
+    )
+    rookie_dir, vet_dir = runs
+    r, v = load_rookie_run(rookie_dir), load_veteran_run(vet_dir)
+    result = run_audit(r, v, experiences=(1,), seed=3, draws=20)
+    text = render_report(result["metrics"], result["coverage"], result["population"], result["binding"])
+    rmse = result["metrics"]["experiences"]["1"]["overall"]["veteran"]["rmse"]
+    assert f"{rmse:.1f}" in text
+
+
+def test_cli_end_to_end(runs, tmp_path):
+    import os
+    import subprocess
+    import sys
+    rookie_dir, vet_dir = runs
+    repo = Path(__file__).resolve().parents[2]
+    proc = subprocess.run(
+        [sys.executable, "scripts/dg165/audit_rookie_transition.py", "--rookie-run", str(rookie_dir), "--veteran-run", str(vet_dir),
+         "--experience", "1", "--seed", "1", "--draws", "10", "--runs-root", str(tmp_path / "runs")],
+        capture_output=True, text=True, cwd=repo, env={**os.environ, "PYTHONPATH": "."},
+    )
+    assert proc.returncode == 0, proc.stderr
+    run_dir = Path(proc.stdout.strip().splitlines()[-1])
+    assert (run_dir / "manifest.json").exists() and run_dir.name == "dg165_transition_audit"

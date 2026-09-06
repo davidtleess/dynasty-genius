@@ -15,6 +15,7 @@ import hashlib
 import io
 import json
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -38,10 +39,13 @@ __all__ = [
     "overlap_classes",
     "paired_bootstrap",
     "paired_metrics",
+    "render_report",
     "rookie_draft_time_frame",
+    "run_audit",
     "verify_same_target",
     "veteran_horizon1_frame",
     "veteran_population_ledger",
+    "write_audit",
 ]
 
 ROOKIE_FILES = ("cohort.csv", "out_of_time_predictions.csv")
@@ -85,6 +89,7 @@ class RookieRun:
     out_of_time: pd.DataFrame
     draft_picks: pd.DataFrame
     verified: dict[str, str]
+    manifest_sha256: str
 
 
 @dataclass(frozen=True)
@@ -94,11 +99,13 @@ class VeteranRun:
     historical: pd.DataFrame
     cohort: pd.DataFrame
     verified: dict[str, str]
+    manifest_sha256: str
 
 
 def load_rookie_run(run_dir: Path | str) -> RookieRun:
     run_dir = Path(run_dir)
-    manifest = json.loads((run_dir / "manifest.json").read_text())
+    manifest_bytes = (run_dir / "manifest.json").read_bytes()
+    manifest = json.loads(manifest_bytes)
     declared = manifest.get("outputs_sha256") or {}
     verified: dict[str, str] = {}
     raw: dict[str, bytes] = {}
@@ -112,12 +119,13 @@ def load_rookie_run(run_dir: Path | str) -> RookieRun:
     cohort = pd.read_csv(io.BytesIO(raw["cohort.csv"]))
     oot = pd.read_csv(io.BytesIO(raw["out_of_time_predictions.csv"]))
     picks = pd.read_parquet(io.BytesIO(raw["inputs/nflverse_draft_picks.parquet"]))
-    return RookieRun(run_dir, manifest, cohort, oot, picks, verified)
+    return RookieRun(run_dir, manifest, cohort, oot, picks, verified, _sha(manifest_bytes))
 
 
 def load_veteran_run(run_dir: Path | str) -> VeteranRun:
     run_dir = Path(run_dir)
-    manifest = json.loads((run_dir / "manifest.json").read_text())
+    manifest_bytes = (run_dir / "manifest.json").read_bytes()
+    manifest = json.loads(manifest_bytes)
     declared = manifest.get("outputs_sha256") or {}
     verified: dict[str, str] = {}
     raw: dict[str, bytes] = {}
@@ -126,7 +134,7 @@ def load_veteran_run(run_dir: Path | str) -> VeteranRun:
         verified[name] = declared[name]
     historical = pd.read_csv(io.BytesIO(raw["historical_predictions.csv"]))
     cohort = pd.read_csv(io.BytesIO(gzip.decompress(raw["basic_cohort.csv.gz"])))
-    return VeteranRun(run_dir, manifest, historical, cohort, verified)
+    return VeteranRun(run_dir, manifest, historical, cohort, verified, _sha(manifest_bytes))
 
 
 def verify_same_target(rookie: RookieRun, veteran: VeteranRun) -> dict:
@@ -493,3 +501,193 @@ def paired_bootstrap(joined: pd.DataFrame, *, seed: int, draws: int, unit: str =
         stats = sums[name][index_draws].sum(axis=1) / counts[index_draws].sum(axis=1)
         result[name] = {"point": point, "lo": float(np.percentile(stats, 5)), "hi": float(np.percentile(stats, 95))}
     return result
+
+
+# ----------------------------------------------------------------------------- run, report, write
+
+OUTPUT_FILES = ("joined_rows.csv", "coverage_ledger.csv", "veteran_population_ledger.csv", "metrics.json", "REPORT.md", "manifest.json")
+
+ROLE_CAVEAT = ("DG-177's basic cohort trusts the offensive STATLINE position and its weekly snapshot carries historic role "
+               "disagreements with the roster source (e.g. Jordan Matthews 2014 TE vs WR, Logan Thomas 2014 TE vs QB, "
+               "N'Keal Harry 2019 TE vs WR, Cordarrelle Patterson 2013 RB vs WR). The audit keeps draft_position and "
+               "veteran_position as attributes, never joins on position, and counts disagreements; equal targets do not "
+               "prove historic role integrity. No role repair and no refit in this scope.")
+WINDOW_CAVEAT = ("veteran_row_without_window_appearance flags a veteran feature row whose games_t counts stat lines "
+                 "outside the championship window (final regular-season week or postseason) while the window label "
+                 "records no appearance. Those rows are VALID paired evidence — the feature window and the label window "
+                 "differ by design — and are flagged, never rejected.")
+ROOKIE_MENU_CAVEAT = ("the rookie producer's policy menu was refined after inspecting the historical years, so its "
+                      "historical evaluation is a retrospective evaluation with forecast cutoffs enforced, not untouched "
+                      "independent confirmation; this audit inherits that caveat for the rookie side")
+NOT_A_CORRECTION = ("an audit of two frozen forecasts on one realized target; no correction, blend, uplift, youth bonus, "
+                    "market input, added feature or refit is proposed here")
+
+
+def _jsonable(value):
+    """NaN -> null so metrics.json is valid JSON and an unknown stays unknown rather than a token."""
+    if isinstance(value, dict):
+        return {str(k): _jsonable(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_jsonable(v) for v in value]
+    if isinstance(value, (np.floating, float)):
+        return None if np.isnan(value) else float(value)
+    if isinstance(value, (np.integer,)):
+        return int(value)
+    if isinstance(value, (np.bool_,)):
+        return bool(value)
+    return value
+
+
+def run_audit(rookie: RookieRun, veteran: VeteranRun, *, experiences: tuple[int, ...], seed: int, draws: int) -> dict:
+    binding = verify_same_target(rookie, veteran)
+    raw_rows = ((rookie.manifest.get("cohort") or {}).get("coverage") or {}).get("rows")
+    raw_excluded = int(raw_rows) - int(len(rookie.cohort)) if raw_rows is not None else None
+    joined_all, coverage_all, population_all = [], [], []
+    per_k: dict[str, dict] = {}
+    for k in experiences:
+        j = join_transition(rookie, veteran, experience=k)
+        cov = coverage_ledger(rookie, veteran, experience=k)
+        pop = veteran_population_ledger(rookie, veteran, j, experience=k)
+        joined_all.append(j)
+        coverage_all.append(cov)
+        population_all.append(pop.assign(experience=k))
+        per_k[str(k)] = {
+            "overall": paired_metrics(j),
+            "by_position": metrics_by(j, "draft_position") if len(j) else {},
+            "by_draft_class": metrics_by(j, "draft_season") if len(j) else {},
+            "by_thin_history": metrics_by(j, "thin_history") if len(j) else {},
+            "folds": fold_sign_summary(j) if len(j) else {"by_draft_class": {}, "classes_veteran_better": 0, "classes_total": 0},
+            "bootstrap": paired_bootstrap(j, seed=seed, draws=draws) if len(j) else {"n_rows": 0},
+            "coverage_counts": {c: int((cov["category"] == c).sum()) for c in LEDGER_CATEGORIES},
+            "cohort_rows": int(len(cov)),
+            "raw_source_population_excluded": raw_excluded,
+            "overlap_classes": overlap_classes(rookie, veteran, experience=k),
+            "flags": {"veteran_row_without_window_appearance": int(j["veteran_row_without_window_appearance"].sum()) if len(j) else 0,
+                      "position_disagreement": int((j["draft_position"] != j["veteran_position"]).sum()) if len(j) else 0},
+        }
+    joined = pd.concat(joined_all, ignore_index=True) if joined_all else pd.DataFrame(columns=JOINED_COLUMNS)
+    metrics = {
+        "experiences": per_k,
+        "pooled_bootstrap": paired_bootstrap(joined, seed=seed, draws=draws) if len(joined) else {"n_rows": 0},
+        "definitions": {
+            "experience": "feature_season - draft_season + 1 from the draft table; never DG-177 seasons_played (left-censored at 2005)",
+            "thin_history": f"veteran games_t <= {THIN_HISTORY_MAX_GAMES} in the feature season",
+            "origins": ("rookie forecast made at draft time with NFL information through draft_season - 1; veteran forecast "
+                        "made after the feature season with information through it; the gap is the experience in seasons"),
+            "sign_convention": "diff = veteran minus rookie; negative favours the veteran forecast",
+            "position_basis": "metrics are grouped by DRAFT position; the veteran role position is retained beside it",
+            "not": NOT_A_CORRECTION,
+            "caveats": {
+                "rookie_policy_menu": ROOKIE_MENU_CAVEAT,
+                "rookie_evidence_status_verbatim": rookie.manifest.get("evidence_status"),
+                "bootstrap": BOOTSTRAP_CONDITIONAL_ON,
+                "role": ROLE_CAVEAT,
+                "window": WINDOW_CAVEAT,
+            },
+        },
+    }
+    return {"joined": joined, "coverage": pd.concat(coverage_all, ignore_index=True),
+            "population": pd.concat(population_all, ignore_index=True), "metrics": metrics, "binding": binding}
+
+
+def _fmt(x, nd: int = 1) -> str:
+    if x is None:
+        return "n/a"
+    try:
+        if np.isnan(x):
+            return "n/a"
+    except TypeError:
+        return str(x)
+    return f"{x:.{nd}f}"
+
+
+def render_report(metrics: dict, coverage: pd.DataFrame, population: pd.DataFrame, binding: dict) -> str:
+    """Every number below is read from the metrics/frames; nothing is typed."""
+    d = metrics["definitions"]
+    lines = ["# DG-165 rookie → veteran transition audit", "",
+             f"Same realized target on both sides: `{binding['target_identity'][:16]}…` ({binding['scoring_preset']}).", "",
+             f"This is {d['not']}.", ""]
+    for k, block in metrics["experiences"].items():
+        o = block["overall"]
+        lines += [f"## Experience {k} (the veteran forecast has {k} more season(s) of NFL information)", ""]
+        if o.get("n", 0) == 0:
+            lines += ["No paired rows.", ""]
+        else:
+            oc = block["overlap_classes"]
+            lines += [f"Paired rows: n = {o['n']} over draft classes {oc[0]}–{oc[-1]}.", "",
+                      "| forecast | RMSE | MAE | bias | Brier(appear) | calib slope |", "|---|---|---|---|---|---|"]
+            for side in ("rookie", "veteran"):
+                s = o[side]
+                lines.append(f"| {side} | {_fmt(s['rmse'])} | {_fmt(s['mae'])} | {_fmt(s['bias'])} | {_fmt(s['brier_appear'], 3)} | "
+                             f"{_fmt(s['points_calibration_slope'], 2)} |")
+            p, b, f = o["paired"], block["bootstrap"], block["folds"]
+            lines += ["", f"Paired difference (veteran − rookie): mean squared error {_fmt(p['mean_sq_err_diff'])} "
+                      f"[90% player-bootstrap {_fmt(b['mean_sq_err_diff']['lo'])}, {_fmt(b['mean_sq_err_diff']['hi'])}]; "
+                      f"mean absolute error {_fmt(p['mean_abs_err_diff'])} [{_fmt(b['mean_abs_err_diff']['lo'])}, "
+                      f"{_fmt(b['mean_abs_err_diff']['hi'])}]; veteran closer on {_fmt(100 * p['share_veteran_closer'])}% of rows; "
+                      f"classes where the veteran side is better: {f['classes_veteran_better']} of {f['classes_total']}.", "",
+                      f"The interval is conditional on {b['conditional_on']}.", "",
+                      "| draft position | n | rookie RMSE | veteran RMSE | rookie MAE | veteran MAE | rookie bias | veteran bias |",
+                      "|---|---|---|---|---|---|---|---|"]
+            for pos, m in block["by_position"].items():
+                lines.append(f"| {pos} | {m['n']} | {_fmt(m['rookie']['rmse'])} | {_fmt(m['veteran']['rmse'])} | {_fmt(m['rookie']['mae'])} | "
+                             f"{_fmt(m['veteran']['mae'])} | {_fmt(m['rookie']['bias'])} | {_fmt(m['veteran']['bias'])} |")
+            lines += ["", "| draft class (temporal fold) | n | mean sq err diff | mean abs err diff |", "|---|---|---|---|"]
+            for cls, m in f["by_draft_class"].items():
+                lines.append(f"| {cls} | {m['n']} | {_fmt(m['mean_sq_err_diff'])} | {_fmt(m['mean_abs_err_diff'])} |")
+            lines += ["", f"| thin history ({d['thin_history']}) | n | rookie RMSE | veteran RMSE |", "|---|---|---|---|"]
+            for flag, m in block["by_thin_history"].items():
+                lines.append(f"| {flag} | {m['n']} | {_fmt(m['rookie']['rmse'])} | {_fmt(m['veteran']['rmse'])} |")
+        lines += ["", f"Coverage of the WHOLE modelling cohort ({block['cohort_rows']} players) at this experience — paired rows are "
+                  "not all drafted players:", ""]
+        for cat, n in block["coverage_counts"].items():
+            lines.append(f"- {cat}: {n}")
+        if block["raw_source_population_excluded"] is not None:
+            lines.append(f"- raw source population excluded before modelling (documented in the rookie run): {block['raw_source_population_excluded']}")
+        lines += ["", f"Flags: veteran rows without a window appearance {block['flags']['veteran_row_without_window_appearance']}; "
+                  f"draft/role position disagreements {block['flags']['position_disagreement']}.", ""]
+    lines += ["## Veteran population at the overlap feature seasons, by draft status", ""]
+    if len(population):
+        for (k, status), g in population.groupby(["experience", "draft_status"], sort=True):
+            lines.append(f"- experience {k}, {status}: {int(g['rows'].sum())} rows")
+        lines += ["", f"_{population['experience_note'].iloc[0]}_", ""]
+    lines += ["## Caveats", ""]
+    for name, text in d["caveats"].items():
+        if text is not None:
+            lines.append(f"- **{name}**: {text if isinstance(text, str) else json.dumps(text)}")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def write_audit(run_dir: Path, result: dict, *, rookie: RookieRun, veteran: VeteranRun, seed: int, draws: int,
+                experiences: tuple[int, ...], git_sha: str) -> dict:
+    """Write the immutable artifact; refuses if any output already exists in run_dir."""
+    run_dir = Path(run_dir)
+    existing = [name for name in OUTPUT_FILES if (run_dir / name).exists()]
+    if existing:
+        raise FileExistsError(f"refusing to overwrite existing audit outputs in {run_dir}: {existing}")
+    started = datetime.now(timezone.utc).isoformat()
+    result["joined"].to_csv(run_dir / "joined_rows.csv", index=False)
+    result["coverage"].to_csv(run_dir / "coverage_ledger.csv", index=False)
+    result["population"].to_csv(run_dir / "veteran_population_ledger.csv", index=False)
+    (run_dir / "metrics.json").write_text(json.dumps(_jsonable(result["metrics"]), indent=2, sort_keys=True, allow_nan=False))
+    (run_dir / "REPORT.md").write_text(render_report(result["metrics"], result["coverage"], result["population"], result["binding"]))
+    outputs = {name: _sha((run_dir / name).read_bytes()) for name in OUTPUT_FILES if name != "manifest.json"}
+    manifest = {
+        "schema_version": "dg165_transition_audit_v1", "ticket": "DG-165", "git_sha": git_sha, "run_dir": str(run_dir),
+        "started_utc": started, "finished_utc": datetime.now(timezone.utc).isoformat(),
+        "inputs": {
+            "rookie": {"run_dir": str(rookie.run_dir), "manifest_sha256": rookie.manifest_sha256,
+                       "model_version": rookie.manifest.get("model_version"), "scoring_arm_id": rookie.manifest.get("scoring_arm_id"),
+                       "git_sha": rookie.manifest.get("git_sha"), "verified": rookie.verified},
+            "veteran": {"run_dir": str(veteran.run_dir), "manifest_sha256": veteran.manifest_sha256,
+                        "producer": veteran.manifest.get("producer"), "candidate_arm": veteran.manifest.get("candidate_arm"),
+                        "git_head": veteran.manifest.get("git_head"), "verified": veteran.verified,
+                        "forecast_columns": "policy_* (what the board consumes); candidate_* and baseline_* are not audited here"},
+        },
+        "binding": result["binding"], "experiences": list(experiences), "seed": seed, "draws": draws,
+        "definitions": _jsonable(result["metrics"]["definitions"]), "outputs_sha256": outputs,
+        "frozen_inputs_untouched": True,
+    }
+    (run_dir / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True))
+    return manifest
