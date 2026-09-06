@@ -249,3 +249,27 @@ def player_week_components(weekly: pd.DataFrame, events: pd.DataFrame) -> pd.Dat
     w["unresolved_reason"] = reason
     w["attribution_status"] = np.where(reason == "", "attributed", "unresolved")
     return w.reset_index(drop=True)
+
+
+# ── league points: individual keys only, weights read from the saved settings ─────────────────
+
+def league_points(components: pd.DataFrame, settings: dict) -> pd.Series:
+    """Individual keys only. A team or kicker key present in `settings` is ignored for a player;
+    an IDP setting is never inferred from a DST key."""
+    s = {k: float(v) for k, v in settings.items() if k in INDIVIDUAL_KEYS}
+    c = components
+
+    def g(key: str) -> float:
+        return s.get(key, 0.0)
+
+    lost = (_num(c, "sack_fumbles_lost") + _num(c, "rushing_fumbles_lost") + _num(c, "receiving_fumbles_lost")
+            + _num(c, "extra_fumbles_lost"))
+    return (g("pass_yd") * _num(c, "passing_yards") + g("pass_td") * _num(c, "passing_tds")
+            + g("pass_int") * _num(c, "passing_interceptions") + g("pass_2pt") * _num(c, "passing_2pt_conversions")
+            + g("rush_yd") * _num(c, "rushing_yards") + g("rush_td") * _num(c, "rushing_tds")
+            + g("rush_2pt") * _num(c, "rushing_2pt_conversions")
+            + g("rec") * _num(c, "receptions") + g("rec_yd") * _num(c, "receiving_yards") + g("rec_td") * _num(c, "receiving_tds")
+            + g("rec_2pt") * _num(c, "receiving_2pt_conversions")
+            + g("fum") * _num(c, "fumbles_total") + g("fum_lost") * lost
+            + g("fum_rec_td") * _num(c, "fumble_recovery_tds") + g("st_td") * _num(c, "special_teams_tds")
+            + g("st_ff") * _num(c, "st_forced_fumbles") + g("st_fum_rec") * _num(c, "st_opp_recoveries"))

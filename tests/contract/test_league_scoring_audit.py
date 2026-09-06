@@ -329,3 +329,70 @@ def test_duplicate_weekly_player_weeks_are_refused():
     w = weekly([dict(player_id="P1", week=1), dict(player_id="P1", week=1)])
     with pytest.raises(lsa.ScoringAuditError, match="duplicate"):
         lsa.player_week_components(w, _events([]))
+
+
+# ── Task 5: league points credit individual keys only ─────────────────────────────────────────
+
+def _components(rows, events=None):
+    return lsa.player_week_components(weekly(rows), events if events is not None else lsa.extract_fumble_events(pbp([])))
+
+
+def test_own_recovery_is_never_a_bonus_and_fum_rec_key_is_never_applied_to_an_individual():
+    c = _components([dict(player_id="P1", week=1, rushing_yards=50, fumble_recovery_own=2)])
+    assert float(lsa.league_points(c, SETTINGS).iloc[0]) == 5.0
+    assert float(lsa.league_points(c, {**SETTINGS, "fum_rec": 99.0}).iloc[0]) == 5.0
+
+
+def test_team_defense_keys_do_not_reach_a_two_way_player():
+    c = _components([dict(player_id="P1", week=1, position="CB", receptions=3, receiving_yards=42)])
+    c["def_interceptions"] = 1
+    c["def_fumbles_forced"] = 1
+    assert float(lsa.league_points(c, {**SETTINGS, "int": 50.0, "ff": 50.0}).iloc[0]) == pytest.approx(3 + 4.2)
+
+
+def test_recovery_touchdown_scores_fum_rec_td_without_a_recovery_bonus():
+    ev = lsa.extract_fumble_events(pbp([play("G1", 1, 15, fumbled_1_player_id="P9", fumbled_1_team="AAA",
+                                             fumble_recovery_1_player_id="P1", fumble_recovery_1_team="AAA",
+                                             touchdown=1, return_touchdown=1, td_player_id="P1", td_team="AAA", desc="FUMBLES")]))
+    c = _components([dict(player_id="P1", week=15, rushing_yards=30, receptions=1, receiving_yards=8,
+                          fumble_recovery_own=1, fumble_recovery_tds=1)], ev)
+    assert c.iloc[0].attribution_status == "attributed"
+    assert float(lsa.league_points(c, SETTINGS).iloc[0]) == pytest.approx(3 + 1 + 0.8 + 6)
+
+
+def test_special_teams_keys_credit_individuals_and_weights_come_from_settings():
+    ev = lsa.extract_fumble_events(pbp([play("G1", 722, 13, play_type="kickoff", special_teams_play=1, fumbled_1_player_id="R1",
+                                             fumbled_1_team="BBB", forced_fumble_player_1_player_id="P1", forced_fumble_player_1_team="AAA",
+                                             fumble_recovery_1_player_id="P1", fumble_recovery_1_team="AAA", fumble_lost=1, desc="FUMBLES")]))
+    c = _components([dict(player_id="P1", week=13, def_fumbles_forced=1, fumble_recovery_opp=1)], ev)
+    assert float(lsa.league_points(c, SETTINGS).iloc[0]) == 2.0
+    assert float(lsa.league_points(c, {**SETTINGS, "st_ff": 3.0, "st_fum_rec": 0.5}).iloc[0]) == 3.5
+
+
+def test_own_team_special_teams_recovery_scores_nothing():
+    ev = lsa.extract_fumble_events(pbp([play("G1", 1358, 5, play_type="kickoff", special_teams_play=1, fumbled_1_player_id="P5",
+                                             fumbled_1_team="AAA", fumble_recovery_1_player_id="P1", fumble_recovery_1_team="AAA",
+                                             fumble_lost=0, desc="FUMBLES")]))
+    c = _components([dict(player_id="P1", week=5, receptions=2, receiving_yards=27, fumble_recovery_own=1, fantasy_points_ppr=4.7)], ev)
+    assert float(lsa.league_points(c, SETTINGS).iloc[0]) == pytest.approx(4.7)
+
+
+def test_muffed_return_lost_fumble_costs_fum_lost_and_negative_totals_are_preserved():
+    ev = lsa.extract_fumble_events(pbp([play("G1", 1, 1, play_type="punt", special_teams_play=1, fumbled_1_player_id="P1",
+                                             fumbled_1_team="AAA", fumble_recovery_1_player_id="D1", fumble_recovery_1_team="BBB",
+                                             fumble_lost=1, desc="MUFFS, FUMBLES")]))
+    c = _components([dict(player_id="P1", week=1, fumbles_lost_total=1)], ev)
+    assert float(lsa.league_points(c, SETTINGS).iloc[0]) == -2.0
+    assert float(lsa.research_ppr_from_components(c).iloc[0]) == 0.0
+
+
+def test_fum_key_with_zero_weight_is_modelled_from_fumbles_total_not_dropped():
+    c = _components([dict(player_id="P1", week=1, fumbles_total=2, fumble_recovery_own=2)])
+    assert float(lsa.league_points(c, SETTINGS).iloc[0]) == 0.0
+    assert float(lsa.league_points(c, {**SETTINGS, "fum": -1.0}).iloc[0]) == -2.0
+
+
+def test_league_points_apply_the_weekly_lost_count_while_the_row_stays_unresolved():
+    c = _components([dict(player_id="P1", week=3, fumbles_lost_total=2, rushing_fumbles_lost=1)])
+    assert c.iloc[0].attribution_status == "unresolved"
+    assert float(lsa.league_points(c, SETTINGS).iloc[0]) == -4.0
