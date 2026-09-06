@@ -1,9 +1,19 @@
 import json, sys
+from pathlib import Path
 from collections import defaultdict
 sys.path.insert(0,".")
 from scripts.dg168.dominance_screen import market_price, find_contradictions, LEAGUE_TRANSLATION
 board={r["name"]:r for r in json.load(open("docs/asset-number/board_2026-09-05T1300Z.json"))}
-mk=json.load(open("app/data/valuation/universe_market_divergence_latest.json"))["players"]
+# ⛔ READ THE LIVE FILE, NOT THE WORKTREE COPY. dg-work.sh materialises tracked paths
+# from git, and app/data/valuation IS tracked — so a worktree holds the COMMITTED
+# market file (2026-07-22) while the daily refresh writes the live one in the trunk
+# tree (2026-09-05). Both exist at the same relative path. Measured: 28.2 MB against
+# 29.7 MB, six weeks apart, and nothing on the path distinguishes them.
+MARKET = Path("/Users/davidleess/dynasty-genius-product/app/data/valuation/"
+              "universe_market_divergence_latest.json")
+_m = json.load(open(MARKET))
+print(f"  market snapshot {_m.get('market_snapshot_date')}  captured {_m.get('captured_at')}")
+mk=_m["players"]
 players=[]
 for row in mk:
     nm=(row.get("player") or {}).get("full_name"); mp=market_price(row)
