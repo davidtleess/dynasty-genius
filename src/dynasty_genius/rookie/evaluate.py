@@ -68,12 +68,13 @@ def training_frame_at(
     horizons: Iterable[int],
     forecast_year: int,
     unresolved_as_zero: bool = False,
+    covered_seasons: set[int] | None = None,
 ) -> pd.DataFrame:
     """Classes before T, labelled with only the seasons that had completed at T."""
     earlier = cohort.loc[cohort["draft_season"] < forecast_year]
     return horizon_labels(
         earlier, qualifying=qualifying, season_stats=season_stats, horizons=horizons,
-        last_completed_season=forecast_year - 1, unresolved_as_zero=unresolved_as_zero,
+        last_completed_season=forecast_year - 1, unresolved_as_zero=unresolved_as_zero, covered_seasons=covered_seasons,
     )
 
 
@@ -85,6 +86,7 @@ def _inner_selection(
     horizons: tuple[int, ...],
     forecast_year: int,
     unresolved_as_zero: bool,
+    covered_seasons: set[int] | None = None,
 ) -> dict:
     """Choose a variant from MENU INSIDE the training window at T.
 
@@ -99,11 +101,11 @@ def _inner_selection(
     K = INNER_VALIDATION_CLASSES
     inner_T = forecast_year - K
     inner_train = training_frame_at(cohort, qualifying=qualifying, season_stats=season_stats, horizons=horizons,
-                                    forecast_year=inner_T, unresolved_as_zero=unresolved_as_zero)
+                                    forecast_year=inner_T, unresolved_as_zero=unresolved_as_zero, covered_seasons=covered_seasons)
     validation = horizon_labels(
         cohort.loc[cohort["draft_season"].between(inner_T, forecast_year - 1)], qualifying=qualifying,
         season_stats=season_stats, horizons=horizons, last_completed_season=forecast_year - 1,
-        unresolved_as_zero=unresolved_as_zero,
+        unresolved_as_zero=unresolved_as_zero, covered_seasons=covered_seasons,
     )
     validation = validation.loc[validation["appear_1"].notna() & validation["qy_1"].notna()]
     scores: dict[str, dict[str, float]] = {}
@@ -148,6 +150,7 @@ def fit_at_forecast_year(
     forecast_year: int,
     unresolved_as_zero: bool = False,
     policy: str = "plain",
+    covered_seasons: set[int] | None = None,
 ) -> RookieCapitalModel:
     """THE procedure: historical evaluation and final scoring both call this.
 
@@ -160,12 +163,12 @@ def fit_at_forecast_year(
     horizons = tuple(sorted(set(int(h) for h in horizons)))
     train = training_frame_at(
         cohort, qualifying=qualifying, season_stats=season_stats, horizons=horizons,
-        forecast_year=forecast_year, unresolved_as_zero=unresolved_as_zero,
+        forecast_year=forecast_year, unresolved_as_zero=unresolved_as_zero, covered_seasons=covered_seasons,
     )
     selection = None
     if policy == "inner_menu":
         selection = _inner_selection(cohort, qualifying=qualifying, season_stats=season_stats, horizons=horizons,
-                                     forecast_year=forecast_year, unresolved_as_zero=unresolved_as_zero)
+                                     forecast_year=forecast_year, unresolved_as_zero=unresolved_as_zero, covered_seasons=covered_seasons)
         variant = selection["chosen"]
     else:
         variant = policy
@@ -288,6 +291,7 @@ def evaluate_forecast_years(
     min_train_rows: int = MIN_TRAIN_ROWS,
     unresolved_as_zero: bool = False,
     policy: str = "plain",
+    covered_seasons: set[int] | None = None,
 ) -> tuple[dict, pd.DataFrame]:
     """Returns ``(report, predictions)``. The report is JSON-serialisable; ``predictions``
     holds one row per (forecast year, test prospect) with every exported quantity, its
@@ -298,15 +302,16 @@ def evaluate_forecast_years(
     frames, per_year, skipped = [], [], []
     for T in sorted(set(int(t) for t in forecast_years)):
         train = training_frame_at(cohort, qualifying=qualifying, season_stats=season_stats, horizons=horizons,
-                                  forecast_year=T, unresolved_as_zero=unresolved_as_zero)
+                                  forecast_year=T, unresolved_as_zero=unresolved_as_zero, covered_seasons=covered_seasons)
         current = cohort.loc[cohort["draft_season"] == T]
         if current.empty or int(train["appear_1"].notna().sum()) < min_train_rows:
             skipped.append({"forecast_year": T, "reason": "no test class" if current.empty else "training set below the minimum size"})
             continue
         model = fit_at_forecast_year(cohort, qualifying=qualifying, season_stats=season_stats, horizons=horizons,
-                                     forecast_year=T, unresolved_as_zero=unresolved_as_zero, policy=policy)
+                                     forecast_year=T, unresolved_as_zero=unresolved_as_zero, policy=policy, covered_seasons=covered_seasons)
         test = horizon_labels(current, qualifying=qualifying, season_stats=season_stats, horizons=horizons,
-                              last_completed_season=last_completed_season_today, unresolved_as_zero=unresolved_as_zero)
+                              last_completed_season=last_completed_season_today, unresolved_as_zero=unresolved_as_zero,
+                              covered_seasons=covered_seasons)
         pred = model.predict(test)
         base = _training_baselines(train, horizons)
         extra = {"forecast_year": np.full(len(test), T)}

@@ -32,8 +32,15 @@ __all__ = ["CommonOutcomes", "OutcomeInputs", "load_common_outcomes", "outcome_b
            "qualification_panel", "season_stats_from_outcomes", "weekly_positions_by_player_season"]
 
 REQUIRED = ("player_id", "season", "points", "games", "appeared")
-SCORING_CAVEAT = ("nflverse default-PPR league-window research outcomes; exact-league scoring is unsupported pending complete "
+SCHEMA_VERSION = "dg179_league_season_outcomes_v1"
+COVERAGE_STATUSES = ("qualified_research_game_complete_identified_rows", "calendar_checked_game_coverage_unverified")
+SCORING_CAVEAT = ("nflverse default-PPR championship-window research outcomes; exact-league scoring is unsupported pending complete "
                   "attribution of lost-fumble scope, fum_rec_td, st_ff and st_fum_rec; nothing missing is fabricated as zero")
+QUALIFICATION_NOTE = ("coverage_status 'qualified_research_game_complete_identified_rows' means admitted game ids match the source and the "
+                      "exact unattributed-row quarantine is disclosed; it is NOT proof of perfect individual stats and must not be read as "
+                      "complete individual data")
+TRUE_VALUES = {True, 1, "1", "true", "True", "TRUE"}
+FALSE_VALUES = {False, 0, "0", "false", "False", "FALSE"}
 
 
 @dataclass(frozen=True)
@@ -47,27 +54,20 @@ class CommonOutcomes:
 
     @property
     def labels_through(self) -> int:
-        closure = self.manifest.get("closure") or {}
-        value = closure.get("labels_through") or self.manifest.get("labels_through")
-        if value is None:
-            raise ValueError("outcome manifest does not state closure.labels_through")
-        return int(value)
+        return int(self.manifest["last_complete_season"])
 
     @property
-    def scoring_id(self) -> str:
-        scoring = self.manifest.get("scoring") or {}
-        value = scoring.get("id") if isinstance(scoring, dict) else scoring
-        if not value:
-            raise ValueError("outcome manifest does not state a scoring id")
-        return str(value)
+    def scoring_preset(self) -> str:
+        return str(self.manifest["scoring_preset"])
 
     @property
     def window_rule(self) -> str:
-        window = self.manifest.get("window") or {}
-        value = window.get("rule") if isinstance(window, dict) else window
-        if not value:
-            raise ValueError("outcome manifest does not state the window rule")
-        return str(value)
+        return str(self.manifest["window_rule"])
+
+    @property
+    def covered_seasons(self) -> list[int]:
+        """Seasons the artifact labels; anything outside them is UNKNOWN to a consumer."""
+        return sorted(int(s) for s in self.manifest["season_windows"])
 
 
 def _sha(path: Path) -> str:
@@ -88,9 +88,9 @@ def load_common_outcomes(csv_path: Path | str, manifest_path: Path | str) -> Com
     if frame.duplicated(["player_id", "season"]).any():
         raise ValueError(f"{int(frame.duplicated(['player_id', 'season']).sum())} duplicate (player_id, season) rows")
     games = pd.to_numeric(frame["games"], errors="coerce")
-    appeared = pd.to_numeric(frame["appeared"], errors="coerce")
-    if games.isna().any() or appeared.isna().any() or not set(appeared.unique()) <= {0, 1}:
-        raise ValueError("games and appeared must be present on every row and appeared must be 0/1 (one mask)")
+    appeared = frame["appeared"].map(lambda v: 1 if v in TRUE_VALUES else (0 if v in FALSE_VALUES else None)).astype(float)
+    if games.isna().any() or appeared.isna().any():
+        raise ValueError("games and appeared must be present on every row and appeared must be boolean (one mask)")
     if ((appeared == 1) != (games >= 1)).any():
         bad = int(((appeared == 1) != (games >= 1)).sum())
         raise ValueError(f"mask disagreement on {bad} rows: appeared must equal games >= 1")
@@ -98,8 +98,31 @@ def load_common_outcomes(csv_path: Path | str, manifest_path: Path | str) -> Com
     frame["appeared"] = appeared.astype(int)
     frame["points"] = pd.to_numeric(frame["points"], errors="coerce")
     manifest = json.loads(manifest_path.read_text())
+    _verify_manifest(manifest, csv_path)
+    covered = {int(k) for k in manifest["season_windows"]}
+    outside = sorted(set(frame["season"].unique()) - covered)
+    if outside:
+        raise ValueError(f"outcome rows for seasons {outside} that the manifest's season_windows do not cover")
     return CommonOutcomes(frame=frame, manifest=manifest, csv_path=csv_path, manifest_path=manifest_path,
                           csv_sha256=_sha(csv_path), manifest_sha256=_sha(manifest_path))
+
+
+def _verify_manifest(manifest: Mapping, csv_path: Path) -> None:
+    """Fail closed on the implemented DG-179 schema: version, declared CSV hash, honest flags."""
+    if manifest.get("schema_version") != SCHEMA_VERSION:
+        raise ValueError(f"schema_version {manifest.get('schema_version')!r} is not {SCHEMA_VERSION!r}")
+    for key in ("scoring_preset", "window_rule", "season_windows", "exposure_definition", "last_complete_season", "coverage_status",
+                "source_identity", "source_identity_sha256", "scoring_identity", "window_identity", "target_identity", "outputs"):
+        if key not in manifest:
+            raise ValueError(f"outcome manifest lacks {key}")
+    if manifest.get("league_scoring_exact") is not False:
+        raise ValueError("league_scoring_exact must be False for this research artifact; an exact-league claim is refused")
+    if manifest["coverage_status"] not in COVERAGE_STATUSES:
+        raise ValueError(f"coverage_status {manifest['coverage_status']!r} is not a recognised value {COVERAGE_STATUSES}")
+    declared = (manifest["outputs"].get("outcomes.csv") or {}).get("sha256")
+    actual = _sha(csv_path)
+    if declared != actual:
+        raise ValueError(f"outcomes.csv sha256 {actual[:12]}… does not match the manifest's declared {str(declared)[:12]}…")
 
 
 def season_stats_from_outcomes(outcomes: CommonOutcomes) -> dict[tuple[str, int], tuple[float, int]]:
@@ -137,13 +160,22 @@ def qualification_panel(
 
 def outcome_binding(outcomes: CommonOutcomes) -> dict:
     """What the run manifest carries so nobody can pair these labels with another artifact."""
+    m = outcomes.manifest
     return {
-        "artifact": outcomes.manifest.get("artifact"),
+        "schema_version": m["schema_version"],
         "csv_path": str(outcomes.csv_path), "csv_sha256": outcomes.csv_sha256,
         "manifest_path": str(outcomes.manifest_path), "manifest_sha256": outcomes.manifest_sha256,
-        "scoring_id": outcomes.scoring_id, "window_rule": outcomes.window_rule, "labels_through": outcomes.labels_through,
-        "mask": outcomes.manifest.get("mask"), "rows": int(len(outcomes.frame)),
-        "seasons": [int(outcomes.frame["season"].min()), int(outcomes.frame["season"].max())],
+        "declared_outputs": m["outputs"],
+        "scoring_preset": outcomes.scoring_preset, "league_scoring_exact": bool(m["league_scoring_exact"]),
+        "saved_league_scoring_sha256": m.get("saved_league_scoring_sha256"), "exact_league_scoring_gaps": m.get("exact_league_scoring_gaps"),
+        "window_rule": outcomes.window_rule, "season_windows": m["season_windows"], "covered_seasons": outcomes.covered_seasons,
+        "labels_through": outcomes.labels_through, "exposure_definition": m["exposure_definition"],
+        "appearance_definition": m.get("appearance_definition"), "zero_definition": m.get("zero_definition"),
+        "coverage_status": m["coverage_status"], "qualification_note": QUALIFICATION_NOTE,
+        "source_validation_limitations": m.get("source_validation_limitations"),
+        "source_identity_sha256": m["source_identity_sha256"], "scoring_identity": m["scoring_identity"],
+        "window_identity": m["window_identity"], "target_identity": m["target_identity"],
+        "outcome_rows": int(len(outcomes.frame)), "captured_at": m.get("captured_at"),
         "scoring_caveat": SCORING_CAVEAT,
     }
 
@@ -173,6 +205,10 @@ class OutcomeInputs:
     @property
     def labels_through(self) -> int:
         return self.outcomes.labels_through
+
+    @property
+    def covered_seasons(self) -> set[int]:
+        return set(self.outcomes.covered_seasons)
 
 
 def outcome_inputs(

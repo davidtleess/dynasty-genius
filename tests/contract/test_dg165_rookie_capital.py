@@ -586,3 +586,16 @@ def test_scored_rows_carry_the_current_position_beside_the_draft_position_when_s
     rookies["position_current"] = ["RB"]
     scored = score_class(model, rookies).iloc[0]
     assert scored["position"] == "TE" and scored["position_current"] == "RB"
+
+
+
+def test_labels_outside_the_artifact_covered_seasons_stay_unknown_never_zero():
+    # The common artifact admits 2001-2025; a 2000 draftee's rookie season is NOT covered and
+    # must be NaN (unknown), while his 2001+ seasons are labelled from the artifact.
+    cohort = _cohort([("y2k", 2000, "WR", 30, 1, 22.0)])
+    panel = _panel([("y2k", "WR", 2001, 200.0, 15)])
+    labels = horizon_labels(cohort, qualifying={("y2k", 2001)}, season_stats=season_stats_map(panel), horizons=(1, 2),
+                            last_completed_season=2025, covered_seasons=set(range(2001, 2026))).iloc[0]
+    assert np.isnan(labels["appear_1"]) and np.isnan(labels["points_1"]) and np.isnan(labels["qy_1"])
+    assert labels["appear_2"] == 1 and labels["points_2"] == 200.0 and labels["qy_2"] == 1
+    assert np.isnan(labels["q_2"]) and np.isnan(labels["n_2"]) and np.isnan(labels["appear_by_2"])   # a window with an unknown season is unknown

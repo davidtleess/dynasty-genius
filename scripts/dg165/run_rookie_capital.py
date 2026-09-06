@@ -194,14 +194,24 @@ def main(argv=None) -> int:
         last_completed = oi.labels_through
         qualifying, season_stats = oi.qualifying, oi.season_stats
         panel = oi.panel
+        covered_seasons = oi.covered_seasons
+        # EXPLICIT cohort restriction (Codex): classes whose rookie season the artifact does not
+        # cover (1999, 2000) are excluded from fitting rather than labelled from an unmeasured absence.
+        first_covered = min(covered_seasons)
+        dropped_classes = sorted(int(c) for c in cohort.loc[cohort["draft_season"] < first_covered, "draft_season"].unique())
+        cohort = cohort.loc[cohort["draft_season"] >= first_covered].reset_index(drop=True)
+        print(f"cohort restricted to classes >= {first_covered} (dropped classes {dropped_classes}); labels outside {sorted(covered_seasons)[0]}-{sorted(covered_seasons)[-1]} stay unknown")
         panel_path = inputs / "common_outcomes.csv"
         shutil.copy2(args.outcomes_csv, panel_path)
         shutil.copy2(args.outcomes_manifest, inputs / "common_outcomes_manifest.json")
         panel_source = f"common outcome artifact {oi.binding['artifact']} (sha256 {oi.csv_sha256 if hasattr(oi, 'csv_sha256') else oi.binding['csv_sha256'][:12]})"
         outcome_block = {**oi.binding, "panel_report": oi.panel_report,
+                         "cohort_restriction": {"first_class": first_covered, "dropped_classes": dropped_classes,
+                                                "reason": "the artifact does not cover those rookie seasons; unknown, never zero"},
                          "weekly_capture": {"path": str(args.weekly_capture), "manifest_sha256": sha256_file(args.weekly_capture / "manifest.json")}}
         print(f"outcomes: {oi.binding['artifact']} rows {oi.binding['rows']} seasons {oi.binding['seasons']} labels_through {oi.labels_through} | panel {oi.panel_report}")
     else:
+        covered_seasons = None
         if args.panel:
             panel_path = inputs / "panel.parquet"
             shutil.copy2(args.panel, panel_path)
@@ -234,7 +244,8 @@ def main(argv=None) -> int:
     # ---------------------------------------------------------------- the declared policy, evaluated; exploratory arms beside it
     forecast_years = range(args.eval_start, T)
     common = dict(qualifying=qualifying, season_stats=season_stats, horizons=horizons,
-                  forecast_years=forecast_years, last_completed_season_today=last_completed, n_boot=args.eval_boot)
+                  forecast_years=forecast_years, last_completed_season_today=last_completed, n_boot=args.eval_boot,
+                  covered_seasons=covered_seasons)
     experiment = policy_experiment(cohort, policy=policy, exploratory=exploratory, **common)
     evaluation, predictions = experiment["arms"][policy], experiment["predictions"][policy]
     coherence = _coherence(predictions, horizons)
@@ -269,7 +280,7 @@ def main(argv=None) -> int:
               for name, value in _headline(evaluation).items()]
 
     # ---------------------------------------------------------------- final fit and scores (THE procedure, the declared policy)
-    fit_kwargs = dict(qualifying=qualifying, season_stats=season_stats, horizons=horizons, forecast_year=T)
+    fit_kwargs = dict(qualifying=qualifying, season_stats=season_stats, horizons=horizons, forecast_year=T, covered_seasons=covered_seasons)
     model = fit_at_forecast_year(cohort, policy=policy, **fit_kwargs)
     train = training_frame_at(cohort, **fit_kwargs)
     rookies = cohort.loc[cohort["draft_season"] == T].reset_index(drop=True)
@@ -365,8 +376,12 @@ def main(argv=None) -> int:
                                    "labels NaN, never zero, except in the named sensitivity arm" % last_completed,
         },
         "units": ({
-            "scoring_scope": f"league window: {outcome_block['window_rule']}; scoring id {outcome_block['scoring_id']} — {outcome_block['scoring_caveat']}",
-            "exposure_definition": "games within the league window with a weekly stat row (the common artifact's one mask)",
+            "scoring_scope": f"championship window: {outcome_block['window_rule']}; scoring preset {outcome_block['scoring_preset']}; "
+                             f"league_scoring_exact=False — {outcome_block['scoring_caveat']}",
+            "scoring_preset": outcome_block["scoring_preset"], "league_scoring_exact": False,
+            "target_identity": outcome_block["target_identity"], "coverage_status": outcome_block["coverage_status"],
+            "qualification_note": outcome_block["qualification_note"],
+            "exposure_definition": outcome_block["exposure_definition"],
             "ppg_denominator": "league-window points / league-window stat-row games — NOT the served all-games denominator (DG-024); reconcile, do not absorb",
             "seasons": "NFL season j = 1 is the rookie season = forecast_year; E[N_h] counts qualifying seasons in 1..h",
         } if outcome_block else {

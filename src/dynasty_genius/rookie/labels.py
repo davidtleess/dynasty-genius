@@ -89,8 +89,13 @@ def horizon_labels(
     horizons: Iterable[int],
     last_completed_season: int,
     unresolved_as_zero: bool = False,
+    covered_seasons: set[int] | None = None,
 ) -> pd.DataFrame:
     """Attach per-season and per-horizon labels to every cohort row; never drops a prospect.
+
+    ``covered_seasons``, when given, is the set of NFL seasons the outcome source actually
+    labels: a season outside it is UNKNOWN (NaN) even if complete by the cutoff — an absence
+    the source did not measure is never a zero.
 
     Per NFL season j = 1..max(h) (season c + j − 1 for class c), NaN when not complete:
       ``appear_j``  1 if he has a weekly stat row that season, else 0
@@ -125,6 +130,8 @@ def horizon_labels(
     for j in range(1, max_h + 1):
         season = classes + (j - 1)
         known = (season <= last_completed_season) & ~unknown
+        if covered_seasons is not None:
+            known = known & np.isin(season, list(covered_seasons))
         stats = [season_stats.get((pid, int(s))) for pid, s in zip(ids, season)]
         appeared = np.array([st is not None for st in stats], dtype=float)
         points = np.array([st[0] if st is not None else 0.0 for st in stats], dtype=float)
