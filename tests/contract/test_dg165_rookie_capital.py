@@ -306,3 +306,70 @@ def test_a_missing_age_scores_exactly_like_the_position_median_age():
     pred = model.predict(probe).set_index("gsis_id")
     for col in ("p_qual_h1", "p_qual_h2", "e_qual_seasons_h2", "p_played_h1"):
         assert pred.loc["nan_age", col] == pytest.approx(pred.loc["median_age", col], abs=1e-12)
+
+
+# ----------------------------------------------------------------------------- level
+def test_horizon_labels_carry_the_season_ppg_for_played_seasons_only():
+    from src.dynasty_genius.rookie.labels import season_ppg_map
+
+    panel = _panel([("p", "WR", 2015, 170.0, 17), ("p", "WR", 2016, 60.0, 6)])
+    cohort = _cohort([("p", 2015, "WR", 10, 1, 21.0)])
+    labels = horizon_labels(
+        cohort, qualifying={("p", 2015)}, played=played_season_keys(panel), horizons=(1, 2, 3),
+        last_completed_season=2025, season_ppg=season_ppg_map(panel),
+    )
+    row = labels.iloc[0]
+    assert row["ppg_year_1"] == pytest.approx(10.0)
+    assert row["ppg_year_2"] == pytest.approx(10.0)
+    assert np.isnan(row["ppg_year_3"])  # never played season 3 → no rate, not zero
+
+
+def _training_frame_with_level(seed=1, n=600):
+    frame = _training_frame(seed=seed, n=n)
+    rng = np.random.default_rng(seed)
+    for j in (1, 2, 3):
+        # Qualifiers score a rate that rises with capital; NON-qualifiers carry an absurd
+        # rate that would wreck the fit if the level model ever read their rows.
+        level = 20.0 - 2.0 * np.log(frame["pick"].to_numpy()) + rng.normal(0, 1.0, n)
+        absurd = np.full(n, 150.0)
+        frame[f"ppg_year_{j}"] = np.where(frame[f"qy_{j}"] == 1, level, absurd)
+    return frame
+
+
+def test_level_model_reads_only_qualifying_seasons_and_rises_with_capital():
+    train = _training_frame_with_level()
+    model = RookieCapitalModel(horizons=(1, 2, 3)).fit(train)
+    probe = _cohort([("first", 2026, "WR", 1, 1, 22.0), ("last", 2026, "WR", 255, 7, 22.0)])
+    pred = model.predict(probe).set_index("gsis_id")
+    for j in (1, 2, 3):
+        col = f"e_ppg_given_qual_year{j}"
+        assert 0 < pred.loc["first", col] < 30 and 0 < pred.loc["last", col] < 30
+        assert pred.loc["first", col] > pred.loc["last", col]
+
+
+def test_walk_forward_evaluation_reports_the_level_out_of_time_against_a_position_mean():
+    from src.dynasty_genius.rookie.evaluate import evaluate_walk_forward
+    from src.dynasty_genius.rookie.labels import season_ppg_map
+
+    rng = np.random.default_rng(3)
+    rows, panel_rows = [], []
+    for c in range(2005, 2016):
+        for i in range(60):
+            pick = int(rng.integers(1, 250))
+            pos = ["QB", "RB", "WR", "TE"][i % 4]
+            pid = f"{c}-{i}"
+            rows.append((pid, c, pos, pick, int(np.ceil(pick / 32)), 22.0))
+            if rng.random() < 1 / (1 + np.exp(np.log(pick) - 4.0)):
+                panel_rows.append((pid, pos, c, 17 * (18.0 - 2.0 * np.log(pick)), 17))
+    cohort = _cohort(rows)
+    panel = _panel(panel_rows)
+    qual = {(p, s) for p, _, s, _, _ in panel_rows}
+    splits = walk_forward_splits(
+        cohort, qualifying=qual, played=qual, horizons=(1,), forecast_years=range(2010, 2016),
+        last_completed_season_today=2016, min_train_rows=50, season_ppg=season_ppg_map(panel),
+    )
+    report, predictions = evaluate_walk_forward(splits, n_boot=20)
+    level = report["level_by_year"][1]
+    assert level["n"] > 0
+    assert level["rmse"] < level["rmse_position_mean"]
+    assert "e_ppg_given_qual" in predictions.columns

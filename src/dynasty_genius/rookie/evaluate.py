@@ -16,7 +16,7 @@ class ("no model"), the honest zero-skill baseline for Brier and log loss.
 """
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 import numpy as np
@@ -48,6 +48,7 @@ def walk_forward_splits(
     forecast_years: Iterable[int],
     last_completed_season_today: int,
     min_train_rows: int = MIN_TRAIN_ROWS,
+    season_ppg: Mapping[SeasonKey, float] | None = None,
 ) -> list[Split]:
     horizons = tuple(sorted(set(int(h) for h in horizons)))
     splits: list[Split] = []
@@ -58,11 +59,11 @@ def walk_forward_splits(
             continue
         train_all = horizon_labels(
             earlier, qualifying=qualifying, played=played, horizons=horizons,
-            last_completed_season=T - 1,
+            last_completed_season=T - 1, season_ppg=season_ppg,
         )
         test_all = horizon_labels(
             current, qualifying=qualifying, played=played, horizons=horizons,
-            last_completed_season=last_completed_season_today,
+            last_completed_season=last_completed_season_today, season_ppg=season_ppg,
         )
         for h in horizons:
             train = train_all.loc[train_all[f"q_{h}"].notna()]
@@ -158,6 +159,20 @@ def evaluate_walk_forward(
         merged["p_played"] = pred[f"p_played_h{h}"].to_numpy()
         merged["e_qual_seasons"] = pred[f"e_qual_seasons_h{h}"].to_numpy()
         merged = merged.rename(columns={f"q_{h}": "q", f"n_{h}": "n_qual", f"played_{h}": "played"})
+        # The level, graded on the season j = h: only rows that qualified in that season
+        # carry a truth, and the comparator is the training qualifiers' mean rate by position.
+        has_level = f"ppg_year_{h}" in s.test.columns and f"e_ppg_given_qual_year{h}" in pred.columns
+        if has_level:
+            qualified_in_h = s.test[f"qy_{h}"].to_numpy() == 1
+            merged["ppg_year"] = np.where(qualified_in_h, s.test[f"ppg_year_{h}"].to_numpy(), np.nan)
+            merged["e_ppg_given_qual"] = np.where(qualified_in_h, pred[f"e_ppg_given_qual_year{h}"].to_numpy(), np.nan)
+            train_q = s.train.loc[s.train[f"qy_{h}"] == 1]
+            pos_mean = train_q.groupby("position")[f"ppg_year_{h}"].mean()
+            merged["ppg_position_mean"] = np.where(qualified_in_h, s.test["position"].map(pos_mean).to_numpy(dtype=float), np.nan)
+        else:
+            merged["ppg_year"] = np.nan
+            merged["e_ppg_given_qual"] = np.nan
+            merged["ppg_position_mean"] = np.nan
         frames.append(merged)
         base_q = float(s.train[f"q_{h}"].mean())
         per_split.append(
@@ -210,5 +225,31 @@ def evaluate_walk_forward(
             }
         pooled[int(h)] = entry
 
-    report = {"per_split": per_split, "pooled_by_horizon": pooled, "n_boot": n_boot, "seed": seed}
+    level_by_year = {}
+    for h, g in predictions.groupby("horizon") if len(predictions) else []:
+        q = g.loc[g["ppg_year"].notna() & g["e_ppg_given_qual"].notna()]
+        if q.empty:
+            continue
+        y, e, base = q["ppg_year"].to_numpy(), q["e_ppg_given_qual"].to_numpy(), q["ppg_position_mean"].to_numpy()
+        entry = {
+            "season": int(h),
+            "n": int(len(q)),
+            "mean_actual": float(np.mean(y)),
+            "mean_predicted": float(np.mean(e)),
+            "rmse": float(np.sqrt(np.mean((y - e) ** 2))),
+            "rmse_position_mean": float(np.sqrt(np.mean((y - base) ** 2))),
+            "bias": float(np.mean(e - y)),
+            "by_position": {},
+            "by_round": {},
+        }
+        for pos, gp in q.groupby("position"):
+            yy, ee, bb = gp["ppg_year"].to_numpy(), gp["e_ppg_given_qual"].to_numpy(), gp["ppg_position_mean"].to_numpy()
+            entry["by_position"][pos] = {"n": int(len(gp)), "mean_actual": float(np.mean(yy)), "mean_predicted": float(np.mean(ee)),
+                                         "rmse": float(np.sqrt(np.mean((yy - ee) ** 2))), "rmse_position_mean": float(np.sqrt(np.mean((yy - bb) ** 2)))}
+        for rnd, gr in q.groupby("round"):
+            entry["by_round"][int(rnd)] = {"n": int(len(gr)), "mean_actual": float(gr["ppg_year"].mean()), "mean_predicted": float(gr["e_ppg_given_qual"].mean())}
+        level_by_year[int(h)] = entry
+
+    report = {"per_split": per_split, "pooled_by_horizon": pooled, "level_by_year": level_by_year,
+              "n_boot": n_boot, "seed": seed}
     return report, predictions

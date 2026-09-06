@@ -46,6 +46,7 @@ from src.dynasty_genius.rookie.labels import (  # noqa: E402
     horizon_labels,
     played_season_keys,
     qualifying_season_keys,
+    season_ppg_map,
 )
 from src.dynasty_genius.rookie.model import (  # noqa: E402
     MODEL_VERSION,
@@ -87,7 +88,9 @@ def parse_args(argv=None):
     p.add_argument("--last-completed-season", type=int, default=None, help="default forecast_year - 1")
     p.add_argument("--first-class", type=int, default=1999)
     p.add_argument("--eval-start", type=int, default=2005, help="first forecast year in the walk-forward")
-    p.add_argument("--horizons", type=int, nargs="+", default=[1, 2, 3, 4, 5])
+    p.add_argument("--horizons", type=int, nargs="+", default=[1, 2, 3, 4, 5, 6],
+                   help="six by default: the DG-164 cells give R1..R5 on top of the current season, so the "
+                        "veteran board sums six seasons; both five- and six-season assemblies stay possible")
     p.add_argument("--bar", default="availability", choices=["availability"],
                    help="qualification bar; only the availability bar is wired (DG-171 variant is a parameter away)")
     p.add_argument("--bootstrap", type=int, default=200, help="refits for score intervals")
@@ -136,6 +139,7 @@ def main(argv=None) -> int:
     # ---------------------------------------------------------------- events
     qualifying = qualifying_season_keys(panel, bar)
     played = played_season_keys(panel)
+    season_ppg = season_ppg_map(panel)
     cohort, coverage = draft_cohort_from_picks(picks, seasons=range(args.first_class, T + 1))
     leaking = find_leaking_columns(cohort)
     if leaking:
@@ -146,7 +150,7 @@ def main(argv=None) -> int:
     forecast_years = range(args.eval_start, T)
     splits = walk_forward_splits(
         cohort, qualifying=qualifying, played=played, horizons=horizons,
-        forecast_years=forecast_years, last_completed_season_today=last_completed,
+        forecast_years=forecast_years, last_completed_season_today=last_completed, season_ppg=season_ppg,
     )
     present = {(s.forecast_year, s.horizon) for s in splits}
     absent = []
@@ -171,10 +175,13 @@ def main(argv=None) -> int:
         q = e["qual"]
         print(f"  h={h}: n={e['n']} AUC={q['auc']:.3f} CI{tuple(round(x, 3) for x in e['qual_auc_ci90'])} "
               f"Brier {q['brier']:.4f} vs base {q['brier_base_rate']:.4f} | E[N] RMSE {e['seasons']['rmse']:.3f} vs {e['seasons']['rmse_base_rate']:.3f}")
+    for j, e in sorted(evaluation["level_by_year"].items()):
+        print(f"  level season {j}: n={e['n']} qualifiers, mean actual {e['mean_actual']:.2f} vs predicted {e['mean_predicted']:.2f} ppg, "
+              f"RMSE {e['rmse']:.2f} vs position-mean {e['rmse_position_mean']:.2f}")
 
     # ---------------------------------------------------------------- final fit and scores
     train = horizon_labels(cohort.loc[cohort["draft_season"] < T], qualifying=qualifying, played=played,
-                           horizons=horizons, last_completed_season=last_completed)
+                           horizons=horizons, last_completed_season=last_completed, season_ppg=season_ppg)
     model = RookieCapitalModel(horizons=horizons).fit(train)
     rookies = cohort.loc[cohort["draft_season"] == T].reset_index(drop=True)
     if rookies.empty:
@@ -202,6 +209,15 @@ def main(argv=None) -> int:
         descriptives["by_position"][h] = {p: {"n": int(len(g)), "qual_rate": float(g[f"q_{h}"].mean()),
                                               "mean_qual_seasons": float(g[f"n_{h}"].mean())}
                                           for p, g in obs.groupby("position")}
+    # The level's transparent comparator: mean rate of the qualifiers in the final training
+    # set by position and NFL season j. Out of time the fitted level beats this by only a
+    # few percent of RMSE (see evaluation.json), so a consumer can see what the fit adds.
+    descriptives["level_qualifier_mean_ppg_by_position_and_season"] = {
+        j: {p: {"n": int(len(g)), "mean_ppg": float(g[f"ppg_year_{j}"].mean()),
+                "sd_ppg": float(g[f"ppg_year_{j}"].std(ddof=1)) if len(g) > 1 else None}
+            for p, g in train.loc[train[f"qy_{j}"] == 1].groupby("position")}
+        for j in range(1, max(horizons) + 1)
+    }
     (run_dir / "training_descriptives.json").write_text(json.dumps(descriptives, indent=1))
 
     # ---------------------------------------------------------------- optional age cross-check
@@ -245,6 +261,24 @@ def main(argv=None) -> int:
             "cutoff_rule": "at forecast year T, training uses last_completed_season = T-1; class c contributes at horizon h only if c <= T-h",
             "events_are_distinct": "P(played_h), P(Q_h) and E[N_h] are separate estimands; nothing here multiplies them. "
                                    "Engine A's rate is conditional on >= 8 career games (build_head_b_targets.py:84) and composes with P(played), never with P(Q).",
+            "level": "e_ppg_given_qual_year{j} = E[ppg in season j | qualifies in season j], fitted ONLY on qualifying player-seasons; "
+                     "ppg = REG-season PPR points / games with a weekly stat row. This denominator is NOT the served all-games ppg "
+                     "(DG-024) and the replacement rates the assembler subtracts are on the served denominator; reconcile, do not absorb. "
+                     "Multiplying p_qual_year{j} x e_ppg_given_qual_year{j} is the CONSUMER's act (DG-178), never done here.",
+        },
+        # Flat blocks for the DG-178 reader adapter (davidleess-cb, 2026-09-06): it takes the
+        # qualifying definition from `definitions` and the ppg denominator from a key
+        # containing "denominator" under `units`, and rides both on every rookie term.
+        "definitions": {
+            "qualifying_season": f"finished at or above the bar rank for the position by regular-season PPR total; "
+                                 f"bar = {bar}; tie-robust N-th largest (canonical DG-164 cells)",
+            "played_season": "at least one weekly stat row in nflverse regular-season player stats",
+            "level": "e_ppg_given_qual_year{j} = E[ppg in NFL season j | qualifies in season j]; fitted only on qualifying player-seasons",
+        },
+        "units": {
+            "ppg_denominator": "REG-season PPR points / games with a weekly nflverse stat row — NOT the served all-games "
+                               "denominator (DG-024); the served replacement rates use the served denominator; reconcile, do not absorb",
+            "seasons": "NFL season j = 1 is the rookie season = forecast_year; E[N_h] counts qualifying seasons in 1..h",
         },
         "model": model.describe(),
         "evaluation": {"forecast_years": [int(forecast_years.start), int(forecast_years.stop - 1)],

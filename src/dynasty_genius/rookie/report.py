@@ -71,6 +71,27 @@ def render_evaluation_markdown(evaluation: dict) -> str:
             lines.append(f"| {rnd} | {b['n']} | {_f(b['actual_qual_rate'], 2)} | {_f(b['predicted_qual_rate'], 2)} | "
                          f"{_f(b['actual_seasons'], 2)} | {_f(b['predicted_seasons'], 2)} |")
 
+    level = evaluation.get("level_by_year", {})
+    if level:
+        lines += ["", "## The LEVEL: E[ppg | qualifies in season j], out-of-time, graded on qualifiers only", "",
+                  "ppg = regular-season PPR points / games with a weekly stat row. Comparator = the training qualifiers' mean rate at the position.", "",
+                  "| season j | n qualifiers | mean actual | mean predicted | RMSE (model / position mean) | bias |",
+                  "|---|---:|---:|---:|---|---:|"]
+        for j in sorted(level, key=int):
+            e = level[j]
+            lines.append(f"| {j} | {e['n']} | {_f(e['mean_actual'], 2)} | {_f(e['mean_predicted'], 2)} | "
+                         f"{_f(e['rmse'], 2)} / {_f(e['rmse_position_mean'], 2)} | {_f(e['bias'], 2)} |")
+        for j in sorted(level, key=int):
+            e = level[j]
+            lines += ["", f"### season {j}: level by position", "",
+                      "| position | n | mean actual | mean predicted | RMSE (model / position mean) |", "|---|---:|---:|---:|---|"]
+            for pos, b in e["by_position"].items():
+                lines.append(f"| {pos} | {b['n']} | {_f(b['mean_actual'], 2)} | {_f(b['mean_predicted'], 2)} | {_f(b['rmse'], 2)} / {_f(b['rmse_position_mean'], 2)} |")
+            lines += ["", f"### season {j}: level by round (qualifiers only)", "",
+                      "| round | n | mean actual | mean predicted |", "|---|---:|---:|---:|"]
+            for rnd, b in sorted(e["by_round"].items(), key=lambda kv: int(kv[0])):
+                lines.append(f"| {rnd} | {b['n']} | {_f(b['mean_actual'], 2)} | {_f(b['mean_predicted'], 2)} |")
+
     absent = evaluation.get("absent_pairs", [])
     lines += ["", "## Forecast-year / horizon pairs NOT evaluated, and why", ""]
     if not absent:
@@ -89,12 +110,16 @@ def render_evaluation_markdown(evaluation: dict) -> str:
 def render_scores_markdown(scores, horizons, forecast_year: int, top: int = 80) -> str:
     """A readable table of the scored class; the CSV is the record, this is the glance."""
     cols = ["pick", "round", "name", "position", "team", "age_at_draft", "coverage_status"]
+    level_years = [j for j in (1, 3, 5) if f"e_ppg_given_qual_year{j}" in scores.columns]
     lines = [f"# {forecast_year} draft class — draft-capital candidate (research output, not served)", "",
              "P(Q_h) = probability of at least one qualifying season within h NFL seasons; "
-             "E[N_h] = expected qualifying seasons within h. 90% intervals are fit uncertainty, not outcome spread.", "",
+             "E[N_h] = expected qualifying seasons within h. E[ppg|Q] yj = expected REG PPR points per stat-row game "
+             "IF he qualifies in season j (conditional; multiply on the consumer's side, never here). "
+             "90% intervals are fit uncertainty, not outcome spread.", "",
              "| " + " | ".join(cols) + " | " + " | ".join(f"P(Q_{h})" for h in horizons) + " | "
-             + " | ".join(f"E[N_{h}]" for h in horizons) + " | E[N_5] 90% |",
-             "|" + "---|" * (len(cols) + 2 * len(horizons) + 1)]
+             + " | ".join(f"E[N_{h}]" for h in horizons) + f" | E[N_{max(horizons)}] 90% | "
+             + " | ".join(f"E[ppg\|Q] y{j}" for j in level_years) + " |",
+             "|" + "---|" * (len(cols) + 2 * len(horizons) + 1 + len(level_years))]
     hmax = max(horizons)
     for _, r in scores.head(top).iterrows():
         cells = [str(r.get(c, "")) if c != "age_at_draft" else _f(r.get(c), 0) for c in cols]
@@ -102,5 +127,6 @@ def render_scores_markdown(scores, horizons, forecast_year: int, top: int = 80) 
         cells += [_f(r[f"e_qual_seasons_h{h}"], 2) for h in horizons]
         lo, hi = r.get(f"e_qual_seasons_h{hmax}_lo90"), r.get(f"e_qual_seasons_h{hmax}_hi90")
         cells.append(f"{_f(lo, 2)}–{_f(hi, 2)}")
+        cells += [_f(r[f"e_ppg_given_qual_year{j}"], 1) for j in level_years]
         lines.append("| " + " | ".join(cells) + " |")
     return "\n".join(lines) + "\n"

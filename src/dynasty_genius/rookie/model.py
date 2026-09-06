@@ -21,6 +21,13 @@ Three families are fitted per horizon, each on the rows whose label is observabl
 and E[N_h] = Σ_{j<=h} P(qy_j) — bounded by h by construction, monotone in h, and it says
 WHEN the qualifying seasons are expected, which is the delayed-breakout structure the review
 asked for. No product of P and a conditional mean is formed here.
+
+A fourth family, the LEVEL, is fitted when the training frame carries ``ppg_year_j``:
+
+    E[ppg_j | qy_j = 1]   ridge on the same design, fitted ONLY on rows that qualified in
+                          season j — the conditional rate the integration lane multiplies
+                          by P(qy_j) on ITS side (DG-178). Fitting it on all rows would make
+                          it an unconditional rate and count the qualification twice.
 """
 from __future__ import annotations
 
@@ -29,7 +36,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -93,6 +100,14 @@ def _logistic() -> Pipeline:
     )
 
 
+# Ridge strength for the level; same standardised design, mild shrinkage, explicit.
+RIDGE_ALPHA = 1.0
+
+
+def _ridge() -> Pipeline:
+    return Pipeline([("scale", StandardScaler()), ("reg", Ridge(alpha=RIDGE_ALPHA))])
+
+
 @dataclass
 class RookieCapitalModel:
     """Fit once per forecast date on rows whose labels were observable at that date."""
@@ -103,6 +118,7 @@ class RookieCapitalModel:
     _qual: dict[int, Pipeline] = field(default_factory=dict, repr=False)
     _played: dict[int, Pipeline] = field(default_factory=dict, repr=False)
     _year: dict[int, Pipeline] = field(default_factory=dict, repr=False)
+    _level: dict[int, Pipeline] = field(default_factory=dict, repr=False)
     n_train: dict[str, int] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -125,7 +141,17 @@ class RookieCapitalModel:
             self._played[h] = self._fit_one(train, f"played_{h}")
         for j in range(1, self.horizons[-1] + 1):
             self._year[j] = self._fit_one(train, f"qy_{j}")
+            if f"ppg_year_{j}" in train.columns:
+                self._level[j] = self._fit_level(train, j)
         return self
+
+    def _fit_level(self, train: pd.DataFrame, j: int) -> Pipeline:
+        rows = train.loc[(train[f"qy_{j}"] == 1) & train[f"ppg_year_{j}"].notna()]
+        if len(rows) < 20:
+            raise ValueError(f"level year {j}: only {len(rows)} qualifying seasons with a rate; cannot fit")
+        X = design_matrix(rows, age_median_by_position=self.age_median_by_position, positions=self.positions)
+        self.n_train[f"level_year_{j}"] = int(len(rows))
+        return _ridge().fit(X, rows[f"ppg_year_{j}"].to_numpy(dtype=float))
 
     def _fit_one(self, train: pd.DataFrame, label: str) -> Pipeline:
         rows = train.loc[train[label].notna()]
@@ -150,6 +176,10 @@ class RookieCapitalModel:
         for j, model in self._year.items():
             year_p[j] = model.predict_proba(X)[:, 1]
             out[f"p_qual_year{j}"] = year_p[j]
+        for j, model in self._level.items():
+            # A rate cannot be negative; the ridge line can dip below zero far outside the
+            # fitted range, and a clipped floor is more honest than a negative rate.
+            out[f"e_ppg_given_qual_year{j}"] = np.clip(model.predict(X), 0.0, None)
         for h in self.horizons:
             out[f"p_played_h{h}"] = self._played[h].predict_proba(X)[:, 1]
             out[f"p_qual_h{h}"] = self._qual[h].predict_proba(X)[:, 1]
@@ -171,4 +201,7 @@ class RookieCapitalModel:
             "age_median_by_position": self.age_median_by_position,
             "n_train_by_label": dict(self.n_train),
             "expected_seasons": "E[N_h] = sum_{j<=h} P(qualifies in NFL season j); bounded by h",
+            "level": ("E[ppg_j | qualifies in season j]: ridge (alpha=%s) on the same design, fitted only on "
+                      "qualifying player-seasons; ppg = REG PPR points / games with a weekly stat row" % RIDGE_ALPHA),
+            "level_years_fitted": sorted(self._level),
         }

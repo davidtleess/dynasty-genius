@@ -29,6 +29,7 @@ __all__ = [
     "horizon_labels",
     "played_season_keys",
     "qualifying_season_keys",
+    "season_ppg_map",
 ]
 
 # David's 2026-09-05 availability ruling ("the next who is actually available"), the bar
@@ -67,6 +68,20 @@ def played_season_keys(panel: pd.DataFrame) -> set[SeasonKey]:
     return {(str(p), int(s)) for p, s in played.itertuples(index=False)}
 
 
+def season_ppg_map(panel: pd.DataFrame) -> dict[SeasonKey, float]:
+    """(player_id, season) -> regular-season PPR points per game with a stat row.
+
+    The LEVEL a qualifier produces, in the same units the panel is cut on. Denominator is
+    weeks with a weekly stat row — NOT the served all-games denominator (DG-024); the
+    manifest names the difference so a consumer can reconcile rather than absorb it.
+    """
+    played = panel.loc[panel["games"] >= 1]
+    return {
+        (str(p), int(s)): float(pts) / float(g)
+        for p, s, pts, g in played[["player_id", "season", "points", "games"]].itertuples(index=False)
+    }
+
+
 def horizon_labels(
     cohort: pd.DataFrame,
     *,
@@ -74,12 +89,15 @@ def horizon_labels(
     played: set[SeasonKey],
     horizons: Iterable[int],
     last_completed_season: int,
+    season_ppg: Mapping[SeasonKey, float] | None = None,
 ) -> pd.DataFrame:
     """Attach horizon labels to every cohort row; never drops a prospect.
 
     For each horizon h the window is draft_season .. draft_season+h-1. Columns added:
 
     * ``qy_j`` (j = 1..max h): qualified in NFL season j — NaN if season j is not complete.
+    * ``ppg_year_j`` (when ``season_ppg`` is given): his rate in season j if he played it,
+      NaN otherwise — a rate exists only for a season with games, never as a zero.
     * ``q_h``: any qualifying season in the window; ``n_h``: count of them;
       ``played_h``: any game in the window. All NaN when the window is not complete.
 
@@ -103,6 +121,9 @@ def horizon_labels(
         qualified_by_year[complete, j - 1] = qual[complete]
         played_by_year[complete, j - 1] = play[complete]
         out[f"qy_{j}"] = qualified_by_year[:, j - 1]
+        if season_ppg is not None:
+            rate = np.array([season_ppg.get((pid, int(s)), np.nan) for pid, s in zip(ids, season)], dtype=float)
+            out[f"ppg_year_{j}"] = np.where(complete, rate, np.nan)
 
     for h in horizons:
         window_q = qualified_by_year[:, :h]
