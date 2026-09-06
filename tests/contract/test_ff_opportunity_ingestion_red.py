@@ -341,6 +341,16 @@ def test_landing_ff_opportunity_adds_no_engine_consumer() -> None:
     """
     symbols = ("FF_OPPORTUNITY", "ff_opportunity", "load_ff_opportunity")
     adapter = (REPO_ROOT / "src" / "dynasty_genius" / "nflverse_usage.py").resolve()
+    # DG-177 (2026-09-06): "any use as a feature needs its own validation" — this is
+    # that validation. Two REPORT-ONLY research consumers may read the table: the
+    # point-in-time opportunity family builder and the experiment runner that
+    # evaluates it. They are named here one by one; the boundary that matters —
+    # no engine, model, feature-assembly or serving code consumes the table — is
+    # asserted separately below and is unchanged.
+    validation_consumers = {
+        (REPO_ROOT / "src/dynasty_genius/eval/opportunity_features.py").resolve(),
+        (REPO_ROOT / "scripts/experiments/dg177_veteran_candidate.py").resolve(),
+    }
     offenders: dict[str, list[str]] = {}
     for root in ("src", "scripts", "app"):
         base = REPO_ROOT / root
@@ -355,6 +365,8 @@ def test_landing_ff_opportunity_adds_no_engine_consumer() -> None:
             # sanctioned second reference to ingestion symbols.
             if path.resolve() == (REPO_ROOT / "src/dynasty_genius/replay/replay_harness.py").resolve():
                 continue
+            if path.resolve() in validation_consumers:
+                continue
             text = path.read_text(encoding="utf-8", errors="ignore")
             hits = [s for s in symbols if s in text]
             if hits:
@@ -362,3 +374,29 @@ def test_landing_ff_opportunity_adds_no_engine_consumer() -> None:
     assert not offenders, (
         f"ff_opportunity is referenced outside the adapter: {offenders}. substrate_only."
     )
+
+
+def test_no_engine_model_feature_or_serving_code_consumes_ff_opportunity() -> None:
+    """The boundary the DG-177 allowance above must never soften: the table may be
+    VALIDATED by the eval lane, but nothing that trains, scores or serves may read it
+    until a promotion says so."""
+    symbols = ("FF_OPPORTUNITY", "ff_opportunity", "load_ff_opportunity")
+    adapter = (REPO_ROOT / "src" / "dynasty_genius" / "nflverse_usage.py").resolve()
+    guarded = [
+        REPO_ROOT / "src/dynasty_genius/models",
+        REPO_ROOT / "src/dynasty_genius/features",
+        REPO_ROOT / "app",
+        REPO_ROOT / "scripts/train_engine_b.py",
+        REPO_ROOT / "scripts/assemble_engine_b_dataset.py",
+    ]
+    offenders: dict[str, list[str]] = {}
+    for base in guarded:
+        paths = [base] if base.is_file() else list(base.rglob("*.py")) if base.exists() else []
+        for path in paths:
+            if path.resolve() == adapter:
+                continue
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            hits = [s for s in symbols if s in text]
+            if hits:
+                offenders[path.relative_to(REPO_ROOT).as_posix()] = hits
+    assert not offenders, f"an engine-side file consumes ff_opportunity: {offenders}"

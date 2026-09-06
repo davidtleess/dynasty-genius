@@ -38,6 +38,11 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
+from src.dynasty_genius.models.label_closure import (
+    LABEL_WINDOW_SEASONS,
+    admissible_train_seasons,
+)
+
 EVENT_DEFINITION = (
     "outcome_returned=False means the player posted no QUALIFYING season (>= "
     "MIN_GAMES_THRESHOLD games) at t+1 or t+2. It is this pipeline's qualification event, "
@@ -192,8 +197,13 @@ def walk_forward_availability(
     seasons = sorted({int(r["feature_season"]) for r in usable})
 
     folds: list[Fold] = []
-    for index, test_season in enumerate(seasons):
-        train_seasons = tuple(s for s in seasons[:index])
+    for test_season in seasons:
+        # DG-177 round 1: ``outcome_returned`` spans t+1..t+2, so a row's label is closed
+        # only when feature_season + LABEL_WINDOW_SEASONS <= test_season. Every earlier
+        # season is not enough — the one just before the test season is labelled FROM it.
+        train_seasons = tuple(
+            admissible_train_seasons(seasons, test_season, window=LABEL_WINDOW_SEASONS)
+        )
         if len(train_seasons) < min_train_seasons:
             continue
         train_rows = [r for r in usable if int(r["feature_season"]) in train_seasons]

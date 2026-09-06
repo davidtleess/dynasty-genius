@@ -56,12 +56,14 @@ def driver_qb():
     return WalkForwardDriver(position="QB")
 
 
-# ── Test 1: Train set contains only feature_season < test_year and eligible ───
+# ── Test 1: Train set contains only rows whose LABEL was closed at test_year ──
+# DG-177 round 1: the label spans t+1..t+2, so a 2019 row is labelled from 2020-21
+# and cannot train a 2020 forecast. Train = feature_season + 2 <= test_year.
 
-def test_train_row_count_matches_prior_seasons_only(driver_wr, df):
+def test_train_row_count_matches_closed_seasons_only(driver_wr, df):
     X_train, X_test = driver_wr._build_fold_data(df, test_year=2020, position="WR")
-    # WR rows with feature_season in {2018, 2019} and training_eligible=True
-    assert X_train.shape[0] == 294
+    # WR rows with feature_season == 2018 (the only closed season) and training_eligible=True
+    assert X_train.shape[0] == 145
 
 
 # ── Test 2: Test set contains only feature_season == test_year and eligible ───
@@ -74,11 +76,11 @@ def test_test_row_count_matches_test_year_only(driver_wr, df):
 
 # ── Test 3: No future-season rows in train (expanding window is clean) ────────
 
-def test_train_excludes_future_seasons(driver_wr, df):
-    # Fold 2 test_year=2021: train must NOT include 2021 rows.
-    # If 2021 were included, n_train would be 607 (through 2021), not 454.
+def test_train_excludes_open_label_seasons(driver_wr, df):
+    # Fold 2 test_year=2021: train must NOT include 2020 rows (labelled from 2021-22)
+    # nor 2021 rows. Under the old feature-season rule n_train was 454; closed it is 294.
     X_train, X_test = driver_wr._build_fold_data(df, test_year=2021, position="WR")
-    assert X_train.shape[0] == 454   # 2018+2019+2020 WR eligible rows
+    assert X_train.shape[0] == 294   # 2018+2019 WR eligible rows
 
 
 # ── Test 4: avg_ppg_t1_t2 is absent from X_train and X_test ──────────────────
@@ -106,8 +108,8 @@ def test_position_filter_isolates_position(driver_qb, driver_wr, df):
     X_train_wr, X_test_wr = driver_wr._build_fold_data(df, test_year=2020, position="WR")
     X_train_qb, X_test_qb = driver_qb._build_fold_data(df, test_year=2020, position="QB")
     # Counts must match position-specific expected values (no cross-position rows)
-    assert X_train_wr.shape[0] == 294
-    assert X_train_qb.shape[0] == 80
+    assert X_train_wr.shape[0] == 145
+    assert X_train_qb.shape[0] == 40
     assert X_test_wr.shape[0] == 160
     assert X_test_qb.shape[0] == 43
     # Feature sets differ by position (QB has cpoe etc, WR has yprr etc)
@@ -178,7 +180,7 @@ def test_run_n_train_increases_each_fold(wr_run):
 
 def test_run_wr_n_train_per_fold(wr_run):
     _, result = wr_run
-    assert [f.n_train for f in result.folds] == [294, 454, 607, 755]
+    assert [f.n_train for f in result.folds] == [145, 294, 454, 607]
 
 
 def test_run_wr_n_test_per_fold(wr_run):
@@ -404,3 +406,30 @@ def test_snapshot_date_formula():
     assert _market_snapshot_date(2021) == "2022-09-08"
     assert _market_snapshot_date(2022) == "2023-09-08"
     assert _market_snapshot_date(2023) == "2024-09-08"
+
+
+# ── DG-177 round 1: the label window is closed, and an open label cannot move a fold ──
+
+def test_every_training_row_has_a_closed_label_at_the_test_year(driver_wr, df):
+    from src.dynasty_genius.models.label_closure import LABEL_WINDOW_SEASONS
+
+    for test_year in (2020, 2021, 2022, 2023):
+        train_mask, test_mask = driver_wr._fold_masks(df, test_year, "WR")
+        seasons = df.loc[train_mask, "feature_season"]
+        assert (seasons + LABEL_WINDOW_SEASONS <= test_year).all(), (
+            f"fold {test_year} trains on {sorted(seasons.unique())}; a label there was open"
+        )
+        assert (df.loc[test_mask, "feature_season"] == test_year).all()
+
+
+def test_a_label_open_at_the_forecast_cannot_change_that_fold(df):
+    """Rewrite the 2020 outcomes. The 2021 fold (whose training labels close at 2021)
+    must not move; the 2022 fold, which legitimately trains on 2020, must."""
+    driver = WalkForwardDriver(position="WR")
+    base = driver.run(id_map={}, df=df)
+    mutated = df.copy()
+    mutated.loc[mutated["feature_season"] == 2020, OUTCOME_COLUMN] += 100.0
+    moved = driver.run(id_map={}, df=mutated)
+    by_year = lambda r: {f.test_year: f.rmse for f in r.folds}  # noqa: E731
+    assert by_year(base)[2021] == by_year(moved)[2021]
+    assert by_year(base)[2022] != by_year(moved)[2022]

@@ -150,6 +150,10 @@ S3_INVIOLATE_SHA256 = {
 # This EXTENDS the authorized set only; the exact-set allowlist semantics are preserved
 # (any other new, unlisted eval file still fails this audit).
 AUTHORIZED_EVAL_FILES = {
+    # DG-177 (2026-09-06): the honest veteran evaluation path and its point-in-time
+    # opportunity family. Report-only research consumers; nothing served reads them.
+    "veteran_candidate.py",
+    "opportunity_features.py",
     "__init__.py",
     "backtest_artifact.py",
     "backtest_harness.py",

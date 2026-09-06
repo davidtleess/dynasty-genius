@@ -53,9 +53,12 @@ def test_no_fold_trains_on_its_own_test_season_or_later(result) -> None:
     assert result.folds, "walk-forward validation produced no folds"
     for fold in result.folds:
         assert fold.train_seasons, f"fold testing {fold.test_season} trained on nothing"
-        assert max(fold.train_seasons) < fold.test_season, (
+        # DG-177 round 1: outcome_returned spans t+1..t+2, so a training row's label is
+        # closed only when feature_season + 2 <= test_season. "Earlier than the test
+        # season" was not enough — the season before it is labelled FROM the test season.
+        assert max(fold.train_seasons) + 2 <= fold.test_season, (
             f"fold testing {fold.test_season} trained on {sorted(fold.train_seasons)} — a "
-            "season at or after the test year leaks the future into the estimate"
+            "row whose outcome window reaches the test season leaks the future"
         )
 
 
@@ -145,3 +148,19 @@ def test_the_earliest_fold_is_honest_about_the_unobservable_lag(result) -> None:
         "the first fold trains on 2018-2019, where ppg_t_minus_2 is 0% populated; it must "
         "report that feature as dropped rather than appear to have used it"
     )
+
+
+def test_an_outcome_open_at_the_forecast_cannot_change_that_fold(rows) -> None:
+    """Flip every 2020 outcome. The fold testing 2021 (training labels closed at 2021)
+    must produce identical probabilities; the fold testing 2022, which legitimately
+    trains on 2020, must not."""
+    flipped = [
+        {**r, "outcome_returned": ("False" if r["outcome_returned"] == "True" else "True")}
+        if int(r["feature_season"]) == 2020 else r
+        for r in rows
+    ]
+    base = {f.test_season: f.predictions for f in walk_forward_availability(rows).folds}
+    moved = {f.test_season: f.predictions for f in walk_forward_availability(flipped).folds}
+    assert 2021 in base and 2022 in base
+    assert base[2021] == moved[2021]
+    assert base[2022] != moved[2022]

@@ -45,6 +45,10 @@ from src.dynasty_genius.models.engine_b_contract import (
     validate_no_prohibited_features,
     validate_no_temporal_leakage,
 )
+from src.dynasty_genius.models.label_closure import (
+    LABEL_WINDOW_SEASONS,
+    closed_train_mask,
+)
 
 if TYPE_CHECKING:
     from src.dynasty_genius.eval.market_snapshot_store import MarketSnapshotStore
@@ -444,6 +448,21 @@ class WalkForwardDriver:
         available = contract & set(df_columns) - _METADATA_COLS
         return sorted(available)
 
+    def _fold_masks(
+        self, df: pd.DataFrame, test_year: int, position: str
+    ) -> tuple[pd.Series, pd.Series]:
+        """The one place the fold's rows are chosen, so X, y and ids cannot disagree.
+
+        Training rows must have their outcome window CLOSED at the test year — the
+        shared rule in ``models/label_closure`` — not merely an earlier feature season.
+        """
+        eligible = df["training_eligible"].astype(bool) & (df["position"] == position)
+        train_mask = closed_train_mask(
+            df["feature_season"], test_year, window=LABEL_WINDOW_SEASONS
+        ) & eligible
+        test_mask = (df["feature_season"] == test_year) & eligible
+        return train_mask, test_mask
+
     def _build_fold_data(
         self,
         df: pd.DataFrame,
@@ -452,23 +471,18 @@ class WalkForwardDriver:
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Return (X_train, X_test) — imputed, scaled, feature-only DataFrames.
 
-        Enforces the full temporal isolation checklist (spec Section 6):
-        - Train: feature_season < test_year, training_eligible=True, position filter
+        Enforces the full temporal isolation checklist (spec Section 6, corrected
+        DG-177 round 1):
+        - Train: LABEL closed at test_year (feature_season + LABEL_WINDOW_SEASONS
+          <= test_year), training_eligible=True, position filter. "feature_season
+          < test_year" was not enough: the label spans t+1..t+2, so the season
+          before the test year is labelled FROM the test year's outcome seasons.
         - Test:  feature_season == test_year, training_eligible=True, position filter
         - Features: ENGINE_B contract ∩ CSV columns, minus metadata and outcome
-        - Imputation: SimpleImputer(mean) fit on train only
+        - Imputation: SimpleImputer(median) fit on train only
         - Scaling: StandardScaler fit on train only
         """
-        train_mask = (
-            (df["feature_season"] < test_year)
-            & df["training_eligible"].astype(bool)
-            & (df["position"] == position)
-        )
-        test_mask = (
-            (df["feature_season"] == test_year)
-            & df["training_eligible"].astype(bool)
-            & (df["position"] == position)
-        )
+        train_mask, test_mask = self._fold_masks(df, test_year, position)
 
         train_df = df[train_mask].copy()
         test_df = df[test_mask].copy()
@@ -506,6 +520,7 @@ class WalkForwardDriver:
         id_map: Optional[dict[str, str]] = None,
         emit_prediction_log: bool = False,
         emit_market_comparison: bool = False,
+        df: Optional[pd.DataFrame] = None,
     ) -> BacktestResult:
         """Execute the full walk-forward backtest. Returns an immutable BacktestResult.
 
@@ -524,7 +539,7 @@ class WalkForwardDriver:
             emit_market_comparison: When True, accumulates per-player market
                 comparison rows in self.market_comparison_rows after run() completes.
         """
-        df = pd.read_csv(CSV_PATH)
+        df = pd.read_csv(CSV_PATH) if df is None else df
         position = self.position
         alpha = self.FIXED_ALPHA[position]
 
@@ -548,17 +563,8 @@ class WalkForwardDriver:
 
             X_train, X_test = self._build_fold_data(df, test_year, position)
 
-            # Same masks used by _build_fold_data — extract outcomes and player IDs
-            train_mask = (
-                (df["feature_season"] < test_year)
-                & df["training_eligible"].astype(bool)
-                & (df["position"] == position)
-            )
-            test_mask = (
-                (df["feature_season"] == test_year)
-                & df["training_eligible"].astype(bool)
-                & (df["position"] == position)
-            )
+            # The same masks _build_fold_data used — extract outcomes and player IDs
+            train_mask, test_mask = self._fold_masks(df, test_year, position)
             y_train = df.loc[train_mask, OUTCOME_COLUMN].to_numpy(dtype=float)
             y_test = df.loc[test_mask, OUTCOME_COLUMN].to_numpy(dtype=float)
             player_ids_test = df.loc[test_mask, "player_id"].tolist()

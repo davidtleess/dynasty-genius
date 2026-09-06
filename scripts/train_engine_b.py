@@ -323,82 +323,13 @@ def unseen_player_metrics(
     }
 
 
-def select_alpha_leak_free(
-    X: np.ndarray,
-    y: np.ndarray,
-    seasons: np.ndarray,
-    player_ids: Any,
-    alphas: Iterable[float],
-) -> tuple[float, dict[str, Any]]:
-    """Choose the ridge penalty on expanding-time folds clustered on player (DG-027).
+# DG-027's selector, corrected under DG-177 (inner labels closed at the validation
+# season; imputer fitted inside each inner fold) and moved to a shared module so the
+# trainer and the evaluators cannot drift apart. Imported under its old name.
+from src.dynasty_genius.models.leak_free_tuning import (  # noqa: E402
+    select_alpha_leak_free as select_alpha_leak_free,
+)
 
-    ``RidgeCV(cv=5)`` shuffles panel data: 85-90% of the fitted training rows
-    belong to a player who appears in more than one season, so a random fold puts
-    the same player on both sides and the penalty is tuned against a validation
-    set that already knows the answer. Measured on the served dataset, the
-    selected penalty moves QB 1000 -> 1, RB 500 -> 50, WR 200 -> 1, TE 10 -> 0.1
-    once the folds are honest — and QB's 1000 was the grid CEILING, so that
-    boundary selection (DG-017) was the leak talking rather than a real choice.
-
-    Each fold validates on ONE season and trains only on strictly earlier ones,
-    with every player who appears in the validation season removed from the
-    training side. Neither the season nor the player crosses.
-
-    It RAISES rather than degrading. A grouped split that quietly reverts to
-    random when its group column is missing would report a clean number and
-    change nothing, which is the failure this function exists to prevent.
-    """
-    if player_ids is None:
-        raise ValueError(
-            "alpha cannot be selected without leakage: no player column was supplied, "
-            "and random folds on panel data put the same player on both sides"
-        )
-    player_ids = np.asarray(player_ids, dtype=object)
-    if len(player_ids) != len(y) or any(p is None or p != p for p in player_ids):
-        raise ValueError(
-            "alpha cannot be selected without leakage: the player column is incomplete"
-        )
-
-    seasons = np.asarray(seasons)
-    ordered = sorted(np.unique(seasons))
-    folds: list[tuple[np.ndarray, np.ndarray]] = []
-    for season in ordered[1:]:
-        val = np.flatnonzero(seasons == season)
-        if val.size == 0:
-            continue
-        val_players = set(player_ids[val])
-        train = np.flatnonzero(
-            (seasons < season) & np.array([p not in val_players for p in player_ids])
-        )
-        if train.size == 0:
-            continue
-        folds.append((train, val))
-
-    if not folds:
-        raise ValueError(
-            "alpha cannot be selected without leakage: no expanding-time fold survives "
-            f"with the player held out (seasons present: {ordered})"
-        )
-
-    best_alpha, best_error = None, float("inf")
-    for alpha in alphas:
-        errors = [
-            mean_squared_error(
-                y[val], Ridge(alpha=alpha).fit(X[train], y[train]).predict(X[val])
-            )
-            for train, val in folds
-        ]
-        mean_error = float(np.mean(errors))
-        if mean_error < best_error:
-            best_alpha, best_error = float(alpha), mean_error
-
-    return best_alpha, {
-        "method": "expanding_time_folds_clustered_on_player",
-        "folds": len(folds),
-        "fold_indices": folds,
-        "validation_seasons": [int(s) for s in ordered[1:]][: len(folds)],
-        "mean_cv_mse": best_error,
-    }
 TE_MODEL_CHANGE_ALPHA = 100.0
 
 
@@ -660,9 +591,11 @@ def _train_position(
     # DG-027: the penalty is chosen on expanding-time folds clustered on player.
     # RidgeCV(cv=5) shuffled panel data, so the same player sat on both sides and
     # the penalty was tuned against a validation set that already knew the answer.
+    # The selector receives the RAW matrix and imputes inside each inner fold; the
+    # whole-window imputer above is for the final fit only, as final scoring fits it.
     alpha, alpha_selection = select_alpha_leak_free(
-        X_train, y_train, train_rows["feature_season"].values,
-        train_rows["player_id"].values, ALPHA_CANDIDATES,
+        X_train_raw.to_numpy(dtype=float), y_train, train_rows["feature_season"].values,
+        train_rows["player_id"].values, ALPHA_CANDIDATES, window=LABEL_WINDOW_SEASONS,
     )
     print(f"  {pos}: alpha {alpha} from {alpha_selection['folds']} leak-free folds")
     model = Ridge(alpha=alpha)

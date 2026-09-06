@@ -48,9 +48,13 @@ from src.dynasty_genius.models.engine_b_contract import (
     validate_no_prohibited_features,
     validate_no_temporal_leakage,
 )
-
-#: The outcome spans the two seasons after the feature season (feature_assembly._calc_avg).
-LABEL_WINDOW_SEASONS = 2
+from src.dynasty_genius.models.label_closure import (  # noqa: F401  (re-exported)
+    CUTOFF_RULES,
+    LABEL_WINDOW_SEASONS,
+    FutureLabelError,
+    admissible_train_seasons,
+    assert_labels_known,
+)
 
 #: The penalty grid the served Engine B v2 pickles were selected from
 #: (scripts/train_engine_b.py ALPHA_CANDIDATES; served alphas 1000/500/200/10 all lie on it).
@@ -61,49 +65,7 @@ DEPLOYED_ALPHA_GRID: tuple[float, ...] = (0.1, 1.0, 10.0, 50.0, 100.0, 200.0, 50
 #: selection. Reproduced here so the "deployed" arm is the deployed recipe, not a cousin.
 DEPLOYED_RECIPE = "SimpleImputer(median, keep_empty_features) -> RidgeCV(alphas=grid, cv=5)"
 
-CUTOFF_RULES = ("labels_known_at_cutoff", "window_closed_before_test")
-
 CI_PERCENTILES = (5.0, 95.0)
-
-
-class FutureLabelError(ValueError):
-    """A training row's outcome window is still open at the forecast cutoff."""
-
-
-# ── the cutoff rule ───────────────────────────────────────────────────────────
-
-def admissible_train_seasons(
-    seasons: Iterable[int],
-    test_season: int,
-    rule: str = "labels_known_at_cutoff",
-    window: int = LABEL_WINDOW_SEASONS,
-) -> list[int]:
-    """Feature seasons whose labels were fully known when forecasting season ``test_season``."""
-    if rule == "labels_known_at_cutoff":
-        keep = lambda t: t + window <= test_season  # noqa: E731
-    elif rule == "window_closed_before_test":
-        keep = lambda t: t + window < test_season  # noqa: E731
-    else:
-        raise ValueError(f"unknown cutoff rule {rule!r}; expected one of {CUTOFF_RULES}")
-    return sorted(int(t) for t in set(int(s) for s in seasons) if keep(int(t)))
-
-
-def assert_labels_known(
-    train: pd.DataFrame,
-    test_season: int,
-    rule: str = "labels_known_at_cutoff",
-    window: int = LABEL_WINDOW_SEASONS,
-) -> None:
-    """Refuse a training frame that carries any row whose label was not known at the cutoff."""
-    present = sorted(int(s) for s in train["feature_season"].unique())
-    allowed = set(admissible_train_seasons(present, test_season, rule=rule, window=window))
-    open_windows = [s for s in present if s not in allowed]
-    if open_windows:
-        raise FutureLabelError(
-            f"training rows from feature seasons {open_windows} are labelled from seasons "
-            f"up to {max(open_windows) + window}, which were not known when forecasting "
-            f"{test_season} (rule {rule!r})"
-        )
 
 
 # ── folds ─────────────────────────────────────────────────────────────────────
