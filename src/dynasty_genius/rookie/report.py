@@ -174,12 +174,13 @@ def render_scores_markdown(scores, horizons, forecast_year: int, top: int = 80) 
     return "\n".join(lines) + "\n"
 
 
-def render_report_markdown(manifest: dict, evaluation: dict, sensitivity: dict | None, scores, trend: dict | None = None) -> str:
+def render_report_markdown(manifest: dict, evaluation: dict, sensitivity: dict | None, scores, trend: dict | None = None,
+                           assessment: dict | None = None) -> str:
     """REPORT.md: the numeric record rendered from JSON, with number-free framing prose."""
     lines = [
         "# DG-165 — draft-capital rookie candidate: the record",
         "",
-        f"Run `{manifest['run_dir']}` · git `{manifest['git_sha'][:8]}` · model `{manifest['model_version']}` · {manifest['status']}",
+        f"Run `{manifest['run_dir']}` · git `{manifest['git_sha'][:8]}` · model `{manifest['model_version']}` · policy `{manifest.get('model_policy')}` · arm `{manifest.get('scoring_arm_id')}` · {manifest['status']}",
         "",
         "Every number below is rendered from `evaluation.json`, `manifest.json` and `rookie_scores_*.csv`; the prose",
         "in `NOTES.md` interprets and carries no statistics of its own.",
@@ -230,15 +231,32 @@ def render_report_markdown(manifest: dict, evaluation: dict, sensitivity: dict |
         for row in sensitivity.get("score_deltas", []):
             lines.append(f"| {row['column']} | {_f(row['max_abs_delta'], 4)} | {row['player']} |")
     if trend:
-        lines += ["", "## Bounded trend experiment: plain vs class-year trend selected inside each training window", "",
-                  f"Decision: **{trend['decision']}** — {trend['rule']}. The auto arm chose the trend term in "
-                  f"{trend['auto_selected_trend_in_forecast_years']} of {trend['forecast_years_evaluated']} forecast years; "
-                  f"it improved {trend['auto_trend_wins']} of {trend['metrics_compared']} compared out-of-time metrics.", "",
-                  "| quantity | metric | plain | auto trend | improvement |", "|---|---|---:|---:|---:|"]
-        for label, c in trend["comparison"].items():
-            for metric in ("brier", "log_loss", "rmse"):
-                if f"plain_{metric}" in c:
-                    lines.append(f"| {label} | {metric} | {_f(c[f'plain_{metric}'], 4)} | {_f(c[f'auto_trend_{metric}'], 4)} | {_f(c[f'improvement_{metric}'], 4)} |")
+        lines += ["", "## Model policy and exploratory comparison", "",
+                  f"Declared policy: **{trend['policy']}** — {trend['evidence_status'].get(trend['policy'], '')}", ""]
+        for name, status in trend["evidence_status"].items():
+            if name != trend["policy"]:
+                lines.append(f"- `{name}`: {status}")
+        lines += ["", "Paired bootstrap of the difference (exploratory − policy), same test rows resampled once per replicate:", "",
+                  "| exploratory arm | quantity | metric | policy | exploratory | difference (90% CI) | reading |", "|---|---|---|---:|---:|---|---|"]
+        for name, table in trend["comparison"].items():
+            for label, metrics in table.items():
+                for metric, c in metrics.items():
+                    lines.append(f"| {name} | {label} | {metric} | {_f(c['policy'], 4)} | {_f(c['exploratory'], 4)} | "
+                                 f"{_f(c['difference'], 4)} ({_f(c['difference_ci90'][0], 4)}, {_f(c['difference_ci90'][1], 4)}) | {c['reading']} |")
+        chosen = [(y["forecast_year"], (y.get("policy_selection") or {}).get("chosen", y.get("variant")))
+                  for y in evaluation.get("per_forecast_year", [])]
+        lines += ["", "Variant chosen inside each training window by the policy: " + ", ".join(f"{t}: {v}" for t, v in chosen)]
+    if assessment:
+        lines += ["", "## Recent-era QB / first-round calibration assessment (no correction applied)", "",
+                  "| position | band | era | season | n | appearance bias (90%) | conditional points bias among appearers (90%) | unconditional points bias (90%) |",
+                  "|---|---|---|---|---:|---|---|---|"]
+        for pos in ("QB", "RB", "WR", "TE"):
+            for band in ("R1", "all"):
+                for era, js in assessment["cells"].get(pos, {}).get(band, {}).items():
+                    for j, c in js.items():
+                        lines.append(f"| {pos} | {band} | {era} | {j} | {c['n']} | {_f(c['appearance_bias'], 3)} ({_f(c['appearance_bias_ci90'][0], 3)}, {_f(c['appearance_bias_ci90'][1], 3)}) | "
+                                     f"{_f(c['conditional_points_bias'], 1)} ({_f(c['conditional_points_bias_ci90'][0], 1)}, {_f(c['conditional_points_bias_ci90'][1], 1)}) | "
+                                     f"{_f(c['unconditional_points_bias'], 1)} ({_f(c['unconditional_points_bias_ci90'][0], 1)}, {_f(c['unconditional_points_bias_ci90'][1], 1)}) |")
     if scores is not None and len(scores):
         lines += ["", "## Scored class, first rows (see `ROOKIES_*.md`)", ""]
         lines += render_scores_markdown(scores, manifest["model"]["horizons"], manifest["forecast_date"]["forecast_year"], top=12).split("\n")[4:]

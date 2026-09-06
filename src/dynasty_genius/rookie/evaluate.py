@@ -26,13 +26,16 @@ from sklearn.metrics import brier_score_loss, log_loss, roc_auc_score
 from src.dynasty_genius.rookie.labels import SeasonKey, horizon_labels
 from src.dynasty_genius.rookie.model import RookieCapitalModel
 
-__all__ = ["evaluate_forecast_years", "fit_at_forecast_year", "training_frame_at", "trend_experiment"]
+__all__ = ["MENU", "POLICIES", "evaluate_forecast_years", "fit_at_forecast_year", "policy_experiment", "training_frame_at"]
 
 MIN_TRAIN_ROWS = 100
-# Inner validation for the trend option: the most recent classes whose season-1 labels
-# were complete at the cutoff. Three classes is the smallest window that can tell a
-# trend from one odd class; nothing later than T-1 is ever read.
-TREND_VALIDATION_CLASSES = 3
+# The bounded menu the inner-window policy chooses from, simplest first (ties go to the
+# simpler variant). Inner validation uses the most recent classes whose season-1 labels
+# were complete at the cutoff; three classes is the smallest window that can tell a trend
+# from one odd class; nothing later than T-1 is ever read.
+MENU: tuple[str, ...] = ("plain", "trend", "trend_qb_r1")
+POLICIES: tuple[str, ...] = MENU + ("inner_menu",)
+INNER_VALIDATION_CLASSES = 3
 
 # (exported column pattern, label column pattern, kind, conditioning label or None)
 ANNUAL_QUANTITIES = (
@@ -74,7 +77,7 @@ def training_frame_at(
     )
 
 
-def _inner_trend_selection(
+def _inner_selection(
     cohort: pd.DataFrame,
     *,
     qualifying: set[SeasonKey],
@@ -83,14 +86,17 @@ def _inner_trend_selection(
     forecast_year: int,
     unresolved_as_zero: bool,
 ) -> dict:
-    """Choose plain vs class-year trend INSIDE the training window at T.
+    """Choose a variant from MENU INSIDE the training window at T.
 
-    Inner cutoff T' = T − K: fit both variants on classes < T' with labels through T' − 1,
+    Inner cutoff T' = T − K: fit every variant on classes < T' with labels through T' − 1,
     validate on classes T' .. T − 1 with labels through T − 1 (season 1 of each is complete
     at T). Nothing at or after T is read, so the selection is a decision a forecaster at T
-    could have made.
+    could have made. Rule, stated before any outer result is seen: a variant replaces
+    "plain" only if it beats plain on at least two of the three season-1 validation scores;
+    among such variants the one with more wins, ties to the lower log loss of P(qualifies),
+    then to the simpler variant.
     """
-    K = TREND_VALIDATION_CLASSES
+    K = INNER_VALIDATION_CLASSES
     inner_T = forecast_year - K
     inner_train = training_frame_at(cohort, qualifying=qualifying, season_stats=season_stats, horizons=horizons,
                                     forecast_year=inner_T, unresolved_as_zero=unresolved_as_zero)
@@ -101,26 +107,32 @@ def _inner_trend_selection(
     )
     validation = validation.loc[validation["appear_1"].notna() & validation["qy_1"].notna()]
     scores: dict[str, dict[str, float]] = {}
-    for name, flag in (("plain", False), ("trend", True)):
-        model = RookieCapitalModel(horizons=horizons, trend=flag).fit(inner_train)
+    for variant in MENU:
+        model = RookieCapitalModel(horizons=horizons, variant=variant).fit(inner_train)
         pred = model.predict(validation)
         yq, ya = validation["qy_1"].to_numpy(dtype=int), validation["appear_1"].to_numpy(dtype=int)
         pq = np.clip(pred["p_qual_year1"].to_numpy(), 1e-6, 1 - 1e-6)
         pa = np.clip(pred["p_appear_year1"].to_numpy(), 1e-6, 1 - 1e-6)
         yp, ep = validation["points_1"].to_numpy(dtype=float), pred["e_points_year1"].to_numpy()
-        scores[name] = {
+        scores[variant] = {
             "log_loss_p_qual_year1": float(log_loss(yq, pq, labels=[0, 1])),
             "log_loss_p_appear_year1": float(log_loss(ya, pa, labels=[0, 1])),
             "rmse_e_points_year1": float(np.sqrt(np.mean((yp - ep) ** 2))),
             "n_validation": int(len(validation)),
         }
-    improvements = sum(
-        scores["trend"][k] < scores["plain"][k]
-        for k in ("log_loss_p_qual_year1", "log_loss_p_appear_year1", "rmse_e_points_year1")
-    )
+    keys = ("log_loss_p_qual_year1", "log_loss_p_appear_year1", "rmse_e_points_year1")
+    wins = {v: sum(scores[v][k] < scores["plain"][k] for k in keys) for v in MENU if v != "plain"}
+    candidates = [v for v in MENU if v != "plain" and wins[v] >= 2]
+    if candidates:
+        chosen = min(candidates, key=lambda v: (-wins[v], scores[v]["log_loss_p_qual_year1"], MENU.index(v)))
+    else:
+        chosen = "plain"
     return {
-        "selected": bool(improvements >= 2),
-        "rule": "trend wins if it improves at least two of the three season-1 validation scores; otherwise the simpler model",
+        "chosen": chosen,
+        "rule": "a variant replaces plain only if it beats plain on >= 2 of the 3 season-1 validation scores; "
+                "more wins, then lower log loss of P(qualifies), then the simpler variant",
+        "menu": list(MENU),
+        "wins_vs_plain": wins,
         "inner_cutoff": inner_T,
         "validation_classes": sorted(int(c) for c in validation["draft_season"].unique()),
         "scores": scores,
@@ -135,27 +147,30 @@ def fit_at_forecast_year(
     horizons: Iterable[int],
     forecast_year: int,
     unresolved_as_zero: bool = False,
-    trend: bool | str = False,
+    policy: str = "plain",
 ) -> RookieCapitalModel:
     """THE procedure: historical evaluation and final scoring both call this.
 
-    ``trend`` is False (plain), True (class-year term), or "auto" (chosen inside the
-    training window by ``_inner_trend_selection``; the choice is recorded on the model).
+    ``policy`` is a fixed variant name from MENU, or "inner_menu": the variant is chosen
+    inside the training window by ``_inner_selection`` and the choice is recorded on the
+    model. The policy is declared before the outer loop runs and never changed by it.
     """
+    if policy not in POLICIES:
+        raise ValueError(f"unknown policy {policy!r}; choose from {POLICIES}")
     horizons = tuple(sorted(set(int(h) for h in horizons)))
     train = training_frame_at(
         cohort, qualifying=qualifying, season_stats=season_stats, horizons=horizons,
         forecast_year=forecast_year, unresolved_as_zero=unresolved_as_zero,
     )
     selection = None
-    if trend == "auto":
-        selection = _inner_trend_selection(cohort, qualifying=qualifying, season_stats=season_stats, horizons=horizons,
-                                           forecast_year=forecast_year, unresolved_as_zero=unresolved_as_zero)
-        use_trend = selection["selected"]
+    if policy == "inner_menu":
+        selection = _inner_selection(cohort, qualifying=qualifying, season_stats=season_stats, horizons=horizons,
+                                     forecast_year=forecast_year, unresolved_as_zero=unresolved_as_zero)
+        variant = selection["chosen"]
     else:
-        use_trend = bool(trend)
-    model = RookieCapitalModel(horizons=horizons, trend=use_trend).fit(train)
-    model.trend_selection = selection
+        variant = policy
+    model = RookieCapitalModel(horizons=horizons, variant=variant, policy=policy).fit(train)
+    model.policy_selection = selection
     return model
 
 
@@ -272,7 +287,7 @@ def evaluate_forecast_years(
     seed: int = 20260906,
     min_train_rows: int = MIN_TRAIN_ROWS,
     unresolved_as_zero: bool = False,
-    trend: bool | str = False,
+    policy: str = "plain",
 ) -> tuple[dict, pd.DataFrame]:
     """Returns ``(report, predictions)``. The report is JSON-serialisable; ``predictions``
     holds one row per (forecast year, test prospect) with every exported quantity, its
@@ -289,7 +304,7 @@ def evaluate_forecast_years(
             skipped.append({"forecast_year": T, "reason": "no test class" if current.empty else "training set below the minimum size"})
             continue
         model = fit_at_forecast_year(cohort, qualifying=qualifying, season_stats=season_stats, horizons=horizons,
-                                     forecast_year=T, unresolved_as_zero=unresolved_as_zero, trend=trend)
+                                     forecast_year=T, unresolved_as_zero=unresolved_as_zero, policy=policy)
         test = horizon_labels(current, qualifying=qualifying, season_stats=season_stats, horizons=horizons,
                               last_completed_season=last_completed_season_today, unresolved_as_zero=unresolved_as_zero)
         pred = model.predict(test)
@@ -311,7 +326,7 @@ def evaluate_forecast_years(
         per_year.append({"forecast_year": T, "n_train_rows": int(len(train)), "n_test": int(len(test)),
                          "train_classes": [int(train["draft_season"].min()), int(train["draft_season"].max())],
                          "n_train_by_family": dict(model.n_train), "constant_fits": dict(model.constant_fits),
-                         "trend": bool(model.trend), "trend_selection": model.trend_selection,
+                         "variant": model.variant, "arm_id": model.arm_id, "policy_selection": model.policy_selection,
                          "training_baselines": {k: v for k, v in base.items() if not isinstance(v, dict)}})
     predictions = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 
@@ -367,43 +382,85 @@ def evaluate_forecast_years(
             if T + j - 1 > last_completed_season_today:
                 absent.append({"forecast_year": T, "season": j,
                                "reason": f"NFL season {T + j - 1} not complete by {last_completed_season_today}; cannot be graded yet"})
-    report = {"annual": annual, "horizon": horizon, "per_forecast_year": per_year, "skipped_forecast_years": skipped,
-              "absent": absent, "n_boot": n_boot, "seed": seed, "unresolved_as_zero": unresolved_as_zero,
-              "trend": trend if isinstance(trend, str) else bool(trend)}
+    report = {"policy_id": policy, "arm_ids": sorted({y["arm_id"] for y in per_year}),
+              "annual": annual, "horizon": horizon, "per_forecast_year": per_year, "skipped_forecast_years": skipped,
+              "absent": absent, "n_boot": n_boot, "seed": seed, "unresolved_as_zero": unresolved_as_zero}
     return report, predictions
 
 
-TREND_COMPARISON = (("annual", 1, "p_qual_year", "brier"), ("annual", 1, "p_qual_year", "log_loss"),
-                    ("annual", 1, "p_appear_year", "brier"), ("annual", 1, "e_points_year", "rmse"),
-                    ("annual", 3, "p_qual_year", "brier"), ("annual", 3, "e_points_year", "rmse"))
+COMPARED = (("annual", 1, "p_qual_year", "brier"), ("annual", 1, "p_qual_year", "log_loss"), ("annual", 1, "p_qual_year", "auc"),
+            ("annual", 1, "p_appear_year", "brier"), ("annual", 1, "e_points_year", "rmse"),
+            ("annual", 3, "p_qual_year", "brier"), ("annual", 3, "e_points_year", "rmse"))
+LOSS_METRICS = {"brier", "log_loss", "rmse"}
 
 
-def trend_experiment(cohort: pd.DataFrame, **kwargs) -> dict:
-    """The bounded bias experiment: plain vs auto-selected class-year trend, both graded
-    out of time with the same procedure. Decision rule: the trend arm replaces the plain
-    model only if it improves a majority of the compared out-of-time metrics; otherwise the
-    simpler model stays. Both arms are reported whatever the decision."""
+def _metric(rows: pd.DataFrame, ycol: str, pcol: str, metric: str) -> float:
+    ok = rows[ycol].notna() & rows[pcol].notna()
+    y, p = rows.loc[ok, ycol].to_numpy(dtype=float), rows.loc[ok, pcol].to_numpy(dtype=float)
+    if len(y) == 0:
+        return float("nan")
+    if metric == "brier":
+        return float(brier_score_loss(y.astype(int), np.clip(p, 1e-6, 1 - 1e-6)))
+    if metric == "log_loss":
+        return float(log_loss(y.astype(int), np.clip(p, 1e-6, 1 - 1e-6), labels=[0, 1]))
+    if metric == "auc":
+        return float(roc_auc_score(y.astype(int), p)) if len(set(y.astype(int).tolist())) == 2 else float("nan")
+    return float(np.sqrt(np.mean((y - p) ** 2)))
+
+
+def policy_experiment(cohort: pd.DataFrame, *, policy: str, exploratory: tuple[str, ...] = ("plain",), **kwargs) -> dict:
+    """Evaluate the DECLARED policy and, beside it, exploratory alternatives.
+
+    The policy is fixed before the outer loop (round-2 review, item 1): its outer
+    evaluation is evidence about the policy and is never swapped for an alternative's
+    on the strength of that same outer loop. Alternatives are compared to it by a PAIRED
+    bootstrap of the difference (the two arms grade the same test rows, so rows are
+    resampled once and both arms re-scored on the same draw); the comparison is
+    exploratory and is labelled so. No decision is made here.
+    """
+    n_boot = int(kwargs.get("n_boot", 1000))
+    rng = np.random.default_rng(int(kwargs.get("seed", 20260906)) + 1)
     arms, predictions = {}, {}
-    for name, flag in (("plain", False), ("auto_trend", "auto")):
-        report, rows = evaluate_forecast_years(cohort, trend=flag, **kwargs)
+    for name in (policy,) + tuple(a for a in exploratory if a != policy):
+        report, rows = evaluate_forecast_years(cohort, policy=name, **kwargs)
         arms[name] = report
         predictions[name] = rows
-    comparison = {}
-    wins = 0
-    for block, key, quantity, metric in TREND_COMPARISON:
-        plain = arms["plain"].get(block, {}).get(key, {}).get(quantity, {}).get(metric, np.nan)
-        auto = arms["auto_trend"].get(block, {}).get(key, {}).get(quantity, {}).get(metric, np.nan)
-        label = f"{quantity}{key}"
-        comparison.setdefault(label, {}).update({
-            f"plain_{metric}": plain, f"auto_trend_{metric}": auto,
-            f"improvement_{metric}": (plain - auto) if np.isfinite(plain) and np.isfinite(auto) else np.nan,
-        })
-        if np.isfinite(plain) and np.isfinite(auto) and auto < plain:
-            wins += 1
-    selections = [y.get("trend_selection", {}).get("selected") for y in arms["auto_trend"]["per_forecast_year"]]
-    decision = "auto_trend" if wins > len(TREND_COMPARISON) / 2 else "plain"
-    return {"arms": arms, "predictions": predictions, "comparison": comparison,
-            "metrics_compared": len(TREND_COMPARISON), "auto_trend_wins": wins,
-            "auto_selected_trend_in_forecast_years": int(sum(1 for s in selections if s)),
-            "forecast_years_evaluated": len(selections), "decision": decision,
-            "rule": "auto_trend replaces plain only if it improves a majority of the compared out-of-time metrics"}
+    base = predictions[policy].set_index(["forecast_year", "gsis_id"])
+    comparison: dict[str, dict] = {}
+    for name in exploratory:
+        if name == policy:
+            continue
+        other = predictions[name].set_index(["forecast_year", "gsis_id"]).loc[base.index]
+        comparison[name] = {}
+        for block, key, quantity, metric in COMPARED:
+            label = f"{quantity}{key}"
+            ycol = {"p_qual_year": f"qy_{key}", "p_appear_year": f"appear_{key}", "e_points_year": f"points_{key}"}[quantity]
+            pcol = f"{quantity}{key}"
+            if ycol not in base.columns or pcol not in base.columns:
+                continue  # a season beyond the requested horizons is not compared
+            pv, ev = _metric(base, ycol, pcol, metric), _metric(other, ycol, pcol, metric)
+            diffs = []
+            idx = np.arange(len(base))
+            for _ in range(n_boot):
+                take = idx[rng.integers(0, len(idx), len(idx))]
+                b, o = base.iloc[take], other.iloc[take]
+                diffs.append(_metric(o, ycol, pcol, metric) - _metric(b, ycol, pcol, metric))
+            diffs = np.array(diffs, dtype=float)
+            diffs = diffs[~np.isnan(diffs)]
+            ci = [float(v) for v in np.percentile(diffs, [5, 95])] if len(diffs) else [float("nan"), float("nan")]
+            comparison[name].setdefault(label, {})[metric] = {
+                "policy": pv, "exploratory": ev, "difference": ev - pv, "difference_ci90": ci,
+                "reading": ("positive difference favours the policy" if metric in LOSS_METRICS else "negative difference favours the policy"),
+            }
+    return {
+        "policy": policy,
+        "arms": arms,
+        "predictions": predictions,
+        "comparison": comparison,
+        "evidence_status": {
+            policy: "independent of the policy choice: the policy was declared before the outer loop and selects, if at all, only inside each training window",
+            **{name: "exploratory comparison against the declared policy; not an independent confirmation and never used to reassign the canonical evidence"
+               for name in exploratory if name != policy},
+        },
+        "paired_bootstrap": {"n_boot": n_boot, "rows": int(len(base)), "resampling": "test rows (forecast year, prospect) drawn once per replicate, both arms re-scored on the same draw"},
+    }

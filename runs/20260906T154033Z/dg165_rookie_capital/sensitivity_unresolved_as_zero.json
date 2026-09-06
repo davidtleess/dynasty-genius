@@ -1,0 +1,109 @@
+{
+ "evaluation_deltas": [
+  {
+   "quantity": "annual[1].p_qual_year.auc",
+   "default": 0.8408457288567786,
+   "arm": 0.8421441005070764,
+   "delta": 0.0012983716502978915
+  },
+  {
+   "quantity": "annual[1].p_qual_year.brier",
+   "default": 0.11963832726416708,
+   "arm": 0.11858117624961381,
+   "delta": -0.0010571510145532675
+  },
+  {
+   "quantity": "annual[3].p_qual_year.auc",
+   "default": 0.8056991661471686,
+   "arm": 0.8066484276991589,
+   "delta": 0.0009492615519902659
+  },
+  {
+   "quantity": "annual[1].e_points_year.rmse",
+   "default": 53.88688622039957,
+   "arm": 53.714672755285285,
+   "delta": -0.17221346511428237
+  },
+  {
+   "quantity": "annual[3].e_points_year.rmse",
+   "default": 72.61285806711724,
+   "arm": 72.2610756159977,
+   "delta": -0.3517824511195471
+  },
+  {
+   "quantity": "horizon[5].p_qual_h.auc",
+   "default": 0.8163838680211476,
+   "arm": 0.815351521415878,
+   "delta": -0.0010323466052696295
+  },
+  {
+   "quantity": "horizon[5].e_qual_seasons_h.rmse",
+   "default": 1.3012268925456658,
+   "arm": 1.296345022059305,
+   "delta": -0.004881870486360906
+  }
+ ],
+ "score_deltas": [
+  {
+   "column": "e_points_year1",
+   "max_abs_delta": 2.3224943146809522,
+   "player": "Carson Beck"
+  },
+  {
+   "column": "e_points_year2",
+   "max_abs_delta": 1.6156623530489256,
+   "player": "Cole Payton"
+  },
+  {
+   "column": "e_points_year3",
+   "max_abs_delta": 1.3416060620304364,
+   "player": "Carson Beck"
+  },
+  {
+   "column": "e_points_year4",
+   "max_abs_delta": 1.1346255361841955,
+   "player": "Cole Payton"
+  },
+  {
+   "column": "e_points_year6",
+   "max_abs_delta": 1.0160011082664404,
+   "player": "Cole Payton"
+  },
+  {
+   "column": "e_points_year5",
+   "max_abs_delta": 0.890478801133014,
+   "player": "Carson Beck"
+  },
+  {
+   "column": "e_games_year1",
+   "max_abs_delta": 0.23225588021596177,
+   "player": "Carson Beck"
+  },
+  {
+   "column": "e_games_year3",
+   "max_abs_delta": 0.22943606399535854,
+   "player": "Dallen Bentley"
+  },
+  {
+   "column": "e_games_year2",
+   "max_abs_delta": 0.2092320064529627,
+   "player": "Dallen Bentley"
+  },
+  {
+   "column": "e_games_year4",
+   "max_abs_delta": 0.14427757468734015,
+   "player": "Dallen Bentley"
+  },
+  {
+   "column": "e_games_year5",
+   "max_abs_delta": 0.13611183284157802,
+   "player": "Dallen Bentley"
+  },
+  {
+   "column": "e_games_year6",
+   "max_abs_delta": 0.09227956891459987,
+   "player": "Cole Payton"
+  }
+ ],
+ "sensitivity_arm_variant": "trend"
+}

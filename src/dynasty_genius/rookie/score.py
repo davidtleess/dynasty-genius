@@ -23,7 +23,15 @@ __all__ = ["bootstrap_intervals", "score_class"]
 IDENTITY_COLUMNS = ("gsis_id", "name", "position", "team", "draft_season", "pick", "round", "age_at_draft")
 
 
-def score_class(model: RookieCapitalModel, rookies: pd.DataFrame) -> pd.DataFrame:
+def score_class(
+    model: RookieCapitalModel,
+    rookies: pd.DataFrame,
+    *,
+    model_policy: str | None = None,
+    evaluation_sha256: str | None = None,
+) -> pd.DataFrame:
+    """Every row carries the affirmative identifiers a consumer pairs against the
+    evaluation: ``model_policy``, ``scoring_arm_id`` and ``evaluation_sha256``."""
     if rookies["gsis_id"].duplicated().any():
         raise ValueError("duplicate gsis_id in the class to score")
     pred = model.predict(rookies)
@@ -40,6 +48,9 @@ def score_class(model: RookieCapitalModel, rookies: pd.DataFrame) -> pd.DataFram
     pred.loc[unresolved, :] = np.nan
     out = pd.concat([out, pred], axis=1)
     out["model_version"] = MODEL_VERSION
+    out["model_policy"] = model_policy if model_policy is not None else model.policy
+    out["scoring_arm_id"] = model.arm_id
+    out["evaluation_sha256"] = evaluation_sha256 if evaluation_sha256 is not None else ""
     assert len(out) == len(rookies), "a prospect went missing between input and output"
     return out
 
@@ -51,7 +62,7 @@ def bootstrap_intervals(
     horizons: tuple[int, ...],
     n_boot: int,
     seed: int = 20260906,
-    trend: bool = False,
+    variant: str = "plain",
 ) -> pd.DataFrame:
     """90% intervals from refitting on player-resampled training sets.
 
@@ -63,7 +74,7 @@ def bootstrap_intervals(
     draws: dict[str, list[np.ndarray]] = {}
     for _ in range(n_boot):
         sample = train.iloc[rng.integers(0, len(train), len(train))]
-        m = RookieCapitalModel(horizons=horizons, trend=trend).fit(sample)
+        m = RookieCapitalModel(horizons=horizons, variant=variant).fit(sample)
         p = m.predict(rookies)
         for col in p.columns:
             if col != "gsis_id":

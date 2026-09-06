@@ -409,57 +409,169 @@ def test_class_year_trend_is_an_explicit_model_option_recorded_in_describe():
     qual = qualifying_season_keys(panel, bar=SMALL_BAR)
     train = horizon_labels(cohort, qualifying=qual, season_stats=stats, horizons=(1, 2), last_completed_season=2025)
     plain = RookieCapitalModel(horizons=(1, 2)).fit(train)
-    trend = RookieCapitalModel(horizons=(1, 2), trend=True).fit(train)
-    assert plain.describe()["trend"] is False and trend.describe()["trend"] is True
+    trend = RookieCapitalModel(horizons=(1, 2), variant="trend").fit(train)
+    assert plain.describe()["variant"] == "plain" and trend.describe()["variant"] == "trend"
     assert "class_year" in trend.describe()["design_columns"] and "class_year" not in plain.describe()["design_columns"]
     probe = _cohort([("late", 2026, "WR", 40, 2, 22.0)])
     # The trend model extrapolates the rising odds; the plain model cannot.
     assert trend.predict(probe)["p_qual_year1"].iloc[0] > plain.predict(probe)["p_qual_year1"].iloc[0]
 
 
-def test_auto_trend_selection_uses_only_labels_known_at_the_forecast_year():
-    from src.dynasty_genius.rookie.evaluate import fit_at_forecast_year
+def test_inner_menu_policy_selects_a_variant_using_only_labels_known_at_the_forecast_year():
+    from src.dynasty_genius.rookie.evaluate import MENU, fit_at_forecast_year
 
     cohort, panel = _cohort_with_rising_outcomes()
     stats = season_stats_map(panel)
     qual = qualifying_season_keys(panel, bar=SMALL_BAR)
     model = fit_at_forecast_year(cohort, qualifying=qual, season_stats=stats, horizons=(1, 2),
-                                 forecast_year=2016, trend="auto")
-    sel = model.describe()["trend_selection"]
-    assert sel["selected"] in (True, False)
+                                 forecast_year=2016, policy="inner_menu")
+    sel = model.describe()["policy_selection"]
+    assert sel["chosen"] in MENU and set(sel["scores"]) == set(MENU)
     # inner validation classes all lie strictly before the forecast year and their
     # season-1 labels were complete at the cutoff
     assert max(sel["validation_classes"]) <= 2015
     assert sel["scores"]["trend"]["log_loss_p_qual_year1"] != sel["scores"]["plain"]["log_loss_p_qual_year1"]
     # a breakout in season T cannot change the selection: relabel with T's season and refit
     later = fit_at_forecast_year(cohort, qualifying=qual | {(pid, 2016) for pid in cohort["gsis_id"]},
-                                 season_stats=stats, horizons=(1, 2), forecast_year=2016, trend="auto")
-    assert later.describe()["trend_selection"]["scores"] == sel["scores"]
+                                 season_stats=stats, horizons=(1, 2), forecast_year=2016, policy="inner_menu")
+    assert later.describe()["policy_selection"]["scores"] == sel["scores"]
 
 
-def test_trend_experiment_reports_both_arms_out_of_time_and_names_the_winner():
-    from src.dynasty_genius.rookie.evaluate import trend_experiment
+def test_policy_experiment_declares_the_policy_ex_ante_and_never_picks_a_winner_on_outer_years():
+    from src.dynasty_genius.rookie.evaluate import policy_experiment
 
     cohort, panel = _cohort_with_rising_outcomes()
     stats = season_stats_map(panel)
     qual = qualifying_season_keys(panel, bar=SMALL_BAR)
-    result = trend_experiment(cohort, qualifying=qual, season_stats=stats, horizons=(1, 2),
-                              forecast_years=range(2012, 2020), last_completed_season_today=2025, n_boot=10)
-    assert set(result["arms"]) == {"plain", "auto_trend"}
-    for arm in result["arms"].values():
-        assert "annual" in arm and 1 in arm["annual"]
-    # both arms' graded rows come back too, so the canonical predictions file can be the
-    # arm that scores and the other arm is saved beside it — never a mismatch between the
-    # evaluation a consumer grades and the model that produced the scored file
-    assert set(result["predictions"]) == {"plain", "auto_trend"}
-    assert "p_qual_year1" in result["predictions"]["auto_trend"].columns
-    cmp = result["comparison"]["p_qual_year1"]
-    assert {"plain_brier", "auto_trend_brier", "improvement_brier", "plain_log_loss", "auto_trend_log_loss"} <= set(cmp)
-    assert cmp["improvement_brier"] == pytest.approx(cmp["plain_brier"] - cmp["auto_trend_brier"])
-    # the decision follows the stated rule, whichever way the synthetic evidence falls
-    majority = result["auto_trend_wins"] > result["metrics_compared"] / 2
-    assert result["decision"] == ("auto_trend" if majority else "plain")
-    # every forecast year in the auto arm carries the inner selection it made
-    for year in result["arms"]["auto_trend"]["per_forecast_year"]:
-        assert year["trend_selection"]["selected"] in (True, False)
-        assert max(year["trend_selection"]["validation_classes"]) < year["forecast_year"]
+    result = policy_experiment(cohort, policy="inner_menu", exploratory=("plain",), qualifying=qual,
+                               season_stats=stats, horizons=(1, 2), forecast_years=range(2012, 2020),
+                               last_completed_season_today=2025, n_boot=10)
+    # the declared policy is the canonical arm; the others are exploratory; no decision field
+    assert result["policy"] == "inner_menu" and set(result["arms"]) == {"inner_menu", "plain"}
+    assert "decision" not in result and "auto_trend_wins" not in result
+    assert result["evidence_status"]["inner_menu"].startswith("independent")
+    assert result["evidence_status"]["plain"].startswith("exploratory")
+    assert set(result["predictions"]) == {"inner_menu", "plain"}
+    # the comparison bounds the DIFFERENCE with a paired bootstrap, it does not crown a winner
+    cmp = result["comparison"]["plain"]["p_qual_year1"]["brier"]
+    assert {"policy", "exploratory", "difference", "difference_ci90"} <= set(cmp)
+    assert cmp["difference"] == pytest.approx(cmp["exploratory"] - cmp["policy"])
+    assert len(cmp["difference_ci90"]) == 2
+    # every forecast year of the policy arm carries the inner selection it made
+    for year in result["arms"]["inner_menu"]["per_forecast_year"]:
+        assert year["policy_selection"]["chosen"] in ("plain", "trend", "trend_qb_r1")
+        assert max(year["policy_selection"]["validation_classes"]) < year["forecast_year"]
+
+
+
+# ----------------------------------------------------------------------------- round-2 review
+# The review's historical counterexamples (run 151705Z): P(qualifies) > P(appears) on four
+# annual rows and seven cumulative rows, all at the extremes. Under the three-state chain
+# the subset relation holds for ANY input by arithmetic; these rows document the shapes
+# that broke the previous construction.
+COUNTEREXAMPLE_ROWS = [
+    ("qb1-2005", 2005, "QB", 1, 1, 21.0), ("rb4-2008", 2008, "RB", 4, 1, 21.0), ("qb250-2005", 2005, "QB", 250, 7, 22.0),
+    ("rb13-2008", 2008, "RB", 13, 1, 21.0), ("rb22-2008", 2008, "RB", 22, 1, 21.0), ("rb23-2008", 2008, "RB", 23, 1, 21.0),
+    ("rb24-2008", 2008, "RB", 24, 1, 22.0), ("rb55-2008", 2008, "RB", 55, 2, 21.0),
+]
+
+
+def test_qualification_is_a_subset_of_appearance_on_every_row_including_the_review_counterexamples():
+    model, _, cohort = _fitted(horizons=(1, 2, 3, 4, 5, 6))
+    probe = pd.concat([cohort.head(150), _cohort(COUNTEREXAMPLE_ROWS)], ignore_index=True)
+    pred = model.predict(probe)
+    tol = 1e-12
+    for j in range(1, 7):
+        assert (pred[f"p_qual_year{j}"] <= pred[f"p_appear_year{j}"] + tol).all(), j
+        assert (pred[f"p_qual_h{j}"] <= pred[f"p_appear_by_h{j}"] + tol).all(), j
+        assert (pred[f"p_qual_year{j}"] <= pred[f"p_qual_h{j}"] + tol).all(), j
+        assert (pred[f"e_qual_seasons_h{j}"] + tol >= pred[f"p_qual_h{j}"]).all(), j
+        if j > 1:
+            assert (pred[f"p_qual_h{j}"] + tol >= pred[f"p_qual_h{j - 1}"]).all(), j
+            assert (pred[f"p_appear_by_h{j}"] + tol >= pred[f"p_appear_by_h{j - 1}"]).all(), j
+
+
+def test_chain_transition_families_are_fitted_on_their_own_history_states():
+    model, _, _ = _fitted(horizons=(1, 2, 3))
+    families = model.describe()["n_train_by_family"]
+    # season 1: only the never-appeared state exists; later seasons: appearance and
+    # qualification-given-appearance for each of the three history states
+    assert "a_1|s0" in families and "q_1|s0" in families and "a_1|s1" not in families
+    for name in ("a_2|s0", "a_2|s1", "a_2|s2", "q_2|s0", "q_2|s1", "q_2|s2"):
+        assert name in families, name
+
+
+def test_scored_rows_carry_affirmative_policy_and_arm_identifiers():
+    model, _, _ = _fitted(horizons=(1, 2))
+    rookies = _cohort([("a", 2026, "QB", 1, 1, 22.0)])
+    scored = score_class(model, rookies, model_policy="inner_menu", evaluation_sha256="abc123")
+    row = scored.iloc[0]
+    assert row["model_policy"] == "inner_menu" and row["evaluation_sha256"] == "abc123"
+    assert row["scoring_arm_id"] == model.describe()["arm_id"] and row["scoring_arm_id"].endswith(":plain")
+
+
+def test_pairing_verification_raises_on_any_mismatch_and_reports_consistent_otherwise(tmp_path):
+    from src.dynasty_genius.rookie.identifiers import verify_pairing
+
+    manifest = {"model_policy": "inner_menu", "scoring_arm_id": "v3:trend:inner_menu"}
+    evaluation = {"policy_id": "inner_menu", "arm_ids": ["v3:trend:inner_menu", "v3:plain:inner_menu"]}
+    scores = pd.DataFrame({"model_policy": ["inner_menu"] * 2, "scoring_arm_id": ["v3:trend:inner_menu"] * 2,
+                           "evaluation_sha256": ["h1"] * 2})
+    block = verify_pairing(manifest=manifest, evaluation=evaluation, scores=scores, evaluation_sha256="h1")
+    assert block["status"] == "consistent"
+    with pytest.raises(ValueError, match="policy"):
+        verify_pairing(manifest={**manifest, "model_policy": "plain"}, evaluation=evaluation, scores=scores, evaluation_sha256="h1")
+    with pytest.raises(ValueError, match="sha256"):
+        verify_pairing(manifest=manifest, evaluation=evaluation, scores=scores, evaluation_sha256="other")
+    with pytest.raises(ValueError, match="arm"):
+        verify_pairing(manifest=manifest, evaluation={**evaluation, "arm_ids": ["v3:plain:plain"]}, scores=scores, evaluation_sha256="h1")
+
+
+def test_calibration_assessment_separates_appearance_and_conditional_points_by_era_band_and_season():
+    from src.dynasty_genius.rookie.calibration import calibration_assessment
+
+    rng = np.random.default_rng(2)
+    n = 400
+    frame = pd.DataFrame({
+        "forecast_year": rng.choice([2010, 2020], n), "position": rng.choice(["QB", "WR"], n),
+        "round": rng.choice([1, 3], n), "gsis_id": [f"p{i}" for i in range(n)],
+    })
+    for j in (1, 2):
+        frame[f"appear_{j}"] = (rng.random(n) < 0.8).astype(float)
+        frame[f"p_appear_year{j}"] = 0.75
+        frame[f"points_{j}"] = np.where(frame[f"appear_{j}"] == 1, 100.0, 0.0)
+        frame[f"e_points_year{j}_given_appear"] = 90.0
+        frame[f"e_points_year{j}"] = 0.75 * 90.0
+    out = calibration_assessment(frame, seasons=(1, 2), n_boot=20)
+    cell = out["cells"]["QB"]["R1"]["2016-25"]["1"]
+    assert {"n", "appearance_bias", "appearance_bias_ci90", "n_appearers", "conditional_points_bias",
+            "conditional_points_bias_ci90", "unconditional_points_bias", "unconditional_points_bias_ci90"} <= set(cell)
+    assert cell["conditional_points_bias"] == pytest.approx(-10.0)
+    assert out["eras"] == {"2005-15": [2005, 2015], "2016-25": [2016, 2025]}
+
+
+def test_report_renders_the_policy_comparison_and_assessment_from_json_shapes():
+    from src.dynasty_genius.rookie.report import render_report_markdown
+
+    binary = {"n": 10, "prevalence": 0.3, "auc": 0.8, "auc_ci90": [0.7, 0.9], "brier": 0.17, "brier_training_baseline": 0.21,
+              "log_loss": 0.5, "log_loss_training_baseline": 0.6, "mean_predicted": 0.31, "forecast_years": [2010]}
+    level = {"n": 5, "mean_actual": 100.0, "mean_predicted": 95.0, "rmse": 40.0, "rmse_training_baseline": 50.0, "bias": -5.0, "forecast_years": [2010]}
+    evaluation = {"policy_id": "inner_menu", "arm_ids": ["v3:inner_menu:trend"],
+                  "annual": {1: {"p_qual_year": binary, "p_appear_year": binary, "e_points_year": level, "e_games_year": level,
+                                 "e_ppg_given_qual_year": level}},
+                  "horizon": {1: {"p_qual_h": binary, "p_appear_by_h": binary, "e_qual_seasons_h": level}},
+                  "per_forecast_year": [{"forecast_year": 2010, "variant": "trend", "policy_selection": {"chosen": "trend"}}]}
+    manifest = {"run_dir": "runs/x", "git_sha": "abcdef0123", "model_version": "v3", "model_policy": "inner_menu",
+                "scoring_arm_id": "v3:inner_menu:trend", "status": "RESEARCH", "definitions": {}, "units": {},
+                "forecast_date": {"forecast_cutoff": "2026-09-01", "label_window": "through 2025", "forecast_year": 2026},
+                "cohort": {"coverage": {"rows": 1}}, "model": {"horizons": [1]}}
+    comparison = {"policy": "inner_menu",
+                  "evidence_status": {"inner_menu": "independent of the policy choice", "plain": "exploratory comparison"},
+                  "comparison": {"plain": {"p_qual_year1": {"brier": {"policy": 0.17, "exploratory": 0.18, "difference": 0.01,
+                                                                       "difference_ci90": [0.0, 0.02], "reading": "positive favours the policy"}}}}}
+    assessment = {"cells": {"QB": {"R1": {"2016-25": {"1": {"n": 3, "appearance_rate": 0.9, "appearance_bias": 0.01, "appearance_bias_ci90": [0, 0.02],
+                                                              "n_appearers": 3, "conditional_points_bias": -20.0, "conditional_points_bias_ci90": [-30, -10],
+                                                              "unconditional_points_bias": -18.0, "unconditional_points_bias_ci90": [-28, -8]}}}}}}
+    text = render_report_markdown(manifest, evaluation, None, None, comparison, assessment)
+    assert "Declared policy: **inner_menu**" in text and "exploratory comparison" in text
+    assert "2010: trend" in text and "calibration assessment" in text
