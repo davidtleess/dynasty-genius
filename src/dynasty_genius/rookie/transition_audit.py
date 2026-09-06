@@ -280,7 +280,42 @@ def veteran_horizon1_frame(veteran: VeteranRun) -> pd.DataFrame:
     if orphan.any():
         sample = merged.loc[orphan, ["player_id", "veteran_feature_season"]].head(5).to_dict("records")
         raise ValueError(f"{int(orphan.sum())} veteran predictions have no basic cohort feature row, e.g. {sample}")
-    return merged.drop(columns="_merge")
+    merged = merged.drop(columns="_merge")
+    gt = merged["veteran_games_t"].to_numpy(float)
+    bad_games = ~np.isfinite(gt) | (gt < 0)
+    if bad_games.any():
+        sample = merged.loc[bad_games, ["player_id", "veteran_feature_season", "veteran_games_t"]].head(5).to_dict("records")
+        raise ValueError(f"veteran games_t missing or negative on {int(bad_games.sum())} feature rows — a required measurement; "
+                         f"refusing rather than labelling them not-thin, e.g. {sample}")
+    return merged
+
+
+REQUIRED_FINITE = ("rookie_e_points", "rookie_e_points_given_appear", "rookie_e_games",
+                   "veteran_e_points", "veteran_e_points_given_appear", "veteran_e_games",
+                   "rookie_label_points", "veteran_label_points", "rookie_label_games", "veteran_label_games",
+                   "rookie_label_appeared", "veteran_label_appeared")
+REQUIRED_PROBABILITY = ("rookie_p_appear", "veteran_p_appear")
+
+
+def _assert_required_values(j: pd.DataFrame) -> None:
+    """Every required forecast, probability and label on a joined row must be a finite number, and every
+    probability must lie in [0, 1]. Negative fantasy points are valid. A missing value here is a broken
+    input and refuses at the join, never a cryptic failure inside the metrics."""
+    for col in REQUIRED_FINITE:
+        vals = j[col].to_numpy(float)
+        bad = ~np.isfinite(vals)
+        if bad.any():
+            sample = j.loc[bad, ["player_id", "veteran_feature_season", col]].head(5).to_dict("records")
+            raise ValueError(f"{col}: {int(bad.sum())} joined rows are not finite, e.g. {sample}")
+    for col in REQUIRED_PROBABILITY:
+        vals = j[col].to_numpy(float)
+        bad = ~np.isfinite(vals) | (vals < 0.0) | (vals > 1.0)
+        if bad.any():
+            sample = j.loc[bad, ["player_id", "veteran_feature_season", col]].head(5).to_dict("records")
+            raise ValueError(f"{col}: {int(bad.sum())} joined rows carry a probability outside [0, 1] or not finite, e.g. {sample}")
+    blank = (j["player_id"].astype(str).str.strip() == "") | j["player_id"].isna()
+    if blank.any():
+        raise ValueError(f"{int(blank.sum())} joined rows carry a blank player_id")
 
 
 def join_transition(rookie: RookieRun, veteran: VeteranRun, *, experience: int) -> pd.DataFrame:
@@ -297,6 +332,7 @@ def join_transition(rookie: RookieRun, veteran: VeteranRun, *, experience: int) 
     if wrong_year.any():
         sample = j.loc[wrong_year, ["player_id", "draft_season", "veteran_feature_season", "veteran_forecast_season"]].head(5).to_dict("records")
         raise ValueError(f"veteran forecast_season != draft_season + experience on {int(wrong_year.sum())} rows, e.g. {sample}")
+    _assert_required_values(j)
     rp, vp = j["rookie_label_points"].to_numpy(float), j["veteran_label_points"].to_numpy(float)
     bad_p = ~(np.abs(rp - vp) <= LABEL_ATOL)  # NaN on either side is a mismatch
     bad_a = j["rookie_label_appeared"].to_numpy(float) != j["veteran_label_appeared"].to_numpy(float)

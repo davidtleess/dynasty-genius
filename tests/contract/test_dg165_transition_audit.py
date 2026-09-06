@@ -524,3 +524,72 @@ def test_cli_end_to_end(runs, tmp_path):
     assert proc.returncode == 0, proc.stderr
     run_dir = Path(proc.stdout.strip().splitlines()[-1])
     assert (run_dir / "manifest.json").exists() and run_dir.name == "dg165_transition_audit"
+
+
+# ---------------------------------------------------------------- root probe 2026-09-06: required measurements must be finite
+
+def test_join_refuses_a_missing_games_t_instead_of_labelling_not_thin(tmp_path):
+    from src.dynasty_genius.rookie.transition_audit import (
+        join_transition,
+        load_rookie_run,
+        load_veteran_run,
+    )
+    rookie_dir = make_rookie_run(tmp_path)
+    cohort = pd.read_csv(make_veteran_run(tmp_path) / "basic_cohort.csv.gz")
+    cohort.loc[(cohort.player_id == "00-C") & (cohort.feature_season == 2015), "games_t"] = np.nan  # feature row exists, measurement missing
+    vet_dir = _rebuild_veteran(tmp_path, cohort=cohort)
+    with pytest.raises(ValueError, match="games_t"):
+        join_transition(load_rookie_run(rookie_dir), load_veteran_run(vet_dir), experience=1)
+
+
+def test_join_refuses_a_non_finite_prediction_before_metrics(tmp_path):
+    from src.dynasty_genius.rookie.transition_audit import (
+        join_transition,
+        load_rookie_run,
+        load_veteran_run,
+    )
+    rookie_dir = make_rookie_run(tmp_path)
+    hist = pd.read_csv(make_veteran_run(tmp_path) / "historical_predictions.csv")
+    hist.loc[(hist.player_id == "00-A") & (hist.feature_season == 2015), "policy_e_points_year1"] = np.nan
+    vet_dir = _rebuild_veteran(tmp_path, hist=hist)
+    with pytest.raises(ValueError, match="finite"):
+        join_transition(load_rookie_run(rookie_dir), load_veteran_run(vet_dir), experience=1)
+
+
+def test_join_refuses_a_probability_outside_the_unit_interval(tmp_path):
+    import shutil
+
+    from src.dynasty_genius.rookie.transition_audit import (
+        join_transition,
+        load_rookie_run,
+        load_veteran_run,
+    )
+    rookie_dir = make_rookie_run(tmp_path)
+    oot = pd.read_csv(rookie_dir / "out_of_time_predictions.csv")
+    oot.loc[oot.gsis_id == "00-B", "p_appear_year2"] = 1.2
+    shutil.rmtree(rookie_dir)
+    rookie_dir = make_rookie_run(tmp_path, oot=oot)
+    with pytest.raises(ValueError, match="probabilit"):
+        join_transition(load_rookie_run(rookie_dir), load_veteran_run(make_veteran_run(tmp_path)), experience=1)
+
+
+def test_negative_fantasy_points_remain_valid_labels_and_forecasts(tmp_path):
+    import shutil
+
+    from src.dynasty_genius.rookie.transition_audit import (
+        join_transition,
+        load_rookie_run,
+        load_veteran_run,
+        paired_metrics,
+    )
+    rookie_dir = make_rookie_run(tmp_path)
+    oot = pd.read_csv(rookie_dir / "out_of_time_predictions.csv")
+    oot.loc[oot.gsis_id == "00-C", ["points_2", "e_points_year2"]] = [-3.0, -1.5]
+    shutil.rmtree(rookie_dir)
+    rookie_dir = make_rookie_run(tmp_path, oot=oot)
+    hist = pd.read_csv(make_veteran_run(tmp_path) / "historical_predictions.csv")
+    hist.loc[(hist.player_id == "00-C") & (hist.feature_season == 2015), "points_year1"] = -3.0
+    vet_dir = _rebuild_veteran(tmp_path, hist=hist)
+    j = join_transition(load_rookie_run(rookie_dir), load_veteran_run(vet_dir), experience=1)
+    assert j.set_index("player_id").loc["00-C", "points"] == -3.0
+    assert paired_metrics(j)["n"] == 3
