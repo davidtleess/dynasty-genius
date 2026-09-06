@@ -196,3 +196,44 @@ def test_an_artifact_built_by_dg179s_own_builder_is_accepted(tmp_path):
     assert out.attrs["target_identity"] == manifest["target_identity"]
     # the artifact's own zero definition: an identified player-season with no in-window record is 0, appeared False
     assert (out.loc[out.games == 0, "appeared"] == False).all()  # noqa: E712
+
+
+# ── Codex follow-up: reader safety for future inputs (the reviewed artifact is valid) ──
+
+@pytest.mark.parametrize("rows, needle", [
+    ([("", 2020, 10.0, 5, True)], "player_id"),                       # blank id
+    ([(" A", 2020, 10.0, 5, True)], "player_id"),                     # padded id
+    ([("A", 2020.9, 10.0, 5, True)], "season"),                        # non-integral season
+    ([("A", 2020, 10.0, 1.9, True)], "games"),                         # non-integral games
+    ([("A", 2020, 10.0, -1, True)], "games"),                          # negative games
+    ([("A", 2020, 10.0, 40, True)], "games"),                          # more games than the window holds
+    ([("A", 2020, float("inf"), 5, True)], "points"),                  # non-finite points
+    ([("A", 2020, float("nan"), 5, True)], "points"),                  # missing points
+    ([("A", 2035, 10.0, 5, True)], "seasons"),                         # season outside the declared windows
+])
+def test_reader_refuses_malformed_rows_before_casting(tmp_path, rows, needle):
+    with pytest.raises(CommonArtifactError, match=needle):
+        load_common_outcomes(_artifact(tmp_path, rows))
+
+
+def test_reader_keeps_legitimate_negative_points_and_zero_game_parity(tmp_path):
+    out = load_common_outcomes(_artifact(tmp_path, [("A", 2020, -2.0, 1, True), ("B", 2020, 0.0, 0, False)]))
+    assert out.set_index("player_id").loc["A", "points"] == -2.0
+    assert bool(out.set_index("player_id").loc["B", "appeared"]) is False
+
+
+def test_reader_parses_the_exact_bytes_it_hashed(tmp_path, monkeypatch):
+    """The CSV is parsed from the bytes that were hashed, never re-read from a path that could
+    change between the hash and the parse."""
+    import src.dynasty_genius.eval.common_outcomes as co
+    d = _artifact(tmp_path, ROWS)
+    calls = []
+    real = pd.read_csv
+
+    def spy(source, *a, **k):
+        calls.append(type(source).__name__)
+        return real(source, *a, **k)
+
+    monkeypatch.setattr(co.pd, "read_csv", spy)
+    load_common_outcomes(d)
+    assert calls and all(name != "PosixPath" and name != "str" for name in calls), calls

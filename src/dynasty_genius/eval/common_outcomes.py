@@ -24,10 +24,12 @@ What this module does and refuses:
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 SCHEMA_VERSION = "dg179_league_season_outcomes_v1"
@@ -117,6 +119,51 @@ def validate_common_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+APPEARED_TRUE = frozenset({"true", "1", "1.0", "yes"})
+APPEARED_FALSE = frozenset({"false", "0", "0.0", "no"})
+
+
+def _parse_outcome_rows(csv_bytes: bytes, *, season_windows: dict) -> pd.DataFrame:
+    """Parse the CSV from the exact bytes that were hashed, and refuse every malformed
+    value BEFORE any cast could silently repair it: a blank or padded player id, a
+    non-integral or out-of-window season, a non-integral / negative / over-window games
+    count, a non-finite points value, an unrecognised appearance flag."""
+    raw = pd.read_csv(io.BytesIO(csv_bytes), dtype=str, keep_default_na=False)
+    missing = [c for c in EXPECTED_COLUMNS if c not in raw.columns]
+    if missing:
+        raise CommonArtifactError(f"artifact lacks columns {missing}")
+    ids = raw["player_id"]
+    bad_ids = ids[(ids.str.strip() == "") | (ids != ids.str.strip())]
+    if len(bad_ids):
+        raise CommonArtifactError(f"{len(bad_ids)} rows carry a blank or padded player_id; identity must be exact")
+    season = pd.to_numeric(raw["season"], errors="coerce")
+    games = pd.to_numeric(raw["games"], errors="coerce")
+    points = pd.to_numeric(raw["points"], errors="coerce")
+    for name, col in (("season", season), ("games", games), ("points", points)):
+        if col.isna().any() or not np.isfinite(col.to_numpy(dtype=float)).all():
+            raise CommonArtifactError(f"artifact carries a missing or non-finite {name} value; unknown must be an absent row, not a blank")
+    for name, col in (("season", season), ("games", games)):
+        if (col != np.floor(col)).any():
+            raise CommonArtifactError(f"artifact carries a non-integral {name} value ({col[col != np.floor(col)].iloc[0]!r})")
+    if (games < 0).any():
+        raise CommonArtifactError("artifact carries a negative games count")
+    declared = {int(k): len(v["included_reg_weeks"]) for k, v in season_windows.items()}
+    outside = sorted(set(season.astype(int).unique()) - set(declared))
+    if outside:
+        raise CommonArtifactError(f"artifact carries rows for seasons its windows do not declare: {outside}")
+    window_size = season.astype(int).map(declared)
+    if (games > window_size).any():
+        raise CommonArtifactError("artifact carries more games than its season window holds")
+    flag = raw["appeared"].str.strip().str.lower()
+    unknown = sorted(set(flag) - APPEARED_TRUE - APPEARED_FALSE)
+    if unknown:
+        raise CommonArtifactError(f"appeared must be a boolean flag; found {unknown}")
+    return pd.DataFrame({
+        "player_id": ids, "season": season.astype(int), "games": games.astype(int),
+        "points": points.astype(float), "appeared": flag.isin(APPEARED_TRUE),
+    })
+
+
 def load_common_outcomes(artifact_dir: Path | str, *, require_qualified: bool = False) -> pd.DataFrame:
     """Read ``outcomes.csv`` + ``manifest.json`` from the artifact directory as the outcome
     frame ``annual_targets`` consumes, with its attrs. ``require_qualified`` refuses a
@@ -136,22 +183,7 @@ def load_common_outcomes(artifact_dir: Path | str, *, require_qualified: bool = 
         raise CommonArtifactError(
             f"artifact coverage_status is {facts['coverage_status']!r}; a producer handoff requires the qualified research status"
         )
-    raw = pd.read_csv(d / "outcomes.csv")
-    missing = [c for c in EXPECTED_COLUMNS if c not in raw.columns]
-    if missing:
-        raise CommonArtifactError(f"artifact lacks columns {missing}")
-    out = pd.DataFrame({
-        "player_id": raw["player_id"].astype(str),
-        "season": pd.to_numeric(raw["season"], errors="coerce"),
-        "games": pd.to_numeric(raw["games"], errors="coerce"),
-        "points": pd.to_numeric(raw["points"], errors="coerce"),
-        "appeared": raw["appeared"].map(lambda v: str(v).strip().lower() in ("true", "1", "1.0", "yes")),
-    })
-    if out[["season", "games", "points"]].isna().any().any():
-        raise CommonArtifactError("artifact carries a missing season, games or points value; unknown must be an absent row, not a blank")
-    out["season"] = out["season"].astype(int)
-    out["games"] = out["games"].astype(int)
-    out["points"] = out["points"].astype(float)
+    out = _parse_outcome_rows(csv_bytes, season_windows=facts["season_windows"])
     inconsistent = (out["appeared"] != (out["games"] >= 1)) | ((out["games"] == 0) & (out["points"] != 0.0))
     if inconsistent.any():
         raise CommonArtifactError(
@@ -160,9 +192,6 @@ def load_common_outcomes(artifact_dir: Path | str, *, require_qualified: bool = 
         )
     if out.duplicated(subset=["player_id", "season"]).any():
         raise CommonArtifactError("duplicate (player_id, season) rows")
-    outside = sorted(set(out["season"].unique()) - set(facts["seasons_covered"]))
-    if outside:
-        raise CommonArtifactError(f"artifact carries rows for seasons its windows do not declare: {outside}")
     out = out.sort_values(["player_id", "season"]).reset_index(drop=True)
     out.attrs.update({
         "scope": facts["scope"], "window_id": facts["window_id"], "season_types": ["REG"],

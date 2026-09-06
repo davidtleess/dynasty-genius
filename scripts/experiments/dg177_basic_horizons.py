@@ -101,6 +101,22 @@ def outcome_binding(outcome_attrs: dict) -> dict:
     }
 
 
+POSITION_RULE_NOTE = (
+    "recognized offensive stat-line position first (modal QB/RB/WR/TE stat line); a player whose stat lines "
+    "say a non-offensive position is resolved to an unambiguous same-feature-season offensive roster role "
+    "when exactly one exists, otherwise abstain (no cohort row); today's listing is never used"
+)
+MANIFEST_KEYS_KNOWN_ONLY_AFTER_WRITING = ("outputs", "outputs_sha256")
+
+
+def manifest_disagreements(embedded: dict, final: dict) -> list[str]:
+    """Names of the manifest keys whose value in the manifest EMBEDDED in results.json differs
+    from the FINAL manifest.json, ignoring the keys that can only be known after the files are
+    written. A non-empty list means the two files describe different targets or evidence."""
+    ignore = set(MANIFEST_KEYS_KNOWN_ONLY_AFTER_WRITING)
+    return sorted(k for k in set(embedded) | set(final) if k not in ignore and embedded.get(k) != final.get(k))
+
+
 def window_id_for(label_source_kind: str) -> str:
     if label_source_kind not in WINDOW_IDS:
         raise ValueError(f"unknown label source {label_source_kind!r}; expected one of {sorted(WINDOW_IDS)}")
@@ -381,44 +397,13 @@ def main(argv: list[str] | None = None) -> int:
     manifest["inputs_note"] = "the basic cohort does not read the Engine B training file; its inputs are the two snapshots"
     manifest["horizon_support"] = {str(j): s for j, s in support.items()}
     manifest["unsupported_horizons"] = [j for j in HORIZONS if not support[j]["supported"]]
-    results = {
-        "run_id": run_id, "started_utc": started.isoformat(), "manifest": manifest,
-        "role_fallback": {**roster_facts, "counts": role_counts, "cohort_attr": cohort_all.attrs.get("role_fallback")},
-        "cohort": {"rule": COHORT_RULE, "production_scope": PRODUCTION_SCOPE, "features": list(BASIC_FEATURES),
-                   "feature_notes": {"seasons_played": f"seasons OBSERVED since the cohort start ({args.first_season}); "
-                                                       "left-censored, not full career length",
-                                     "position_rule": "modal stat-line position must be QB/RB/WR/TE; a two-way "
-                                                      "player whose stat lines say CB is excluded by this rule"},
-                   "rows": int(len(df)), "seasons": [seasons[0], seasons[-1]],
-                   "rows_by_position": df.groupby("position").size().to_dict()},
-        "horizon_support": {str(j): s for j, s in support.items()},
-        "historical": historical, "final_fits": fits, "inference_cohort": coverage,
-        "universe_reconciliation": reconciliation,
-        "config": {"draws": args.draws, "seed": args.seed, "min_train_rows": args.min_train_rows,
-                   "min_training_seasons": MIN_TRAINING_SEASONS, "first_season": args.first_season},
-    }
-    provenance = {"git_head": _git("rev-parse", "HEAD"), "git_branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
-                  "source": source, "finished_utc": datetime.now(timezone.utc).isoformat()}
-    report = _render(results)
     historical_predictions = pd.concat(prediction_frames, ignore_index=True) if prediction_frames else pd.DataFrame()
-    written = write_run_artifact(out_dir, results, historical_predictions, provenance=provenance, report_md=report)
-    (out_dir / "basic_forecasts.csv").write_text(forecasts.to_csv(index=False))
-    if len(reconciled):
-        (out_dir / "universe_reconciliation.csv").write_text(reconciled.to_csv(index=False))
-    (out_dir / "basic_cohort.csv.gz").write_bytes(gzip.compress(df.to_csv(index=False).encode("utf-8")))
-    (out_dir / "weekly_stats_snapshot.csv.gz").write_bytes(weekly_bytes)
-    (out_dir / "players_snapshot.csv.gz").write_bytes(players_bytes)
-    (out_dir / "predictions.csv").rename(out_dir / "historical_predictions.csv")
+    role_fallback = {**roster_facts, "counts": role_counts, "cohort_attr": cohort_all.attrs.get("role_fallback")}
+    # Everything the manifest can know BEFORE the files exist is set here, so the manifest
+    # embedded in results.json and the final manifest.json describe the same target.
     manifest["exports"] = {"candidate": "basic_forecasts.csv", "comparator": "none"}
-    (out_dir / "dropped_rows.csv").write_text(dropped_rows.to_csv(index=False))
-    manifest["outputs"] = {name: hashlib.sha256((out_dir / name).read_bytes()).hexdigest()
-                           for name in ["basic_forecasts.csv", "results.json", "historical_predictions.csv",
-                                        "basic_cohort.csv.gz", "weekly_stats_snapshot.csv.gz", "players_snapshot.csv.gz",
-                                        "dropped_rows.csv"]
-                           + (["universe_reconciliation.csv"] if len(reconciled) else [])}
-    manifest["outputs_sha256"] = dict(manifest["outputs"])
     manifest["evaluation_status"] = evaluation_status({"historical": historical}, historical_predictions, arm_key=None)
-    manifest["role_fallback"] = results["role_fallback"]
+    manifest["role_fallback"] = role_fallback
     manifest["label_source"] = label_source
     manifest["window_id"] = window_id_for(label_source["kind"])
     manifest["scoring_scope"]["window_id"] = manifest["window_id"]
@@ -431,6 +416,45 @@ def main(argv: list[str] | None = None) -> int:
         manifest["inputs"]["common_outcomes_sha256"] = label_source["csv_sha256"]
         manifest["inputs"]["common_outcomes_manifest_sha256"] = label_source["manifest_sha256"]
         manifest.update(outcome_binding(outcomes.attrs))
+    results = {
+        "run_id": run_id, "started_utc": started.isoformat(), "manifest": manifest,
+        "role_fallback": role_fallback,
+        "cohort": {"rule": COHORT_RULE, "production_scope": PRODUCTION_SCOPE, "features": list(BASIC_FEATURES),
+                   "feature_notes": {"seasons_played": f"seasons OBSERVED since the cohort start ({args.first_season}); "
+                                                       "left-censored, not full career length",
+                                     "position_rule": POSITION_RULE_NOTE},
+                   "rows": int(len(df)), "seasons": [seasons[0], seasons[-1]],
+                   "rows_by_position": df.groupby("position").size().to_dict()},
+        "horizon_support": {str(j): s for j, s in support.items()},
+        "historical": historical, "final_fits": fits, "inference_cohort": coverage,
+        "universe_reconciliation": reconciliation,
+        "config": {"draws": args.draws, "seed": args.seed, "min_train_rows": args.min_train_rows,
+                   "min_training_seasons": MIN_TRAINING_SEASONS, "first_season": args.first_season},
+    }
+    provenance = {"git_head": _git("rev-parse", "HEAD"), "git_branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
+                  "source": source, "finished_utc": datetime.now(timezone.utc).isoformat()}
+    report = _render(results)
+    written = write_run_artifact(out_dir, results, historical_predictions, provenance=provenance, report_md=report)
+    (out_dir / "basic_forecasts.csv").write_text(forecasts.to_csv(index=False))
+    if len(reconciled):
+        (out_dir / "universe_reconciliation.csv").write_text(reconciled.to_csv(index=False))
+    (out_dir / "basic_cohort.csv.gz").write_bytes(gzip.compress(df.to_csv(index=False).encode("utf-8")))
+    (out_dir / "weekly_stats_snapshot.csv.gz").write_bytes(weekly_bytes)
+    (out_dir / "players_snapshot.csv.gz").write_bytes(players_bytes)
+    (out_dir / "predictions.csv").rename(out_dir / "historical_predictions.csv")
+    (out_dir / "dropped_rows.csv").write_text(dropped_rows.to_csv(index=False))
+    manifest["outputs"] = {name: hashlib.sha256((out_dir / name).read_bytes()).hexdigest()
+                           for name in ["basic_forecasts.csv", "results.json", "historical_predictions.csv",
+                                        "basic_cohort.csv.gz", "weekly_stats_snapshot.csv.gz", "players_snapshot.csv.gz",
+                                        "dropped_rows.csv"]
+                           + (["universe_reconciliation.csv"] if len(reconciled) else [])}
+    manifest["outputs_sha256"] = dict(manifest["outputs"])
+    # Compare the manifest as it was actually SERIALIZED into results.json (read back from disk,
+    # never the in-memory object) with the final manifest, through the same JSON round trip.
+    embedded = json.loads((out_dir / "results.json").read_bytes())["manifest"]
+    disagreements = manifest_disagreements(embedded, json.loads(json.dumps(manifest, default=str)))
+    if disagreements:
+        raise RuntimeError(f"results.json's embedded manifest disagrees with the final manifest on {disagreements}; refusing to finish")
     validate_manifest(manifest, known_arms={ARM},
                       required_inputs=("weekly_stats_sha256", "players_sha256") + (("roster_roles_sha256",) if roster_facts.get("supplied") else ()),
                       run_dir=out_dir)

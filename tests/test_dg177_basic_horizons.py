@@ -55,3 +55,26 @@ def test_outcome_binding_block_uses_the_ranking_lanes_exact_keys():
     assert block["window_id"] == "championship_week17"
     assert block["scoring"] == "nflverse_default_ppr_championship_window_v1"
     assert block["exposure_definition"] == "unique stat_record weeks within the outcome window"
+
+
+def test_embedded_and_final_manifest_disagreements_are_named_not_hidden():
+    from scripts.experiments.dg177_basic_horizons import manifest_disagreements
+
+    final = {"window_id": "championship_week17", "scoring": "nflverse_default_ppr_championship_window_v1",
+             "outcome": {"target_identity": "t" * 64}, "scoring_scope": {"window_id": "championship_week17"},
+             "outputs": {"a": "1"}, "outputs_sha256": {"a": "1"}, "evaluation_status": {"x": 1}}
+    same = dict(final)
+    assert manifest_disagreements(same, final) == []
+    embedded = {**final, "window_id": "all_reg_weeks", "scoring_scope": {"window_id": "all_reg_weeks"}, "outcome": None}
+    embedded.pop("outputs")  # outputs are known only after writing: not a disagreement
+    embedded.pop("outputs_sha256")
+    assert manifest_disagreements(embedded, final) == ["outcome", "scoring_scope", "window_id"]
+
+
+def test_position_rule_note_states_the_actual_fallback_rule():
+    from scripts.experiments.dg177_basic_horizons import POSITION_RULE_NOTE
+
+    assert "recognized offensive stat-line position first" in POSITION_RULE_NOTE
+    assert "unambiguous same-feature-season offensive roster role" in POSITION_RULE_NOTE
+    assert "otherwise abstain" in POSITION_RULE_NOTE
+    assert "excluded" not in POSITION_RULE_NOTE
