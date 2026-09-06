@@ -1,0 +1,1 @@
+Superseded by `runs/20260906T215024Z/dg165_transition_audit` (same numbers; the successor's tool carries root's second-review guards — integral keys, explicit unknown ledger categories, argument validation — and the separate-samples caveat in metrics.json). All original files in this directory are left byte-for-byte as written.
