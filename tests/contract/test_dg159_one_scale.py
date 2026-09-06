@@ -337,10 +337,25 @@ def test_the_quarterbacks_that_did_not_move_are_not_reported_as_having_moved():
     assert "QB/ENGINE_B" not in factors
 
 
-def test_an_ordinary_morning_is_still_not_mistaken_for_a_change_of_units():
-    """Replayed over all 70 day-to-day comparisons in the model capture database, the
-    detector must stay silent on every one. A guard that fires on a normal Tuesday
-    would suppress the report David actually reads."""
+# Mornings on which the units genuinely changed, and why. The detector MUST fire on
+# each of these and on nothing else.
+#
+# ⚠ THIS LIST EXISTS BECAUSE THE TEST BELOW OUTLIVED ITS OWN PREMISE. It walks every
+# consecutive pair of capture dates in the LIVE database and originally asserted the
+# detector never fires. That was true for seventy mornings and then DG-159 shipped, the
+# scale changed for real, the detector correctly said so, and the test failed — asserting
+# that a deliberate, ruled event had not happened. **A test written against unbounded
+# live data will eventually forbid a real event.** Bounding the dates would have fixed the
+# failure by making the test stop watching; declaring the known changes instead makes it
+# STRONGER, because it now also asserts the detector fires when it should, and a second
+# unexplained rescale fails loudly rather than joining the noise.
+KNOWN_UNIT_CHANGES = {
+    ("2026-09-04", "2026-09-05"): "DG-159 — one denominator, David's ruling 2026-09-04",
+}
+
+
+def _unit_change_mornings():
+    """Every consecutive pair of capture dates on which the detector fires."""
     import sqlite3
 
     db = ROOT / "app/data/model_forward_capture.db"
@@ -363,13 +378,37 @@ def test_an_ordinary_morning_is_still_not_mistaken_for_a_change_of_units():
                 {"player_key": k, "position": p, "engine_path": e, "dynasty_value_score": v}
                 for k, p, e, v in con.execute(query, (date,))
             ]
-        fired = [
+        return [
             (a, b) for a, b in zip(dates, dates[1:])
             if detect_uniform_position_factor(rows(a), rows(b)) is not None
-        ]
+        ], len(dates) - 1
     finally:
         con.close()
-    assert fired == [], f"claimed a change of units on an ordinary morning: {fired}"
+
+
+def test_an_ordinary_morning_is_still_not_mistaken_for_a_change_of_units():
+    """Replayed over every day-to-day comparison in the live capture database, the
+    detector must be silent on every morning except the ones we deliberately caused.
+    A guard that fires on a normal Tuesday would suppress the report David reads."""
+    fired, compared = _unit_change_mornings()
+    unexpected = [pair for pair in fired if pair not in KNOWN_UNIT_CHANGES]
+    assert not unexpected, (
+        f"claimed a change of units on {len(unexpected)} ordinary morning(s) out of "
+        f"{compared} compared: {unexpected}. Either a rescale shipped without being "
+        f"declared in KNOWN_UNIT_CHANGES, or the detector has become too sensitive."
+    )
+
+
+def test_the_detector_fires_on_the_mornings_the_scale_actually_moved():
+    """The other half, and the reason declaring the known changes beats bounding the
+    dates: a silent detector would now pass the test above trivially. This one fails if
+    the guard ever stops noticing a rescale we know happened."""
+    fired, _ = _unit_change_mornings()
+    missed = [pair for pair in KNOWN_UNIT_CHANGES if pair not in fired]
+    assert not missed, (
+        f"the detector did NOT notice a unit change we know shipped: "
+        f"{[(p, KNOWN_UNIT_CHANGES[p]) for p in missed]}"
+    )
 
 
 # ── 7. the guard that replaces DG-092's, and why it is not weaker ───────────
