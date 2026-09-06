@@ -69,6 +69,12 @@ from src.dynasty_genius.eval.annual_outcomes import (  # noqa: E402
     season_outcomes,
     validate_weekly_source,
 )
+from src.dynasty_genius.eval.evaluation_status import (  # noqa: E402
+    BOOTSTRAP_MEANING,
+    BRIER_MEANING,
+    SUPPORTED_MEANING,
+    evaluation_status,
+)
 from src.dynasty_genius.eval.veteran_candidate import (
     validate_candidate_features,  # noqa: E402
     write_run_artifact,  # noqa: E402
@@ -268,8 +274,9 @@ def build_manifest(
         "outputs": dict(outputs or {}),
         "outputs_sha256": dict(outputs or {}),
         "source_validation": dict(source_validation or {}),
-        "intervals": "none exported; historical bootstrap intervals are conditional on the fitted models "
-                     "(fit uncertainty), not model or season uncertainty",
+        "intervals": "none exported; " + BOOTSTRAP_MEANING,
+        "meaning": {"supported": SUPPORTED_MEANING, "bootstrap": BOOTSTRAP_MEANING, "brier": BRIER_MEANING},
+        "evaluation_status": {},
         "source": source,
         "git_head": git_head,
     }
@@ -493,6 +500,10 @@ def main(argv: list[str] | None = None) -> int:
         for name in [*EXPORTS.values(), "results.json", "historical_predictions.csv", "weekly_stats_snapshot.csv.gz"]
     }
     manifest["outputs_sha256"] = dict(manifest["outputs"])
+    manifest["evaluation_status"] = evaluation_status(
+        {"historical": {p: {h: arms[ARM_CANDIDATE] for h, arms in per.items()} for p, per in historical.items()}},
+        historical_predictions, arm_key=ARM_CANDIDATE,
+    )
     validate_manifest(manifest)
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     print(f"wrote {written + list(EXPORTS.values()) + ['manifest.json', 'weekly_stats_snapshot.csv.gz']} to {out_dir}")

@@ -193,3 +193,15 @@ def test_validate_manifest_lets_the_runner_declare_its_required_inputs():
     with pytest.raises(ManifestShapeError, match="training_csv_sha256"):
         validate_manifest(m)
     validate_manifest(m, required_inputs=("weekly_stats_sha256", "players_sha256"))
+
+
+def test_manifest_states_what_the_bootstrap_means_and_carries_an_evaluation_status_slot():
+    from src.dynasty_genius.eval.evaluation_status import (
+        BOOTSTRAP_MEANING,
+        SUPPORTED_MEANING,
+    )
+
+    m = _good_manifest()
+    assert m["intervals"] == "none exported; " + BOOTSTRAP_MEANING
+    assert m["meaning"]["supported"] == SUPPORTED_MEANING
+    assert m["evaluation_status"] == {}                      # filled by the runner from graded results

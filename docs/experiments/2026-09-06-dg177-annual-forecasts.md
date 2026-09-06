@@ -1,7 +1,10 @@
 # DG-177 — Year-1 and year-2 veteran forecasts on the appearance event
 
 **Date:** 2026-09-06 · **Lane:** Davids-MacBook-Pro-23481 · **Branch:** `ticket/DG-177` · **Run:**
-`runs/20260906T154635Z/dg177_annual_forecasts/` (round 2, corrected; round-1 run `20260906T145606Z` kept) · **Report-only.** Labels come from a fresh pull of public nflverse
+`runs/20260906T154635Z/dg177_annual_forecasts/` (canonical, round 2) · **Report-only.** The round-1 run
+`20260906T145606Z` is superseded; its tables are kept at the end of this report as a labelled historical comparator
+and nothing in the main narrative rests on them. Codex's review of the canonical run (2026-09-06): provisional
+research-input pass, not validation, not promotion. Labels come from a fresh pull of public nflverse
 weekly player stats saved in the run directory with its sha; nothing served changed; nothing shared was written.
 Review round 1, item 3, and the contract agreed with DG-178 the same morning.
 
@@ -35,38 +38,7 @@ cannot support the leak-free selection is skipped with the reason: for j = 1 the
 every position, plus QB 2019 on the 60-row floor; for j = 2 the 2020 and 2021 folds everywhere. Every exported
 quantity is graded against its own label; top-k is averaged within forecast seasons.
 
-## 3. Historical results (pooled over evaluated folds; Δ = model − training-only baseline, 90% player-resampled intervals)
-
-**Year 1** (forecast seasons 2021–2024):
-
-| pos | arm | P(appear) Brier model / base · AUC · base rate | points\|appear Δr² | games\|appear Δr² | unconditional points Δr² | unconditional ΔRMSE |
-|---|---|---|---|---|---|---|
-| QB | served | 0.101 / 0.107 · 0.74 · 0.88 | +0.034 [−0.017, +0.092] | +0.375 [+0.267, +0.484] | +0.006 [−0.049, +0.056] | −0.5 [−4.8, +3.9] |
-| QB | 3 columns | 0.102 / 0.107 · 0.72 · 0.88 | +0.025 [−0.021, +0.076] | +0.371 [+0.260, +0.481] | +0.013 [−0.022, +0.049] | −1.1 [−4.1, +1.9] |
-| RB | served | 0.125 / 0.146 · 0.78 · 0.82 | +0.071 [+0.029, +0.118] | +0.216 [+0.164, +0.266] | +0.032 [+0.001, +0.061] | −2.1 [−4.0, −0.1] |
-| RB | 3 columns | 0.118 / 0.146 · 0.80 · 0.82 | +0.069 [+0.028, +0.115] | +0.227 [+0.171, +0.281] | +0.055 [+0.031, +0.079] | −3.6 [−5.2, −1.9] |
-| WR | served | 0.131 / 0.146 · 0.79 · 0.82 | +0.054 [+0.019, +0.091] | +0.194 [+0.144, +0.240] | +0.041 [+0.015, +0.067] | −2.8 [−4.7, −1.0] |
-| WR | 3 columns | 0.119 / 0.146 · 0.82 · 0.82 | +0.041 [+0.009, +0.078] | +0.198 [+0.150, +0.243] | +0.030 [+0.008, +0.051] | −2.0 [−3.5, −0.5] |
-| TE | served | 0.135 / 0.148 · 0.75 · 0.82 | +0.073 [+0.028, +0.121] | +0.281 [+0.228, +0.334] | +0.020 [−0.005, +0.046] | −0.9 [−2.1, +0.2] |
-| TE | 3 columns | 0.128 / 0.148 · 0.79 · 0.82 | +0.070 [+0.026, +0.120] | +0.276 [+0.224, +0.329] | +0.020 [−0.003, +0.047] | −0.9 [−2.0, +0.1] |
-
-**Year 2** (forecast seasons 2024–2025; two folds):
-
-| pos | arm | P(appear) Brier model / base · AUC · base rate | points\|appear Δr² | games\|appear Δr² | unconditional points Δr² | unconditional ΔRMSE |
-|---|---|---|---|---|---|---|
-| QB | served | 0.199 / 0.188 · 0.64 · 0.75 | −0.026 [−0.074, +0.028] | +0.344 [+0.182, +0.507] | −0.081 [−0.161, −0.010] | +6.6 [+0.8, +12.1] |
-| QB | 3 columns | 0.163 / 0.188 · 0.75 · 0.75 | −0.022 [−0.087, +0.046] | +0.363 [+0.202, +0.520] | −0.030 [−0.091, +0.027] | +2.5 [−2.1, +7.4] |
-| RB | served | 0.184 / 0.232 · 0.77 · 0.65 | +0.043 [−0.032, +0.128] | +0.162 [+0.096, +0.230] | +0.077 [+0.030, +0.128] | −4.8 [−8.0, −1.8] |
-| RB | 3 columns | 0.171 / 0.232 · 0.81 · 0.65 | +0.039 [−0.039, +0.132] | +0.158 [+0.105, +0.213] | +0.085 [+0.044, +0.127] | −5.3 [−7.8, −2.7] |
-| WR | served | 0.184 / 0.217 · 0.75 · 0.68 | +0.094 [+0.047, +0.149] | +0.168 [+0.094, +0.240] | +0.087 [+0.024, +0.137] | −5.1 [−8.8, −1.3] |
-| WR | 3 columns | 0.165 / 0.217 · 0.79 · 0.68 | +0.111 [+0.054, +0.178] | +0.162 [+0.101, +0.223] | +0.097 [+0.049, +0.137] | −5.8 [−8.7, −2.7] |
-| TE | served | 0.156 / 0.202 · 0.80 · 0.73 | +0.173 [+0.059, +0.331] | +0.265 [+0.182, +0.350] | +0.027 [−0.030, +0.073] | −1.2 [−3.2, +1.2] |
-| TE | 3 columns | 0.164 / 0.202 · 0.79 · 0.73 | +0.152 [+0.027, +0.323] | +0.255 [+0.179, +0.330] | +0.041 [−0.015, +0.088] | −1.8 [−3.9, +0.6] |
-
-Per fold, calibration bins and every other metric are in the run's `results.json` and `report.md`;
-`historical_predictions.csv` holds one row per graded test row per arm and horizon.
-
-## 3b. Round-2 corrections and the selection policy (run `20260906T154635Z`)
+## 3. The canonical result: the selection policy on run `20260906T154635Z`
 
 The round-1 artifact chose its exported arm on the same outer folds it reported, nested arm names where
 positions belong in its manifest, and filled missing weekly points with zero on the pull. Round 2 replaces all three:
@@ -99,37 +71,33 @@ the year-2 quantities are exported with their policy chosen on the full closed w
 and are ungraded here. That is not a claim of beating or failing the baseline. The longer basic cohort (§ the
 companion report) is where year 2 and beyond are graded.
 
-## 4. The reading
+## 4. The reading (canonical run)
 
-1. **The appearance probability is calibrated better than the base rate at every position and horizon except QB
-   year 2 with the served list**, where it scores below the base rate (Brier 0.199 vs 0.188) on 118 rows. The
-   three-column arm does not have that problem (0.163). Year-1 AUCs sit at 0.72–0.82 on a base rate of 0.82–0.88:
-   most players appear, and the model mostly tells the rest apart.
-2. **Unconditional season points beat persistence detectably at RB and WR on both horizons** (Δr² +0.03 to +0.10),
-   **not detectably at TE**, and **not at QB** — where the served-list year-2 forecast is detectably worse than
-   last season's points scaled by retention. A QB's next-but-one season is not something these features forecast
-   better than "what he did, discounted".
-3. **Games given appearance is where the features do most of their work** (Δr² +0.16 to +0.38 everywhere), which is
-   largely the persistence baseline being a constant: any model that reads `games_t` beats a training mean. Read
-   those rows as "exposure is forecastable from exposure", not as a modelling achievement.
-4. **The three-column set is the exported candidate.** It matched or beat the served list on unconditional points
-   in six of eight cells and never lost detectably, and it avoids the QB year-2 failure. That choice was made on
-   these same folds — a selection between two arms, stated as such in the manifest — and both arms are exported.
+1. **Year 1, folds 2021–2023.** The policy's unconditional season points beat the training-only persistence
+   baseline within the reported 90% interval at RB (+0.053 [+0.028, +0.079] r²) and WR (+0.030 [+0.013, +0.048]);
+   at QB (+0.015 [−0.009, +0.041]) and TE (+0.014 [−0.012, +0.043]) the interval includes zero and the result is
+   inconclusive. The appearance probability's Brier score is below the base rate at all four positions; that alone
+   is not a calibration proof, and the companion status record carries expected calibration error and reliability
+   slope/intercept computed from the graded predictions.
+2. **Year 2: zero evaluated policy folds** at every position on this file. The year-2 quantities are exported with
+   their policy chosen on the full closed window and are ungraded here. That is a statement about the evaluable
+   history of the 2018-based file, not about the forecast's quality either way. The basic-cohort report grades year 2.
+3. **The policy chose a 0.75 blend with persistence for points at most positions and the ridge for games** (manifest
+   `selection_policy.chosen`); where it picks the baseline that is model selection on closed inner folds, not a discount.
 
 ## 5. What this does not support
 
-- **Two arms, chosen on the test folds.** The candidate/comparator choice is a selection effect of the mildest kind
-  (two candidates), but it is one; the historical numbers for the chosen arm are not an independent validation.
-- **Year 2 rests on two folds** (forecast seasons 2024 and 2025). Intervals are wide and TE year-2 points|appear
-  ranges from +0.03 to +0.33.
-- **No 2024 feature season.** The tracked training file omits 2024 rows (the assembler's two-season window), so
-  the year-1 evaluation has no 2024→2025 fold and the final year-1 fit trains through feature season 2023. A
-  rebuild with per-season targets would add it; that is the assembler's change, not this increment's.
-- **Bootstrap intervals are conditional on the fitted models** — fit uncertainty, not model or season uncertainty.
-- **Clipping.** Negative conditional points are clipped to zero and games to the training range; counts are in
-  each fit record. A clipped forecast is a forecast the linear model could not make sensibly.
-- **Composition.** `e_points = p × E[points | appear]` holds by construction on identical rows and events. It does
-  not by itself make a value; the replacement bar and the posture discount are the ranking lane's.
+- **"Supported" means the closed history was sufficient to evaluate; it never means validated.** The
+  machine-readable status beside the run (`dg177_annual_forecasts.evaluation_status.json`) names each horizon
+  `evaluated`, `no_evaluated_policy_fold` or `unsupported`, and words the baseline comparison from its interval.
+- **Bootstrap intervals are sampling uncertainty conditional on the fitted models** — players resampled from fixed
+  fits. They are not model, selection or season uncertainty, and not forecast intervals.
+- **Three folds for year 1, none for year 2.** A longer file, not a looser rule, is what adds folds; the basic
+  cohort is that file.
+- **No 2024 feature season** in the tracked training file (the assembler's two-season window), so year 1 has no
+  2024→2025 fold and the final fits train through feature season 2023.
+- **Composition** (`e_points = p × E[points | appear]`) holds by construction on identical rows and events. It does
+  not by itself make a value.
 
 ## 6. Reproduce
 
@@ -140,3 +108,38 @@ companion report) is where year 2 and beyond are graded.
 Outputs: `annual_forecasts.csv` (candidate arm, 505 rows of the 2025 feature partition, both horizons),
 `annual_forecasts_served_features.csv` (comparator arm), `manifest.json` (every typed term above plus shas),
 `historical_predictions.csv`, `results.json`, `report.md`, `weekly_stats_snapshot.csv.gz` (the pulled labels).
+
+## Appendix — round-1 comparator (run `20260906T145606Z`, SUPERSEDED): per-arm outer-fold scores under the old exported-arm choice
+
+These tables are the round-1 measurement (both arms scored on outer folds; the exported arm was chosen on those same folds). They are retained for comparison only. **They are not the canonical evidence and the sentences that used to accompany them ("both horizons beat persistence", "year 2 rests on two folds") are withdrawn**: under the canonical procedure year 2 has zero evaluated policy folds on this file.
+
+
+**Year 1** (forecast seasons 2021–2024):
+
+| pos | arm | P(appear) Brier model / base · AUC · base rate | points\|appear Δr² | games\|appear Δr² | unconditional points Δr² | unconditional ΔRMSE |
+|---|---|---|---|---|---|---|
+| QB | served | 0.101 / 0.107 · 0.74 · 0.88 | +0.034 [−0.017, +0.092] | +0.375 [+0.267, +0.484] | +0.006 [−0.049, +0.056] | −0.5 [−4.8, +3.9] |
+| QB | 3 columns | 0.102 / 0.107 · 0.72 · 0.88 | +0.025 [−0.021, +0.076] | +0.371 [+0.260, +0.481] | +0.013 [−0.022, +0.049] | −1.1 [−4.1, +1.9] |
+| RB | served | 0.125 / 0.146 · 0.78 · 0.82 | +0.071 [+0.029, +0.118] | +0.216 [+0.164, +0.266] | +0.032 [+0.001, +0.061] | −2.1 [−4.0, −0.1] |
+| RB | 3 columns | 0.118 / 0.146 · 0.80 · 0.82 | +0.069 [+0.028, +0.115] | +0.227 [+0.171, +0.281] | +0.055 [+0.031, +0.079] | −3.6 [−5.2, −1.9] |
+| WR | served | 0.131 / 0.146 · 0.79 · 0.82 | +0.054 [+0.019, +0.091] | +0.194 [+0.144, +0.240] | +0.041 [+0.015, +0.067] | −2.8 [−4.7, −1.0] |
+| WR | 3 columns | 0.119 / 0.146 · 0.82 · 0.82 | +0.041 [+0.009, +0.078] | +0.198 [+0.150, +0.243] | +0.030 [+0.008, +0.051] | −2.0 [−3.5, −0.5] |
+| TE | served | 0.135 / 0.148 · 0.75 · 0.82 | +0.073 [+0.028, +0.121] | +0.281 [+0.228, +0.334] | +0.020 [−0.005, +0.046] | −0.9 [−2.1, +0.2] |
+| TE | 3 columns | 0.128 / 0.148 · 0.79 · 0.82 | +0.070 [+0.026, +0.120] | +0.276 [+0.224, +0.329] | +0.020 [−0.003, +0.047] | −0.9 [−2.0, +0.1] |
+
+**Year 2** (forecast seasons 2024–2025; two folds):
+
+| pos | arm | P(appear) Brier model / base · AUC · base rate | points\|appear Δr² | games\|appear Δr² | unconditional points Δr² | unconditional ΔRMSE |
+|---|---|---|---|---|---|---|
+| QB | served | 0.199 / 0.188 · 0.64 · 0.75 | −0.026 [−0.074, +0.028] | +0.344 [+0.182, +0.507] | −0.081 [−0.161, −0.010] | +6.6 [+0.8, +12.1] |
+| QB | 3 columns | 0.163 / 0.188 · 0.75 · 0.75 | −0.022 [−0.087, +0.046] | +0.363 [+0.202, +0.520] | −0.030 [−0.091, +0.027] | +2.5 [−2.1, +7.4] |
+| RB | served | 0.184 / 0.232 · 0.77 · 0.65 | +0.043 [−0.032, +0.128] | +0.162 [+0.096, +0.230] | +0.077 [+0.030, +0.128] | −4.8 [−8.0, −1.8] |
+| RB | 3 columns | 0.171 / 0.232 · 0.81 · 0.65 | +0.039 [−0.039, +0.132] | +0.158 [+0.105, +0.213] | +0.085 [+0.044, +0.127] | −5.3 [−7.8, −2.7] |
+| WR | served | 0.184 / 0.217 · 0.75 · 0.68 | +0.094 [+0.047, +0.149] | +0.168 [+0.094, +0.240] | +0.087 [+0.024, +0.137] | −5.1 [−8.8, −1.3] |
+| WR | 3 columns | 0.165 / 0.217 · 0.79 · 0.68 | +0.111 [+0.054, +0.178] | +0.162 [+0.101, +0.223] | +0.097 [+0.049, +0.137] | −5.8 [−8.7, −2.7] |
+| TE | served | 0.156 / 0.202 · 0.80 · 0.73 | +0.173 [+0.059, +0.331] | +0.265 [+0.182, +0.350] | +0.027 [−0.030, +0.073] | −1.2 [−3.2, +1.2] |
+| TE | 3 columns | 0.164 / 0.202 · 0.79 · 0.73 | +0.152 [+0.027, +0.323] | +0.255 [+0.179, +0.330] | +0.041 [−0.015, +0.088] | −1.8 [−3.9, +0.6] |
+
+Per fold, calibration bins and every other metric are in the run's `results.json` and `report.md`;
+`historical_predictions.csv` holds one row per graded test row per arm and horizon.
+

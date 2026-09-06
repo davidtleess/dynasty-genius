@@ -92,6 +92,16 @@ with forecasts; James, Royals, Ekeler, Richardson and Kraft appeared in 2025 and
 position case above. DG-178's message had swapped two Sleeper ids (9484 is Kraft; Dell is 9502); their universe
 file was already right.
 
+## 5b. Calibration, beyond Brier (companion record `dg177_basic_horizons.evaluation_status.json`)
+
+A better Brier score than the base rate is not a calibration proof. From the graded predictions: for years one to
+three the reliability slope of a logistic recalibration sits at 0.86–1.24 with expected calibration error of
+0.02–0.05 at every position, i.e. the appearance probabilities are used close to their face value; for years four
+and five the slope drifts to 1.1–1.6 and the error to 0.05–0.10, so those probabilities are directionally right and
+somewhat under-confident. The status record beside the run carries these per position and horizon, together with
+the fold counts and the baseline comparison worded from its interval; "supported" there means the closed history
+was sufficient to evaluate, never validated.
+
 ## 6. What this does not support
 
 - **Comparability with the annual handoff** is by event and scoring only, not by population (§4.2).
@@ -100,7 +110,7 @@ file was already right.
   player is a modelling choice, stated, not made.
 - **Basic features only.** No tracking, opportunity or efficiency columns; that is the point of the cohort, and it
   is also its ceiling.
-- **Bootstrap intervals are conditional on the fitted models**, as everywhere in this ticket.
+- **Bootstrap intervals are sampling uncertainty conditional on the fitted models**, not model, selection or season uncertainty, as everywhere in this ticket.
 
 ## 7. Reproduce
 

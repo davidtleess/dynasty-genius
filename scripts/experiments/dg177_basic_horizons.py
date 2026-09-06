@@ -57,6 +57,10 @@ from src.dynasty_genius.eval.basic_cohort import (  # noqa: E402
     build_basic_cohort,
     validate_players_table,
 )
+from src.dynasty_genius.eval.evaluation_status import (  # noqa: E402
+    SUPPORTED_MEANING,
+    evaluation_status,
+)
 from src.dynasty_genius.eval.universe_reconciliation import (
     reconcile_universe,  # noqa: E402
 )
@@ -85,6 +89,7 @@ def horizon_support(seasons: Iterable[int], *, last_complete_season: int, min_tr
         out[j] = {
             "closed_feature_seasons": closed,
             "supported": supported,
+            "supported_means": SUPPORTED_MEANING,
             "reason": None if supported else (
                 f"year-{j} labels close only for feature seasons {closed[0] if closed else '—'}..{closed[-1] if closed else '—'} "
                 f"({len(closed)} seasons) with a cohort starting {seasons[0]}; fewer than the {min_training_seasons} "
@@ -310,6 +315,7 @@ def main(argv: list[str] | None = None) -> int:
                                         "basic_cohort.csv.gz", "weekly_stats_snapshot.csv.gz", "players_snapshot.csv.gz"]}
     manifest["outputs"]["annual_forecasts.csv"] = manifest["outputs"]["basic_forecasts.csv"]  # the consumer's required key
     manifest["outputs_sha256"] = dict(manifest["outputs"])
+    manifest["evaluation_status"] = evaluation_status({"historical": historical}, historical_predictions, arm_key=None)
     validate_manifest(manifest, known_arms={ARM}, required_inputs=("weekly_stats_sha256", "players_sha256"))
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     print(f"wrote {written} + basic_forecasts.csv, basic_cohort.csv.gz, snapshots, manifest.json to {out_dir}")
