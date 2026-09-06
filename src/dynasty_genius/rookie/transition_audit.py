@@ -20,14 +20,26 @@ from pathlib import Path
 import pandas as pd
 
 __all__ = [
+    "DRAFT_STATUS",
     "RookieRun",
     "VeteranRun",
+    "classify_draft_status",
     "load_rookie_run",
     "load_veteran_run",
     "verify_same_target",
 ]
 
 ROOKIE_FILES = ("cohort.csv", "out_of_time_predictions.csv")
+LABEL_BASIS_UNRESOLVED = "unresolved"  # the only label_basis that means "identity unknown"; all others name the resolving source
+SKILL_POSITIONS = ("QB", "RB", "WR", "TE")
+DRAFT_STATUS = (
+    "drafted_skill",                  # in the modelling cohort with a resolved identity
+    "drafted_skill_unresolved",       # in the modelling cohort, identity unresolved (never reaches a veteran row)
+    "drafted_skill_outside_cohort",   # raw draft table says a skill position, but outside the modelling cohort (e.g. pre-2001)
+    "drafted_other_position",         # raw draft table says a non-skill position
+    "no_draft_record",                # absent from the raw draft table: UNKNOWN draft status, not evidence of going undrafted
+    "unknown_identity",               # the veteran side could not resolve the identity
+)
 ROOKIE_INPUT_FILES = {"inputs/nflverse_draft_picks.parquet": "nflverse_draft_picks"}
 VETERAN_FILES = ("historical_predictions.csv", "basic_cohort.csv.gz")
 
@@ -118,3 +130,28 @@ def verify_same_target(rookie: RookieRun, veteran: VeteranRun) -> dict:
         if a != b:
             raise ValueError(f"{key}: rookie {str(a)[:16]}… != veteran {str(b)[:16]}…")
     return {"status": "same_target", **{k: a for k, (a, _) in pairs.items()}}
+
+
+def classify_draft_status(player_ids: pd.Series, identity_status: pd.Series, rookie: RookieRun) -> pd.Series:
+    """Drafted at a skill position (inside or outside the modelling cohort), drafted elsewhere, no draft
+    record, or unknown identity — never conflated. Absence from the raw draft table is an UNKNOWN draft
+    status while coverage and id matching are incomplete; it is not evidence that a player went undrafted."""
+    cohort = rookie.cohort
+    basis = cohort["label_basis"].astype(str)
+    skill_resolved = set(cohort.loc[basis != LABEL_BASIS_UNRESOLVED, "gsis_id"].astype(str))
+    skill_unresolved = set(cohort.loc[basis == LABEL_BASIS_UNRESOLVED, "gsis_id"].astype(str))
+    picks = rookie.draft_picks.loc[rookie.draft_picks["gsis_id"].notna()]
+    raw_position = {str(pid): str(pos) for pid, pos in zip(picks["gsis_id"], picks["position"])}
+    out = []
+    for pid, status in zip(player_ids.astype(str), identity_status.astype(str)):
+        if status != "resolved":
+            out.append("unknown_identity")
+        elif pid in skill_resolved:
+            out.append("drafted_skill")
+        elif pid in skill_unresolved:
+            out.append("drafted_skill_unresolved")
+        elif pid in raw_position:
+            out.append("drafted_skill_outside_cohort" if raw_position[pid] in SKILL_POSITIONS else "drafted_other_position")
+        else:
+            out.append("no_draft_record")
+    return pd.Series(out, index=player_ids.index, dtype="object")

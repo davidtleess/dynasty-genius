@@ -54,7 +54,8 @@ def make_rookie_run(root: Path, *, oot: pd.DataFrame | None = None, cohort: pd.D
             "gsis_id": ["00-A", "00-B", "00-C", "00-D"],
             "draft_season": [2015] * 4, "position": ["QB", "RB", "WR", "TE"],
             "pick": [1, 40, 90, 150], "round": [1, 2, 3, 5], "age_at_draft": [22.0, 21.5, 22.3, 23.0],
-            "team": ["X"] * 4, "name": ["Ann", "Bob", "Cy", "Dee"], "label_basis": ["resolved"] * 4,
+            "team": ["X"] * 4, "name": ["Ann", "Bob", "Cy", "Dee"],
+            "label_basis": ["nflverse_gsis", "players:name+year", "nflverse_gsis", "rosters:entry_year+draft_number"],
             "position_current": ["QB", "RB", "WR", "TE"],
             "forecast_year": [2015] * 4,
             # season-1 labels: Dee never appeared in the window
