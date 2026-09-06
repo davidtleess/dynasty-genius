@@ -1,0 +1,975 @@
+{
+ "schema_version": "dg179_source_preparation_v1",
+ "admitted_seasons": [
+  2001,
+  2002,
+  2003,
+  2004,
+  2005,
+  2006,
+  2007,
+  2008,
+  2009,
+  2010,
+  2011,
+  2012,
+  2013,
+  2014,
+  2015,
+  2016,
+  2017,
+  2018,
+  2019,
+  2020,
+  2021,
+  2022,
+  2023,
+  2024,
+  2025
+ ],
+ "excluded_seasons": {
+  "1999": [
+   "1999_01_BAL_STL"
+  ],
+  "2000": [
+   "2000_03_SD_KC",
+   "2000_06_BUF_MIA"
+  ]
+ },
+ "excluded_seasons_policy": "incomplete schedule coverage in the source; never zero-labelled; rows remain only in the raw capture",
+ "identified_weekly_sha256": "6f7c76cca4f1e9b1fb6bb40b1c83d76f5dc85afcb66c0662904bf9f1b662c748",
+ "identified_weekly": {
+  "rows": 442167,
+  "columns": 150
+ },
+ "research_qualified": true,
+ "individual_stat_completeness_proven": false,
+ "game_coverage": {
+  "verified": true,
+  "missing_game_ids": [],
+  "unexpected_game_ids": [],
+  "cancelled_game_ids": [
+   "2022_17_BUF_CIN"
+  ],
+  "per_season": [
+   {
+    "season": 2001,
+    "schedule_reg_games": 248,
+    "cancelled": [],
+    "completed_games": 248,
+    "weekly_reg_games": 248,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2002,
+    "schedule_reg_games": 256,
+    "cancelled": [],
+    "completed_games": 256,
+    "weekly_reg_games": 256,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2003,
+    "schedule_reg_games": 256,
+    "cancelled": [],
+    "completed_games": 256,
+    "weekly_reg_games": 256,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2004,
+    "schedule_reg_games": 256,
+    "cancelled": [],
+    "completed_games": 256,
+    "weekly_reg_games": 256,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2005,
+    "schedule_reg_games": 256,
+    "cancelled": [],
+    "completed_games": 256,
+    "weekly_reg_games": 256,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2006,
+    "schedule_reg_games": 256,
+    "cancelled": [],
+    "completed_games": 256,
+    "weekly_reg_games": 256,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2007,
+    "schedule_reg_games": 256,
+    "cancelled": [],
+    "completed_games": 256,
+    "weekly_reg_games": 256,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2008,
+    "schedule_reg_games": 256,
+    "cancelled": [],
+    "completed_games": 256,
+    "weekly_reg_games": 256,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2009,
+    "schedule_reg_games": 256,
+    "cancelled": [],
+    "completed_games": 256,
+    "weekly_reg_games": 256,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2010,
+    "schedule_reg_games": 256,
+    "cancelled": [],
+    "completed_games": 256,
+    "weekly_reg_games": 256,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2011,
+    "schedule_reg_games": 256,
+    "cancelled": [],
+    "completed_games": 256,
+    "weekly_reg_games": 256,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2012,
+    "schedule_reg_games": 256,
+    "cancelled": [],
+    "completed_games": 256,
+    "weekly_reg_games": 256,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2013,
+    "schedule_reg_games": 256,
+    "cancelled": [],
+    "completed_games": 256,
+    "weekly_reg_games": 256,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2014,
+    "schedule_reg_games": 256,
+    "cancelled": [],
+    "completed_games": 256,
+    "weekly_reg_games": 256,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2015,
+    "schedule_reg_games": 256,
+    "cancelled": [],
+    "completed_games": 256,
+    "weekly_reg_games": 256,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2016,
+    "schedule_reg_games": 256,
+    "cancelled": [],
+    "completed_games": 256,
+    "weekly_reg_games": 256,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2017,
+    "schedule_reg_games": 256,
+    "cancelled": [],
+    "completed_games": 256,
+    "weekly_reg_games": 256,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2018,
+    "schedule_reg_games": 256,
+    "cancelled": [],
+    "completed_games": 256,
+    "weekly_reg_games": 256,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2019,
+    "schedule_reg_games": 256,
+    "cancelled": [],
+    "completed_games": 256,
+    "weekly_reg_games": 256,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2020,
+    "schedule_reg_games": 256,
+    "cancelled": [],
+    "completed_games": 256,
+    "weekly_reg_games": 256,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2021,
+    "schedule_reg_games": 272,
+    "cancelled": [],
+    "completed_games": 272,
+    "weekly_reg_games": 272,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2022,
+    "schedule_reg_games": 271,
+    "cancelled": [],
+    "completed_games": 271,
+    "weekly_reg_games": 271,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2023,
+    "schedule_reg_games": 272,
+    "cancelled": [],
+    "completed_games": 272,
+    "weekly_reg_games": 272,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2024,
+    "schedule_reg_games": 272,
+    "cancelled": [],
+    "completed_games": 272,
+    "weekly_reg_games": 272,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   },
+   {
+    "season": 2025,
+    "schedule_reg_games": 272,
+    "cancelled": [],
+    "completed_games": 272,
+    "weekly_reg_games": 272,
+    "missing": [],
+    "unexpected": [],
+    "week_label_mismatches": []
+   }
+  ]
+ },
+ "quarantine": {
+  "path": "quarantine.parquet",
+  "sha256": "a0f4d9c6e790e16075ba6ac20bd91ffb429b7163af82f39091a698f1ccb82a64",
+  "csv_sha256": "7f38a2fd6e9deb01cac0b13d17ff4e660d5b51f4afbaf92df1e4f1c8ba5ff5f8",
+  "row_count": 530,
+  "zero_placeholder_rows": 524,
+  "nonzero_rows": [
+   {
+    "season": 2001,
+    "week": 11,
+    "team": "GB",
+    "opponent_team": "DET",
+    "player_name": "Team",
+    "fantasy_points_ppr": 1.68,
+    "source_file_sha256": "5a9f2cfc6630e17e95d4a3375ab3a2ebf31256a383aa9f05e999b41e8d68ddf0",
+    "source_row_index": 10277
+   },
+   {
+    "season": 2001,
+    "week": 14,
+    "team": "ARI",
+    "opponent_team": "NYG",
+    "player_name": null,
+    "fantasy_points_ppr": -2.0,
+    "source_file_sha256": "5a9f2cfc6630e17e95d4a3375ab3a2ebf31256a383aa9f05e999b41e8d68ddf0",
+    "source_row_index": 13176
+   },
+   {
+    "season": 2001,
+    "week": 16,
+    "team": "BAL",
+    "opponent_team": "TB",
+    "player_name": null,
+    "fantasy_points_ppr": -2.0,
+    "source_file_sha256": "5a9f2cfc6630e17e95d4a3375ab3a2ebf31256a383aa9f05e999b41e8d68ddf0",
+    "source_row_index": 15110
+   },
+   {
+    "season": 2003,
+    "week": 4,
+    "team": "PHI",
+    "opponent_team": "BUF",
+    "player_name": "Team",
+    "fantasy_points_ppr": -0.1,
+    "source_file_sha256": "3113e4a054dbee1b4ddde2a0ec143eb44f8ca22daaa3ba18a64e8ce03d711ca0",
+    "source_row_index": 3897
+   },
+   {
+    "season": 2005,
+    "week": 1,
+    "team": "LV",
+    "opponent_team": "NE",
+    "player_name": "Team",
+    "fantasy_points_ppr": 6.0,
+    "source_file_sha256": "5646a8f2c0f4081f4e0675e5922d7548d9e8ed12717d9ab34e951d98d6ab57a3",
+    "source_row_index": 1042
+   },
+   {
+    "season": 2012,
+    "week": 6,
+    "team": "TEN",
+    "opponent_team": "PIT",
+    "player_name": "D.Bryant",
+    "fantasy_points_ppr": 3.1,
+    "source_file_sha256": "b33f939c2ec0659c15dc38a5cbc4de20e330008c8f36576ef398877a4ddcd7c9",
+    "source_row_index": 5926
+   }
+  ],
+  "point_totals_by_season": {
+   "2001": {
+    "rows": 21,
+    "signed_points": -2.3200000000000003,
+    "absolute_points": 5.68,
+    "nonzero_rows": 3
+   },
+   "2002": {
+    "rows": 21,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   },
+   "2003": {
+    "rows": 21,
+    "signed_points": -0.1,
+    "absolute_points": 0.1,
+    "nonzero_rows": 1
+   },
+   "2004": {
+    "rows": 21,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   },
+   "2005": {
+    "rows": 21,
+    "signed_points": 6.0,
+    "absolute_points": 6.0,
+    "nonzero_rows": 1
+   },
+   "2006": {
+    "rows": 21,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   },
+   "2007": {
+    "rows": 21,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   },
+   "2008": {
+    "rows": 21,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   },
+   "2009": {
+    "rows": 21,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   },
+   "2010": {
+    "rows": 21,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   },
+   "2011": {
+    "rows": 21,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   },
+   "2012": {
+    "rows": 21,
+    "signed_points": 3.1,
+    "absolute_points": 3.1,
+    "nonzero_rows": 1
+   },
+   "2013": {
+    "rows": 21,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   },
+   "2014": {
+    "rows": 21,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   },
+   "2015": {
+    "rows": 21,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   },
+   "2016": {
+    "rows": 21,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   },
+   "2017": {
+    "rows": 21,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   },
+   "2018": {
+    "rows": 21,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   },
+   "2019": {
+    "rows": 21,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   },
+   "2020": {
+    "rows": 21,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   },
+   "2021": {
+    "rows": 22,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   },
+   "2022": {
+    "rows": 22,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   },
+   "2023": {
+    "rows": 22,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   },
+   "2024": {
+    "rows": 22,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   },
+   "2025": {
+    "rows": 22,
+    "signed_points": 0.0,
+    "absolute_points": 0.0,
+    "nonzero_rows": 0
+   }
+  },
+  "policy": "exact reviewed unidentified records; not a tolerance"
+ },
+ "inputs": [
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/manifest.json",
+   "sha256": "712b05fe9f152d670d835250a7d35a52ae8cb10a3621b561bbb37ce59a91e588",
+   "bytes": 20718,
+   "role": "weekly source capture manifest"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_1999.parquet",
+   "sha256": "394013b85a0531fa920781c1389f7015b1e1b1d34f2e30de037fd605f52edf49",
+   "bytes": 675820,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_1999.parquet",
+   "role": "raw weekly 1999"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2000.parquet",
+   "sha256": "1b5cb5c8d7acb85c248ec5da1b71d4f092ae2b73763bfa429778d28566fab8f1",
+   "bytes": 660236,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2000.parquet",
+   "role": "raw weekly 2000"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2001.parquet",
+   "sha256": "5a9f2cfc6630e17e95d4a3375ab3a2ebf31256a383aa9f05e999b41e8d68ddf0",
+   "bytes": 668365,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2001.parquet",
+   "role": "raw weekly 2001"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2002.parquet",
+   "sha256": "d9cf9291d8105fba23d056c0f5889be2c549f09db930b0e3f9d97d2cd81ba231",
+   "bytes": 691681,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2002.parquet",
+   "role": "raw weekly 2002"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2003.parquet",
+   "sha256": "3113e4a054dbee1b4ddde2a0ec143eb44f8ca22daaa3ba18a64e8ce03d711ca0",
+   "bytes": 612769,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2003.parquet",
+   "role": "raw weekly 2003"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2004.parquet",
+   "sha256": "52d33704c7cc5affe55fcbebbd3d7d955a0913851a97a67d1e856cb8afbf38ae",
+   "bytes": 610185,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2004.parquet",
+   "role": "raw weekly 2004"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2005.parquet",
+   "sha256": "5646a8f2c0f4081f4e0675e5922d7548d9e8ed12717d9ab34e951d98d6ab57a3",
+   "bytes": 608102,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2005.parquet",
+   "role": "raw weekly 2005"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2006.parquet",
+   "sha256": "587b99fc241871c914e65373e27e3c6f53599f473f717b8c3969f2bcc9b8796d",
+   "bytes": 635750,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2006.parquet",
+   "role": "raw weekly 2006"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2007.parquet",
+   "sha256": "3868cd0e9309949895d2298a615aecbd9cb64366a9a5e0982c121bb62b76b460",
+   "bytes": 641428,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2007.parquet",
+   "role": "raw weekly 2007"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2008.parquet",
+   "sha256": "ce409b1e815043c29ad3148b41aae683793c9c3b0d7eed69870f49008bf11898",
+   "bytes": 637257,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2008.parquet",
+   "role": "raw weekly 2008"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2009.parquet",
+   "sha256": "5f823939e53bec1e3f505d5c7878e23e4634513074456b6d1806d7a10f82dda0",
+   "bytes": 788930,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2009.parquet",
+   "role": "raw weekly 2009"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2010.parquet",
+   "sha256": "90992f88abffb2406f933f5c2f28be201e5f112485f9c0ff6c450b293cec573a",
+   "bytes": 786509,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2010.parquet",
+   "role": "raw weekly 2010"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2011.parquet",
+   "sha256": "f5c12ba8c217238ed3cb3f8b0aa44d328176a0a08ef548c127bb1af4ad0ac28d",
+   "bytes": 786918,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2011.parquet",
+   "role": "raw weekly 2011"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2012.parquet",
+   "sha256": "b33f939c2ec0659c15dc38a5cbc4de20e330008c8f36576ef398877a4ddcd7c9",
+   "bytes": 799792,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2012.parquet",
+   "role": "raw weekly 2012"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2013.parquet",
+   "sha256": "7d662bc12628085bffdf065e3d6bdb59813f43178c7b543588f336b41b796411",
+   "bytes": 789175,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2013.parquet",
+   "role": "raw weekly 2013"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2014.parquet",
+   "sha256": "513a48ce4e16937d81d48be54be6821ebb517df541d19d49a29297727e5b0bcd",
+   "bytes": 801610,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2014.parquet",
+   "role": "raw weekly 2014"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2015.parquet",
+   "sha256": "c2fffc7cc53e137c1c8bffe896e1c0300ddf2ad4b601ab4985f4bb7aeb8ed59a",
+   "bytes": 802993,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2015.parquet",
+   "role": "raw weekly 2015"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2016.parquet",
+   "sha256": "f9d648fdf1f26d60ac0ac0e02c672840b604c6b8372cbb8a8bf847fdbc047acf",
+   "bytes": 802210,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2016.parquet",
+   "role": "raw weekly 2016"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2017.parquet",
+   "sha256": "23398fa5ff45dbf8aeb0986be87eed28dd92213d8f862912f95d522963e0ce8e",
+   "bytes": 799029,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2017.parquet",
+   "role": "raw weekly 2017"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2018.parquet",
+   "sha256": "d40914a95fdb97245567d8d816e474547b0d28d5152259813ba1542f13a8f0f4",
+   "bytes": 800576,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2018.parquet",
+   "role": "raw weekly 2018"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2019.parquet",
+   "sha256": "1a80298e2aca5a830e0dcfeb834c220bc79918211dc42e2f1e46acc39cd437c9",
+   "bytes": 799261,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2019.parquet",
+   "role": "raw weekly 2019"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2020.parquet",
+   "sha256": "e788d88318a6e99b8005c1c9814423d05bb91f757d5d977d3280f2eb83927b23",
+   "bytes": 813828,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2020.parquet",
+   "role": "raw weekly 2020"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2021.parquet",
+   "sha256": "2c6894499e96dcf20b060969c607a0ff4e2018f369efad6e97d88abbe77b7277",
+   "bytes": 854980,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2021.parquet",
+   "role": "raw weekly 2021"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2022.parquet",
+   "sha256": "64c1684938b029d68e33d7852cbee918266c8ac7f30b4c097c0a8912b4384e52",
+   "bytes": 847572,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2022.parquet",
+   "role": "raw weekly 2022"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2023.parquet",
+   "sha256": "ac776fbd7c9fefdb4069b72304f4c5fa05ae417acd49f6e4e27be14b9d7a4bbc",
+   "bytes": 846050,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2023.parquet",
+   "role": "raw weekly 2023"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2024.parquet",
+   "sha256": "847569d194ca3d96b5efcf91e6eac5e18780fc47568a713fd545a82d29d155c1",
+   "bytes": 849243,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2024.parquet",
+   "role": "raw weekly 2024"
+  },
+  {
+   "path": "runs/20260906T191723Z/weekly_source_capture/raw/stats_player_week_2025.parquet",
+   "sha256": "2a461becaa9adb3c93a3074a3a31f1e960162a50163371a2d34e28393b5fff10",
+   "bytes": 855077,
+   "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2025.parquet",
+   "role": "raw weekly 2025"
+  },
+  {
+   "path": "raw/games.csv",
+   "sha256": "446ff5d6fd8ebbba5dcf88d367c8b9d8e6471bd0752eeed4e833d7f12a962ebd",
+   "bytes": 2177176,
+   "url": "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv",
+   "acquired_at": "2026-09-06T19:44:54.876269+00:00",
+   "headers": {
+    "content-length": "2177176",
+    "etag": "\"b822104d42aaea16c3833d0d729f3de8971f6ff87a76ae469e52d07ccdf21a9d\""
+   },
+   "role": "official nfldata schedule"
+  }
+ ],
+ "exposure_definition": "stat-record weeks: a player-week exists when the source carries a stat record for that player in that game; it is not a snap count and not a proof he dressed",
+ "exact_league_claim": "NOT an exact reproduction of David's league scoring: saved default-PPR totals do not establish equivalence for all-unit fumble losses, recovery touchdowns or individual special-teams forced-fumble/recovery bonuses; the research preset must be named explicitly by the consumer",
+ "limitations": [
+  "identified-player research outcomes; individual-stat completeness is not proven",
+  "1999 and 2000 excluded for missing schedule games; no history for those years is filled with zero",
+  "the cancelled 2022 BUF-CIN game is excluded explicitly (271 completed games); no appearance is invented for it",
+  "six nonzero unidentified records are quarantined by exact review, not by a tolerance; their points are excluded from every player",
+  "negative points for identified players stay negative"
+ ],
+ "prepared_at": "2026-09-06T19:44:56.250295+00:00",
+ "capture_run": "runs/20260906T191723Z/weekly_source_capture",
+ "provenance_columns": [
+  "source_file",
+  "source_row_index",
+  "source_file_sha256"
+ ],
+ "original_columns": [
+  "player_id",
+  "player_name",
+  "player_display_name",
+  "position",
+  "position_group",
+  "headshot_url",
+  "season",
+  "week",
+  "season_type",
+  "game_id",
+  "team",
+  "opponent_team",
+  "completions",
+  "attempts",
+  "passing_yards",
+  "passing_tds",
+  "passing_interceptions",
+  "sacks_suffered",
+  "sack_yards_lost",
+  "sack_fumbles",
+  "sack_fumbles_lost",
+  "passing_air_yards",
+  "passing_yards_after_catch",
+  "passing_first_downs",
+  "passing_epa",
+  "passing_cpoe",
+  "passing_2pt_conversions",
+  "pacr",
+  "passing_10",
+  "passing_16",
+  "passing_20",
+  "passing_40",
+  "carries",
+  "rushing_yards",
+  "rushing_tds",
+  "rushing_fumbles",
+  "rushing_fumbles_lost",
+  "rushing_first_downs",
+  "rushing_epa",
+  "rushing_2pt_conversions",
+  "rushing_10",
+  "rushing_12",
+  "rushing_20",
+  "rushing_40",
+  "receptions",
+  "targets",
+  "receiving_yards",
+  "receiving_tds",
+  "receiving_fumbles",
+  "receiving_fumbles_lost",
+  "receiving_air_yards",
+  "receiving_yards_after_catch",
+  "receiving_first_downs",
+  "receiving_epa",
+  "receiving_2pt_conversions",
+  "receiving_10",
+  "receiving_16",
+  "receiving_20",
+  "receiving_40",
+  "racr",
+  "target_share",
+  "air_yards_share",
+  "wopr",
+  "special_teams_tds",
+  "def_tackles_solo",
+  "def_tackles_with_assist",
+  "def_tackle_assists",
+  "def_tackles_for_loss",
+  "def_tackles_for_loss_yards",
+  "def_fumbles_forced",
+  "def_sacks",
+  "def_sack_yards",
+  "def_qb_hits",
+  "def_interceptions",
+  "def_interception_yards",
+  "def_pass_defended",
+  "def_tds",
+  "def_fumbles",
+  "def_safeties",
+  "def_punt_blocks",
+  "def_pat_blocks",
+  "def_fg_blocks",
+  "def_2pt_atts",
+  "def_2pt_made",
+  "misc_yards",
+  "fumble_recovery_own",
+  "fumble_recovery_yards_own",
+  "fumble_recovery_opp",
+  "fumble_recovery_yards_opp",
+  "fumble_recovery_tds",
+  "penalties",
+  "penalty_yards",
+  "fumbles_forced_by_opp",
+  "fumbles_not_forced",
+  "fumbles_out_of_bounds",
+  "fumbles_total",
+  "fumbles_lost_total",
+  "punt_returns",
+  "punt_return_yards",
+  "kickoff_returns",
+  "kickoff_return_yards",
+  "fg_made",
+  "fg_att",
+  "fg_missed",
+  "fg_blocked",
+  "fg_long",
+  "fg_pct",
+  "fg_made_0_19",
+  "fg_made_20_29",
+  "fg_made_30_39",
+  "fg_made_40_49",
+  "fg_made_50_59",
+  "fg_made_60_",
+  "fg_missed_0_19",
+  "fg_missed_20_29",
+  "fg_missed_30_39",
+  "fg_missed_40_49",
+  "fg_missed_50_59",
+  "fg_missed_60_",
+  "fg_made_list",
+  "fg_missed_list",
+  "fg_blocked_list",
+  "fg_made_distance",
+  "fg_missed_distance",
+  "fg_blocked_distance",
+  "pat_made",
+  "pat_att",
+  "pat_missed",
+  "pat_blocked",
+  "pat_pct",
+  "gwfg_made",
+  "gwfg_att",
+  "gwfg_missed",
+  "gwfg_blocked",
+  "gwfg_distance",
+  "pt_att",
+  "pt_blocked",
+  "pt_long",
+  "pt_yards",
+  "pt_inside_20",
+  "pt_out_of_bounds",
+  "pt_downed",
+  "pt_touchback",
+  "pt_fair_caught",
+  "pt_returned",
+  "pt_return_yards",
+  "pt_return_tds",
+  "pt_net_yards",
+  "fantasy_points",
+  "fantasy_points_ppr"
+ ],
+ "schedule_capture": {
+  "url": "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv",
+  "acquired_at": "2026-09-06T19:44:54.876269+00:00",
+  "sha256": "446ff5d6fd8ebbba5dcf88d367c8b9d8e6471bd0752eeed4e833d7f12a962ebd",
+  "bytes": 2177176,
+  "headers": {
+   "content-length": "2177176",
+   "etag": "\"b822104d42aaea16c3833d0d729f3de8971f6ff87a76ae469e52d07ccdf21a9d\""
+  }
+ },
+ "cancelled_games": [
+  "2022_17_BUF_CIN"
+ ],
+ "reviewed_nonzero_records": [
+  {
+   "season": 2001,
+   "week": 11,
+   "team": "GB",
+   "opponent_team": "DET",
+   "player_name": "Team",
+   "fantasy_points_ppr": 1.68
+  },
+  {
+   "season": 2001,
+   "week": 14,
+   "team": "ARI",
+   "opponent_team": "NYG",
+   "player_name": null,
+   "fantasy_points_ppr": -2.0
+  },
+  {
+   "season": 2001,
+   "week": 16,
+   "team": "BAL",
+   "opponent_team": "TB",
+   "player_name": null,
+   "fantasy_points_ppr": -2.0
+  },
+  {
+   "season": 2003,
+   "week": 4,
+   "team": "PHI",
+   "opponent_team": "BUF",
+   "player_name": "Team",
+   "fantasy_points_ppr": -0.1
+  },
+  {
+   "season": 2005,
+   "week": 1,
+   "team": "LV",
+   "opponent_team": "NE",
+   "player_name": "Team",
+   "fantasy_points_ppr": 6.0
+  },
+  {
+   "season": 2012,
+   "week": 6,
+   "team": "TEN",
+   "opponent_team": "PIT",
+   "player_name": "D.Bryant",
+   "fantasy_points_ppr": 3.1
+  }
+ ],
+ "outputs_sha256": {
+  ".gitignore": "e138ca829d938927384c82d7f176eaa6c61a82bd28ba28320ddd736a505c3b4f",
+  "identified_weekly.parquet": "6f7c76cca4f1e9b1fb6bb40b1c83d76f5dc85afcb66c0662904bf9f1b662c748",
+  "quarantine.csv": "7f38a2fd6e9deb01cac0b13d17ff4e660d5b51f4afbaf92df1e4f1c8ba5ff5f8",
+  "quarantine.parquet": "a0f4d9c6e790e16075ba6ac20bd91ffb429b7163af82f39091a698f1ccb82a64"
+ }
+}
