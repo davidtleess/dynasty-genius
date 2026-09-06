@@ -77,6 +77,9 @@ SCOPE = "REG"
 POSITIONS = ("QB", "RB", "WR", "TE")
 MIN_TRAINING_SEASONS = 6
 ARM = "basic_cohort_3col_plus_lags"
+#: DG-165's immutable roster capture (read-only): one season-end roster row per player-season,
+#: 1999-2025, dated by week inside the season. Same-season offensive-role evidence only.
+DEFAULT_ROSTER_ROLES = Path("/Users/davidleess/dg-wt/DG-165/runs/20260906T154706Z/dg165_rookie_capital/inputs/nflverse_rosters.parquet")
 
 
 def horizon_support(seasons: Iterable[int], *, last_complete_season: int, min_training_seasons: int) -> dict[int, dict[str, Any]]:
@@ -115,6 +118,10 @@ def _render(results: dict[str, Any]) -> str:
     lines = ["# DG-177 — years 1-5 on the basic cohort (report-only)\n",
              f"Cohort rule: {results['cohort']['rule']} · production: {results['cohort']['production_scope']} · "
              f"features: {results['cohort']['features']} · git `{m['git_head']}`\n"]
+    rf = results.get("role_fallback") or {}
+    if rf.get("supplied"):
+        lines.append(f"\nRole fallback: {rf['rule']} · roster capture rows {rf['rows']} ({rf['seasons'][0]}-{rf['seasons'][1]}) · "
+                     f"by source {rf['counts']['by_source']} · resolved by roster {rf['counts']['resolved_by_roster_by_position']}\n")
     lines.append("\n## Horizon support\n")
     for j, s in results["horizon_support"].items():
         lines.append(f"- year {j}: {'supported' if s['supported'] else 'UNSUPPORTED — ' + s['reason']}; closed feature seasons "
@@ -156,6 +163,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out-root", type=Path, default=RUNS_ROOT)
     parser.add_argument("--universe", type=Path, default=None,
                         help="DG-178's eligible_universe.csv; every row gets a forecast or a precise reason")
+    parser.add_argument("--roster-roles", type=Path, default=DEFAULT_ROSTER_ROLES,
+                        help="historical roster capture (parquet) for the same-season offensive-role fallback; "
+                             "'none' disables it")
     args = parser.parse_args(argv)
 
     import nflreadpy as nfl
@@ -185,8 +195,28 @@ def main(argv: list[str] | None = None) -> int:
     players_bytes = gzip.compress(players.to_csv(index=False).encode("utf-8"))
     print(f"weekly rows {len(weekly)} · players {len(players)} · source validated")
 
-    cohort_all = build_basic_cohort(weekly, players, seasons=pull_seasons)
+    roster_roles = None
+    roster_facts: dict[str, Any] = {"supplied": False}
+    if str(args.roster_roles).lower() != "none":
+        roster_bytes = args.roster_roles.read_bytes()
+        roster_roles = pd.read_parquet(args.roster_roles)
+        roster_facts = {
+            "supplied": True, "path": str(args.roster_roles), "sha256": hashlib.sha256(roster_bytes).hexdigest(),
+            "rows": int(len(roster_roles)), "seasons": [int(roster_roles["season"].min()), int(roster_roles["season"].max())],
+            "rows_per_player_season_max": int(roster_roles.groupby(["gsis_id", "season"]).size().max()),
+            "rule": "non-offensive stat-line position -> exactly one offensive role among the SAME season's roster "
+                    "position/depth rows, else abstain; today's listing never used; evidence kept on the row",
+        }
+    cohort_all = build_basic_cohort(weekly, players, seasons=pull_seasons, roster_roles=roster_roles)
+    role_counts = {
+        "by_source": cohort_all["position_source"].value_counts().to_dict(),
+        "resolved_by_roster_by_position": cohort_all[cohort_all["position_source"] == "roster_same_season"]["position"].value_counts().to_dict(),
+        "resolved_by_roster_by_season": {str(k): int(v) for k, v in cohort_all[cohort_all["position_source"] == "roster_same_season"].groupby("feature_season").size().items()},
+        "abstained_conflicting": int((cohort_all["position_source"] == "conflicting_roster_roles").sum()),
+        "unknown_no_offensive_role": int((cohort_all["position_source"] == "no_offensive_role").sum()),
+    }
     cohort = cohort_all[cohort_all["position"].isin(POSITIONS)].reset_index(drop=True)
+    print("role fallback:", role_counts["by_source"], "| resolved by roster:", role_counts["resolved_by_roster_by_position"])
     outcomes = season_outcomes(weekly, scope=SCOPE, validation=source_validation)
     labelled = annual_targets(cohort, outcomes, horizons=HORIZONS, last_complete_season=LAST_COMPLETE_SEASON)
     df = pd.concat([cohort.reset_index(drop=True), labelled.drop(columns=["player_id", "position", "feature_season", "identity_status"])], axis=1)
@@ -282,7 +312,8 @@ def main(argv: list[str] | None = None) -> int:
                             "features; the selection policy (baseline / candidate / bounded blend) is chosen per "
                             "position, horizon and quantity on closed inner folds",
         comparator_export="none", inputs={"weekly_stats_sha256": source["weekly_stats_sha256"],
-                                          "players_sha256": source["players_sha256"]},
+                                          "players_sha256": source["players_sha256"],
+                                          **({"roster_roles_sha256": roster_facts["sha256"]} if roster_facts.get("supplied") else {})},
         source_validation=source_validation,
         selection_policy={"space": list(POLICY_SPACE), "criterion": dict(SELECTION_CRITERION),
                           "chosen": {p: {h: m["policy_by_quantity"] for h, m in per.items()} for p, per in fits.items()}},
@@ -293,6 +324,7 @@ def main(argv: list[str] | None = None) -> int:
     manifest["unsupported_horizons"] = [j for j in HORIZONS if not support[j]["supported"]]
     results = {
         "run_id": run_id, "started_utc": started.isoformat(), "manifest": manifest,
+        "role_fallback": {**roster_facts, "counts": role_counts, "cohort_attr": cohort_all.attrs.get("role_fallback")},
         "cohort": {"rule": COHORT_RULE, "production_scope": PRODUCTION_SCOPE, "features": list(BASIC_FEATURES),
                    "feature_notes": {"seasons_played": f"seasons OBSERVED since the cohort start ({args.first_season}); "
                                                        "left-censored, not full career length",
@@ -327,7 +359,10 @@ def main(argv: list[str] | None = None) -> int:
                            + (["universe_reconciliation.csv"] if len(reconciled) else [])}
     manifest["outputs_sha256"] = dict(manifest["outputs"])
     manifest["evaluation_status"] = evaluation_status({"historical": historical}, historical_predictions, arm_key=None)
-    validate_manifest(manifest, known_arms={ARM}, required_inputs=("weekly_stats_sha256", "players_sha256"), run_dir=out_dir)
+    manifest["role_fallback"] = results["role_fallback"]
+    validate_manifest(manifest, known_arms={ARM},
+                      required_inputs=("weekly_stats_sha256", "players_sha256") + (("roster_roles_sha256",) if roster_facts.get("supplied") else ()),
+                      run_dir=out_dir)
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     print(f"wrote {written} + basic_forecasts.csv, basic_cohort.csv.gz, snapshots, manifest.json to {out_dir}")
     print(report)

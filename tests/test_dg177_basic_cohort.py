@@ -100,3 +100,106 @@ def test_players_table_validation_refuses_duplicates_and_missing_ids():
         validate_players_table(pd.concat([good, good.iloc[[0]]]))
     with pytest.raises(ValueError, match="gsis"):
         validate_players_table(_players([(None, "X", "WR", "1998-06-01")]))
+
+
+# ── Codex increment: a general historical offensive-role fallback (no hardcoded player) ──
+
+from src.dynasty_genius.eval.basic_cohort import (  # noqa: E402
+    OFFENSIVE_POSITIONS,
+    ROLE_SOURCES,
+    resolve_offensive_role,
+)
+
+
+def _roster(rows):
+    return pd.DataFrame(rows, columns=["gsis_id", "season", "week", "position", "depth_chart_position"])
+
+
+def test_role_sources_are_named_and_offensive_set_is_the_modelled_set():
+    assert OFFENSIVE_POSITIONS == frozenset({"QB", "RB", "WR", "TE"})
+    assert ROLE_SOURCES == ("statline", "roster_same_season", "conflicting_roster_roles", "no_offensive_role", "no_roster_evidence")
+
+
+class TestResolveOffensiveRole:
+    def test_an_offensive_stat_line_position_is_kept_whatever_the_roster_says(self):
+        pos, source, ev = resolve_offensive_role("WR", _roster([("H", 2025, 18, "DB", "CB")]))
+        assert (pos, source) == ("WR", "statline") and ev["statline_position"] == "WR"
+
+    def test_a_non_offensive_stat_line_falls_back_to_one_same_season_roster_role(self):
+        pos, source, ev = resolve_offensive_role("CB", _roster([("H", 2025, 19, "WR", "WR")]))
+        assert (pos, source) == ("WR", "roster_same_season")
+        assert ev == {"statline_position": "CB", "roster_positions": ["WR"], "roster_depth_positions": ["WR"],
+                      "roster_weeks": [19], "offensive_roles_seen": ["WR"]}
+
+    def test_conflicting_roster_roles_abstain(self):
+        pos, source, ev = resolve_offensive_role("CB", _roster([("H", 2025, 1, "WR", "WR"), ("H", 2025, 18, "RB", "RB")]))
+        assert pos is None and source == "conflicting_roster_roles" and ev["offensive_roles_seen"] == ["RB", "WR"]
+
+    def test_a_roster_with_no_offensive_role_is_unknown(self):
+        pos, source, ev = resolve_offensive_role("CB", _roster([("H", 2025, 18, "DB", "CB")]))
+        assert pos is None and source == "no_offensive_role" and ev["offensive_roles_seen"] == []
+
+    def test_no_roster_rows_is_no_evidence(self):
+        pos, source, ev = resolve_offensive_role("CB", _roster([]))
+        assert pos is None and source == "no_roster_evidence" and ev["roster_weeks"] == []
+
+
+def _weekly_two_way(points_2024=9.0):
+    return _weekly([
+        ("H", 2024, 1, "REG", "CB", points_2024), ("H", 2024, 2, "REG", "CB", 12.0),   # receiving points on a CB stat line
+        ("H", 2025, 1, "REG", "CB", 8.0), ("H", 2025, 2, "REG", "CB", 10.0),
+        ("A", 2025, 1, "REG", "WR", 10.0),
+    ])
+
+
+def test_fallback_uses_only_the_same_seasons_roster_rows_and_records_the_evidence():
+    weekly = _weekly_two_way()
+    players = _players([("H", "Two Way", "DB", "2003-01-01"), ("A", "A", "WR", "1998-01-01")])
+    roster = _roster([("H", 2025, 19, "WR", "WR")])          # evidence for 2025 only
+    cohort = build_basic_cohort(weekly, players, seasons=[2024, 2025], roster_roles=roster)
+    h = cohort[cohort.player_id == "H"].set_index("feature_season")
+    assert h.loc[2025, "position"] == "WR" and h.loc[2025, "position_source"] == "roster_same_season"
+    assert h.loc[2025, "statline_position"] == "CB"
+    assert '"roster_weeks": [19]' in h.loc[2025, "role_evidence"]
+    # 2024 has no roster row of its own: the 2025 evidence must NOT reach back
+    assert h.loc[2024, "position"] == "CB" and h.loc[2024, "position_source"] == "no_roster_evidence"
+    # the offensive player is untouched
+    a = cohort[cohort.player_id == "A"].iloc[0]
+    assert a["position"] == "WR" and a["position_source"] == "statline"
+
+
+def test_todays_listed_position_never_resolves_a_historical_fold():
+    weekly = _weekly_two_way()
+    players = _players([("H", "Two Way", "WR", "2003-01-01")])   # today's listing says WR
+    cohort = build_basic_cohort(weekly, players, seasons=[2024, 2025], roster_roles=_roster([]))
+    h = cohort[cohort.player_id == "H"].set_index("feature_season")
+    assert h.loc[2024, "position"] == "CB" and h.loc[2025, "position"] == "CB"
+    assert set(h["position_source"]) == {"no_roster_evidence"}
+    assert h.loc[2025, "listed_position"] == "WR"                 # carried, never used
+
+
+def test_conflicting_same_season_roles_abstain_in_the_cohort():
+    weekly = _weekly_two_way()
+    players = _players([("H", "Two Way", "DB", "2003-01-01")])
+    roster = _roster([("H", 2025, 1, "WR", "WR"), ("H", 2025, 18, "RB", "RB")])
+    cohort = build_basic_cohort(weekly, players, seasons=[2025], roster_roles=roster)
+    h = cohort[cohort.player_id == "H"].iloc[0]
+    assert h["position"] == "CB" and h["position_source"] == "conflicting_roster_roles"
+
+
+def test_no_defensive_points_are_added_by_the_fallback():
+    weekly = _weekly([("H", 2025, 1, "REG", "CB", 0.0), ("H", 2025, 2, "REG", "CB", 0.0)])   # a pure defender: 0 PPR
+    players = _players([("H", "Pure Corner", "DB", "2003-01-01")])
+    roster = _roster([("H", 2025, 18, "WR", "WR")])
+    cohort = build_basic_cohort(weekly, players, seasons=[2025], roster_roles=roster)
+    h = cohort.iloc[0]
+    assert h["position"] == "WR" and h["ppg_t"] == 0.0 and h["total_points_t"] == 0.0 and h["games_t"] == 2
+
+
+def test_without_roster_roles_the_cohort_is_unchanged_and_says_so():
+    weekly = _weekly_two_way()
+    players = _players([("H", "Two Way", "DB", "2003-01-01")])
+    cohort = build_basic_cohort(weekly, players, seasons=[2025])
+    h = cohort[cohort.player_id == "H"].iloc[0]
+    assert h["position"] == "CB" and h["position_source"] == "no_roster_evidence" and h["statline_position"] == "CB"
+    assert cohort.attrs["role_fallback"] == "none supplied"

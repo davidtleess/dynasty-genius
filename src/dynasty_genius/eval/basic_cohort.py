@@ -20,6 +20,13 @@ Definitions (each is a stated rule, not an inference):
     ``identity_status = resolved_no_birth_date`` with ``age = NaN``, not a guess.
   * ``seasons_played`` counts seasons OBSERVED since the first pulled season; it is
     left-censored, not career length (a 32-year-old in the first season shows 1).
+  * ``position`` is the season's modal stat-line position when that is an offensive one.
+    When it is not (a two-way player whose stat lines say CB), a SAME-SEASON historical
+    roster role may stand in: roster rows dated inside that season, exactly one distinct
+    offensive role among their position/depth-chart columns, else abstain. Today's listing
+    never resolves a historical fold; the stat-line position and the evidence stay on the
+    row (``statline_position``, ``position_source``, ``role_evidence``). Role evidence
+    chooses the MODEL cohort only — league eligibility is Sleeper's to say.
 """
 from __future__ import annotations
 
@@ -29,6 +36,37 @@ import numpy as np
 import pandas as pd
 
 from src.dynasty_genius.eval.annual_outcomes import SCORING_COLUMN
+
+OFFENSIVE_POSITIONS: frozenset[str] = frozenset({"QB", "RB", "WR", "TE"})
+ROLE_SOURCES: tuple[str, ...] = (
+    "statline", "roster_same_season", "conflicting_roster_roles", "no_offensive_role", "no_roster_evidence",
+)
+ROSTER_ROLE_COLUMNS = ["gsis_id", "season", "week", "position", "depth_chart_position"]
+
+
+def resolve_offensive_role(statline_position: str | None, roster_rows: pd.DataFrame) -> tuple[str | None, str, dict]:
+    """Which offensive position models this player-season, and on what evidence.
+
+    ``roster_rows`` must already be the player's rows for THAT season only (the caller
+    filters by season; this function never looks at another season). Returns
+    ``(position or None, source, evidence)``.
+    """
+    evidence: dict = {"statline_position": statline_position}
+    if statline_position in OFFENSIVE_POSITIONS:
+        return statline_position, "statline", evidence
+    positions = sorted({str(x) for x in roster_rows["position"].dropna()}) if len(roster_rows) else []
+    depths = sorted({str(x) for x in roster_rows["depth_chart_position"].dropna()}) if len(roster_rows) else []
+    weeks = sorted({int(w) for w in roster_rows["week"].dropna()}) if len(roster_rows) else []
+    roles = sorted((set(positions) | set(depths)) & OFFENSIVE_POSITIONS)
+    evidence.update({"roster_positions": positions, "roster_depth_positions": depths,
+                     "roster_weeks": weeks, "offensive_roles_seen": roles})
+    if len(roster_rows) == 0:
+        return None, "no_roster_evidence", evidence
+    if len(roles) == 1:
+        return roles[0], "roster_same_season", evidence
+    if len(roles) > 1:
+        return None, "conflicting_roster_roles", evidence
+    return None, "no_offensive_role", evidence
 
 BASIC_FEATURES: list[str] = [
     "ppg_t", "games_t", "age", "ppg_t_minus_1", "games_t_minus_1", "ppg_t_minus_1_available",
@@ -78,9 +116,23 @@ def build_basic_cohort(
     players: pd.DataFrame,
     *,
     seasons: Iterable[int],
+    roster_roles: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
-    """One feature row per (player, season) under COHORT_RULE, for the requested seasons."""
+    """One feature row per (player, season) under COHORT_RULE, for the requested seasons.
+
+    ``roster_roles`` (gsis_id, season, week, position, depth_chart_position) enables the
+    same-season offensive-role fallback for non-offensive stat-line positions.
+    """
+    import json as _json
+
     seasons = sorted(int(s) for s in seasons)
+    roster_by_key: dict[tuple[str, int], pd.DataFrame] = {}
+    if roster_roles is not None:
+        rr = roster_roles[ROSTER_ROLE_COLUMNS].copy()
+        rr["season"] = rr["season"].astype(int)
+        for (pid, season), part in rr.groupby(["gsis_id", "season"], sort=False):
+            roster_by_key[(str(pid), int(season))] = part
+    empty_roster = pd.DataFrame(columns=ROSTER_ROLE_COLUMNS)
     prod = _season_production(weekly)
     prod = prod[prod["season"].isin(seasons) | prod["season"].isin([seasons[0] - 1])]
     identity = players.set_index("gsis_id")
@@ -109,10 +161,17 @@ def build_basic_cohort(
                     status = "resolved_no_birth_date"
                 else:
                     status = "resolved"
+                statline = (this["position"] if this is not None else (prev["position"] if prev is not None else None))
+                resolved, source, evidence = resolve_offensive_role(
+                    statline, roster_by_key.get((str(player_id), t), empty_roster) if roster_roles is not None else empty_roster,
+                )
                 rows.append({
                     "player_id": player_id,
                     "feature_season": t,
-                    "position": (this["position"] if this is not None else (prev["position"] if prev is not None else listed)),
+                    "position": resolved if resolved is not None else statline,
+                    "statline_position": statline,
+                    "position_source": source,
+                    "role_evidence": _json.dumps(evidence, default=str),
                     "listed_position": listed,
                     "identity_status": status,
                     "age": float(t - by) if not pd.isna(by) else np.nan,
@@ -131,5 +190,7 @@ def build_basic_cohort(
                 last_ppg = float(by_season.loc[t, "ppg_t"])
     out = pd.DataFrame(rows)
     out.attrs.update({"cohort_rule": COHORT_RULE, "production_scope": PRODUCTION_SCOPE,
-                      "features": list(BASIC_FEATURES)})
+                      "features": list(BASIC_FEATURES),
+                      "role_fallback": "none supplied" if roster_roles is None else
+                      "same-season roster role for non-offensive stat-line positions; exactly one offensive role or abstain"})
     return out.sort_values(["player_id", "feature_season"]).reset_index(drop=True)
