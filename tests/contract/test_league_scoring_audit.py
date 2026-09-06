@@ -585,3 +585,12 @@ def test_cli_refuses_a_settings_mismatch_before_writing_anything(tmp_path):
     res = subprocess.run(cmd, capture_output=True, text=True)
     assert res.returncode == 1 and "rec" in res.stderr
     assert not (out_root / "20260101T000001Z").exists()
+
+
+def test_identity_map_normalises_numeric_sleeper_ids_before_matching():
+    """ff_playerids stores sleeper_id as a float column: 11.0 must match Sleeper's "11", never "11.0"."""
+    idmap = pd.DataFrame({"sleeper_id": [11.0, 12.0, float("nan")], "gsis_id": ["00-1", "00-2", "00-3"]})
+    m = lsa.map_sleeper_ids(pd.Series(["11", "12", "13"]), idmap).set_index("sleeper_id")
+    assert m.loc["11", "identity_status"] == "resolved" and m.loc["11", "gsis_id"] == "00-1"
+    assert m.loc["12", "identity_status"] == "resolved"
+    assert m.loc["13", "identity_status"] == "unmapped"

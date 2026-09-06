@@ -322,12 +322,27 @@ def assert_settings_match(saved: dict, season: dict) -> None:
         raise ScoringAuditError(f"season scoring settings differ from the saved snapshot on {diff}")
 
 
+def normalise_id(value) -> str | None:
+    """Sleeper ids arrive as strings ("11"), floats (11.0 from a parquet column with gaps) or ints;
+    they must compare as the same key. Non-numeric strings are kept verbatim (stripped)."""
+    if _isna(value):
+        return None
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    text = str(value).strip()
+    if text.endswith(".0") and text[:-2].isdigit():
+        return text[:-2]
+    return text or None
+
+
 def map_sleeper_ids(sleeper_ids: pd.Series, idmap: pd.DataFrame) -> pd.DataFrame:
-    m = idmap.dropna(subset=["sleeper_id", "gsis_id"]).astype({"sleeper_id": str, "gsis_id": str})
-    m = m[(m.sleeper_id.str.strip() != "") & (m.gsis_id.str.strip() != "")].drop_duplicates(["sleeper_id", "gsis_id"])
+    m = idmap[["sleeper_id", "gsis_id"]].copy()
+    m["sleeper_id"] = m["sleeper_id"].map(normalise_id)
+    m["gsis_id"] = m["gsis_id"].map(lambda v: None if _isna(v) or str(v).strip() == "" else str(v).strip())
+    m = m.dropna(subset=["sleeper_id", "gsis_id"]).drop_duplicates(["sleeper_id", "gsis_id"])
     counts = m.groupby("sleeper_id")["gsis_id"].nunique()
     one = m[m.sleeper_id.map(counts) == 1].set_index("sleeper_id")["gsis_id"]
-    out = pd.DataFrame({"sleeper_id": pd.Series(sleeper_ids.astype(str).unique())})
+    out = pd.DataFrame({"sleeper_id": pd.Series(sleeper_ids.map(normalise_id).dropna().unique())})
     out["gsis_id"] = out.sleeper_id.map(one)
     out["identity_status"] = np.select([out.sleeper_id.isin(counts[counts > 1].index), out.gsis_id.notna()],
                                        ["ambiguous", "resolved"], default="unmapped")
