@@ -170,14 +170,18 @@ class ManifestShapeError(ValueError):
     """The handoff manifest does not have the shape the contract names."""
 
 
-def validate_manifest(manifest: dict[str, Any]) -> None:
+def validate_manifest(
+    manifest: dict[str, Any], *, known_arms: frozenset[str] | set[str] = KNOWN_ARMS,
+    required_inputs: tuple[str, ...] = ("training_csv_sha256",),
+) -> None:
     """Assert the manifest's structure: arms and positions at their own levels, feature
     names that pass the feature gate, and input/output hashes present. Round-1's manifest
-    nested arm names where positions belong and nobody could tell from prose."""
+    nested arm names where positions belong and nobody could tell from prose.
+    ``known_arms`` is the arm set the calling runner declares; an arm outside it is refused."""
     def _feature_list(where: str, value: Any) -> None:
         if not isinstance(value, list) or not value or not all(isinstance(f, str) for f in value):
             raise ManifestShapeError(f"{where}: expected a non-empty list of feature names, got {value!r}")
-        if any(f in POSITIONS or f in KNOWN_ARMS for f in value):
+        if any(f in POSITIONS or f in known_arms for f in value):
             raise ManifestShapeError(f"{where}: a position or arm name sits where a feature name belongs: {value!r}")
         try:
             validate_candidate_features(value)
@@ -188,8 +192,8 @@ def validate_manifest(manifest: dict[str, Any]) -> None:
     if not isinstance(by_arm, dict) or not by_arm:
         raise ManifestShapeError("features_by_arm is missing")
     for arm, per_position in by_arm.items():
-        if arm not in KNOWN_ARMS:
-            raise ManifestShapeError(f"unknown arm {arm!r} in features_by_arm (known: {sorted(KNOWN_ARMS)})")
+        if arm not in known_arms:
+            raise ManifestShapeError(f"unknown arm {arm!r} in features_by_arm (known: {sorted(known_arms)})")
         if not isinstance(per_position, dict) or not per_position:
             raise ManifestShapeError(f"features_by_arm[{arm!r}] must map position -> features")
         for position, features in per_position.items():
@@ -206,7 +210,7 @@ def validate_manifest(manifest: dict[str, Any]) -> None:
     candidate = manifest.get("candidate_arm")
     if candidate not in by_arm or by_position != by_arm[candidate]:
         raise ManifestShapeError("features_by_position must equal features_by_arm[candidate_arm]")
-    for block, required in (("inputs", ("training_csv_sha256",)), ("outputs", ("annual_forecasts.csv",))):
+    for block, required in (("inputs", tuple(required_inputs)), ("outputs", ("annual_forecasts.csv",))):
         values = manifest.get(block)
         if not isinstance(values, dict) or not values:
             raise ManifestShapeError(f"{block} hashes are missing")

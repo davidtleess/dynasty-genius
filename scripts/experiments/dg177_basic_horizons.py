@@ -175,8 +175,8 @@ def main(argv: list[str] | None = None) -> int:
     players_bytes = gzip.compress(players.to_csv(index=False).encode("utf-8"))
     print(f"weekly rows {len(weekly)} · players {len(players)} · source validated")
 
-    cohort = build_basic_cohort(weekly, players, seasons=pull_seasons)
-    cohort = cohort[cohort["position"].isin(POSITIONS)].reset_index(drop=True)
+    cohort_all = build_basic_cohort(weekly, players, seasons=pull_seasons)
+    cohort = cohort_all[cohort_all["position"].isin(POSITIONS)].reset_index(drop=True)
     outcomes = season_outcomes(weekly, scope=SCOPE, validation=source_validation)
     labelled = annual_targets(cohort, outcomes, horizons=HORIZONS, last_complete_season=LAST_COMPLETE_SEASON)
     df = pd.concat([cohort.reset_index(drop=True), labelled.drop(columns=["player_id", "position", "feature_season", "identity_status"])], axis=1)
@@ -241,7 +241,8 @@ def main(argv: list[str] | None = None) -> int:
         idmap_bytes = gzip.compress(idmap.to_csv(index=False).encode("utf-8"))
         history = weekly.groupby("player_id")["season"].max().rename("last_season_seen").reset_index()
         reconciled = reconcile_universe(universe, idmap[["sleeper_id", "gsis_id"]], inference, history,
-                                        inference_season=INFERENCE_SEASON)
+                                        inference_season=INFERENCE_SEASON,
+                                        cohort_positions=cohort_all[["player_id", "feature_season", "position"]])
         reconciliation = {
             "universe": str(args.universe), "universe_sha256": hashlib.sha256(args.universe.read_bytes()).hexdigest(),
             "idmap": "nflreadpy.load_ff_playerids()", "idmap_sha256": hashlib.sha256(idmap_bytes).hexdigest(),
@@ -271,13 +272,13 @@ def main(argv: list[str] | None = None) -> int:
                             "features; the selection policy (baseline / candidate / bounded blend) is chosen per "
                             "position, horizon and quantity on closed inner folds",
         comparator_export="none", inputs={"weekly_stats_sha256": source["weekly_stats_sha256"],
-                                          "players_sha256": source["players_sha256"], "training_csv_sha256": "0" * 64},
+                                          "players_sha256": source["players_sha256"]},
         source_validation=source_validation,
         selection_policy={"space": list(POLICY_SPACE), "criterion": dict(SELECTION_CRITERION),
                           "chosen": {p: {h: m["policy_by_quantity"] for h, m in per.items()} for p, per in fits.items()}},
         population=f"every {INFERENCE_SEASON} row of the basic cohort ({COHORT_RULE})",
     )
-    manifest["inputs"]["training_csv_sha256"] = "not-an-input: the basic cohort does not read the Engine B training file"
+    manifest["inputs_note"] = "the basic cohort does not read the Engine B training file; its inputs are the two snapshots"
     manifest["horizon_support"] = {str(j): s for j, s in support.items()}
     manifest["unsupported_horizons"] = [j for j in HORIZONS if not support[j]["supported"]]
     results = {
@@ -309,7 +310,7 @@ def main(argv: list[str] | None = None) -> int:
                                         "basic_cohort.csv.gz", "weekly_stats_snapshot.csv.gz", "players_snapshot.csv.gz"]}
     manifest["outputs"]["annual_forecasts.csv"] = manifest["outputs"]["basic_forecasts.csv"]  # the consumer's required key
     manifest["outputs_sha256"] = dict(manifest["outputs"])
-    validate_manifest(manifest)
+    validate_manifest(manifest, known_arms={ARM}, required_inputs=("weekly_stats_sha256", "players_sha256"))
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     print(f"wrote {written} + basic_forecasts.csv, basic_cohort.csv.gz, snapshots, manifest.json to {out_dir}")
     print(report)

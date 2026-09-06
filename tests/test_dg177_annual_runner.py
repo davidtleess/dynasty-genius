@@ -175,3 +175,21 @@ def test_manifest_carries_the_selection_policy_and_the_names_the_consumer_reads(
     assert m["scoring_arm"] == "recent_production_3col"                 # alias the consumer reads
     assert m["outputs_sha256"] == m["outputs"]                          # alias the consumer reads
     validate_manifest(m)
+
+
+def test_validate_manifest_accepts_a_declared_arm_set_and_refuses_one_outside_it():
+    m = _good_manifest()
+    m["features_by_arm"] = {"basic_cohort_3col_plus_lags": {"WR": FEATURES}}
+    m["features_by_position"] = {"WR": FEATURES}
+    m["candidate_arm"] = "basic_cohort_3col_plus_lags"
+    with pytest.raises(ManifestShapeError, match="arm"):
+        validate_manifest(m)                                             # not among the annual arms
+    validate_manifest(m, known_arms={"basic_cohort_3col_plus_lags"})    # declared by its runner
+
+
+def test_validate_manifest_lets_the_runner_declare_its_required_inputs():
+    m = _good_manifest()
+    m["inputs"] = {"weekly_stats_sha256": "e" * 64, "players_sha256": "f" * 64}
+    with pytest.raises(ManifestShapeError, match="training_csv_sha256"):
+        validate_manifest(m)
+    validate_manifest(m, required_inputs=("weekly_stats_sha256", "players_sha256"))

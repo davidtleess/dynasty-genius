@@ -12,6 +12,8 @@ Statuses:
   no_nfl_history                    gsis known, never a weekly stat line in the source
   left_cohort_two_absent_seasons    history exists but the last appearance is two or more
                                     seasons before the inference season
+  position_outside_modelled_set     a cohort row exists but its stat-line position is not one
+                                    the forecast models (e.g. a two-way player listed DB)
   not_in_cohort_other               history and mapping exist but no cohort row (reported)
 """
 from __future__ import annotations
@@ -21,7 +23,7 @@ import pandas as pd
 
 REASONS = (
     "forecast", "identity_conflict", "no_gsis_mapping", "no_nfl_history",
-    "left_cohort_two_absent_seasons", "not_in_cohort_other",
+    "left_cohort_two_absent_seasons", "position_outside_modelled_set", "not_in_cohort_other",
 )
 
 
@@ -39,7 +41,14 @@ def reconcile_universe(
     history: pd.DataFrame,
     *,
     inference_season: int,
+    cohort_positions: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
+    """``cohort_positions`` (player_id, feature_season, position) is the UNFILTERED cohort's
+    position map, so a player dropped by the modelled-position filter gets that reason."""
+    positions_by_gsis: dict[str, str] = {}
+    if cohort_positions is not None:
+        cp = cohort_positions[cohort_positions["feature_season"].astype(int) == int(inference_season)]
+        positions_by_gsis = {str(p): str(x) for p, x in zip(cp["player_id"], cp["position"])}
     idmap = idmap.copy()
     idmap["sleeper_key"] = pd.to_numeric(idmap["sleeper_id"], errors="coerce")
     idmap = idmap[idmap["sleeper_key"].notna() & idmap["gsis_id"].notna()]
@@ -66,6 +75,8 @@ def reconcile_universe(
             status = "no_nfl_history"
         elif last_seen[gsis] <= int(inference_season) - 2:
             status = "left_cohort_two_absent_seasons"
+        elif gsis in positions_by_gsis:
+            status = "position_outside_modelled_set"
         else:
             status = "not_in_cohort_other"
         rows.append({
@@ -74,6 +85,7 @@ def reconcile_universe(
             "gsis_id": gsis if status != "identity_conflict" else None,
             "status": status,
             "last_season_seen": last_seen.get(gsis) if gsis else None,
+            "cohort_position": positions_by_gsis.get(gsis) if gsis else None,
             f"games_{inference_season}": games_by_gsis.get(gsis) if gsis else None,
         })
     return pd.DataFrame(rows)

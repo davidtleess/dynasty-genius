@@ -53,3 +53,13 @@ def test_a_universe_gsis_disagreeing_with_the_id_map_is_flagged_not_overwritten(
     row = out.set_index("sleeper_id").loc["1"]
     assert row["status"] == "identity_conflict"
     assert row["gsis_id_universe"] == "00-WRONG" and row["gsis_id_idmap"] == "00-A"
+
+
+def test_a_player_whose_stat_line_position_is_outside_the_modelled_set_gets_that_reason():
+    universe = pd.DataFrame({"sleeper_id": ["7"], "gsis_id": ["00-H"], "name": ["Two Way"], "position": ["DB"], "rostered": [True]})
+    history = pd.DataFrame({"player_id": ["00-H"], "last_season_seen": [2025]})
+    positions = pd.DataFrame({"player_id": ["00-H"], "feature_season": [2025], "position": ["DB"]})
+    out = reconcile_universe(universe, _idmap(), _cohort_2025(), history, inference_season=2025,
+                             cohort_positions=positions)
+    row = out.iloc[0]
+    assert row["status"] == "position_outside_modelled_set" and row["cohort_position"] == "DB"

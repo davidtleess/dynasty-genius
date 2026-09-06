@@ -1,0 +1,652 @@
+{
+  "producer": "DG-177 veteran annual forecast candidate (report-only)",
+  "candidate_arm": "basic_cohort_3col_plus_lags",
+  "scoring_arm": "basic_cohort_3col_plus_lags",
+  "candidate_rationale": "the basic cohort's only arm: first-party production, games, age, one lag and last-seen features; the selection policy (baseline / candidate / bounded blend) is chosen per position, horizon and quantity on closed inner folds",
+  "selection_policy": {
+    "space": [
+      "baseline",
+      "candidate",
+      "blend_0.25",
+      "blend_0.5",
+      "blend_0.75"
+    ],
+    "criterion": {
+      "p_appear": "brier",
+      "points_given_appear": "mse",
+      "games_given_appear": "mse"
+    },
+    "chosen": {
+      "QB": {
+        "year1": {
+          "p_appear": "candidate",
+          "points_given_appear": "blend_0.75",
+          "games_given_appear": "candidate"
+        },
+        "year2": {
+          "p_appear": "candidate",
+          "points_given_appear": "blend_0.75",
+          "games_given_appear": "candidate"
+        },
+        "year3": {
+          "p_appear": "candidate",
+          "points_given_appear": "blend_0.75",
+          "games_given_appear": "candidate"
+        },
+        "year4": {
+          "p_appear": "candidate",
+          "points_given_appear": "blend_0.75",
+          "games_given_appear": "candidate"
+        },
+        "year5": {
+          "p_appear": "candidate",
+          "points_given_appear": "blend_0.75",
+          "games_given_appear": "blend_0.75"
+        }
+      },
+      "RB": {
+        "year1": {
+          "p_appear": "candidate",
+          "points_given_appear": "candidate",
+          "games_given_appear": "candidate"
+        },
+        "year2": {
+          "p_appear": "candidate",
+          "points_given_appear": "candidate",
+          "games_given_appear": "candidate"
+        },
+        "year3": {
+          "p_appear": "candidate",
+          "points_given_appear": "blend_0.75",
+          "games_given_appear": "candidate"
+        },
+        "year4": {
+          "p_appear": "candidate",
+          "points_given_appear": "blend_0.75",
+          "games_given_appear": "candidate"
+        },
+        "year5": {
+          "p_appear": "candidate",
+          "points_given_appear": "candidate",
+          "games_given_appear": "candidate"
+        }
+      },
+      "WR": {
+        "year1": {
+          "p_appear": "candidate",
+          "points_given_appear": "blend_0.75",
+          "games_given_appear": "candidate"
+        },
+        "year2": {
+          "p_appear": "candidate",
+          "points_given_appear": "blend_0.75",
+          "games_given_appear": "candidate"
+        },
+        "year3": {
+          "p_appear": "candidate",
+          "points_given_appear": "blend_0.75",
+          "games_given_appear": "candidate"
+        },
+        "year4": {
+          "p_appear": "candidate",
+          "points_given_appear": "candidate",
+          "games_given_appear": "candidate"
+        },
+        "year5": {
+          "p_appear": "candidate",
+          "points_given_appear": "candidate",
+          "games_given_appear": "candidate"
+        }
+      },
+      "TE": {
+        "year1": {
+          "p_appear": "candidate",
+          "points_given_appear": "blend_0.75",
+          "games_given_appear": "candidate"
+        },
+        "year2": {
+          "p_appear": "candidate",
+          "points_given_appear": "candidate",
+          "games_given_appear": "candidate"
+        },
+        "year3": {
+          "p_appear": "candidate",
+          "points_given_appear": "candidate",
+          "games_given_appear": "candidate"
+        },
+        "year4": {
+          "p_appear": "candidate",
+          "points_given_appear": "candidate",
+          "games_given_appear": "candidate"
+        },
+        "year5": {
+          "p_appear": "candidate",
+          "points_given_appear": "candidate",
+          "games_given_appear": "blend_0.75"
+        }
+      }
+    }
+  },
+  "exports": {
+    "candidate": "basic_forecasts.csv",
+    "comparator": "none"
+  },
+  "forecast_cutoff": {
+    "rule": "features observed through the feature season; a year-j label trains only when feature_season + j <= last complete season",
+    "feature_season": 2025,
+    "information_through": "end of the 2025 NFL season including postseason"
+  },
+  "last_complete_season": 2025,
+  "label_window": {
+    "year1": 1,
+    "year2": 2,
+    "year3": 3,
+    "year4": 4,
+    "year5": 5
+  },
+  "scoring_scope": {
+    "scope": "REG",
+    "scoring": "fantasy_points_ppr",
+    "season_types": [
+      "REG"
+    ]
+  },
+  "exposure_definition": "games: weeks with a weekly stat row in scope",
+  "event": "appeared: >= 1 stat-row game in the season",
+  "quantities": {
+    "year1": [
+      "p_appear_year1",
+      "e_points_year1_given_appear",
+      "e_games_year1_given_appear",
+      "e_points_year1",
+      "e_games_year1"
+    ],
+    "year2": [
+      "p_appear_year2",
+      "e_points_year2_given_appear",
+      "e_games_year2_given_appear",
+      "e_points_year2",
+      "e_games_year2"
+    ],
+    "year3": [
+      "p_appear_year3",
+      "e_points_year3_given_appear",
+      "e_games_year3_given_appear",
+      "e_points_year3",
+      "e_games_year3"
+    ],
+    "year4": [
+      "p_appear_year4",
+      "e_points_year4_given_appear",
+      "e_games_year4_given_appear",
+      "e_points_year4",
+      "e_games_year4"
+    ],
+    "year5": [
+      "p_appear_year5",
+      "e_points_year5_given_appear",
+      "e_games_year5_given_appear",
+      "e_points_year5",
+      "e_games_year5"
+    ]
+  },
+  "composition": "e_points_year{j} = p_appear_year{j} x e_points_year{j}_given_appear on the same event and rows; points and games are exactly 0 when absent",
+  "horizons_supported": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "longer_horizons": "unsupported: not measured",
+  "population": "every 2025 row of the basic cohort (a row exists for season t if the player appeared in season t or t-1 (a whole missed season after an active one is a zero-games row); two straight absent seasons leave the cohort)",
+  "no_forecast_reason_for_absent_players": "no_feature_row",
+  "features_by_position": {
+    "QB": [
+      "ppg_t",
+      "games_t",
+      "age",
+      "ppg_t_minus_1",
+      "games_t_minus_1",
+      "ppg_t_minus_1_available",
+      "ppg_last_observed",
+      "seasons_since_last_observed",
+      "seasons_played"
+    ],
+    "RB": [
+      "ppg_t",
+      "games_t",
+      "age",
+      "ppg_t_minus_1",
+      "games_t_minus_1",
+      "ppg_t_minus_1_available",
+      "ppg_last_observed",
+      "seasons_since_last_observed",
+      "seasons_played"
+    ],
+    "WR": [
+      "ppg_t",
+      "games_t",
+      "age",
+      "ppg_t_minus_1",
+      "games_t_minus_1",
+      "ppg_t_minus_1_available",
+      "ppg_last_observed",
+      "seasons_since_last_observed",
+      "seasons_played"
+    ],
+    "TE": [
+      "ppg_t",
+      "games_t",
+      "age",
+      "ppg_t_minus_1",
+      "games_t_minus_1",
+      "ppg_t_minus_1_available",
+      "ppg_last_observed",
+      "seasons_since_last_observed",
+      "seasons_played"
+    ]
+  },
+  "features_by_arm": {
+    "basic_cohort_3col_plus_lags": {
+      "QB": [
+        "ppg_t",
+        "games_t",
+        "age",
+        "ppg_t_minus_1",
+        "games_t_minus_1",
+        "ppg_t_minus_1_available",
+        "ppg_last_observed",
+        "seasons_since_last_observed",
+        "seasons_played"
+      ],
+      "RB": [
+        "ppg_t",
+        "games_t",
+        "age",
+        "ppg_t_minus_1",
+        "games_t_minus_1",
+        "ppg_t_minus_1_available",
+        "ppg_last_observed",
+        "seasons_since_last_observed",
+        "seasons_played"
+      ],
+      "WR": [
+        "ppg_t",
+        "games_t",
+        "age",
+        "ppg_t_minus_1",
+        "games_t_minus_1",
+        "ppg_t_minus_1_available",
+        "ppg_last_observed",
+        "seasons_since_last_observed",
+        "seasons_played"
+      ],
+      "TE": [
+        "ppg_t",
+        "games_t",
+        "age",
+        "ppg_t_minus_1",
+        "games_t_minus_1",
+        "ppg_t_minus_1_available",
+        "ppg_last_observed",
+        "seasons_since_last_observed",
+        "seasons_played"
+      ]
+    }
+  },
+  "inputs": {
+    "weekly_stats_sha256": "6a03548e1b5eaf2c2d6e9ba1361678edfd6d13664350a4e1b39450aa2e3ab90d",
+    "players_sha256": "49674e9785fe7392d919f5148e7371b0ebc52bdf664f1239e5cdf9967c090cf7"
+  },
+  "outputs": {
+    "basic_forecasts.csv": "9200fa124403aa93a7477ac8693c99b72bb39f834c49ede142bc5eac979f262b",
+    "results.json": "7228f81aeb49002909cd94f6d20cfc9b07e3ef23bfe594be10ad56220e301c03",
+    "historical_predictions.csv": "6aff6fab6f05b55cb31ec2a3bdd07bfc661407294e4998c9c82c5eb8589a32e2",
+    "basic_cohort.csv.gz": "ec7f5062aef72be4cb58bd1d0f9249b6b3080b3696e952fc732a33480579fcd9",
+    "weekly_stats_snapshot.csv.gz": "6a03548e1b5eaf2c2d6e9ba1361678edfd6d13664350a4e1b39450aa2e3ab90d",
+    "players_snapshot.csv.gz": "49674e9785fe7392d919f5148e7371b0ebc52bdf664f1239e5cdf9967c090cf7",
+    "universe_reconciliation.csv": "93b30a2ae01f185040668145caa1cc4f27e23dc2e2ee64271dabd743fc77f72e",
+    "universe_reconciliation_detail.csv": "edbd46ee8faad7ae18ca9f85e3d0f61242b7a35c3fe88c8c28bf2aa478470bd0",
+    "annual_forecasts.csv": "9200fa124403aa93a7477ac8693c99b72bb39f834c49ede142bc5eac979f262b"
+  },
+  "outputs_sha256": {
+    "basic_forecasts.csv": "9200fa124403aa93a7477ac8693c99b72bb39f834c49ede142bc5eac979f262b",
+    "results.json": "7228f81aeb49002909cd94f6d20cfc9b07e3ef23bfe594be10ad56220e301c03",
+    "historical_predictions.csv": "6aff6fab6f05b55cb31ec2a3bdd07bfc661407294e4998c9c82c5eb8589a32e2",
+    "basic_cohort.csv.gz": "ec7f5062aef72be4cb58bd1d0f9249b6b3080b3696e952fc732a33480579fcd9",
+    "weekly_stats_snapshot.csv.gz": "6a03548e1b5eaf2c2d6e9ba1361678edfd6d13664350a4e1b39450aa2e3ab90d",
+    "players_snapshot.csv.gz": "49674e9785fe7392d919f5148e7371b0ebc52bdf664f1239e5cdf9967c090cf7",
+    "universe_reconciliation.csv": "93b30a2ae01f185040668145caa1cc4f27e23dc2e2ee64271dabd743fc77f72e",
+    "universe_reconciliation_detail.csv": "edbd46ee8faad7ae18ca9f85e3d0f61242b7a35c3fe88c8c28bf2aa478470bd0",
+    "annual_forecasts.csv": "9200fa124403aa93a7477ac8693c99b72bb39f834c49ede142bc5eac979f262b"
+  },
+  "source_validation": {
+    "seasons": {
+      "2005": {
+        "rows": 16634,
+        "reg_weeks": 17,
+        "reg_weeks_expected": 17,
+        "players": 1778
+      },
+      "2006": {
+        "rows": 16478,
+        "reg_weeks": 17,
+        "reg_weeks_expected": 17,
+        "players": 1746
+      },
+      "2007": {
+        "rows": 16536,
+        "reg_weeks": 17,
+        "reg_weeks_expected": 17,
+        "players": 1776
+      },
+      "2008": {
+        "rows": 16466,
+        "reg_weeks": 17,
+        "reg_weeks_expected": 17,
+        "players": 1764
+      },
+      "2009": {
+        "rows": 16954,
+        "reg_weeks": 17,
+        "reg_weeks_expected": 17,
+        "players": 1784
+      },
+      "2010": {
+        "rows": 16866,
+        "reg_weeks": 17,
+        "reg_weeks_expected": 17,
+        "players": 1819
+      },
+      "2011": {
+        "rows": 16722,
+        "reg_weeks": 17,
+        "reg_weeks_expected": 17,
+        "players": 1802
+      },
+      "2012": {
+        "rows": 16712,
+        "reg_weeks": 17,
+        "reg_weeks_expected": 17,
+        "players": 1810
+      },
+      "2013": {
+        "rows": 16534,
+        "reg_weeks": 17,
+        "reg_weeks_expected": 17,
+        "players": 1791
+      },
+      "2014": {
+        "rows": 16873,
+        "reg_weeks": 17,
+        "reg_weeks_expected": 17,
+        "players": 1849
+      },
+      "2015": {
+        "rows": 16888,
+        "reg_weeks": 17,
+        "reg_weeks_expected": 17,
+        "players": 1845
+      },
+      "2016": {
+        "rows": 16823,
+        "reg_weeks": 17,
+        "reg_weeks_expected": 17,
+        "players": 1855
+      },
+      "2017": {
+        "rows": 16769,
+        "reg_weeks": 17,
+        "reg_weeks_expected": 17,
+        "players": 1868
+      },
+      "2018": {
+        "rows": 16711,
+        "reg_weeks": 17,
+        "reg_weeks_expected": 17,
+        "players": 1883
+      },
+      "2019": {
+        "rows": 16646,
+        "reg_weeks": 17,
+        "reg_weeks_expected": 17,
+        "players": 1888
+      },
+      "2020": {
+        "rows": 16757,
+        "reg_weeks": 17,
+        "reg_weeks_expected": 17,
+        "players": 1983
+      },
+      "2021": {
+        "rows": 18110,
+        "reg_weeks": 18,
+        "reg_weeks_expected": 18,
+        "players": 2081
+      },
+      "2022": {
+        "rows": 17963,
+        "reg_weeks": 18,
+        "reg_weeks_expected": 18,
+        "players": 2006
+      },
+      "2023": {
+        "rows": 17788,
+        "reg_weeks": 18,
+        "reg_weeks_expected": 18,
+        "players": 1942
+      },
+      "2024": {
+        "rows": 18112,
+        "reg_weeks": 18,
+        "reg_weeks_expected": 18,
+        "players": 1996
+      },
+      "2025": {
+        "rows": 18522,
+        "reg_weeks": 18,
+        "reg_weeks_expected": 18,
+        "players": 2019
+      }
+    },
+    "scope_checked": "REG",
+    "duplicate_rows": 0,
+    "missing_points": 0,
+    "missing_player_id": 0,
+    "min_players_per_season": 1000,
+    "validated": true,
+    "unattributed_zero_rows_dropped": 444,
+    "unattributed_stat_lines_dropped": [
+      {
+        "season": 2005,
+        "week": 1,
+        "season_type": "REG",
+        "position": null,
+        "points": 6.0
+      },
+      {
+        "season": 2012,
+        "week": 6,
+        "season_type": "REG",
+        "position": null,
+        "points": 3.1
+      }
+    ],
+    "unattributed_points_dropped_by_season": {
+      "2005": 6.0,
+      "2012": 3.1
+    },
+    "tolerated_points_per_season": 10.0
+  },
+  "intervals": "none exported; historical bootstrap intervals are conditional on the fitted models (fit uncertainty), not model or season uncertainty",
+  "source": {
+    "weekly_stats": "nflreadpy.load_player_stats(seasons=2005..2025, summary_level='week')",
+    "weekly_stats_pulled_at_utc": "2026-09-06T15:52:59.428657+00:00",
+    "weekly_stats_rows": 373477,
+    "weekly_stats_sha256": "6a03548e1b5eaf2c2d6e9ba1361678edfd6d13664350a4e1b39450aa2e3ab90d",
+    "players_table": "nflreadpy.load_players()",
+    "players_sha256": "49674e9785fe7392d919f5148e7371b0ebc52bdf664f1239e5cdf9967c090cf7",
+    "players_facts": {
+      "rows": 24828,
+      "duplicate_gsis": 0,
+      "missing_gsis": 0,
+      "missing_birth_date": 32
+    },
+    "nflreadpy": "0.1.5"
+  },
+  "git_head": "46a289fbd468099de70b4ac2a73ef13a588fddff",
+  "horizon_support": {
+    "1": {
+      "closed_feature_seasons": [
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "supported": true,
+      "reason": null
+    },
+    "2": {
+      "closed_feature_seasons": [
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023
+      ],
+      "supported": true,
+      "reason": null
+    },
+    "3": {
+      "closed_feature_seasons": [
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022
+      ],
+      "supported": true,
+      "reason": null
+    },
+    "4": {
+      "closed_feature_seasons": [
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021
+      ],
+      "supported": true,
+      "reason": null
+    },
+    "5": {
+      "closed_feature_seasons": [
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020
+      ],
+      "supported": true,
+      "reason": null
+    }
+  },
+  "unsupported_horizons": [],
+  "inputs_note": "the basic cohort does not read the Engine B training file; its inputs are the two snapshots",
+  "universe_reconciliation": {
+    "universe": "/Users/davidleess/dg-wt/DG-178/runs/20260906T153911Z/dg178_universe/eligible_universe.csv",
+    "universe_sha256": "d4e53603571dbb5994f75d62edb1a271ce3f270d05b444b1cb43253de8064584",
+    "idmap": "nflreadpy.load_ff_playerids()",
+    "idmap_sha256": "eafa446e72c0ad1e998f507429f63566cfe85961688ec7bb34ae7dd82b1e4be9",
+    "rows": 4041,
+    "by_status": {
+      "no_gsis_mapping": 1397,
+      "left_cohort_two_absent_seasons": 1285,
+      "forecast": 740,
+      "no_nfl_history": 616,
+      "not_in_cohort_other": 3
+    },
+    "rostered_by_status": {
+      "forecast": 228,
+      "no_nfl_history": 44,
+      "not_in_cohort_other": 1,
+      "no_gsis_mapping": 1
+    },
+    "detail_by_status": {
+      "no_gsis_mapping": 1397,
+      "left_cohort_two_absent_seasons": 1285,
+      "forecast": 740,
+      "no_nfl_history": 616,
+      "position_outside_modelled_set": 3
+    },
+    "detail_file": "universe_reconciliation_detail.csv"
+  },
+  "finalized_after_run": "manifest.json and universe_reconciliation_detail.csv were written from this run's own results.json and snapshots after the run refused its manifest for an arm name the validator did not yet accept; no forecast, grading or snapshot was recomputed; the original universe_reconciliation.csv is untouched"
+}
