@@ -177,8 +177,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--universe", type=Path, default=None,
                         help="DG-178's eligible_universe.csv; every row gets a forecast or a precise reason")
     parser.add_argument("--outcomes-artifact", type=Path, default=None,
-                        help="Codex's common player-season outcome CSV (labels); features stay ALL NFL games")
-    parser.add_argument("--outcomes-manifest", type=Path, default=None, help="its manifest (scoring identifier, window, sha256)")
+                        help="directory of Codex's common league-season outcome artifact (outcomes.csv + manifest.json, "
+                             "schema dg179_league_season_outcomes_v1) used as the LABEL source; features stay ALL NFL games")
+    parser.add_argument("--allow-unqualified-artifact", action="store_true",
+                        help="accept a fixture-grade artifact (coverage unverified); never for a producer handoff")
     parser.add_argument("--roster-roles", type=Path, default=DEFAULT_ROSTER_ROLES,
                         help="historical roster capture (parquet) for the same-season offensive-role fallback; "
                              "'none' disables it")
@@ -236,13 +238,19 @@ def main(argv: list[str] | None = None) -> int:
     if args.outcomes_artifact is not None:
         # Labels from the COMMON artifact (REG league window, nflverse-default PPR, not exact league
         # scoring); features above stay ALL NFL games. Points, games and appearance come from one mask.
-        common_manifest = json.loads(args.outcomes_manifest.read_text())
-        outcomes = load_common_outcomes(args.outcomes_artifact, common_manifest)
-        label_source = {"kind": "common_outcome_artifact", "path": str(args.outcomes_artifact),
-                        "manifest": str(args.outcomes_manifest), "csv_sha256": outcomes.attrs["csv_sha256"],
-                        "manifest_sha256": hashlib.sha256(args.outcomes_manifest.read_bytes()).hexdigest(),
-                        "scoring": outcomes.attrs["scoring"], "exact_league_scoring": False,
-                        "weeks": outcomes.attrs["weeks"], "seasons_covered": outcomes.attrs["seasons_covered"]}
+        outcomes = load_common_outcomes(args.outcomes_artifact, require_qualified=not args.allow_unqualified_artifact)
+        sv = outcomes.attrs["source_validation"]
+        label_source = {"kind": "common_outcome_artifact", "schema_version": "dg179_league_season_outcomes_v1",
+                        "path": str(args.outcomes_artifact), "csv_sha256": outcomes.attrs["csv_sha256"],
+                        "manifest_sha256": outcomes.attrs["manifest_sha256"],
+                        "scoring_preset": outcomes.attrs["scoring"], "league_scoring_exact": False,
+                        "exact_league_scoring_gaps": outcomes.attrs["exact_league_scoring_gaps"],
+                        "target_identity": outcomes.attrs["target_identity"], "window_identity": outcomes.attrs["window_identity"],
+                        "scoring_identity": outcomes.attrs["scoring_identity"], "source_identity_sha256": outcomes.attrs["source_identity_sha256"],
+                        "season_windows": outcomes.attrs["season_windows"], "seasons_covered": outcomes.attrs["seasons_covered"],
+                        "exposure": outcomes.attrs["exposure"], "coverage_status": sv["coverage_status"],
+                        "qualified_research": sv["qualified_research"], "individual_stat_completeness_proven": False,
+                        "qualification_note": sv["qualification_note"]}
         scope_label = outcomes.attrs["scope"]
     else:
         outcomes = season_outcomes(weekly, scope=SCOPE, validation=source_validation)
@@ -397,10 +405,13 @@ def main(argv: list[str] | None = None) -> int:
     manifest["window_id"] = window_id_for(label_source["kind"])
     manifest["scoring_scope"]["window_id"] = manifest["window_id"]
     if label_source["kind"] == "common_outcome_artifact":
-        manifest["scoring_scope"] = {"scope": scope_label, "scoring": label_source["scoring"],
-                                     "exact_league_scoring": False, "weeks": label_source["weeks"],
-                                     "season_types": ["REG"], "window_id": manifest["window_id"]}
+        manifest["scoring_scope"] = {"scope": scope_label, "scoring": label_source["scoring_preset"],
+                                     "league_scoring_exact": False, "exact_league_scoring_gaps": label_source["exact_league_scoring_gaps"],
+                                     "season_windows": label_source["season_windows"], "season_types": ["REG"],
+                                     "exposure": label_source["exposure"], "window_id": manifest["window_id"],
+                                     "target_identity": label_source["target_identity"]}
         manifest["inputs"]["common_outcomes_sha256"] = label_source["csv_sha256"]
+        manifest["inputs"]["common_outcomes_manifest_sha256"] = label_source["manifest_sha256"]
     validate_manifest(manifest, known_arms={ARM},
                       required_inputs=("weekly_stats_sha256", "players_sha256") + (("roster_roles_sha256",) if roster_facts.get("supplied") else ()),
                       run_dir=out_dir)
