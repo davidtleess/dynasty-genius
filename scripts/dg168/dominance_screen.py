@@ -27,7 +27,42 @@ from pathlib import Path
 
 # DG-169, Bob, measured: his league / the market's format. RB is the only position the
 # market prices correctly for him.
-LEAGUE_TRANSLATION = {"TE": 1.96, "QB": 1.95, "WR": 1.45, "RB": 0.98}
+#
+# ⛔ THESE ARE KEYED TO ONE SOURCE'S BASELINE. FantasyCalc publishes for 0.5 PPR
+# starting three receivers; the factors restate that into his full-PPR superflex
+# starting two. A different source with a different baseline needs its own row, and
+# applying these to it would be silently wrong in the direction of the format gap.
+# Verified on the live overlay: 397 of 397 values carry source "fantasycalc", one
+# timestamp. If that ever stops being true this table must not be applied blind.
+TRANSLATION_BY_SOURCE = {
+    "fantasycalc": {"TE": 1.96, "QB": 1.95, "WR": 1.45, "RB": 0.98},
+}
+
+
+class UnknownMarketBaseline(Exception):
+    """A source whose publishing format we have not measured.
+
+    Raised rather than defaulted. Falling back to 1.0 would silently assert that the
+    source publishes for his league, which is the one thing we know is false of every
+    market source measured so far — the smallest correction in the table is 1.45 and
+    the largest is 1.96.
+    """
+
+
+def translation_for(source: str | None) -> dict[str, float]:
+    """Fails closed. An unmeasured source is not a source with no correction."""
+    factors = TRANSLATION_BY_SOURCE.get((source or "").lower())
+    if factors is None:
+        raise UnknownMarketBaseline(
+            f"no measured format baseline for market source {source!r}; "
+            f"measured sources are {sorted(TRANSLATION_BY_SOURCE)}"
+        )
+    return factors
+
+
+# Kept for the module-level callers that assume the single measured source. Any code
+# path reading a mixed-source overlay must call translation_for() per row instead.
+LEAGUE_TRANSLATION = TRANSLATION_BY_SOURCE["fantasycalc"]
 
 # A pair must be priced this close to count as "the market says these are the same",
 # and must differ by at least this much on each axis to count as dominance rather than
