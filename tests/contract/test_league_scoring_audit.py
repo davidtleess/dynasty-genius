@@ -4,6 +4,8 @@ Fixtures use synthetic ids (P1, P2, ...) and teams (AAA, BBB). No player names, 
 """
 from __future__ import annotations
 
+import json
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -396,3 +398,86 @@ def test_league_points_apply_the_weekly_lost_count_while_the_row_stays_unresolve
     c = _components([dict(player_id="P1", week=3, fumbles_lost_total=2, rushing_fumbles_lost=1)])
     assert c.iloc[0].attribution_status == "unresolved"
     assert float(lsa.league_points(c, SETTINGS).iloc[0]) == -4.0
+
+
+# ── Task 6: Sleeper ground truth, identity mapping, settings check, reconciliation ────────────
+
+def _season_dir(tmp_path, weeks, settings=SETTINGS):
+    d = tmp_path / "season_2025_1"
+    d.mkdir()
+    (d / "league.json").write_text(json.dumps({"payload": {"season": "2025", "scoring_settings": settings}}))
+    for wk, matchups in weeks.items():
+        (d / f"matchups_week_{wk:02d}.json").write_text(json.dumps({"payload": matchups}))
+    return d
+
+
+def test_sleeper_points_load_with_identical_duplicates_collapsed_and_conflicts_flagged(tmp_path):
+    d = _season_dir(tmp_path, {1: [{"roster_id": 1, "players_points": {"11": 4.5, "12": 0.0}},
+                                   {"roster_id": 2, "players_points": {"11": 4.5, "13": 2.0}},
+                                   {"roster_id": 3, "players_points": {"13": 7.0}}]})
+    s = lsa.load_sleeper_week_points(d).set_index("sleeper_id")
+    assert len(s) == 3
+    assert s.loc["11", "status"] == "ok" and int(s.loc["11", "duplicates_collapsed"]) == 1
+    assert s.loc["12", "status"] == "ok" and int(s.loc["12", "duplicates_collapsed"]) == 0
+    assert s.loc["13", "status"] == "conflicting_duplicate"
+
+
+def test_settings_mismatch_is_refused_by_key_and_the_sha_is_order_independent(tmp_path):
+    d = _season_dir(tmp_path, {}, settings={**SETTINGS, "rec": 0.5})
+    with pytest.raises(lsa.ScoringAuditError, match="rec"):
+        lsa.assert_settings_match(SETTINGS, lsa.load_sleeper_settings(d))
+    assert lsa.settings_sha256(SETTINGS) == lsa.settings_sha256(dict(reversed(list(SETTINGS.items()))))
+    lsa.assert_settings_match(SETTINGS, dict(SETTINGS))
+
+
+def test_identity_map_marks_unmapped_and_ambiguous_ids():
+    idmap = pd.DataFrame({"sleeper_id": ["11", "12", "12", "14"], "gsis_id": ["00-1", "00-2", "00-3", None]})
+    m = lsa.map_sleeper_ids(pd.Series(["11", "12", "99", "14"]), idmap).set_index("sleeper_id")
+    assert m.loc["11", "identity_status"] == "resolved" and m.loc["11", "gsis_id"] == "00-1"
+    assert m.loc["12", "identity_status"] == "ambiguous" and pd.isna(m.loc["12", "gsis_id"])
+    assert m.loc["99", "identity_status"] == "unmapped" and m.loc["14", "identity_status"] == "unmapped"
+
+
+def test_reconciliation_statuses_cover_exact_attributed_unresolved_and_absent_zero():
+    ev = lsa.extract_fumble_events(pbp([play("G1", 1, 1, play_type="punt", special_teams_play=1, fumbled_1_player_id="00-2",
+                                             fumbled_1_team="AAA", fumble_recovery_1_player_id="D1", fumble_recovery_1_team="BBB",
+                                             fumble_lost=1, desc="MUFFS, FUMBLES")]))
+    comps = _components([dict(player_id="00-1", week=1, receptions=2, receiving_yards=20, fantasy_points_ppr=4.0),
+                         dict(player_id="00-2", week=1, receptions=3, receiving_yards=12, fumbles_lost_total=1, fantasy_points_ppr=4.2),
+                         dict(player_id="00-3", week=1, rushing_yards=10, fantasy_points_ppr=1.0)], ev)
+    sleeper = pd.DataFrame({"week": [1, 1, 1, 1, 1], "sleeper_id": ["11", "12", "13", "14", "15"],
+                            "sleeper_points": [4.0, 2.2, 1.5, 0.0, 3.0], "roster_id": 1, "status": "ok", "duplicates_collapsed": 0})
+    identity = pd.DataFrame({"sleeper_id": ["11", "12", "13", "14", "15"], "gsis_id": ["00-1", "00-2", "00-3", None, None],
+                             "identity_status": ["resolved", "resolved", "resolved", "unmapped", "unmapped"]})
+    r = lsa.reconcile(comps, sleeper, identity, SETTINGS).set_index("sleeper_id")
+    assert r.loc["11", "status"] == "exact"
+    assert r.loc["12", "status"] == "attributed_difference" and r.loc["12", "diff_vs_research"] == pytest.approx(-2.0)
+    assert r.loc["13", "status"] == "unresolved" and r.loc["13", "reconciliation_reason"] == "source_difference"
+    assert r.loc["14", "status"] == "absent_zero"
+    assert r.loc["15", "status"] == "unresolved" and r.loc["15", "reconciliation_reason"] == "no_identity"
+
+
+def test_reconciliation_never_credits_an_unresolved_attribution_as_exact():
+    comps = _components([dict(player_id="00-1", week=3, fumbles_lost_total=2, rushing_fumbles_lost=1, fantasy_points_ppr=-2.0)])
+    sleeper = pd.DataFrame({"week": [3], "sleeper_id": ["11"], "sleeper_points": [-4.0], "roster_id": 1, "status": "ok", "duplicates_collapsed": 0})
+    identity = pd.DataFrame({"sleeper_id": ["11"], "gsis_id": ["00-1"], "identity_status": ["resolved"]})
+    r = lsa.reconcile(comps, sleeper, identity, SETTINGS).iloc[0]
+    assert r.status == "unresolved" and r.reconciliation_reason == "component_attribution_unresolved"
+
+
+def test_reconciliation_flags_nonzero_points_without_a_stat_row_and_conflicting_duplicates():
+    comps = _components([dict(player_id="00-1", week=2, receptions=1, fantasy_points_ppr=1.0)])
+    sleeper = pd.DataFrame({"week": [2, 2], "sleeper_id": ["11", "12"], "sleeper_points": [1.0, 3.0], "roster_id": 1,
+                            "status": ["conflicting_duplicate", "ok"], "duplicates_collapsed": [1, 0]})
+    identity = pd.DataFrame({"sleeper_id": ["11", "12"], "gsis_id": ["00-1", "00-9"], "identity_status": ["resolved", "resolved"]})
+    r = lsa.reconcile(comps, sleeper, identity, SETTINGS).set_index("sleeper_id")
+    assert r.loc["11", "status"] == "unresolved" and r.loc["11", "reconciliation_reason"] == "conflicting_duplicate"
+    assert r.loc["12", "status"] == "unresolved" and r.loc["12", "reconciliation_reason"] == "no_stat_row_nonzero_points"
+
+
+def test_reconciliation_labels_week_18_outside_the_championship_window():
+    comps = _components([dict(player_id="00-1", week=18, receptions=1, fantasy_points_ppr=1.0)])
+    sleeper = pd.DataFrame({"week": [18], "sleeper_id": ["11"], "sleeper_points": [1.0], "roster_id": 1, "status": "ok", "duplicates_collapsed": 0})
+    identity = pd.DataFrame({"sleeper_id": ["11"], "gsis_id": ["00-1"], "identity_status": ["resolved"]})
+    r = lsa.reconcile(comps, sleeper, identity, SETTINGS).iloc[0]
+    assert r.status == "exact" and bool(r.championship_window) is False

@@ -11,6 +11,10 @@ idp_* keys, which this league does not set).
 """
 from __future__ import annotations
 
+import hashlib
+import json
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
@@ -273,3 +277,88 @@ def league_points(components: pd.DataFrame, settings: dict) -> pd.Series:
             + g("fum") * _num(c, "fumbles_total") + g("fum_lost") * lost
             + g("fum_rec_td") * _num(c, "fumble_recovery_tds") + g("st_td") * _num(c, "special_teams_tds")
             + g("st_ff") * _num(c, "st_forced_fumbles") + g("st_fum_rec") * _num(c, "st_opp_recoveries"))
+
+
+# ── Sleeper ground truth, identity mapping, settings check, reconciliation ────────────────────
+
+TOL = 0.005
+RECON_NO_IDENTITY = "no_identity"
+RECON_NO_STAT_ROW = "no_stat_row_nonzero_points"
+RECON_CONFLICT = "conflicting_duplicate"
+RECON_COMPONENT = "component_attribution_unresolved"
+RECON_SOURCE = "source_difference"
+
+
+def load_sleeper_week_points(season_dir: Path) -> pd.DataFrame:
+    rows = []
+    for f in sorted(Path(season_dir).glob("matchups_week_*.json")):
+        week = int(f.stem.rsplit("_", 1)[1])
+        for m in json.loads(f.read_bytes())["payload"]:
+            for pid, pts in (m.get("players_points") or {}).items():
+                rows.append({"week": week, "sleeper_id": str(pid), "sleeper_points": float(pts), "roster_id": m.get("roster_id")})
+    df = pd.DataFrame(rows, columns=["week", "sleeper_id", "sleeper_points", "roster_id"])
+    if not len(df):
+        df["status"] = pd.Series(dtype=object)
+        df["duplicates_collapsed"] = pd.Series(dtype=int)
+        return df
+    n_distinct = df.groupby(["week", "sleeper_id"])["sleeper_points"].transform("nunique")
+    n_obs = df.groupby(["week", "sleeper_id"])["sleeper_points"].transform("size")
+    df["status"] = np.where(n_distinct > 1, RECON_CONFLICT, "ok")
+    df["duplicates_collapsed"] = (n_obs - 1).astype(int)     # equal observations collapsed EXPLICITLY, never double counted
+    return df.drop_duplicates(["week", "sleeper_id"], keep="first").reset_index(drop=True)
+
+
+def load_sleeper_settings(season_dir: Path) -> dict:
+    return json.loads((Path(season_dir) / "league.json").read_bytes())["payload"]["scoring_settings"]
+
+
+def settings_sha256(settings: dict) -> str:
+    return hashlib.sha256(json.dumps(settings, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def assert_settings_match(saved: dict, season: dict) -> None:
+    diff = sorted(k for k in set(saved) | set(season) if saved.get(k) != season.get(k))
+    if diff:
+        raise ScoringAuditError(f"season scoring settings differ from the saved snapshot on {diff}")
+
+
+def map_sleeper_ids(sleeper_ids: pd.Series, idmap: pd.DataFrame) -> pd.DataFrame:
+    m = idmap.dropna(subset=["sleeper_id", "gsis_id"]).astype({"sleeper_id": str, "gsis_id": str})
+    m = m[(m.sleeper_id.str.strip() != "") & (m.gsis_id.str.strip() != "")].drop_duplicates(["sleeper_id", "gsis_id"])
+    counts = m.groupby("sleeper_id")["gsis_id"].nunique()
+    one = m[m.sleeper_id.map(counts) == 1].set_index("sleeper_id")["gsis_id"]
+    out = pd.DataFrame({"sleeper_id": pd.Series(sleeper_ids.astype(str).unique())})
+    out["gsis_id"] = out.sleeper_id.map(one)
+    out["identity_status"] = np.select([out.sleeper_id.isin(counts[counts > 1].index), out.gsis_id.notna()],
+                                       ["ambiguous", "resolved"], default="unmapped")
+    return out
+
+
+def reconcile(components: pd.DataFrame, sleeper: pd.DataFrame, identity: pd.DataFrame, settings: dict) -> pd.DataFrame:
+    comps = components.copy()
+    comps["research_ppr"] = research_ppr_from_components(comps)
+    comps["league_points"] = league_points(comps, settings)
+    keep = ["player_id", "week", "research_ppr", "league_points", "attribution_status", "unresolved_reason"]
+    r = sleeper.merge(identity, on="sleeper_id", how="left")
+    r = r.merge(comps[keep], left_on=["gsis_id", "week"], right_on=["player_id", "week"], how="left")
+    r["championship_window"] = r["week"].isin(list(CHAMPIONSHIP_WEEKS))
+    r["diff_vs_research"] = r.sleeper_points - r.research_ppr
+    r["diff_vs_league"] = r.sleeper_points - r.league_points
+    has_row = r.player_id.notna()
+    has_id = r.identity_status.eq("resolved")
+    conflict = r.status.eq(RECON_CONFLICT)
+    attributed = r.attribution_status.eq("attributed")
+    league_ok = has_row & (r.diff_vs_league.abs() <= TOL)
+    research_ok = has_row & (r.diff_vs_research.abs() <= TOL)
+    absent_zero = ~has_row & (r.sleeper_points.abs() <= TOL)
+    reason = np.select(
+        [conflict, ~has_id & ~absent_zero, has_id & ~has_row & ~absent_zero, has_row & ~attributed, has_row & attributed & ~league_ok],
+        [RECON_CONFLICT, RECON_NO_IDENTITY, RECON_NO_STAT_ROW, RECON_COMPONENT, RECON_SOURCE], default="")
+    r["reconciliation_reason"] = reason
+    ok = (reason == "")
+    r["status"] = np.select([ok & has_row & research_ok, ok & has_row & ~research_ok, ok & absent_zero],
+                            ["exact", "attributed_difference", "absent_zero"], default="unresolved")
+    cols = ["week", "sleeper_id", "gsis_id", "identity_status", "roster_id", "sleeper_points", "research_ppr", "league_points",
+            "diff_vs_research", "diff_vs_league", "attribution_status", "unresolved_reason", "reconciliation_reason",
+            "championship_window", "status"]
+    return r[cols].sort_values(["week", "sleeper_id"]).reset_index(drop=True)
