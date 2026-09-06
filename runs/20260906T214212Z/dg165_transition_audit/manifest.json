@@ -1,0 +1,74 @@
+{
+  "binding": {
+    "outcomes_csv_sha256": "199a48beb96a25f5dad50758b3f72b40a5d7d0cf2000f7cdaf2f411873c6ecb8",
+    "outcomes_manifest_sha256": "d3812d0d56b50971e98552fed4f791d3132eeffa7c242601e7c609285863ba18",
+    "scoring_preset": "nflverse_default_ppr_championship_window_v1",
+    "status": "same_target",
+    "target_identity": "049d2229c4ba06eececba66a083a777142f85ff0f459b0499912f49fa0ca3c6a"
+  },
+  "definitions": {
+    "caveats": {
+      "bootstrap": "both frozen fits and the realized seasons; player-sampling variability only \u2014 not model, not selection, not season uncertainty, and not a forecast interval",
+      "role": "DG-177's basic cohort trusts the offensive STATLINE position and its weekly snapshot carries historic role disagreements with the roster source (e.g. Jordan Matthews 2014 TE vs WR, Logan Thomas 2014 TE vs QB, N'Keal Harry 2019 TE vs WR, Cordarrelle Patterson 2013 RB vs WR). The audit keeps draft_position and veteran_position as attributes, never joins on position, and counts disagreements; equal targets do not prove historic role integrity. No role repair and no refit in this scope.",
+      "rookie_evidence_status_verbatim": {
+        "inner_menu": "retrospective historical evaluation with forecast cutoffs enforced; the policy selects, if at all, only inside each training window, but the policy menu itself was refined after inspecting these historical years, so this is not untouched independent confirmation",
+        "plain": "exploratory comparison against the declared policy on the same retrospective evaluation; never used to reassign the canonical evidence"
+      },
+      "rookie_policy_menu": "the rookie producer's policy menu was refined after inspecting the historical years, so its historical evaluation is a retrospective evaluation with forecast cutoffs enforced, not untouched independent confirmation; this audit inherits that caveat for the rookie side",
+      "window": "veteran_row_without_window_appearance flags a veteran feature row whose games_t counts stat lines outside the championship window (final regular-season week or postseason) while the window label records no appearance. Those rows are VALID paired evidence \u2014 the feature window and the label window differ by design \u2014 and are flagged, never rejected."
+    },
+    "experience": "feature_season - draft_season + 1 from the draft table; never DG-177 seasons_played (left-censored at 2005)",
+    "not": "an audit of two frozen forecasts on one realized target; no correction, blend, uplift, youth bonus, market input, added feature or refit is proposed here",
+    "origins": "rookie forecast made at draft time with NFL information through draft_season - 1; veteran forecast made after the feature season with information through it; the gap is the experience in seasons",
+    "position_basis": "metrics are grouped by DRAFT position; the veteran role position is retained beside it",
+    "sign_convention": "diff = veteran minus rookie; negative favours the veteran forecast",
+    "thin_history": "veteran games_t <= 4 in the feature season"
+  },
+  "draws": 2000,
+  "experiences": [
+    1,
+    2,
+    3
+  ],
+  "finished_utc": "2026-09-06T21:42:12.645011+00:00",
+  "frozen_inputs_untouched": true,
+  "git_sha": "3033b70ad93b60e060faac5fc322be3e6dc25a70",
+  "inputs": {
+    "rookie": {
+      "git_sha": "32d0d7177fe4d53da4a65340a9dd4263fbcd7b71",
+      "manifest_sha256": "b863c3cf34d87254ec154a39caeec954e3ae804e88fb7e864f7d43e5e19609e5",
+      "model_version": "dg165_rookie_capital_v3_chain",
+      "run_dir": "runs/20260906T195904Z/dg165_rookie_capital",
+      "scoring_arm_id": "dg165_rookie_capital_v3_chain:inner_menu:trend",
+      "verified": {
+        "cohort.csv": "d96b93b444d99ca073591cddfb45b43d61d3ba5c105623869167d6348c7a5afc",
+        "inputs/nflverse_draft_picks.parquet": "68940f7b20f4e776f86bf27d38b9975ba5bc3f17f7a6f345bdd87c8bd72c097f",
+        "out_of_time_predictions.csv": "d44620f699ae58b88d4b589a2e6b289be2be6648f38b8f7fb7e191476fa76361"
+      }
+    },
+    "veteran": {
+      "candidate_arm": "basic_cohort_3col_plus_lags",
+      "forecast_columns": "policy_* (what the board consumes); candidate_* and baseline_* are not audited here",
+      "git_head": "39545f8ef2f1491363376ed470a619570515cb39",
+      "manifest_sha256": "253d546158fb68f5b9fa22b1cc7f744f0b2bf13007d02b90c6e36b52f930a002",
+      "producer": "DG-177 veteran annual forecast candidate (report-only)",
+      "run_dir": "/Users/davidleess/dg-wt/DG-177/runs/20260906T195728Z/dg177_basic_horizons",
+      "verified": {
+        "basic_cohort.csv.gz": "46e1fc01380b4ad768058dbe84ccdf807be056b451b9a46105cda8eab745d25e",
+        "historical_predictions.csv": "f4fe6644d3dd6e347b89d573eb05730b3bbda522355f648f7f0087eaf66aa1f1"
+      }
+    }
+  },
+  "outputs_sha256": {
+    "REPORT.md": "d23e11e3c4137e254edd1d538738dfd0722dc87f8077ba3b2ed18c1f0e0dd671",
+    "coverage_ledger.csv": "be8fb1c40dc1007f81673876176884690755d74a651560e3fa41347fe00fe5fa",
+    "joined_rows.csv": "1129bd10fe488b17c5a5454bea6b3f1043313908b37a35a78e2341a3df25be79",
+    "metrics.json": "1f535d6b8db45074bb3871c4a583053c4476115f27543421c051a6d2d92cf732",
+    "veteran_population_ledger.csv": "4a7847b773f4674f7137aab1eb687afb618370a8f22431501bd70bee7d766f1c"
+  },
+  "run_dir": "runs/20260906T214212Z/dg165_transition_audit",
+  "schema_version": "dg165_transition_audit_v1",
+  "seed": 20260906,
+  "started_utc": "2026-09-06T21:42:12.611181+00:00",
+  "ticket": "DG-165"
+}
