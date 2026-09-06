@@ -839,3 +839,51 @@ def test_empty_join_returns_an_empty_frame_with_the_full_column_contract(runs):
     empty = replace(v, historical=v.historical.iloc[:0])
     j = join_transition(r, empty, experience=1)
     assert len(j) == 0 and list(j.columns) == JOINED_COLUMNS
+
+
+# ---------------------------------------------------------------- root provenance guards 2026-09-06: artifact VALUES, companion outcome
+
+def test_matching_but_wrong_labels_on_both_producers_are_not_artifact_backed(tmp_path):
+    """Both producers say 251 for A's 2016 season while the artifact says 250: the labels agree with each other,
+    every source hash passes, and the row must still refuse rather than be tagged artifact-backed."""
+    import shutil
+
+    from src.dynasty_genius.rookie.transition_audit import (
+        join_transition,
+        load_rookie_run,
+        load_veteran_run,
+    )
+    rookie_dir = make_rookie_run(tmp_path)
+    oot = pd.read_csv(rookie_dir / "out_of_time_predictions.csv")
+    oot.loc[oot.gsis_id == "00-A", "points_2"] = 251.0
+    shutil.rmtree(rookie_dir)
+    rookie_dir = make_rookie_run(tmp_path, oot=oot)
+    hist = pd.read_csv(make_veteran_run(tmp_path) / "historical_predictions.csv")
+    hist.loc[(hist.player_id == "00-A") & (hist.feature_season == 2015), "points_year1"] = 251.0
+    vet_dir = _rebuild_veteran(tmp_path, hist=hist)
+    with pytest.raises(ValueError, match="artifact"):
+        join_transition(load_rookie_run(rookie_dir), load_veteran_run(vet_dir), experience=1)
+
+
+def test_duplicate_artifact_keys_refuse(tmp_path):
+    from src.dynasty_genius.rookie.transition_audit import load_rookie_run
+    rows = pd.DataFrame({"player_id": ["00-A", "00-A", "00-B"], "season": [2016, 2016, 2016],
+                         "points": [250.0, 250.0, 90.0], "games": [17, 17, 10], "appeared": [True, True, True]})
+    make_artifact(tmp_path, rows)
+    with pytest.raises(ValueError, match="unique"):
+        load_rookie_run(make_rookie_run(tmp_path))
+
+
+def test_present_companion_without_outcome_block_refuses(tmp_path):
+    from src.dynasty_genius.rookie.transition_audit import load_veteran_run
+    make_rookie_run(tmp_path)
+    vet_dir = make_veteran_run(tmp_path)
+    m = json.loads((vet_dir / "manifest.json").read_text())
+    companion = vet_dir.parent / f"{vet_dir.name}.manifest.corrected.json"
+    companion.write_text(json.dumps({**m, "corrects": {"of": "manifest.json"}}))  # present, no outcome block
+    with pytest.raises(ValueError, match="outcome"):
+        load_veteran_run(vet_dir)
+    companion.write_text(json.dumps({**m, "corrects": {"of": "manifest.json"},
+                                     "outcome": {"target_identity": TARGET, "outcomes_csv_sha256": m["label_source"]["csv_sha256"]}}))  # malformed: fields missing
+    with pytest.raises(ValueError, match="outcome"):
+        load_veteran_run(vet_dir)

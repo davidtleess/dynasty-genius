@@ -90,7 +90,7 @@ class RookieRun:
     draft_picks: pd.DataFrame
     verified: dict[str, str]
     manifest_sha256: str
-    artifact_keys: frozenset  # (player_id, season) pairs the bound outcome artifact actually contains
+    artifact_labels: dict  # (player_id, season) -> (points, games, appeared) as the bound outcome artifact records them
 
 
 @dataclass(frozen=True)
@@ -135,9 +135,12 @@ def load_rookie_run(run_dir: Path | str, *, outcomes_csv: Path | str | None = No
     if _sha(art_bytes) != art_sha:
         raise ValueError(f"{run_dir}: outcomes.csv sha256 mismatch at {art_path}: bound {art_sha[:12]}…, actual {_sha(art_bytes)[:12]}…")
     verified["outcomes.csv"] = art_sha
-    art = pd.read_csv(io.BytesIO(art_bytes), usecols=["player_id", "season"])
-    keys = frozenset(zip(art["player_id"].astype(str), _strict_int(art["season"], "outcome artifact season").tolist()))
-    return RookieRun(run_dir, manifest, cohort, oot, picks, verified, _sha(manifest_bytes), keys)
+    art = pd.read_csv(io.BytesIO(art_bytes), usecols=["player_id", "season", "points", "games", "appeared"])
+    art_keys = pd.DataFrame({"player_id": art["player_id"].astype(str), "season": _strict_int(art["season"], "outcome artifact season")})
+    _assert_unique(art_keys, ["player_id", "season"], "outcome artifact")
+    labels = {(pid, int(season)): (float(points), float(games), float(bool(appeared)))
+              for pid, season, points, games, appeared in zip(art_keys["player_id"], art_keys["season"], art["points"], art["games"], art["appeared"])}
+    return RookieRun(run_dir, manifest, cohort, oot, picks, verified, _sha(manifest_bytes), labels)
 
 
 def load_veteran_run(run_dir: Path | str) -> VeteranRun:
@@ -162,10 +165,14 @@ def load_veteran_run(run_dir: Path | str) -> VeteranRun:
             raise ValueError(f"{companion.name}: corrected companion declares different outputs_sha256 than manifest.json; refusing")
         corrected_sha = _sha(companion_bytes)
         outcome = corrected.get("outcome") or {}
-        if outcome:
-            binding = {"target_identity": outcome.get("target_identity"), "csv_sha256": outcome.get("outcomes_csv_sha256"),
-                       "manifest_sha256": outcome.get("manifest_sha256"), "scoring_preset": outcome.get("scoring_preset"),
-                       "source": companion.name}
+        required = ("target_identity", "outcomes_csv_sha256", "manifest_sha256", "scoring_preset")
+        missing = [k for k in required if not outcome.get(k)]
+        if missing:
+            raise ValueError(f"{companion.name}: a present corrected companion is the binding of record and must carry a complete "
+                             f"outcome block; missing {missing}")
+        binding = {"target_identity": outcome["target_identity"], "csv_sha256": outcome["outcomes_csv_sha256"],
+                   "manifest_sha256": outcome["manifest_sha256"], "scoring_preset": outcome["scoring_preset"],
+                   "source": companion.name}
     binding.setdefault("source", "manifest.json#label_source")
     return VeteranRun(run_dir, manifest, historical, cohort, verified, _sha(manifest_bytes), corrected_sha, binding)
 
@@ -399,7 +406,18 @@ def join_transition(rookie: RookieRun, veteran: VeteranRun, *, experience: int) 
     j["appeared"] = j["rookie_label_appeared"]
     j["points"] = j["rookie_label_points"]
     j["games"] = j["rookie_label_games"]
-    in_artifact = np.array([(p, int(s)) in rookie.artifact_keys for p, s in zip(j["player_id"], j["target_season"])], dtype=bool)
+    keys = list(zip(j["player_id"], (int(s) for s in j["target_season"])))
+    in_artifact = np.array([k in rookie.artifact_labels for k in keys], dtype=bool)
+    # an artifact-backed label must EQUAL the artifact's own values; two producers agreeing is not evidence
+    art_points = np.array([rookie.artifact_labels[k][0] if k in rookie.artifact_labels else np.nan for k in keys], dtype=float)
+    art_games = np.array([rookie.artifact_labels[k][1] if k in rookie.artifact_labels else np.nan for k in keys], dtype=float)
+    art_appeared = np.array([rookie.artifact_labels[k][2] if k in rookie.artifact_labels else np.nan for k in keys], dtype=float)
+    disagree = in_artifact & ~((np.abs(j["points"].to_numpy(float) - art_points) <= LABEL_ATOL)
+                               & (j["games"].to_numpy(float) == art_games) & (j["appeared"].to_numpy(float) == art_appeared))
+    if disagree.any():
+        sample = j.loc[disagree, ["player_id", "target_season", "points", "games", "appeared"]].head(5).to_dict("records")
+        raise ValueError(f"{int(disagree.sum())} paired rows carry a label that disagrees with the outcome artifact's own row "
+                         f"(both producers agreeing is not artifact evidence), e.g. {sample}")
     zero_label = (j["points"].to_numpy(float) == 0.0) & (j["games"].to_numpy(float) == 0.0) & (j["appeared"].to_numpy(float) == 0.0)
     contradiction = ~in_artifact & ~zero_label
     if contradiction.any():
