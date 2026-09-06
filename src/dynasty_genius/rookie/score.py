@@ -20,7 +20,11 @@ from src.dynasty_genius.rookie.model import MODEL_VERSION, RookieCapitalModel
 
 __all__ = ["bootstrap_intervals", "score_class"]
 
-IDENTITY_COLUMNS = ("gsis_id", "name", "position", "team", "draft_season", "pick", "round", "age_at_draft")
+# ``position`` is the draft-table classification the model uses as its position term;
+# ``position_current`` (when the runner supplies it from the nflverse players table) is the
+# player's current NFL position. Within a draft year the pick number is unique, so a
+# consumer joins on (draft_season, pick) and treats position as an attribute, not a key.
+IDENTITY_COLUMNS = ("gsis_id", "name", "position", "position_current", "team", "draft_season", "pick", "round", "age_at_draft")
 
 
 def score_class(

@@ -184,7 +184,13 @@ def main(argv=None) -> int:
     leaking = find_leaking_columns(cohort)
     if leaking:
         raise SystemExit(f"cohort frame carries market-derived columns: {leaking}")
-    print(f"cohort: {coverage}")
+    # The draft table's position is the model's position term; the players table carries the
+    # player's CURRENT NFL position (a 2026 pick listed TE at the draft plays RB/FB). Both are
+    # exported; the join key for a consumer is (draft_season, pick), unique within a draft.
+    current = players.drop_duplicates("gsis_id").set_index("gsis_id")["position"].astype(str)
+    cohort["position_current"] = cohort["gsis_id"].map(current).where(lambda s: s.notna(), None)
+    position_changes = cohort.loc[cohort["position_current"].notna() & (cohort["position_current"] != cohort["position"]) & (cohort["draft_season"] == T)]
+    print(f"cohort: {coverage} | {T} rookies whose current position differs from the draft table: {len(position_changes)}")
     cohort.to_csv(run_dir / "cohort.csv", index=False)
 
     # ---------------------------------------------------------------- the declared policy, evaluated; exploratory arms beside it
@@ -329,6 +335,10 @@ def main(argv=None) -> int:
                                  "that comparability is the ranking lane's typed contract (DG-178)",
         "cohort": {"source": "nflreadpy.load_draft_picks(); identities resolved via load_players() and load_rosters(1999-%d)" % last_completed,
                    "classes": [args.first_class, T], "positions": ["QB", "RB", "WR", "TE"], "coverage": coverage,
+                   "join_key": "(draft_season, pick) — unique within a draft year; `position` is the draft-table classification the model "
+                               "uses, `position_current` is the nflverse players-table position at run time; treat position as an attribute",
+                   "rookies_with_position_change": [{"name": r["name"], "pick": int(r["pick"]), "draft_position": r["position"], "current_position": r["position_current"]}
+                                                    for _, r in position_changes.iterrows()],
                    "undrafted": "NOT in the cohort and NOT modelled — no undrafted-prospect population table exists in the product"},
         "model": model.describe(),
         "evaluation": {"forecast_years": [int(forecast_years.start), int(forecast_years.stop - 1)], "n_boot": args.eval_boot,

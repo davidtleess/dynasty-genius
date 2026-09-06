@@ -575,3 +575,13 @@ def test_report_renders_the_policy_comparison_and_assessment_from_json_shapes():
     text = render_report_markdown(manifest, evaluation, None, None, comparison, assessment)
     assert "Declared policy: **inner_menu**" in text and "exploratory comparison" in text
     assert "2010: trend" in text and "calibration assessment" in text
+
+
+def test_scored_rows_carry_the_current_position_beside_the_draft_position_when_supplied():
+    # Max Bredeson (2026 pick 159) is TE in the draft table and RB on the 2026 roster; the
+    # join is on (draft_season, pick), position is an attribute, and both are exported.
+    model, _, _ = _fitted(horizons=(1,))
+    rookies = _cohort([("b", 2026, "TE", 159, 5, 23.0)])
+    rookies["position_current"] = ["RB"]
+    scored = score_class(model, rookies).iloc[0]
+    assert scored["position"] == "TE" and scored["position_current"] == "RB"
