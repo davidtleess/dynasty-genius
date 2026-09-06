@@ -233,3 +233,29 @@ def test_an_unattributed_stat_line_within_the_stated_tolerance_is_dropped_and_li
     big = pd.DataFrame([(None, 2022, 6, "REG", None, 30.0)], columns=WEEKLY_COLUMNS)
     with pytest.raises(SourceIncompleteError, match="tolerance"):
         drop_unattributed_zero_rows(pd.concat([weekly, big], ignore_index=True), tolerated_points_per_season=10.0)
+
+
+def test_split_returns_exactly_the_removed_rows_even_from_the_middle_and_leaves_kept_rows_unchanged():
+    """Codex review of 5082e47c: the runners took raw.index minus cleaned.index AFTER the cleaner
+    reset the index, so the saved 'dropped rows' were trailing positions. The cleaner must hand
+    back the removed rows itself."""
+    from src.dynasty_genius.eval.annual_outcomes import split_unattributed_rows
+
+    rows = [
+        ("A", 2022, 1, "REG", "WR", 10.0),
+        (None, 2022, 1, "REG", None, 0.0),      # placeholder, position 1
+        ("B", 2022, 1, "REG", "RB", 5.0),
+        ("A", 2022, 2, "REG", "WR", 4.0),
+        (None, 2022, 2, "REG", None, 0.0),      # placeholder, position 4
+        ("B", 2022, 2, "REG", "RB", 6.0),
+        (None, 2022, 3, "REG", None, 2.5),      # unattributed stat line, position 6
+        ("A", 2022, 3, "REG", "WR", 7.0),
+    ]
+    weekly = _weekly(rows)
+    kept, removed, facts = split_unattributed_rows(weekly, tolerated_points_per_season=10.0)
+    assert list(removed.index) == [1, 4, 6]                              # the actual removed rows, by original index
+    assert removed[SCORING_COLUMN].tolist() == [0.0, 0.0, 2.5]
+    expected_kept = weekly.drop(index=[1, 4, 6]).reset_index(drop=True)
+    pd.testing.assert_frame_equal(kept, expected_kept)                    # kept rows unchanged, in order
+    assert facts["unattributed_zero_rows_dropped"] == 2 and len(facts["unattributed_stat_lines_dropped"]) == 1
+    assert facts["removed_rows"] == 3

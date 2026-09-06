@@ -42,19 +42,24 @@ class SourceIncompleteError(ValueError):
     value or identity is missing, or rows are duplicated. Refuse; never treat as zero."""
 
 
-def drop_unattributed_zero_rows(
+def split_unattributed_rows(
     weekly: pd.DataFrame, *, tolerated_points_per_season: float = 10.0
-) -> tuple[pd.DataFrame, dict]:
-    """Remove rows with no player id, and say exactly what was removed.
+) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
+    """Separate rows with no player id from the rest, and say exactly what was removed.
 
     Two shapes exist in nflverse weekly stats. The common one is a per-week placeholder
-    (no id, no position, zero points; 173 over 2018-2025), harmless by construction. The
-    rare one is a stat line nobody could attribute (measured 2026-09-06 over 2005-2025:
-    a 2005 team-level row worth 6.0 and a 2012 "D.Bryant" line worth 3.1). Those cannot
-    be given to a player, so they are dropped too — but only under a small, stated
-    per-season tolerance, and every one is LISTED in the facts so a reader can see
-    which season may undercount which team by how much. Above the tolerance the source
-    is refused: that much unattributed scoring could turn an appearance into an absence.
+    (no id, no position, zero points; 173 over 2018-2025, 444 over 2005-2025), harmless by
+    construction. The rare one is a stat line nobody could attribute (measured 2026-09-06
+    over 2005-2025: a 2005 team-level row worth 6.0 and a 2012 "D.Bryant" line worth 3.1).
+    Those cannot be given to a player, so they are removed too — but only under a small,
+    stated per-season tolerance, and every one is LISTED in the facts. Above the tolerance
+    the source is refused: that much unattributed scoring could turn an appearance into an
+    absence.
+
+    Returns ``(kept, removed, facts)``. ``removed`` carries the removed rows with their
+    ORIGINAL indices, so a caller never has to reconstruct them from an index difference —
+    which, after the reset below, would name trailing positions rather than the rows that
+    left (Codex review of 5082e47c). ``kept`` is re-indexed.
     """
     ids = weekly["player_id"]
     unattributed = ids.isna() | (ids.astype(str).str.strip() == "")
@@ -77,13 +82,24 @@ def drop_unattributed_zero_rows(
             f"unattributed stat lines exceed the tolerance of {tolerated_points_per_season} points per season: "
             f"{over}; that much unattributed scoring could turn an appearance into an absence"
         )
+    removed_mask = harmless | stat_lines
     facts = {
         "unattributed_zero_rows_dropped": int(harmless.sum()),
         "unattributed_stat_lines_dropped": listed,
         "unattributed_points_dropped_by_season": by_season,
         "tolerated_points_per_season": float(tolerated_points_per_season),
+        "removed_rows": int(removed_mask.sum()),
     }
-    return weekly[~(harmless | stat_lines)].reset_index(drop=True), facts
+    return weekly[~removed_mask].reset_index(drop=True), weekly[removed_mask], facts
+
+
+def drop_unattributed_zero_rows(
+    weekly: pd.DataFrame, *, tolerated_points_per_season: float = 10.0
+) -> tuple[pd.DataFrame, dict]:
+    """``split_unattributed_rows`` without the removed rows; kept for callers that only
+    need the cleaned frame and the facts."""
+    kept, _removed, facts = split_unattributed_rows(weekly, tolerated_points_per_season=tolerated_points_per_season)
+    return kept, facts
 
 
 def validate_weekly_source(

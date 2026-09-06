@@ -46,8 +46,8 @@ from src.dynasty_genius.eval.annual_forecasts import (  # noqa: E402
 )
 from src.dynasty_genius.eval.annual_outcomes import (  # noqa: E402
     annual_targets,
-    drop_unattributed_zero_rows,
     season_outcomes,
+    split_unattributed_rows,
     validate_weekly_source,
 )
 from src.dynasty_genius.eval.basic_cohort import (  # noqa: E402
@@ -169,8 +169,9 @@ def main(argv: list[str] | None = None) -> int:
 
     pulled_at = datetime.now(timezone.utc)
     raw_weekly = pull_weekly_stats(pull_seasons)
-    weekly, dropped = drop_unattributed_zero_rows(raw_weekly)
-    dropped_rows = raw_weekly[~raw_weekly.index.isin(weekly.index)] if len(raw_weekly) != len(weekly) else raw_weekly.iloc[0:0]
+    # The cleaner returns the removed rows itself (original indices); an index difference
+    # taken after its reset named trailing positions, not the rows that left.
+    weekly, dropped_rows, dropped = split_unattributed_rows(raw_weekly)
     source_validation = {**validate_weekly_source(weekly, seasons=pull_seasons), **dropped,
                          "cleaning": "the dropped placeholder rows and unattributed stat lines are a disclosed cleaning "
                                      "exception, not proof of source completeness; they are kept in dropped_rows.csv "

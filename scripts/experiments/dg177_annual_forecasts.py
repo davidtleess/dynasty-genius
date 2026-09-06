@@ -65,8 +65,8 @@ from src.dynasty_genius.eval.annual_outcomes import (  # noqa: E402
     SCOPES,
     SCORING_COLUMN,
     annual_targets,
-    drop_unattributed_zero_rows,
     season_outcomes,
+    split_unattributed_rows,
     validate_weekly_source,
 )
 from src.dynasty_genius.eval.evaluation_status import (  # noqa: E402
@@ -400,9 +400,9 @@ def main(argv: list[str] | None = None) -> int:
 
     # A missing player-season is an OBSERVED absence only if the source is complete,
     # unique and fully scored. Refuses otherwise; the facts go into the manifest.
-    raw_weekly = weekly
-    weekly, dropped = drop_unattributed_zero_rows(weekly)
-    dropped_rows = raw_weekly[~raw_weekly.index.isin(weekly.index)] if len(raw_weekly) != len(weekly) else raw_weekly.iloc[0:0]
+    # The cleaner returns the removed rows itself (original indices); an index difference
+    # taken after its reset named trailing positions, not the rows that left.
+    weekly, dropped_rows, dropped = split_unattributed_rows(weekly)
     source_validation = {**validate_weekly_source(weekly, seasons=PULL_SEASONS), **dropped,
                          "cleaning": "the snapshot in this run is post-cleaning; the dropped rows are kept in "
                                      "dropped_rows.csv so the cleaning step can be replayed"}
