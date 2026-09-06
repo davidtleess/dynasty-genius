@@ -18,10 +18,18 @@ def _git(repo_root: Path, *args: str) -> str:
 
 def launch_provenance(repo_root: Path | None = None, argv: list[str] | None = None) -> dict:
     root = Path(repo_root) if repo_root is not None else Path(__file__).resolve().parents[3]
+    status = [line for line in _git(root, "status", "--porcelain", "--untracked-files=all").splitlines() if line.strip()]
+    untracked = sorted(line[3:] for line in status if line.startswith("??"))
+    tracked_dirty = any(not line.startswith("??") for line in status)
     return {
         "git_head": _git(root, "rev-parse", "HEAD"),
         "git_branch": _git(root, "rev-parse", "--abbrev-ref", "HEAD"),
-        "git_dirty": bool(_git(root, "status", "--porcelain", "--untracked-files=no")),
+        # Truthful scope: a brand-new untracked module or runner is code that RAN, so untracked
+        # files make the tree dirty. Preserved untracked run outputs legitimately do the same;
+        # they are listed, never deleted or ignored to force a clean reading.
+        "git_dirty": tracked_dirty or bool(untracked),
+        "tracked_dirty": tracked_dirty,
+        "untracked_paths": untracked,
         "captured_at_utc": datetime.now(timezone.utc).isoformat(),
         "argv": list(sys.argv if argv is None else argv),
         "python": sys.version.split()[0],

@@ -219,7 +219,7 @@ def main(argv: list[str] | None = None) -> int:
                         help="historical roster capture (parquet) for the same-season offensive-role fallback; "
                              "'none' disables it")
     args = parser.parse_args(argv)
-    launch = launch_provenance()
+    launch = launch_provenance(argv=sys.argv if argv is None else argv)
 
     import nflreadpy as nfl
 

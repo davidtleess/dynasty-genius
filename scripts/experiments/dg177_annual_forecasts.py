@@ -380,7 +380,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--min-train-rows", type=int, default=60)
     parser.add_argument("--out-root", type=Path, default=RUNS_ROOT)
     args = parser.parse_args(argv)
-    launch = launch_provenance()
+    launch = launch_provenance(argv=sys.argv if argv is None else argv)
 
     from src.dynasty_genius.eval.backtest_harness import PRIMARY_NDCG_K
 

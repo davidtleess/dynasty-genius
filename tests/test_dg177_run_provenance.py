@@ -52,3 +52,20 @@ def test_forecast_runners_capture_provenance_before_any_fitting():
         assert "launch_provenance(" in body, path
         assert body.index("launch_provenance(") < body.index("build_manifest("), path
         assert '_git("rev-parse", "HEAD")' not in body, path
+
+
+def test_a_new_untracked_code_file_makes_the_tree_dirty_and_is_named(tmp_path):
+    """Root's review: --untracked-files=no would call a tree clean while running a brand-new module."""
+    repo = _repo(tmp_path)
+    (repo / "new.py").write_text("x = 1\n")
+    p = launch_provenance(repo_root=repo, argv=[])
+    assert p["git_dirty"] is True
+    assert p["tracked_dirty"] is False
+    assert p["untracked_paths"] == ["new.py"]
+
+
+def test_runners_record_the_argv_they_were_given_not_the_process_argv():
+    for path in ("scripts/experiments/dg177_basic_horizons.py", "scripts/experiments/dg177_annual_forecasts.py"):
+        body = Path(path).read_text()
+        body = body[body.index("def main("):]
+        assert "launch_provenance(argv=sys.argv if argv is None else argv)" in body, path
