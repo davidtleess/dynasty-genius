@@ -17,16 +17,23 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 __all__ = [
     "DRAFT_STATUS",
+    "JOINED_COLUMNS",
+    "LABEL_ATOL",
+    "THIN_HISTORY_MAX_GAMES",
     "RookieRun",
     "VeteranRun",
     "classify_draft_status",
+    "join_transition",
     "load_rookie_run",
     "load_veteran_run",
+    "rookie_draft_time_frame",
     "verify_same_target",
+    "veteran_horizon1_frame",
 ]
 
 ROOKIE_FILES = ("cohort.csv", "out_of_time_predictions.csv")
@@ -155,3 +162,147 @@ def classify_draft_status(player_ids: pd.Series, identity_status: pd.Series, roo
         else:
             out.append("no_draft_record")
     return pd.Series(out, index=player_ids.index, dtype="object")
+
+
+# ----------------------------------------------------------------------------- the join
+
+JOINED_COLUMNS = [
+    "player_id", "name", "draft_season", "pick", "round", "draft_position", "veteran_position", "experience",
+    "target_season", "rookie_forecast_year", "rookie_information_through_season",
+    "veteran_feature_season", "veteran_information_through_season", "information_gap_seasons",
+    "appeared", "points", "games",
+    "rookie_p_appear", "rookie_e_points", "rookie_e_points_given_appear", "rookie_e_games",
+    "veteran_p_appear", "veteran_e_points", "veteran_e_points_given_appear", "veteran_e_games",
+    "veteran_games_t", "thin_history", "veteran_row_without_window_appearance",
+    "err_rookie", "err_veteran", "abs_err_rookie", "abs_err_veteran", "sq_err_rookie", "sq_err_veteran", "veteran_closer",
+]
+THIN_HISTORY_MAX_GAMES = 4
+# Labels on both sides come from the SAME artifact and are exactly equal; "identical" means identical.
+# A relative tolerance would pass 250 vs 250.002 while the audit claims identity, so there is none.
+LABEL_ATOL = 1e-9
+
+
+def _assert_unique(frame: pd.DataFrame, keys: list[str], what: str) -> None:
+    dup = frame.duplicated(keys, keep=False)
+    if dup.any():
+        sample = frame.loc[dup, keys].head(5).to_dict("records")
+        raise ValueError(f"{what}: keys {keys} are not unique; {int(dup.sum())} rows involved, e.g. {sample}")
+
+
+def rookie_draft_time_frame(rookie: RookieRun, *, experience: int) -> pd.DataFrame:
+    """The draft-time forecast for NFL season j = experience + 1 with its label, one row per player.
+
+    Every row of the frozen history is a draft-time forecast (forecast_year == draft_season). A row
+    that is not would be a different forecast origin; it is refused, never filtered in silence.
+    """
+    j = experience + 1
+    oot = rookie.out_of_time
+    off = oot["forecast_year"].astype(int) != oot["draft_season"].astype(int)
+    if off.any():
+        raise ValueError(
+            f"rookie out_of_time_predictions carries {int(off.sum())} rows with forecast_year != draft_season; "
+            "this audit compares the draft-time forecast only and will not choose among origins silently"
+        )
+    needed = [f"p_appear_year{j}", f"e_points_year{j}", f"e_points_year{j}_given_appear", f"e_games_year{j}",
+              f"appear_{j}", f"points_{j}", f"games_{j}", f"appear_{experience}", f"games_{experience}"]
+    missing = [c for c in needed if c not in oot.columns]
+    if missing:
+        raise ValueError(f"rookie out_of_time_predictions lacks {missing} for experience {experience}")
+    frame = oot.copy()
+    # the history's draft keys must be the cohort's draft keys
+    cohort_keys = rookie.cohort.set_index(rookie.cohort["gsis_id"].astype(str))[["draft_season", "pick", "position"]]
+    ids = frame["gsis_id"].astype(str)
+    unknown_ids = sorted(set(ids) - set(cohort_keys.index))
+    if unknown_ids:
+        raise ValueError(f"rookie history carries {len(unknown_ids)} ids absent from cohort.csv, e.g. {unknown_ids[:5]}")
+    ck = cohort_keys.loc[ids]
+    disagree = (ck["draft_season"].to_numpy() != frame["draft_season"].to_numpy()) | (ck["pick"].to_numpy() != frame["pick"].to_numpy()) \
+        | (ck["position"].astype(str).to_numpy() != frame["position"].astype(str).to_numpy())
+    if disagree.any():
+        sample = frame.loc[disagree, ["gsis_id", "draft_season", "pick", "position"]].head(5).to_dict("records")
+        raise ValueError(f"rookie history draft keys disagree with cohort.csv on {int(disagree.sum())} rows, e.g. {sample}")
+    out = pd.DataFrame({
+        "player_id": ids.to_numpy(), "name": frame["name"].to_numpy(), "draft_season": frame["draft_season"].astype(int).to_numpy(),
+        "pick": frame["pick"].astype(int).to_numpy(), "round": frame["round"].astype(int).to_numpy(),
+        "draft_position": frame["position"].to_numpy(), "rookie_forecast_year": frame["forecast_year"].astype(int).to_numpy(),
+        "rookie_p_appear": frame[f"p_appear_year{j}"].to_numpy(), "rookie_e_points": frame[f"e_points_year{j}"].to_numpy(),
+        "rookie_e_points_given_appear": frame[f"e_points_year{j}_given_appear"].to_numpy(), "rookie_e_games": frame[f"e_games_year{j}"].to_numpy(),
+        "rookie_label_appeared": frame[f"appear_{j}"].to_numpy(), "rookie_label_points": frame[f"points_{j}"].to_numpy(),
+        "rookie_label_games": frame[f"games_{j}"].to_numpy(),
+        "feature_season_window_appearance": frame[f"appear_{experience}"].to_numpy(),
+    })
+    out["veteran_feature_season"] = out["draft_season"] + experience - 1
+    _assert_unique(out, ["player_id", "draft_season"], "rookie draft-time forecasts")
+    return out
+
+
+def veteran_horizon1_frame(veteran: VeteranRun) -> pd.DataFrame:
+    """Horizon-1 rows with their labels and the feature season's games_t; a prediction without its
+    feature row is a broken input and refuses (thin history must never default from a missing key)."""
+    h = veteran.historical
+    frame = h.loc[h["horizon"] == 1].copy()
+    off = frame["forecast_season"].astype(int) != frame["feature_season"].astype(int) + 1
+    if off.any():
+        sample = frame.loc[off, ["player_id", "feature_season", "forecast_season"]].head(5).to_dict("records")
+        raise ValueError(f"veteran horizon-1 rows with forecast_season != feature_season + 1: {int(off.sum())}, e.g. {sample}")
+    out = pd.DataFrame({
+        "player_id": frame["player_id"].astype(str).to_numpy(), "veteran_feature_season": frame["feature_season"].astype(int).to_numpy(),
+        "veteran_forecast_season": frame["forecast_season"].astype(int).to_numpy(), "veteran_position": frame["position"].to_numpy(),
+        "veteran_p_appear": frame["policy_p_appear_year1"].to_numpy(), "veteran_e_points": frame["policy_e_points_year1"].to_numpy(),
+        "veteran_e_points_given_appear": frame["policy_e_points_year1_given_appear"].to_numpy(),
+        "veteran_e_games": frame["policy_e_games_year1"].to_numpy(),
+        "veteran_label_appeared": frame["appeared_year1"].to_numpy(), "veteran_label_points": frame["points_year1"].to_numpy(),
+        "veteran_label_games": frame["games_year1"].to_numpy(),
+    })
+    _assert_unique(out, ["player_id", "veteran_feature_season"], "veteran horizon-1 predictions")
+    c = veteran.cohort
+    games = pd.DataFrame({"player_id": c["player_id"].astype(str).to_numpy(), "veteran_feature_season": c["feature_season"].astype(int).to_numpy(),
+                          "veteran_games_t": c["games_t"].to_numpy()})
+    _assert_unique(games, ["player_id", "veteran_feature_season"], "veteran basic cohort")
+    merged = out.merge(games, on=["player_id", "veteran_feature_season"], how="left", indicator=True)
+    orphan = merged["_merge"] != "both"
+    if orphan.any():
+        sample = merged.loc[orphan, ["player_id", "veteran_feature_season"]].head(5).to_dict("records")
+        raise ValueError(f"{int(orphan.sum())} veteran predictions have no basic cohort feature row, e.g. {sample}")
+    return merged.drop(columns="_merge")
+
+
+def join_transition(rookie: RookieRun, veteran: VeteranRun, *, experience: int) -> pd.DataFrame:
+    """Pair the draft-time rookie forecast for season experience+1 with the veteran forecast made after
+    `experience` NFL seasons, on the same realized outcome, keyed by identity and years — never row order."""
+    if experience < 1:
+        raise ValueError("experience must be >= 1 (seasons of NFL information the veteran side has)")
+    r = rookie_draft_time_frame(rookie, experience=experience)
+    known = r["rookie_label_points"].notna() & r["rookie_label_appeared"].notna()
+    r = r.loc[known]  # unknown labels are ledger rows (label_unknown), never joined rows
+    v = veteran_horizon1_frame(veteran)
+    j = r.merge(v, on=["player_id", "veteran_feature_season"], how="inner")
+    wrong_year = j["veteran_forecast_season"] != j["draft_season"] + experience
+    if wrong_year.any():
+        sample = j.loc[wrong_year, ["player_id", "draft_season", "veteran_feature_season", "veteran_forecast_season"]].head(5).to_dict("records")
+        raise ValueError(f"veteran forecast_season != draft_season + experience on {int(wrong_year.sum())} rows, e.g. {sample}")
+    rp, vp = j["rookie_label_points"].to_numpy(float), j["veteran_label_points"].to_numpy(float)
+    bad_p = ~(np.abs(rp - vp) <= LABEL_ATOL)  # NaN on either side is a mismatch
+    bad_a = j["rookie_label_appeared"].to_numpy(float) != j["veteran_label_appeared"].to_numpy(float)
+    bad_g = j["rookie_label_games"].to_numpy(float) != j["veteran_label_games"].to_numpy(float)
+    bad = bad_p | bad_a | bad_g
+    if bad.any():
+        sample = j.loc[bad, ["player_id", "veteran_feature_season", "rookie_label_points", "veteran_label_points"]].head(5).to_dict("records")
+        raise ValueError(f"label mismatch between producers on {int(bad.sum())} joined rows, e.g. {sample}")
+    j["experience"] = experience
+    j["target_season"] = j["draft_season"] + experience
+    j["rookie_information_through_season"] = j["draft_season"] - 1
+    j["veteran_information_through_season"] = j["veteran_feature_season"]
+    j["information_gap_seasons"] = experience
+    j["appeared"] = j["rookie_label_appeared"]
+    j["points"] = j["rookie_label_points"]
+    j["games"] = j["rookie_label_games"]
+    j["thin_history"] = j["veteran_games_t"] <= THIN_HISTORY_MAX_GAMES
+    j["veteran_row_without_window_appearance"] = (j["veteran_games_t"] >= 1) & (j["feature_season_window_appearance"] == 0)
+    for side in ("rookie", "veteran"):
+        j[f"err_{side}"] = j[f"{side}_e_points"] - j["points"]
+        j[f"abs_err_{side}"] = j[f"err_{side}"].abs()
+        j[f"sq_err_{side}"] = j[f"err_{side}"] ** 2
+    j["veteran_closer"] = j["abs_err_veteran"] < j["abs_err_rookie"]
+    j = j.sort_values(["experience", "draft_season", "pick", "player_id"]).reset_index(drop=True)
+    return j[JOINED_COLUMNS]

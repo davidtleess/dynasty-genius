@@ -209,3 +209,138 @@ def test_draft_status_distinguishes_drafted_no_record_and_unknown(runs):
     # draft table is "no draft record", never positive undrafted evidence.
     assert out.tolist() == ["drafted_skill", "drafted_skill", "drafted_other_position", "drafted_skill_outside_cohort",
                             "no_draft_record", "unknown_identity", "drafted_skill_unresolved"]
+
+
+# ---------------------------------------------------------------- Task 3: the join
+
+def _rebuild_veteran(tmp_path, **kwargs):
+    import shutil
+    shutil.rmtree(tmp_path / "veteran", ignore_errors=True)
+    return make_veteran_run(tmp_path, **kwargs)
+
+
+def test_join_is_by_key_not_row_order_and_records_both_origins(runs):
+    from src.dynasty_genius.rookie.transition_audit import (
+        join_transition,
+        load_rookie_run,
+        load_veteran_run,
+    )
+    rookie_dir, vet_dir = runs
+    j = join_transition(load_rookie_run(rookie_dir), load_veteran_run(vet_dir), experience=1)
+    by_id = j.set_index("player_id")
+    # the veteran fixture lists B before A; the join must pair by id, so A's veteran forecast is 240 not 100
+    assert by_id.loc["00-A", "veteran_e_points"] == 240.0 and by_id.loc["00-A", "rookie_e_points"] == 230.0
+    assert sorted(j["player_id"]) == ["00-A", "00-B", "00-C"]  # D has no veteran row; U and LB are not drafted skill
+    row = by_id.loc["00-A"]
+    assert row["experience"] == 1 and row["target_season"] == 2016
+    assert row["rookie_forecast_year"] == 2015 and row["rookie_information_through_season"] == 2014
+    assert row["veteran_feature_season"] == 2015 and row["veteran_information_through_season"] == 2015
+    assert row["information_gap_seasons"] == 1
+    assert row["points"] == 250.0 and row["appeared"] == 1.0 and row["games"] == 17.0
+    assert row["err_rookie"] == pytest.approx(-20.0) and row["err_veteran"] == pytest.approx(-10.0)
+    assert bool(row["veteran_closer"]) is True
+    assert row["draft_position"] == "QB" and row["veteran_position"] == "QB"
+    c = by_id.loc["00-C"]
+    assert bool(c["thin_history"]) is True and c["veteran_games_t"] == 3.0
+
+
+def test_join_refuses_label_disagreement_even_within_relative_tolerance(tmp_path):
+    from src.dynasty_genius.rookie.transition_audit import (
+        join_transition,
+        load_rookie_run,
+        load_veteran_run,
+    )
+    rookie_dir = make_rookie_run(tmp_path)
+    hist = pd.read_csv(make_veteran_run(tmp_path) / "historical_predictions.csv")
+    hist.loc[hist.player_id == "00-A", "points_year1"] = 250.002  # np.isclose(atol=1e-6) would PASS this via rtol
+    vet_dir = _rebuild_veteran(tmp_path, hist=hist)
+    with pytest.raises(ValueError, match="label"):
+        join_transition(load_rookie_run(rookie_dir), load_veteran_run(vet_dir), experience=1)
+
+
+def test_join_refuses_duplicate_keys(tmp_path):
+    from src.dynasty_genius.rookie.transition_audit import (
+        join_transition,
+        load_rookie_run,
+        load_veteran_run,
+    )
+    rookie_dir = make_rookie_run(tmp_path)
+    hist = pd.read_csv(make_veteran_run(tmp_path) / "historical_predictions.csv")
+    hist = pd.concat([hist, hist.iloc[[1]]], ignore_index=True)  # A twice at 2015
+    vet_dir = _rebuild_veteran(tmp_path, hist=hist)
+    with pytest.raises(ValueError, match="unique"):
+        join_transition(load_rookie_run(rookie_dir), load_veteran_run(vet_dir), experience=1)
+
+
+def test_join_asserts_the_veterans_own_forecast_season(tmp_path):
+    from src.dynasty_genius.rookie.transition_audit import (
+        join_transition,
+        load_rookie_run,
+        load_veteran_run,
+    )
+    rookie_dir = make_rookie_run(tmp_path)
+    hist = pd.read_csv(make_veteran_run(tmp_path) / "historical_predictions.csv")
+    hist.loc[(hist.player_id == "00-A") & (hist.feature_season == 2015), "forecast_season"] = 2017  # labels untouched
+    vet_dir = _rebuild_veteran(tmp_path, hist=hist)
+    with pytest.raises(ValueError, match="forecast_season"):
+        join_transition(load_rookie_run(rookie_dir), load_veteran_run(vet_dir), experience=1)
+
+
+def test_rookie_rows_not_at_draft_time_refuse_instead_of_silent_filter(tmp_path):
+    import shutil
+
+    from src.dynasty_genius.rookie.transition_audit import (
+        load_rookie_run,
+        rookie_draft_time_frame,
+    )
+    rookie_dir = make_rookie_run(tmp_path)
+    oot = pd.read_csv(rookie_dir / "out_of_time_predictions.csv")
+    extra = oot.iloc[[0]].copy()
+    extra["forecast_year"] = 2016
+    shutil.rmtree(rookie_dir)
+    rookie_dir = make_rookie_run(tmp_path, oot=pd.concat([oot, extra], ignore_index=True))
+    with pytest.raises(ValueError, match="forecast_year"):
+        rookie_draft_time_frame(load_rookie_run(rookie_dir), experience=1)
+
+
+def test_rookie_history_keys_must_agree_with_the_cohort(tmp_path):
+    import shutil
+
+    from src.dynasty_genius.rookie.transition_audit import (
+        load_rookie_run,
+        rookie_draft_time_frame,
+    )
+    rookie_dir = make_rookie_run(tmp_path)
+    oot = pd.read_csv(rookie_dir / "out_of_time_predictions.csv")
+    oot.loc[oot.gsis_id == "00-B", "pick"] = 41  # cohort says 40
+    shutil.rmtree(rookie_dir)
+    rookie_dir = make_rookie_run(tmp_path, oot=oot)
+    with pytest.raises(ValueError, match="cohort"):
+        rookie_draft_time_frame(load_rookie_run(rookie_dir), experience=1)
+
+
+def test_join_refuses_a_prediction_without_its_cohort_row(tmp_path):
+    from src.dynasty_genius.rookie.transition_audit import (
+        join_transition,
+        load_rookie_run,
+        load_veteran_run,
+    )
+    rookie_dir = make_rookie_run(tmp_path)
+    cohort = pd.read_csv(make_veteran_run(tmp_path) / "basic_cohort.csv.gz")
+    cohort = cohort[~((cohort.player_id == "00-C") & (cohort.feature_season == 2015))]  # C predicted but no feature row
+    vet_dir = _rebuild_veteran(tmp_path, cohort=cohort)
+    with pytest.raises(ValueError, match="basic cohort"):
+        join_transition(load_rookie_run(rookie_dir), load_veteran_run(vet_dir), experience=1)
+
+
+def test_join_experience_two_uses_the_next_feature_season(runs):
+    from src.dynasty_genius.rookie.transition_audit import (
+        join_transition,
+        load_rookie_run,
+        load_veteran_run,
+    )
+    rookie_dir, vet_dir = runs
+    j = join_transition(load_rookie_run(rookie_dir), load_veteran_run(vet_dir), experience=2)
+    assert sorted(j["player_id"]) == ["00-A", "00-B"]  # C's season-3 label is unknown (NaN) -> not a joined row
+    a = j.set_index("player_id").loc["00-A"]
+    assert a["veteran_feature_season"] == 2016 and a["target_season"] == 2017 and a["rookie_e_points"] == 225.0
