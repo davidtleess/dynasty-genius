@@ -82,3 +82,133 @@ def test_research_ppr_does_not_use_fumbles_lost_total_or_recovery_fields():
     w = weekly([dict(player_id="P1", week=1, fumbles_lost_total=1, fumble_recovery_own=2, fumble_recovery_tds=1,
                      def_fumbles_forced=1, fantasy_points_ppr=0.0)])
     assert float(lsa.research_ppr_from_components(w).iloc[0]) == 0.0
+
+
+# ── Task 3: fumble events at (game_id, play_id, event_slot, player_id) ────────────────────────
+
+def test_events_have_unique_grain_and_deterministic_order():
+    ev = lsa.extract_fumble_events(pbp([
+        play("G1", 20, 1, fumbled_1_player_id="P1", fumbled_1_team="AAA", forced_fumble_player_1_player_id="D1",
+             forced_fumble_player_1_team="BBB", fumble_recovery_1_player_id="D2", fumble_recovery_1_team="BBB", fumble_lost=1),
+        play("G1", 10, 1, fumbled_1_player_id="P2", fumbled_1_team="AAA", fumble_recovery_1_player_id="P2",
+             fumble_recovery_1_team="AAA"),
+    ]))
+    # the same player can fumble AND recover in one slot, so the unique grain carries the event type
+    assert not ev.duplicated(["game_id", "play_id", "event_slot", "event_type", "player_id"]).any()
+    assert ev[["game_id", "play_id"]].drop_duplicates().play_id.tolist() == [10, 20]
+    assert set(ev.event_type) == {"fumble", "forced_fumble", "recovery"}
+
+
+def test_multi_fumble_play_pairs_slot_two_with_its_own_recovery():
+    ev = lsa.extract_fumble_events(pbp([play(
+        "G1", 5, 1, fumbled_1_player_id="P1", fumbled_1_team="AAA", fumble_recovery_1_player_id="D1", fumble_recovery_1_team="BBB",
+        fumbled_2_player_id="D1", fumbled_2_team="BBB", fumble_recovery_2_player_id="P3", fumble_recovery_2_team="AAA", fumble_lost=1,
+        desc="P1 FUMBLES, RECOVERED by BBB-D1. D1 FUMBLES, RECOVERED by AAA-P3.")]))
+    f = ev[ev.event_type == "fumble"].set_index("event_slot")
+    assert bool(f.loc[1, "lost"]) is True and f.loc[1, "player_id"] == "P1"
+    assert bool(f.loc[2, "lost"]) is True and f.loc[2, "player_id"] == "D1"
+    r = ev[ev.event_type == "recovery"].set_index("event_slot")
+    assert bool(r.loc[1, "own_team"]) is False and bool(r.loc[2, "own_team"]) is False
+    assert set(ev.status) == {"attributed"}
+
+
+def test_nullified_plays_yield_nullified_events_and_no_credit():
+    ev = lsa.extract_fumble_events(pbp([
+        play("G1", 1, 1, play_type="no_play", fumbled_1_player_id="P1", fumbled_1_team="AAA",
+             fumble_recovery_1_player_id="D1", fumble_recovery_1_team="BBB", fumble_lost=1),
+        play("G1", 2, 1, play_deleted=1, fumbled_1_player_id="P1", fumbled_1_team="AAA",
+             fumble_recovery_1_player_id="P1", fumble_recovery_1_team="AAA"),
+    ]))
+    assert set(ev.status) == {"nullified"} and len(ev) == 4
+
+
+def test_missing_recovery_id_is_recorded_not_dropped():
+    ev = lsa.extract_fumble_events(pbp([play("G1", 1, 1, fumbled_1_player_id="P1", fumbled_1_team="AAA",
+                                               fumble_recovery_1_player_id=None, fumble_recovery_1_team="BBB", fumble_lost=1)]))
+    rec = ev[ev.event_type == "recovery"]
+    assert len(rec) == 1 and rec.iloc[0].status == "missing_id" and pd.isna(rec.iloc[0].player_id)
+    assert bool(ev[ev.event_type == "fumble"].iloc[0].lost) is True
+
+
+def test_muffed_punt_is_a_special_teams_lost_fumble_and_out_of_bounds_kept_ball_is_not_lost():
+    ev = lsa.extract_fumble_events(pbp([
+        play("G1", 1, 1, play_type="punt", special_teams_play=1, fumbled_1_player_id="P1", fumbled_1_team="AAA",
+             fumble_recovery_1_player_id="D1", fumble_recovery_1_team="BBB", fumble_lost=1, desc="MUFFS catch"),
+        play("G1", 2, 1, fumbled_1_player_id="P2", fumbled_1_team="AAA", fumble_out_of_bounds=1, fumble_lost=0),
+    ]))
+    f = ev[ev.event_type == "fumble"].set_index("player_id")
+    assert bool(f.loc["P1", "special_teams"]) and bool(f.loc["P1", "lost"]) is True
+    assert bool(f.loc["P2", "lost"]) is False and f.loc["P2", "status"] == "attributed"
+
+
+def test_end_zone_out_of_bounds_loss_is_lost_with_no_invented_recovery_player():
+    ev = lsa.extract_fumble_events(pbp([play("G1", 1, 1, fumbled_1_player_id="P1", fumbled_1_team="AAA", fumble_out_of_bounds=1,
+                                               fumble_lost=1, desc="FUMBLES, ball out of bounds in End Zone, TOUCHBACK. TOUCHDOWN REVERSED")]))
+    assert len(ev) == 1 and ev.iloc[0].event_type == "fumble"
+    assert bool(ev.iloc[0].lost) is True and ev.iloc[0].status == "attributed"
+
+
+def test_fumble_with_no_recovery_and_no_play_level_flag_is_ambiguous():
+    ev = lsa.extract_fumble_events(pbp([play("G1", 1, 1, fumbled_1_player_id="P1", fumbled_1_team="AAA", fumble_lost=None)]))
+    assert ev.iloc[0].status == "ambiguous" and pd.isna(ev.iloc[0].lost)
+
+
+def test_three_fumbles_in_two_slots_is_a_capacity_ambiguity_for_every_event_of_the_play():
+    ev = lsa.extract_fumble_events(pbp([play(
+        "G1", 1501, 17, play_type="pass", fumble_lost=1,
+        fumbled_1_player_id="P1", fumbled_1_team="AAA", fumble_recovery_1_player_id="P1", fumble_recovery_1_team="AAA",
+        fumbled_2_player_id="P1", fumbled_2_team="AAA", fumble_recovery_2_player_id="D1", fumble_recovery_2_team="BBB",
+        desc="P1 FUMBLES, recovers. P1 FUMBLES, RECOVERED by BBB-D1. D1 FUMBLES, RECOVERED by AAA-P7.")]))
+    assert set(ev.status) == {"ambiguous"} and set(ev.ambiguity_reason) == {"slot_capacity"}
+
+
+def test_recovery_slot_without_a_paired_fumbled_slot_is_a_capacity_ambiguity():
+    ev = lsa.extract_fumble_events(pbp([play("G1", 2, 1, fumbled_1_player_id="P1", fumbled_1_team="AAA",
+                                               fumble_recovery_1_player_id="D1", fumble_recovery_1_team="BBB",
+                                               fumble_recovery_2_player_id="P3", fumble_recovery_2_team="AAA", fumble_lost=0,
+                                               desc="P1 FUMBLES")]))
+    assert set(ev.status) == {"ambiguous"} and set(ev.ambiguity_reason) == {"slot_capacity"}
+
+
+def test_play_level_lost_flag_disagreeing_with_every_slot_is_a_capacity_ambiguity():
+    ev = lsa.extract_fumble_events(pbp([play("G1", 3, 1, fumbled_1_player_id="P1", fumbled_1_team="AAA",
+                                               fumble_recovery_1_player_id="P1", fumble_recovery_1_team="AAA", fumble_lost=1,
+                                               desc="P1 FUMBLES")]))
+    assert set(ev.status) == {"ambiguous"} and set(ev.ambiguity_reason) == {"slot_capacity"}
+
+
+def test_special_teams_classifier_conflict_is_ambiguous_and_agreement_is_special_teams():
+    ev = lsa.extract_fumble_events(pbp([
+        play("G1", 2504, 10, play_type="field_goal", special_teams_play=0, fumbled_1_player_id="P1", fumbled_1_team="AAA",
+             fumble_recovery_1_player_id="D1", fumble_recovery_1_team="BBB", fumble_lost=1, desc="blocked, MUFFS"),
+        play("G1", 2600, 10, play_type="kickoff", special_teams_play=1, fumbled_1_player_id="P2", fumbled_1_team="AAA",
+             fumble_recovery_1_player_id="D1", fumble_recovery_1_team="BBB", fumble_lost=1),
+    ]))
+    a = ev[ev.play_id == 2504]
+    assert set(a.status) == {"ambiguous"} and set(a.ambiguity_reason) == {"st_classifier_conflict"}
+    b = ev[ev.play_id == 2600]
+    assert set(b.status) == {"attributed"} and b.special_teams.all()
+
+
+def test_recovery_touchdown_is_emitted_only_without_an_overlapping_rush_or_pass_touchdown():
+    ev = lsa.extract_fumble_events(pbp([
+        play("G1", 1, 1, fumbled_1_player_id="P9", fumbled_1_team="AAA", fumble_recovery_1_player_id="P1",
+             fumble_recovery_1_team="AAA", touchdown=1, return_touchdown=1, td_player_id="P1", td_team="AAA", desc="P9 FUMBLES"),
+        play("G1", 2, 1, fumbled_1_player_id="P9", fumbled_1_team="AAA", fumble_recovery_1_player_id="P2",
+             fumble_recovery_1_team="AAA", touchdown=1, rush_touchdown=1, td_player_id="P2", td_team="AAA", desc="P9 FUMBLES"),
+    ]))
+    td = ev[ev.event_type == "recovery_td"]
+    assert td.player_id.tolist() == ["P1"] and td.iloc[0].status == "attributed"
+    p2 = ev[(ev.player_id == "P2") & (ev.event_type == "recovery")]
+    assert p2.iloc[0].status == "ambiguous" and p2.iloc[0].ambiguity_reason == "overlapping_touchdown"
+
+
+def test_description_touchdown_text_never_creates_a_recovery_touchdown():
+    ev = lsa.extract_fumble_events(pbp([play("G1", 7, 1, fumbled_1_player_id="P9", fumbled_1_team="AAA", fumble_recovery_1_player_id="P1",
+                                               fumble_recovery_1_team="AAA", touchdown=0, desc="P9 FUMBLES, RECOVERED by AAA-P1. TOUCHDOWN. REVERSED.")]))
+    assert "recovery_td" not in set(ev.event_type)
+
+
+def test_empty_play_by_play_yields_an_empty_ledger_with_the_full_schema():
+    ev = lsa.extract_fumble_events(pbp([]))
+    assert len(ev) == 0 and {"game_id", "play_id", "event_slot", "event_type", "player_id", "status", "ambiguity_reason"} <= set(ev.columns)
