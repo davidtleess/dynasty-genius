@@ -34,15 +34,6 @@ from src.dynasty_genius.eval.run_provenance import launch_provenance  # noqa: E4
 OUTPUTS = ("components.csv", "event_ledger.csv", "reconciliation.csv", "unresolved.csv", "quarantine_reaudit.csv", "report.md")
 
 
-def _sha(path: Path) -> dict:
-    b = path.read_bytes()
-    return {"path": str(path), "sha256": hashlib.sha256(b).hexdigest(), "bytes": len(b)}
-
-
-def _read(path: Path) -> pd.DataFrame:
-    return pd.read_parquet(path) if path.suffix == ".parquet" else pd.read_csv(path)
-
-
 def _render(m: dict, rec: pd.DataFrame, comps: pd.DataFrame) -> str:
     c = m["coverage"]
     lines = [f"# DG-177 league scoring component audit — season {m['season']}\n",
@@ -92,26 +83,29 @@ def main(argv: list[str] | None = None) -> int:
         print(f"refusing: {out_dir} exists (runs are immutable)", file=sys.stderr)
         return 1
     try:
-        sources = {"weekly": _sha(args.weekly), "quarantine": _sha(args.quarantine), "pbp": _sha(args.pbp),
-                   "league_snapshot": _sha(args.league_snapshot), "idmap": _sha(args.idmap),
-                   "sleeper_matchups": {p.name: _sha(p) for p in sorted(args.sleeper_season_dir.glob("matchups_week_*.json"))},
-                   "sleeper_league": _sha(args.sleeper_season_dir / "league.json")}
-        settings = json.loads(args.league_snapshot.read_bytes())["league"]["scoring_settings"]
-        lsa.assert_settings_match(settings, lsa.load_sleeper_settings(args.sleeper_season_dir))
+        # every input is read ONCE; the bytes hashed into the manifest are the bytes parsed below
+        cap = {name: lsa.CapturedSource(getattr(args, name)) for name in ("weekly", "quarantine", "pbp", "league_snapshot", "idmap")}
+        matchups = {p.name: lsa.CapturedSource(p) for p in sorted(args.sleeper_season_dir.glob("matchups_week_*.json"))}
+        league_json = lsa.CapturedSource(args.sleeper_season_dir / "league.json")
+        sources = {**{name: src.describe() for name, src in cap.items()},
+                   "sleeper_matchups": {name: src.describe() for name, src in matchups.items()},
+                   "sleeper_league": league_json.describe()}
+        settings = cap["league_snapshot"].json()["league"]["scoring_settings"]
+        lsa.assert_settings_match(settings, league_json.json()["payload"]["scoring_settings"])
         classification = lsa.classify_scoring_keys(settings)
-        weekly = _read(args.weekly)
+        weekly = cap["weekly"].frame()
         weekly = weekly[pd.to_numeric(weekly["season"], errors="coerce") == args.season]
-        pbp = _read(args.pbp)
+        pbp = cap["pbp"].frame()
         if "season" in pbp:
             pbp = pbp[pd.to_numeric(pbp["season"], errors="coerce") == args.season]
         if "season_type" in pbp:
             pbp = pbp[pbp["season_type"] == "REG"]
         events = lsa.extract_fumble_events(pbp)
         comps = lsa.player_week_components(weekly, events)
-        sleeper = lsa.load_sleeper_week_points(args.sleeper_season_dir)
-        identity = lsa.map_sleeper_ids(sleeper["sleeper_id"], _read(args.idmap)[["sleeper_id", "gsis_id"]])
+        sleeper = lsa.sleeper_week_points_from_payloads({int(n[-7:-5]): src.json()["payload"] for n, src in matchups.items()})
+        identity = lsa.map_sleeper_ids(sleeper["sleeper_id"], cap["idmap"].frame()[["sleeper_id", "gsis_id"]])
         rec = lsa.reconcile(comps, sleeper, identity, settings)
-        quar = _read(args.quarantine)
+        quar = cap["quarantine"].frame()
         if "season" in quar:
             quar = quar[pd.to_numeric(quar["season"], errors="coerce") == args.season]
         quar_audit = lsa.audit_quarantine(quar, settings)

@@ -12,6 +12,7 @@ idp_* keys, which this league does not set).
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 from pathlib import Path
 
@@ -289,13 +290,34 @@ RECON_COMPONENT = "component_attribution_unresolved"
 RECON_SOURCE = "source_difference"
 
 
-def load_sleeper_week_points(season_dir: Path) -> pd.DataFrame:
+class CapturedSource:
+    """A source file read ONCE: the bytes that are hashed are the bytes that are parsed. A later
+    change to the file on disk cannot reach the audit through this object."""
+
+    def __init__(self, path: Path | str):
+        self.path = Path(path)
+        self.bytes = self.path.read_bytes()
+        self.sha256 = hashlib.sha256(self.bytes).hexdigest()
+        self.size = len(self.bytes)
+
+    def describe(self) -> dict:
+        return {"path": str(self.path), "sha256": self.sha256, "bytes": self.size}
+
+    def frame(self) -> pd.DataFrame:
+        buf = io.BytesIO(self.bytes)
+        return pd.read_parquet(buf) if self.path.suffix == ".parquet" else pd.read_csv(buf)
+
+    def json(self):
+        return json.loads(self.bytes)
+
+
+def sleeper_week_points_from_payloads(payloads: dict[int, list]) -> pd.DataFrame:
+    """`payloads` maps week -> the matchups list of that week (already parsed from captured bytes)."""
     rows = []
-    for f in sorted(Path(season_dir).glob("matchups_week_*.json")):
-        week = int(f.stem.rsplit("_", 1)[1])
-        for m in json.loads(f.read_bytes())["payload"]:
+    for week in sorted(payloads):
+        for m in payloads[week]:
             for pid, pts in (m.get("players_points") or {}).items():
-                rows.append({"week": week, "sleeper_id": str(pid), "sleeper_points": float(pts), "roster_id": m.get("roster_id")})
+                rows.append({"week": int(week), "sleeper_id": str(pid), "sleeper_points": float(pts), "roster_id": m.get("roster_id")})
     df = pd.DataFrame(rows, columns=["week", "sleeper_id", "sleeper_points", "roster_id"])
     if not len(df):
         df["status"] = pd.Series(dtype=object)
@@ -306,6 +328,11 @@ def load_sleeper_week_points(season_dir: Path) -> pd.DataFrame:
     df["status"] = np.where(n_distinct > 1, RECON_CONFLICT, "ok")
     df["duplicates_collapsed"] = (n_obs - 1).astype(int)     # equal observations collapsed EXPLICITLY, never double counted
     return df.drop_duplicates(["week", "sleeper_id"], keep="first").reset_index(drop=True)
+
+
+def load_sleeper_week_points(season_dir: Path) -> pd.DataFrame:
+    files = sorted(Path(season_dir).glob("matchups_week_*.json"))
+    return sleeper_week_points_from_payloads({int(f.stem.rsplit("_", 1)[1]): CapturedSource(f).json()["payload"] for f in files})
 
 
 def load_sleeper_settings(season_dir: Path) -> dict:
@@ -365,9 +392,10 @@ def reconcile(components: pd.DataFrame, sleeper: pd.DataFrame, identity: pd.Data
     attributed = r.attribution_status.eq("attributed")
     league_ok = has_row & (r.diff_vs_league.abs() <= TOL)
     research_ok = has_row & (r.diff_vs_research.abs() <= TOL)
-    absent_zero = ~has_row & (r.sleeper_points.abs() <= TOL)
+    # absent-zero needs a RESOLVED identity: an unknown identity cannot prove an absent stat line, even at 0.0
+    absent_zero = has_id & ~has_row & (r.sleeper_points.abs() <= TOL)
     reason = np.select(
-        [conflict, ~has_id & ~absent_zero, has_id & ~has_row & ~absent_zero, has_row & ~attributed, has_row & attributed & ~league_ok],
+        [conflict, ~has_id, has_id & ~has_row & ~absent_zero, has_row & ~attributed, has_row & attributed & ~league_ok],
         [RECON_CONFLICT, RECON_NO_IDENTITY, RECON_NO_STAT_ROW, RECON_COMPONENT, RECON_SOURCE], default="")
     r["reconciliation_reason"] = reason
     ok = (reason == "")

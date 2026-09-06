@@ -453,7 +453,8 @@ def test_reconciliation_statuses_cover_exact_attributed_unresolved_and_absent_ze
     assert r.loc["11", "status"] == "exact"
     assert r.loc["12", "status"] == "attributed_difference" and r.loc["12", "diff_vs_research"] == pytest.approx(-2.0)
     assert r.loc["13", "status"] == "unresolved" and r.loc["13", "reconciliation_reason"] == "source_difference"
-    assert r.loc["14", "status"] == "absent_zero"
+    # an unmapped identity stays unresolved even at 0.0: unknown source coverage cannot prove an absent stat line
+    assert r.loc["14", "status"] == "unresolved" and r.loc["14", "reconciliation_reason"] == "no_identity"
     assert r.loc["15", "status"] == "unresolved" and r.loc["15", "reconciliation_reason"] == "no_identity"
 
 
@@ -594,3 +595,42 @@ def test_identity_map_normalises_numeric_sleeper_ids_before_matching():
     assert m.loc["11", "identity_status"] == "resolved" and m.loc["11", "gsis_id"] == "00-1"
     assert m.loc["12", "identity_status"] == "resolved"
     assert m.loc["13", "identity_status"] == "unmapped"
+
+
+def test_absent_zero_requires_a_resolved_identity_and_an_ambiguous_identity_is_unresolved_even_at_zero():
+    comps = _components([dict(player_id="00-1", week=1, receptions=1, fantasy_points_ppr=1.0)])
+    sleeper = pd.DataFrame({"week": [1, 1, 1], "sleeper_id": ["11", "12", "13"], "sleeper_points": [0.0, 0.0, 0.0], "roster_id": 1,
+                            "status": "ok", "duplicates_collapsed": 0})
+    identity = pd.DataFrame({"sleeper_id": ["11", "12", "13"], "gsis_id": ["00-7", None, None],
+                             "identity_status": ["resolved", "unmapped", "ambiguous"]})
+    r = lsa.reconcile(comps, sleeper, identity, SETTINGS).set_index("sleeper_id")
+    assert r.loc["11", "status"] == "absent_zero"
+    assert r.loc["12", "status"] == "unresolved" and r.loc["12", "reconciliation_reason"] == "no_identity"
+    assert r.loc["13", "status"] == "unresolved" and r.loc["13", "reconciliation_reason"] == "no_identity"
+
+
+# ── captured sources: parse the exact bytes that were hashed ─────────────────────────────────
+
+def test_captured_source_hashes_and_parses_the_same_bytes_even_if_the_file_changes_afterwards(tmp_path):
+    import hashlib
+    p = tmp_path / "w.parquet"
+    weekly([dict(player_id="00-1", week=1, receptions=2)]).to_parquet(p)
+    original = p.read_bytes()
+    src = lsa.CapturedSource(p)
+    weekly([dict(player_id="00-9", week=1, receptions=9)]).to_parquet(p)      # the file changes after capture
+    assert src.sha256 == hashlib.sha256(original).hexdigest() and src.size == len(original)
+    assert src.frame().player_id.tolist() == ["00-1"]
+    j = tmp_path / "s.json"
+    j.write_text(json.dumps({"a": 1}))
+    cj = lsa.CapturedSource(j)
+    j.write_text(json.dumps({"a": 2}))
+    assert cj.json() == {"a": 1}
+    assert cj.describe() == {"path": str(j), "sha256": cj.sha256, "bytes": cj.size}
+
+
+def test_sleeper_points_from_captured_payloads_equals_the_directory_loader(tmp_path):
+    d = _season_dir(tmp_path, {1: [{"roster_id": 1, "players_points": {"11": 4.5}}], 2: [{"roster_id": 2, "players_points": {"11": 1.0}}]})
+    captured = {p.name: lsa.CapturedSource(p) for p in sorted(d.glob("matchups_week_*.json"))}
+    a = lsa.load_sleeper_week_points(d)
+    b = lsa.sleeper_week_points_from_payloads({int(n[-7:-5]): c.json()["payload"] for n, c in captured.items()})
+    pd.testing.assert_frame_equal(a, b)
