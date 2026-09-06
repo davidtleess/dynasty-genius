@@ -1,0 +1,31 @@
+{
+ "purpose": "game-level coverage of the weekly source capture; corroboration for the DG-179 source contract; asserts nothing about completeness",
+ "capture": "runs/20260906T191723Z/weekly_source_capture",
+ "capture_manifest_sha256": "712b05fe9f152d670d835250a7d35a52ae8cb10a3621b561bbb37ce59a91e588",
+ "computed_at": "2026-09-06T19:30:34.462806+00:00",
+ "expected_rule": "31 teams x 16 games / 2 for 1999-2001; 32 x 16 / 2 for 2002-2020; 32 x 17 / 2 from 2021",
+ "reg_shortfalls": [
+  {
+   "season": 1999,
+   "distinct_game_ids": 247,
+   "expected_reg_games": 248.0,
+   "shortfall": 1.0
+  },
+  {
+   "season": 2000,
+   "distinct_game_ids": 246,
+   "expected_reg_games": 248.0,
+   "shortfall": 2.0
+  },
+  {
+   "season": 2022,
+   "distinct_game_ids": 271,
+   "expected_reg_games": 272.0,
+   "shortfall": 1.0
+  }
+ ],
+ "outputs_sha256": {
+  "GAME_COVERAGE.md": "6be9e0f1bfc185ead17634822b780447b5d761ff064a92c6110d9cc6fd6ba604",
+  "game_coverage.csv": "80c7deb207124726bf919a5b2d92f63e2ab39549f37172ebba50b194ce024cdd"
+ }
+}
