@@ -1,0 +1,412 @@
+{
+  "schema_version": "dg177_league_scoring_audit_v1",
+  "producer": "DG-177 league scoring component audit (report-only)",
+  "sources": {
+    "weekly": {
+      "path": "/Users/davidleess/dg-wt/DG-165/runs/20260906T194454Z/source_preparation/identified_weekly.parquet",
+      "sha256": "6f7c76cca4f1e9b1fb6bb40b1c83d76f5dc85afcb66c0662904bf9f1b662c748",
+      "bytes": 16700998
+    },
+    "quarantine": {
+      "path": "/Users/davidleess/dg-wt/DG-165/runs/20260906T194454Z/source_preparation/quarantine.parquet",
+      "sha256": "a0f4d9c6e790e16075ba6ac20bd91ffb429b7163af82f39091a698f1ccb82a64",
+      "bytes": 103378
+    },
+    "pbp": {
+      "path": "/Users/davidleess/dynasty-genius-product/app/data/backtest/qb_validation/raw/pbp/pbp_2025.parquet",
+      "sha256": "5ed293fdf54d79e34426133829f3111faf577db29b8cfc25cf910d75eb55b2ef",
+      "bytes": 13266724
+    },
+    "league_snapshot": {
+      "path": "/Users/davidleess/dynasty-genius-product/app/data/league_runtime/runs/league-20260906T130052Z/snapshot.json",
+      "sha256": "ece82e24a66d50882345733971a8e1c66d1c0bae020496c2f48a8ff8a8ad8a35",
+      "bytes": 5447473
+    },
+    "idmap": {
+      "path": "/Users/davidleess/dynasty-genius-product/app/data/backtest/qb_validation/raw/ff_playerids/ff_playerids_full.parquet",
+      "sha256": "5cdeaf1c7ac01165601820051067a901869557a88aa641d3c5dcfa57b599ccb0",
+      "bytes": 982407
+    },
+    "sleeper_matchups": {
+      "matchups_week_01.json": {
+        "path": "/Users/davidleess/dynasty-genius-product/app/data/research/league_behavior/raw/2026-07-19/season_2025_1183088915091423232/matchups_week_01.json",
+        "sha256": "26be60847d07557f52f98c7457ae04a46b5388b93034659e3ffd122f1d13c967",
+        "bytes": 15987
+      },
+      "matchups_week_02.json": {
+        "path": "/Users/davidleess/dynasty-genius-product/app/data/research/league_behavior/raw/2026-07-19/season_2025_1183088915091423232/matchups_week_02.json",
+        "sha256": "e258cd0b073db56467194714baf01d5693991156b3409bc1f4577c6c141a80b5",
+        "bytes": 15938
+      },
+      "matchups_week_03.json": {
+        "path": "/Users/davidleess/dynasty-genius-product/app/data/research/league_behavior/raw/2026-07-19/season_2025_1183088915091423232/matchups_week_03.json",
+        "sha256": "44de6d7f612751b9faee0f7a227b3239da7efba4085a4968ac6e74ec8c89be03",
+        "bytes": 16042
+      },
+      "matchups_week_04.json": {
+        "path": "/Users/davidleess/dynasty-genius-product/app/data/research/league_behavior/raw/2026-07-19/season_2025_1183088915091423232/matchups_week_04.json",
+        "sha256": "d0cd3fbc3dac811b5a086e3666f70e2e99703186e1985749da1ed586b670d742",
+        "bytes": 16144
+      },
+      "matchups_week_05.json": {
+        "path": "/Users/davidleess/dynasty-genius-product/app/data/research/league_behavior/raw/2026-07-19/season_2025_1183088915091423232/matchups_week_05.json",
+        "sha256": "cda4f49e1605cf604b16c48d5a7e7abb4d5e69cc59247e10effe74e9af99accc",
+        "bytes": 16266
+      },
+      "matchups_week_06.json": {
+        "path": "/Users/davidleess/dynasty-genius-product/app/data/research/league_behavior/raw/2026-07-19/season_2025_1183088915091423232/matchups_week_06.json",
+        "sha256": "bd0e5320576912c4e649abc4a288cf6ef38bb91d7ebeb624aea6ec1c2fa6cc1b",
+        "bytes": 16246
+      },
+      "matchups_week_07.json": {
+        "path": "/Users/davidleess/dynasty-genius-product/app/data/research/league_behavior/raw/2026-07-19/season_2025_1183088915091423232/matchups_week_07.json",
+        "sha256": "20f8148833cdbc553ef1bac57ef38edf93c318cb1701cfc82e4ee5293abd5ad0",
+        "bytes": 16271
+      },
+      "matchups_week_08.json": {
+        "path": "/Users/davidleess/dynasty-genius-product/app/data/research/league_behavior/raw/2026-07-19/season_2025_1183088915091423232/matchups_week_08.json",
+        "sha256": "f7e30f9501ce4d9c834a1e28c347d5cbc88e705467925a61c5813d4d21bcc1d8",
+        "bytes": 16148
+      },
+      "matchups_week_09.json": {
+        "path": "/Users/davidleess/dynasty-genius-product/app/data/research/league_behavior/raw/2026-07-19/season_2025_1183088915091423232/matchups_week_09.json",
+        "sha256": "d53ddb97339f64086e33929b25183c46a30b0506cafc1531c119f144b4f20889",
+        "bytes": 16146
+      },
+      "matchups_week_10.json": {
+        "path": "/Users/davidleess/dynasty-genius-product/app/data/research/league_behavior/raw/2026-07-19/season_2025_1183088915091423232/matchups_week_10.json",
+        "sha256": "2f3f06252bd3759fceeca2a0f8dcd4a06cd3423e77ddc65a284282aaf7459d2f",
+        "bytes": 16195
+      },
+      "matchups_week_11.json": {
+        "path": "/Users/davidleess/dynasty-genius-product/app/data/research/league_behavior/raw/2026-07-19/season_2025_1183088915091423232/matchups_week_11.json",
+        "sha256": "71e5c0df6585ea90b165acd8bcb950a2b800079da6091f8f8b39df226b2c2be8",
+        "bytes": 16249
+      },
+      "matchups_week_12.json": {
+        "path": "/Users/davidleess/dynasty-genius-product/app/data/research/league_behavior/raw/2026-07-19/season_2025_1183088915091423232/matchups_week_12.json",
+        "sha256": "7ecb311ac5b1e0ff42dd835e3187adee4e71fc6cccbfa504138417f6077ad700",
+        "bytes": 16298
+      },
+      "matchups_week_13.json": {
+        "path": "/Users/davidleess/dynasty-genius-product/app/data/research/league_behavior/raw/2026-07-19/season_2025_1183088915091423232/matchups_week_13.json",
+        "sha256": "d6ea7ef06c43b557c2d3b7efed6f9899bb9d75c81b55878b831b3a6c6f5e5e22",
+        "bytes": 16301
+      },
+      "matchups_week_14.json": {
+        "path": "/Users/davidleess/dynasty-genius-product/app/data/research/league_behavior/raw/2026-07-19/season_2025_1183088915091423232/matchups_week_14.json",
+        "sha256": "6b7eefdf521cfe4ccfed1db97a88c1f189c2fff0b6a2934d915c2976ad05a41f",
+        "bytes": 16276
+      },
+      "matchups_week_15.json": {
+        "path": "/Users/davidleess/dynasty-genius-product/app/data/research/league_behavior/raw/2026-07-19/season_2025_1183088915091423232/matchups_week_15.json",
+        "sha256": "7d39f43584f1b4266eb79c7719033bca0381d2f9d64bb08c77ce59ba13b1dea5",
+        "bytes": 16338
+      },
+      "matchups_week_16.json": {
+        "path": "/Users/davidleess/dynasty-genius-product/app/data/research/league_behavior/raw/2026-07-19/season_2025_1183088915091423232/matchups_week_16.json",
+        "sha256": "863b53810bf38104210400cbf76b3a29169ae0f8e4727ac1d2dbfc9a38568112",
+        "bytes": 16363
+      },
+      "matchups_week_17.json": {
+        "path": "/Users/davidleess/dynasty-genius-product/app/data/research/league_behavior/raw/2026-07-19/season_2025_1183088915091423232/matchups_week_17.json",
+        "sha256": "79f43c23f1fccb42650188dd1aea847de044cce84a3825e8ff6e8f9e2b18bc3b",
+        "bytes": 16345
+      },
+      "matchups_week_18.json": {
+        "path": "/Users/davidleess/dynasty-genius-product/app/data/research/league_behavior/raw/2026-07-19/season_2025_1183088915091423232/matchups_week_18.json",
+        "sha256": "38c7919a0d6f1bad092f70bd5b8b049ec26b1794a20ba3b1c1bc957347a675ff",
+        "bytes": 16331
+      }
+    },
+    "sleeper_league": {
+      "path": "/Users/davidleess/dynasty-genius-product/app/data/research/league_behavior/raw/2026-07-19/season_2025_1183088915091423232/league.json",
+      "sha256": "d66be804a772c00743081ceacbf4a5ff4b50f5cab070f3a3dedb5a0f35df652b",
+      "bytes": 4045
+    }
+  },
+  "settings_sha256": "3ffeb5582924ba90b56e4ddcf6ea9b93df24b2c28f3466c4037ac27989a04849",
+  "scoring_settings": {
+    "blk_kick": 2.0,
+    "def_st_ff": 1.0,
+    "def_st_fum_rec": 1.0,
+    "def_st_td": 6.0,
+    "def_td": 6.0,
+    "ff": 1.0,
+    "fgm_0_19": 3.0,
+    "fgm_20_29": 3.0,
+    "fgm_30_39": 3.0,
+    "fgm_40_49": 4.0,
+    "fgm_50p": 5.0,
+    "fgmiss": -1.0,
+    "fum": 0.0,
+    "fum_lost": -2.0,
+    "fum_rec": 2.0,
+    "fum_rec_td": 6.0,
+    "int": 2.0,
+    "pass_2pt": 2.0,
+    "pass_int": -2.0,
+    "pass_td": 4.0,
+    "pass_yd": 0.04,
+    "pts_allow_0": 10.0,
+    "pts_allow_14_20": 1.0,
+    "pts_allow_1_6": 7.0,
+    "pts_allow_21_27": 0.0,
+    "pts_allow_28_34": -1.0,
+    "pts_allow_35p": -4.0,
+    "pts_allow_7_13": 4.0,
+    "rec": 1.0,
+    "rec_2pt": 2.0,
+    "rec_td": 6.0,
+    "rec_yd": 0.1,
+    "rush_2pt": 2.0,
+    "rush_td": 6.0,
+    "rush_yd": 0.1,
+    "sack": 1.0,
+    "safe": 2.0,
+    "st_ff": 1.0,
+    "st_fum_rec": 1.0,
+    "st_td": 6.0,
+    "xpm": 1.0,
+    "xpmiss": -1.0
+  },
+  "key_classification": {
+    "individual": [
+      "fum",
+      "fum_lost",
+      "fum_rec_td",
+      "pass_2pt",
+      "pass_int",
+      "pass_td",
+      "pass_yd",
+      "rec",
+      "rec_2pt",
+      "rec_td",
+      "rec_yd",
+      "rush_2pt",
+      "rush_td",
+      "rush_yd",
+      "st_ff",
+      "st_fum_rec",
+      "st_td"
+    ],
+    "kicker": [
+      "fgm_0_19",
+      "fgm_20_29",
+      "fgm_30_39",
+      "fgm_40_49",
+      "fgm_50p",
+      "fgmiss",
+      "xpm",
+      "xpmiss"
+    ],
+    "team": [
+      "blk_kick",
+      "def_st_ff",
+      "def_st_fum_rec",
+      "def_st_td",
+      "def_td",
+      "ff",
+      "fum_rec",
+      "int",
+      "pts_allow_0",
+      "pts_allow_14_20",
+      "pts_allow_1_6",
+      "pts_allow_21_27",
+      "pts_allow_28_34",
+      "pts_allow_35p",
+      "pts_allow_7_13",
+      "sack",
+      "safe"
+    ],
+    "unknown": []
+  },
+  "research_preset": {
+    "pass_yd": 0.04,
+    "pass_td": 4.0,
+    "pass_int": -2.0,
+    "pass_2pt": 2.0,
+    "rush_yd": 0.1,
+    "rush_td": 6.0,
+    "rush_2pt": 2.0,
+    "rec": 1.0,
+    "rec_yd": 0.1,
+    "rec_td": 6.0,
+    "rec_2pt": 2.0,
+    "fum_lost_offense": -2.0,
+    "st_td": 6.0
+  },
+  "individual_keys_credited": [
+    "fum",
+    "fum_lost",
+    "fum_rec_td",
+    "pass_2pt",
+    "pass_int",
+    "pass_td",
+    "pass_yd",
+    "rec",
+    "rec_2pt",
+    "rec_td",
+    "rec_yd",
+    "rush_2pt",
+    "rush_td",
+    "rush_yd",
+    "st_ff",
+    "st_fum_rec",
+    "st_td"
+  ],
+  "team_keys_never_applied_to_individuals": [
+    "blk_kick",
+    "def_st_ff",
+    "def_st_fum_rec",
+    "def_st_td",
+    "def_td",
+    "ff",
+    "fum_rec",
+    "int",
+    "pts_allow_0",
+    "pts_allow_14_20",
+    "pts_allow_1_6",
+    "pts_allow_21_27",
+    "pts_allow_28_34",
+    "pts_allow_35p",
+    "pts_allow_7_13",
+    "sack",
+    "safe"
+  ],
+  "event_grain": [
+    "game_id",
+    "play_id",
+    "event_slot",
+    "event_type",
+    "player_id"
+  ],
+  "special_teams_classification": "special_teams_play == 1 AND play type in {punt, kickoff, field_goal, extra_point}; a disagreement marks every event of the play ambiguous (st_classifier_conflict)",
+  "slot_capacity_policy": "the two numbered fumble slots are not a universal ledger; more FUMBLES tokens than slots, an unpaired recovery slot, or a play-level lost flag disagreeing with every slot marks the play ambiguous (slot_capacity); the weekly lost total stays the scoring authority",
+  "championship_window": {
+    "weeks": [
+      1,
+      17
+    ],
+    "week_18_included": false
+  },
+  "coverage": {
+    "weekly_player_weeks_reg": 18522,
+    "weekly_player_weeks_championship": 17456,
+    "sleeper_player_weeks": 4723,
+    "sleeper_player_weeks_championship": 4458,
+    "sleeper_players": 314,
+    "identity_resolved": 314,
+    "identity_unmapped": 0,
+    "identity_ambiguous": 0,
+    "status_exact": 3384,
+    "status_attributed_difference": 8,
+    "status_absent_zero": 1330,
+    "status_unresolved": 1,
+    "status_exact_championship": 3217,
+    "status_attributed_difference_championship": 7,
+    "status_absent_zero_championship": 1233,
+    "status_unresolved_championship": 1,
+    "reconciliation_unresolved_by_reason": {
+      "source_difference": 1
+    },
+    "components_unresolved_by_reason": {
+      "event_ambiguous_or_missing_id": 2
+    },
+    "sleeper_duplicate_observations_collapsed": 1,
+    "sleeper_conflicting_duplicates": 0,
+    "population_note": "rostered player-weeks only; not full-universe proof",
+    "window_delta_offense": {
+      "player_weeks": 5687,
+      "nonzero_player_weeks": 35,
+      "sum": -29.0,
+      "min": -2.0,
+      "max": 6.000000000000001,
+      "unresolved_player_weeks": 0
+    },
+    "window_delta_other": {
+      "player_weeks": 11769,
+      "nonzero_player_weeks": 67,
+      "sum": 121.0,
+      "min": -2.0,
+      "max": 12.0,
+      "unresolved_player_weeks": 2
+    }
+  },
+  "league_scoring_exact": false,
+  "qualification_reasons": [
+    "rostered player-weeks only; not full-universe proof",
+    "unresolved_player_weeks: 1",
+    "kicker_keys_unsupported_for_present_kickers"
+  ],
+  "launch": {
+    "git_head": "b4d3510debd0337fedc480575c0e985e78d84aaa",
+    "git_branch": "ticket/DG-177",
+    "git_dirty": true,
+    "tracked_dirty": false,
+    "untracked_paths": [
+      "runs/20260906T132607Z/dg177_veteran_candidate/predictions.csv",
+      "runs/20260906T132607Z/dg177_veteran_candidate/report.md",
+      "runs/20260906T132607Z/dg177_veteran_candidate/results.json",
+      "runs/20260906T145026Z/dg177_annual_forecasts/annual_forecasts.csv",
+      "runs/20260906T145026Z/dg177_annual_forecasts/historical_predictions.csv",
+      "runs/20260906T145026Z/dg177_annual_forecasts/manifest.json",
+      "runs/20260906T145026Z/dg177_annual_forecasts/report.md",
+      "runs/20260906T145026Z/dg177_annual_forecasts/results.json",
+      "runs/20260906T145026Z/dg177_annual_forecasts/weekly_stats_snapshot.csv.gz",
+      "runs/20260906T155259Z/dg177_basic_horizons/historical_predictions.csv",
+      "runs/20260906T191832Z/dg177_basic_horizons/historical_predictions.csv",
+      "runs/20260906T195728Z/dg177_basic_horizons/historical_predictions.csv",
+      "runs/20260906T214340Z/dg177_league_scoring_audit.FAILED_ACCEPTANCE.md",
+      "runs/20260906T214340Z/dg177_league_scoring_audit/components.csv",
+      "runs/20260906T214340Z/dg177_league_scoring_audit/event_ledger.csv",
+      "runs/20260906T214340Z/dg177_league_scoring_audit/manifest.json",
+      "runs/20260906T214340Z/dg177_league_scoring_audit/quarantine_reaudit.csv",
+      "runs/20260906T214340Z/dg177_league_scoring_audit/reconciliation.csv",
+      "runs/20260906T214340Z/dg177_league_scoring_audit/report.md",
+      "runs/20260906T214340Z/dg177_league_scoring_audit/unresolved.csv",
+      "runs/20260906T214632Z/dg177_league_scoring_audit/components.csv",
+      "runs/20260906T214632Z/dg177_league_scoring_audit/event_ledger.csv",
+      "runs/20260906T214632Z/dg177_league_scoring_audit/manifest.json",
+      "runs/20260906T214632Z/dg177_league_scoring_audit/quarantine_reaudit.csv",
+      "runs/20260906T214632Z/dg177_league_scoring_audit/reconciliation.csv",
+      "runs/20260906T214632Z/dg177_league_scoring_audit/report.md",
+      "runs/20260906T214632Z/dg177_league_scoring_audit/unresolved.csv"
+    ],
+    "captured_at_utc": "2026-09-06T21:48:08.658710+00:00",
+    "argv": [
+      "scripts/dg177/run_league_scoring_audit.py",
+      "--weekly",
+      "/Users/davidleess/dg-wt/DG-165/runs/20260906T194454Z/source_preparation/identified_weekly.parquet",
+      "--quarantine",
+      "/Users/davidleess/dg-wt/DG-165/runs/20260906T194454Z/source_preparation/quarantine.parquet",
+      "--pbp",
+      "/Users/davidleess/dynasty-genius-product/app/data/backtest/qb_validation/raw/pbp/pbp_2025.parquet",
+      "--sleeper-season-dir",
+      "/Users/davidleess/dynasty-genius-product/app/data/research/league_behavior/raw/2026-07-19/season_2025_1183088915091423232",
+      "--league-snapshot",
+      "/Users/davidleess/dynasty-genius-product/app/data/league_runtime/runs/league-20260906T130052Z/snapshot.json",
+      "--idmap",
+      "/Users/davidleess/dynasty-genius-product/app/data/backtest/qb_validation/raw/ff_playerids/ff_playerids_full.parquet",
+      "--season",
+      "2025",
+      "--out-root",
+      "runs"
+    ],
+    "python": "3.14.7"
+  },
+  "outputs": {
+    "components.csv": "d58f483b09f09f04fa2eb776132b4b2d050aca8ac3ace99fda099e704c8e884c",
+    "event_ledger.csv": "a7768d2ca84555cc4c236cf8cb664b3156276ab59a38a53700544837f3597916",
+    "reconciliation.csv": "7115101f7cbb6b245f7326f1d3b12e66e078cb0ade20507bf7bfd4544bce4545",
+    "unresolved.csv": "93671cf8deccadbdddf090993904ac76e857ef6e21a954b74d527255fb5667cc",
+    "quarantine_reaudit.csv": "ed2bb3152f8b924b82f9afe6d5c5f13667edd908583e6ddde7bf9bf1d9cb4592",
+    "report.md": "912bdb2f3faa7a8f500a31051ec899ffd5551c0ea1801d9e28fb0272c2b8d56e"
+  },
+  "meaning": "Counts come from the weekly source; play-by-play supplies the special-teams / own-vs-opponent / lost split. A disagreement is unresolved, never patched. The Sleeper comparison covers rostered players only.",
+  "season": 2025,
+  "quarantine_reaudit": {
+    "rows": 22,
+    "nonzero_under_league_keys": 0
+  }
+}
