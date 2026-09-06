@@ -1,0 +1,108 @@
+{
+ "evaluation_deltas": [
+  {
+   "quantity": "annual[1].p_qual_year.auc",
+   "default": 0.841243093922652,
+   "arm": 0.842530924930834,
+   "delta": 0.0012878310081820832
+  },
+  {
+   "quantity": "annual[1].p_qual_year.brier",
+   "default": 0.12132400502761988,
+   "arm": 0.12041247797589164,
+   "delta": -0.000911527051728242
+  },
+  {
+   "quantity": "annual[3].p_qual_year.auc",
+   "default": 0.8062616301143207,
+   "arm": 0.807722397359516,
+   "delta": 0.0014607672451952824
+  },
+  {
+   "quantity": "annual[1].e_points_year.rmse",
+   "default": 55.20876236128792,
+   "arm": 55.047709542262346,
+   "delta": -0.16105281902557067
+  },
+  {
+   "quantity": "annual[3].e_points_year.rmse",
+   "default": 72.71760802981942,
+   "arm": 72.48381022465166,
+   "delta": -0.23379780516775384
+  },
+  {
+   "quantity": "horizon[5].p_qual_h.auc",
+   "default": 0.8157887452597781,
+   "arm": 0.8166050121495667,
+   "delta": 0.0008162668897886416
+  },
+  {
+   "quantity": "horizon[5].e_qual_seasons_h.rmse",
+   "default": 1.3013274449644658,
+   "arm": 1.2957924662941551,
+   "delta": -0.0055349786703107196
+  }
+ ],
+ "score_deltas": [
+  {
+   "column": "e_points_year2",
+   "max_abs_delta": 1.8785899381163311,
+   "player": "Barion Brown"
+  },
+  {
+   "column": "e_points_year3",
+   "max_abs_delta": 1.7945646822823633,
+   "player": "CJ Williams"
+  },
+  {
+   "column": "e_points_year4",
+   "max_abs_delta": 1.6342165503136492,
+   "player": "CJ Williams"
+  },
+  {
+   "column": "e_points_year5",
+   "max_abs_delta": 1.5326361127801142,
+   "player": "CJ Williams"
+  },
+  {
+   "column": "e_points_year6",
+   "max_abs_delta": 1.3080440479764306,
+   "player": "CJ Williams"
+  },
+  {
+   "column": "e_points_year1",
+   "max_abs_delta": 1.1679129014613139,
+   "player": "Barion Brown"
+  },
+  {
+   "column": "e_games_year2",
+   "max_abs_delta": 0.37979711681034445,
+   "player": "CJ Williams"
+  },
+  {
+   "column": "e_games_year1",
+   "max_abs_delta": 0.3340912676169472,
+   "player": "CJ Williams"
+  },
+  {
+   "column": "e_games_year3",
+   "max_abs_delta": 0.3100124822847281,
+   "player": "CJ Williams"
+  },
+  {
+   "column": "e_games_year4",
+   "max_abs_delta": 0.26367143301627927,
+   "player": "CJ Williams"
+  },
+  {
+   "column": "e_games_year5",
+   "max_abs_delta": 0.20733652955461368,
+   "player": "CJ Williams"
+  },
+  {
+   "column": "e_games_year6",
+   "max_abs_delta": 0.16791371261767063,
+   "player": "CJ Williams"
+  }
+ ]
+}

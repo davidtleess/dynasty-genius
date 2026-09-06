@@ -1,21 +1,25 @@
-"""Outcome labels for a draft prospect at fixed horizons, with an information cutoff.
+"""Outcome labels for a draft prospect, per NFL season and per horizon, with an information
+cutoff — and with "unknown" kept distinct from "zero".
 
-The two hazards this module exists to avoid, both found on 2026-09-05:
+Three hazards this module exists to avoid:
 
-1. **A washout is an outcome, not missing data.** A prospect with zero NFL games has no row
-   in any per-season table. An inner join, or the inherited ``censored_incomplete_arc``
-   flag, deletes him — and a model fitted on the survivors returns P(qualifies) ≈ 1.
-   Labels here are built FROM THE COHORT, looking the panel up by key, so a prospect with
-   no panel row is labelled 0 at every observable horizon.
+1. **A measured absence is an outcome; a missing record is not.** A prospect whose NFL
+   identity is resolved and who has no weekly stat row in season j scored zero fantasy
+   points that season — a measured fact — and is labelled 0 / 0 points. A prospect whose
+   identity could NOT be resolved (``label_basis == "unresolved"``) carries NaN in every
+   label: he is kept in the cohort and counted, never dropped, and never asserted to have
+   failed. The round-1 review found the previous build turning ``games = NaN`` into "zero
+   games"; ``unresolved_as_zero`` exists only as an explicit sensitivity arm.
 
-2. **A label that needs a season not yet played is missing, never zero.** "Ever qualifies"
-   gave a 2015 pick eleven seasons to do it and a 2020 pick six. Here the window is fixed
-   (seasons c .. c+h-1 for draft class c) and the label is NaN whenever the window ends
-   after ``last_completed_season``. At forecast year T that argument is T-1.
+2. **A label that needs a season not yet played is missing, never zero.** Season j of
+   draft class c is NFL season c + j − 1; it is complete only if ≤ ``last_completed_season``.
+   At forecast year T that argument is T − 1.
 
-The bar is the tie-robust N-th largest, not ``rank == N``: with method="min" a tie at N-1
-skips rank N and the lookup silently returns nothing (the DG-164 WR-2024 defect, 284
-rows gone with no error).
+3. **The bar is the tie-robust N-th largest**, not ``rank == N`` (the DG-164 WR-2024 defect).
+
+"Appear" means at least one weekly stat row in nflverse regular-season player stats. It is
+not "dressed" or "took a snap"; a player without a stat row scored zero fantasy points, which
+is the fact the labels need. The manifest says so.
 """
 from __future__ import annotations
 
@@ -26,16 +30,18 @@ import pandas as pd
 
 __all__ = [
     "AVAILABILITY_BAR",
+    "LABEL_BASIS_UNRESOLVED",
     "horizon_labels",
-    "played_season_keys",
     "qualifying_season_keys",
-    "season_ppg_map",
+    "season_stats_map",
 ]
 
 # David's 2026-09-05 availability ruling ("the next who is actually available"), the bar
 # the canonical DG-164 cells are cut on (preserved publish_v3.py:4). Passed explicitly
 # everywhere so a starter-bar variant (DG-171) is a parameter, not a code change.
 AVAILABILITY_BAR: Mapping[str, int] = {"QB": 37, "RB": 45, "WR": 71, "TE": 21}
+
+LABEL_BASIS_UNRESOLVED = "unresolved"
 
 SeasonKey = tuple[str, int]
 
@@ -62,22 +68,15 @@ def qualifying_season_keys(panel: pd.DataFrame, bar: Mapping[str, int]) -> set[S
     return keys
 
 
-def played_season_keys(panel: pd.DataFrame) -> set[SeasonKey]:
-    """(player_id, season) pairs with at least one regular-season game."""
-    played = panel.loc[panel["games"] >= 1, ["player_id", "season"]]
-    return {(str(p), int(s)) for p, s in played.itertuples(index=False)}
+def season_stats_map(panel: pd.DataFrame) -> dict[SeasonKey, tuple[float, int]]:
+    """(player_id, season) -> (regular-season PPR points, games with a weekly stat row).
 
-
-def season_ppg_map(panel: pd.DataFrame) -> dict[SeasonKey, float]:
-    """(player_id, season) -> regular-season PPR points per game with a stat row.
-
-    The LEVEL a qualifier produces, in the same units the panel is cut on. Denominator is
-    weeks with a weekly stat row — NOT the served all-games denominator (DG-024); the
-    manifest names the difference so a consumer can reconcile rather than absorb it.
+    Only seasons with at least one stat row are present; absence from the map for a
+    resolved identity IS the zero-points, zero-games season.
     """
     played = panel.loc[panel["games"] >= 1]
     return {
-        (str(p), int(s)): float(pts) / float(g)
+        (str(p), int(s)): (float(pts), int(g))
         for p, s, pts, g in played[["player_id", "season", "points", "games"]].itertuples(index=False)
     }
 
@@ -86,22 +85,26 @@ def horizon_labels(
     cohort: pd.DataFrame,
     *,
     qualifying: set[SeasonKey],
-    played: set[SeasonKey],
+    season_stats: Mapping[SeasonKey, tuple[float, int]],
     horizons: Iterable[int],
     last_completed_season: int,
-    season_ppg: Mapping[SeasonKey, float] | None = None,
+    unresolved_as_zero: bool = False,
 ) -> pd.DataFrame:
-    """Attach horizon labels to every cohort row; never drops a prospect.
+    """Attach per-season and per-horizon labels to every cohort row; never drops a prospect.
 
-    For each horizon h the window is draft_season .. draft_season+h-1. Columns added:
+    Per NFL season j = 1..max(h) (season c + j − 1 for class c), NaN when not complete:
+      ``appear_j``  1 if he has a weekly stat row that season, else 0
+      ``points_j``  regular-season PPR points, 0 when he did not appear
+      ``games_j``   weeks with a stat row, 0 when he did not appear
+      ``ppg_j``     points_j / games_j, NaN when he did not appear (a rate needs games)
+      ``qy_j``      1 if he finished at or above the bar that season
+    Per horizon h (window seasons 1..h), NaN when the window is not complete:
+      ``appear_by_h``  any appearance in the window   ``q_h``  any qualifying season
+      ``n_h``          number of qualifying seasons in the window
 
-    * ``qy_j`` (j = 1..max h): qualified in NFL season j — NaN if season j is not complete.
-    * ``ppg_year_j`` (when ``season_ppg`` is given): his rate in season j if he played it,
-      NaN otherwise — a rate exists only for a season with games, never as a zero.
-    * ``q_h``: any qualifying season in the window; ``n_h``: count of them;
-      ``played_h``: any game in the window. All NaN when the window is not complete.
-
-    Float dtype throughout so NaN can be carried; a fitted model reads only notna rows.
+    Rows whose ``label_basis`` is "unresolved" carry NaN everywhere unless
+    ``unresolved_as_zero`` (the sensitivity arm) is set. A cohort without a
+    ``label_basis`` column is treated as fully resolved.
     """
     horizons = tuple(sorted(set(int(h) for h in horizons)))
     if not horizons or horizons[0] < 1:
@@ -109,30 +112,40 @@ def horizon_labels(
     out = cohort.reset_index(drop=True).copy()
     ids = out["gsis_id"].astype(str).to_numpy()
     classes = out["draft_season"].astype(int).to_numpy()
+    if "label_basis" in out.columns:
+        unknown = (out["label_basis"].astype(str) == LABEL_BASIS_UNRESOLVED).to_numpy()
+    else:
+        unknown = np.zeros(len(out), dtype=bool)
+    if unresolved_as_zero:
+        unknown = np.zeros(len(out), dtype=bool)
 
     max_h = horizons[-1]
-    qualified_by_year = np.full((len(out), max_h), np.nan)
-    played_by_year = np.full((len(out), max_h), np.nan)
+    appear = np.full((len(out), max_h), np.nan)
+    qual = np.full((len(out), max_h), np.nan)
     for j in range(1, max_h + 1):
         season = classes + (j - 1)
-        complete = season <= last_completed_season
-        qual = np.array([(pid, int(s)) in qualifying for pid, s in zip(ids, season)], dtype=float)
-        play = np.array([(pid, int(s)) in played for pid, s in zip(ids, season)], dtype=float)
-        qualified_by_year[complete, j - 1] = qual[complete]
-        played_by_year[complete, j - 1] = play[complete]
-        out[f"qy_{j}"] = qualified_by_year[:, j - 1]
-        if season_ppg is not None:
-            rate = np.array([season_ppg.get((pid, int(s)), np.nan) for pid, s in zip(ids, season)], dtype=float)
-            out[f"ppg_year_{j}"] = np.where(complete, rate, np.nan)
+        known = (season <= last_completed_season) & ~unknown
+        stats = [season_stats.get((pid, int(s))) for pid, s in zip(ids, season)]
+        appeared = np.array([st is not None for st in stats], dtype=float)
+        points = np.array([st[0] if st is not None else 0.0 for st in stats], dtype=float)
+        games = np.array([st[1] if st is not None else 0 for st in stats], dtype=float)
+        qualified = np.array([(pid, int(s)) in qualifying for pid, s in zip(ids, season)], dtype=float)
+        appear[known, j - 1] = appeared[known]
+        qual[known, j - 1] = qualified[known]
+        out[f"appear_{j}"] = appear[:, j - 1]
+        out[f"points_{j}"] = np.where(known, points, np.nan)
+        out[f"games_{j}"] = np.where(known, games, np.nan)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            out[f"ppg_{j}"] = np.where(known & (appeared == 1), points / np.where(games > 0, games, np.nan), np.nan)
+        out[f"qy_{j}"] = qual[:, j - 1]
 
     for h in horizons:
-        window_q = qualified_by_year[:, :h]
-        window_p = played_by_year[:, :h]
+        window_q = qual[:, :h]
+        window_a = appear[:, :h]
         observable = ~np.isnan(window_q).any(axis=1)
-        q_h = np.where(observable, np.nanmax(np.where(observable[:, None], window_q, 0.0), axis=1), np.nan)
-        n_h = np.where(observable, np.nansum(window_q, axis=1), np.nan)
-        played_h = np.where(observable, np.nanmax(np.where(observable[:, None], window_p, 0.0), axis=1), np.nan)
-        out[f"q_{h}"] = q_h
-        out[f"n_{h}"] = n_h
-        out[f"played_{h}"] = played_h
+        safe_q = np.where(observable[:, None], window_q, 0.0)
+        safe_a = np.where(observable[:, None], window_a, 0.0)
+        out[f"appear_by_{h}"] = np.where(observable, safe_a.max(axis=1), np.nan)
+        out[f"q_{h}"] = np.where(observable, safe_q.max(axis=1), np.nan)
+        out[f"n_{h}"] = np.where(observable, safe_q.sum(axis=1), np.nan)
     return out

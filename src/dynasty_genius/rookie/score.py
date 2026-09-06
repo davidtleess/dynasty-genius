@@ -1,20 +1,21 @@
 """Score a draft class with a fitted model; every prospect gets a row and a status.
 
-``coverage_status`` says how the number was produced, never silently:
+``identity_status`` says whether the NFL identity behind the row is resolved; an unresolved
+prospect keeps NaN in every forecast column (the assembler says "no forecast: identity
+unresolved", never "value 0"). ``coverage_status`` says how the number was produced:
 
 * ``scored``              — pick, round, position and age all present;
-* ``scored_age_imputed``  — age at draft missing, imputed by the model's position median
-                            (the flag is also a model input, so the imputation is visible
-                            to the fit, not hidden from it).
+* ``scored_age_imputed``  — age at draft missing, imputed by the model's position median.
 
-Undrafted rookies are not in the frame this function receives; the runner reports them
-as ``undrafted_not_modelled`` from a separate roster read so the gap is named, not filled.
+Undrafted rookies are not in the frame this function receives; the runner reports them as
+a named gap from the integration lane's roster audit, never filled here.
 """
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
 
+from src.dynasty_genius.rookie.labels import LABEL_BASIS_UNRESOLVED
 from src.dynasty_genius.rookie.model import MODEL_VERSION, RookieCapitalModel
 
 __all__ = ["bootstrap_intervals", "score_class"]
@@ -28,9 +29,15 @@ def score_class(model: RookieCapitalModel, rookies: pd.DataFrame) -> pd.DataFram
     pred = model.predict(rookies)
     identity = [c for c in IDENTITY_COLUMNS if c in rookies.columns]
     out = rookies[identity].copy().reset_index(drop=True)
+    unresolved = (
+        rookies["label_basis"].astype(str).eq(LABEL_BASIS_UNRESOLVED).to_numpy()
+        if "label_basis" in rookies.columns else np.zeros(len(rookies), dtype=bool)
+    )
+    out["identity_status"] = np.where(unresolved, "unresolved", "resolved")
     age_missing = pd.to_numeric(rookies["age_at_draft"], errors="coerce").isna().to_numpy()
     out["coverage_status"] = np.where(age_missing, "scored_age_imputed", "scored")
     pred = pred.reset_index(drop=True).drop(columns=["gsis_id"])
+    pred.loc[unresolved, :] = np.nan
     out = pd.concat([out, pred], axis=1)
     out["model_version"] = MODEL_VERSION
     assert len(out) == len(rookies), "a prospect went missing between input and output"
@@ -44,30 +51,28 @@ def bootstrap_intervals(
     horizons: tuple[int, ...],
     n_boot: int,
     seed: int = 20260906,
+    trend: bool = False,
 ) -> pd.DataFrame:
     """90% intervals from refitting on player-resampled training sets.
 
-    This is parameter uncertainty of the fit, not the outcome spread of one rookie: a
-    first-round pick with P(Q_3)=0.8 still fails a fifth of the time, and that is in the
-    probability itself, not in these bounds.
+    Parameter uncertainty of the fit conditional on this model form (including whether the
+    class-year trend term is in it) and this training window — not outcome spread, and not
+    model or season uncertainty.
     """
     rng = np.random.default_rng(seed)
     draws: dict[str, list[np.ndarray]] = {}
     for _ in range(n_boot):
         sample = train.iloc[rng.integers(0, len(train), len(train))]
-        try:
-            m = RookieCapitalModel(horizons=horizons).fit(sample)
-        except ValueError:
-            continue  # a resample lost a class for one label; skip it, count below
+        m = RookieCapitalModel(horizons=horizons, trend=trend).fit(sample)
         p = m.predict(rookies)
         for col in p.columns:
-            if col == "gsis_id":
-                continue
-            draws.setdefault(col, []).append(p[col].to_numpy())
-    out = pd.DataFrame({"gsis_id": rookies["gsis_id"].to_numpy()})
+            if col != "gsis_id":
+                draws.setdefault(col, []).append(p[col].to_numpy())
+    columns = {"gsis_id": rookies["gsis_id"].to_numpy()}
     for col, arrays in draws.items():
         stack = np.vstack(arrays)
-        out[f"{col}_lo90"] = np.nanpercentile(stack, 5, axis=0)
-        out[f"{col}_hi90"] = np.nanpercentile(stack, 95, axis=0)
+        columns[f"{col}_lo90"] = np.nanpercentile(stack, 5, axis=0)
+        columns[f"{col}_hi90"] = np.nanpercentile(stack, 95, axis=0)
+    out = pd.DataFrame(columns)
     out.attrs["n_boot_effective"] = len(next(iter(draws.values()))) if draws else 0
     return out

@@ -1,0 +1,371 @@
+{
+ "ticket": "DG-165",
+ "model_version": "dg165_rookie_capital_v2_hazard",
+ "status": "RESEARCH CANDIDATE \u2014 not served, not promoted, not merged",
+ "run_dir": "runs/20260906T144444Z/dg165_rookie_capital",
+ "started_utc": "2026-09-06T14:44:44.996684+00:00",
+ "finished_utc": "2026-09-06T14:45:32.799617+00:00",
+ "git_sha": "9a6a7a4ba615838c05216bcc4c9a8c3cb9c6a68c",
+ "forecast_date": {
+  "forecast_year": 2026,
+  "forecast_cutoff": "2026-09-01 (pre-season 2026, after the NFL draft)",
+  "label_window": "labels through NFL season 2025; NFL season j = 1 is the rookie season = 2026",
+  "last_completed_season": 2025
+ },
+ "definitions": {
+  "qualifying_season": "finished at or above the bar rank for the position by regular-season PPR total; bar = {'QB': 37, 'RB': 45, 'WR': 71, 'TE': 21}; tie-robust N-th largest (canonical DG-164 cells)",
+  "appearance": "at least one weekly stat row in nflverse regular-season player stats (not 'dressed', not 'took a snap'); a player without a stat row scored zero fantasy points that season",
+  "season_points": "regular-season PPR points (nflverse weekly fantasy_points_ppr), exactly 0 without an appearance",
+  "games": "weeks with a weekly stat row, exactly 0 without an appearance",
+  "identity_unresolved": "no gsis_id in nflverse draft picks and no match in the players table or 1999-2025 rosters by draft key or name+year; labels NaN, never zero, except in the named sensitivity arm"
+ },
+ "units": {
+  "scoring_scope": "regular season only; PPR as in nflverse weekly player stats",
+  "exposure_definition": "stat-row games (weeks with a weekly stat row)",
+  "ppg_denominator": "REG-season PPR points / stat-row games \u2014 NOT the served all-games denominator (DG-024); reconcile, do not absorb",
+  "seasons": "NFL season j = 1 is the rookie season = forecast_year; E[N_h] counts qualifying seasons in 1..h"
+ },
+ "construction": "see model.construction; cumulative events are nested by hazard arithmetic; E[points_j] = P(A_j) x E[points_j | A_j] is the only product formed, valid because points are exactly zero without an appearance",
+ "no_composition_claims": "nothing here states how these quantities compose with Engine A, Engine B or the DG-164 cells; that comparability is the ranking lane's typed contract (DG-178)",
+ "cohort": {
+  "source": "nflreadpy.load_draft_picks(); identities resolved via load_players() and load_rosters(1999-2025)",
+  "classes": [
+   1999,
+   2026
+  ],
+  "positions": [
+   "QB",
+   "RB",
+   "WR",
+   "TE"
+  ],
+  "coverage": {
+   "seasons": [
+    1999,
+    2000,
+    2001,
+    2002,
+    2003,
+    2004,
+    2005,
+    2006,
+    2007,
+    2008,
+    2009,
+    2010,
+    2011,
+    2012,
+    2013,
+    2014,
+    2015,
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025,
+    2026
+   ],
+   "skill_rows": 2238,
+   "with_gsis_id": 2130,
+   "without_gsis_id": 108,
+   "resolution_of_missing_ids": {
+    "players:name+year": 55,
+    "unresolved": 45,
+    "rosters:entry_year+draft_number": 4,
+    "players:draft_year+pick": 4
+   },
+   "unresolved_kept_with_nan_labels": 45,
+   "duplicate_gsis_dropped": 0,
+   "missing_age": 108,
+   "rows": 2238
+  },
+  "undrafted": "NOT in the cohort and NOT modelled \u2014 no undrafted-prospect population table exists in the product"
+ },
+ "model": {
+  "model_version": "dg165_rookie_capital_v2_hazard",
+  "estimator": "per-season hazards and rates: sklearn LogisticRegression (L2, C=1.0); levels: Ridge (alpha=1.0); all on StandardScaler",
+  "design_columns": [
+   "log_pick",
+   "round",
+   "age_at_draft",
+   "pos_QB",
+   "pos_RB",
+   "pos_WR",
+   "pos_TE",
+   "log_pick_x_QB",
+   "log_pick_x_RB",
+   "log_pick_x_WR",
+   "log_pick_x_TE",
+   "class_year"
+  ],
+  "trend": true,
+  "trend_reference_year": 2025,
+  "trend_selection": {
+   "selected": true,
+   "rule": "trend wins if it improves at least two of the three season-1 validation scores; otherwise the simpler model",
+   "inner_cutoff": 2023,
+   "validation_classes": [
+    2023,
+    2024,
+    2025
+   ],
+   "scores": {
+    "plain": {
+     "log_loss_p_qual_year1": 0.43052779150905784,
+     "log_loss_p_appear_year1": 0.37417648340099047,
+     "rmse_e_points_year1": 62.643082803870236,
+     "n_validation": 243
+    },
+    "trend": {
+     "log_loss_p_qual_year1": 0.41504143206973537,
+     "log_loss_p_appear_year1": 0.36034172862433633,
+     "rmse_e_points_year1": 59.20105643821634,
+     "n_validation": 243
+    }
+   }
+  },
+  "feature_columns": [
+   "pick",
+   "round",
+   "age_at_draft",
+   "position"
+  ],
+  "horizons": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "construction": "P(appear by h) = 1 - prod(1 - a_j); P(A_j) = a_j(1 - P(appear by j-1)) + rho_j P(appear by j-1); same for qualification with q_j, r_j; E[N_h] = sum_j P(Qy_j); E[points_j] = P(A_j) * E[points_j | A_j] (points are exactly 0 without an appearance)",
+  "age_median_by_position": {
+   "QB": 23.0,
+   "RB": 22.0,
+   "WR": 22.0,
+   "TE": 23.0
+  },
+  "n_train_by_family": {
+   "a_1": 2113,
+   "q_1": 2113,
+   "points_1|A": 1636,
+   "games_1|A": 1636,
+   "ppg_1|A": 1636,
+   "ppg_1|Q": 443,
+   "a_2": 461,
+   "q_2": 1608,
+   "rho_2": 1566,
+   "r_2": 419,
+   "points_2|A": 1531,
+   "games_2|A": 1531,
+   "ppg_2|A": 1531,
+   "ppg_2|Q": 540,
+   "a_3": 276,
+   "q_3": 1335,
+   "rho_3": 1674,
+   "r_3": 615,
+   "points_3|A": 1290,
+   "games_3|A": 1290,
+   "ppg_3|A": 1290,
+   "ppg_3|Q": 502,
+   "a_4": 231,
+   "q_4": 1200,
+   "rho_4": 1639,
+   "r_4": 670,
+   "points_4|A": 1096,
+   "games_4|A": 1096,
+   "ppg_4|A": 1096,
+   "ppg_4|Q": 449,
+   "a_5": 221,
+   "q_5": 1086,
+   "rho_5": 1570,
+   "r_5": 705,
+   "points_5|A": 874,
+   "games_5|A": 874,
+   "ppg_5|A": 874,
+   "ppg_5|Q": 367,
+   "a_6": 214,
+   "q_6": 1004,
+   "rho_6": 1502,
+   "r_6": 712,
+   "points_6|A": 704,
+   "games_6|A": 704,
+   "ppg_6|A": 704,
+   "ppg_6|Q": 311
+  },
+  "constant_fits": {
+   "a_6": 0.0
+  }
+ },
+ "evaluation": {
+  "forecast_years": [
+   2005,
+   2025
+  ],
+  "n_boot": 1000,
+  "headline": {
+   "annual[1].p_qual_year.auc": 0.841243093922652,
+   "annual[1].p_qual_year.brier": 0.12132400502761988,
+   "annual[3].p_qual_year.auc": 0.8062616301143207,
+   "annual[1].e_points_year.rmse": 55.20876236128792,
+   "annual[3].e_points_year.rmse": 72.71760802981942,
+   "horizon[5].p_qual_h.auc": 0.8157887452597781,
+   "horizon[5].e_qual_seasons_h.rmse": 1.3013274449644658
+  },
+  "sensitivity_unresolved_as_zero": [
+   {
+    "quantity": "annual[1].p_qual_year.auc",
+    "default": 0.841243093922652,
+    "arm": 0.842530924930834,
+    "delta": 0.0012878310081820832
+   },
+   {
+    "quantity": "annual[1].p_qual_year.brier",
+    "default": 0.12132400502761988,
+    "arm": 0.12041247797589164,
+    "delta": -0.000911527051728242
+   },
+   {
+    "quantity": "annual[3].p_qual_year.auc",
+    "default": 0.8062616301143207,
+    "arm": 0.807722397359516,
+    "delta": 0.0014607672451952824
+   },
+   {
+    "quantity": "annual[1].e_points_year.rmse",
+    "default": 55.20876236128792,
+    "arm": 55.047709542262346,
+    "delta": -0.16105281902557067
+   },
+   {
+    "quantity": "annual[3].e_points_year.rmse",
+    "default": 72.71760802981942,
+    "arm": 72.48381022465166,
+    "delta": -0.23379780516775384
+   },
+   {
+    "quantity": "horizon[5].p_qual_h.auc",
+    "default": 0.8157887452597781,
+    "arm": 0.8166050121495667,
+    "delta": 0.0008162668897886416
+   },
+   {
+    "quantity": "horizon[5].e_qual_seasons_h.rmse",
+    "default": 1.3013274449644658,
+    "arm": 1.2957924662941551,
+    "delta": -0.0055349786703107196
+   }
+  ]
+ },
+ "trend_experiment": {
+  "decision": "auto_trend",
+  "rule": "auto_trend replaces plain only if it improves a majority of the compared out-of-time metrics",
+  "auto_trend_wins": 5,
+  "metrics_compared": 6,
+  "auto_selected_trend_in_forecast_years": 13,
+  "forecast_years_evaluated": 21,
+  "comparison": {
+   "p_qual_year1": {
+    "plain_brier": 0.12132400502761988,
+    "auto_trend_brier": 0.11970758394603483,
+    "improvement_brier": 0.001616421081585051,
+    "plain_log_loss": 0.38636278179346034,
+    "auto_trend_log_loss": 0.3822393393795243,
+    "improvement_log_loss": 0.004123442413936029
+   },
+   "p_appear_year1": {
+    "plain_brier": 0.14109440772893922,
+    "auto_trend_brier": 0.13984355101124038,
+    "improvement_brier": 0.0012508567176988394
+   },
+   "e_points_year1": {
+    "plain_rmse": 55.20876236128792,
+    "auto_trend_rmse": 53.91311045901866,
+    "improvement_rmse": 1.295651902269256
+   },
+   "p_qual_year3": {
+    "plain_brier": 0.1435667431705965,
+    "auto_trend_brier": 0.14365557983931243,
+    "improvement_brier": -8.883666871592477e-05
+   },
+   "e_points_year3": {
+    "plain_rmse": 72.71760802981942,
+    "auto_trend_rmse": 72.48321192053436,
+    "improvement_rmse": 0.23439610928505772
+   }
+  },
+  "final_scoring_uses": "auto-selected class-year trend"
+ },
+ "score_intervals": {
+  "method": "refit on player-resampled training sets, 5th/95th percentile; fit uncertainty conditional on this model form",
+  "n_boot_requested": 200,
+  "n_boot_effective": 200
+ },
+ "dg176_names_present": {
+  "Fernando Mendoza": true,
+  "Ty Simpson": true,
+  "Kenyon Sadiq": true
+ },
+ "inputs": {
+  "nflverse_draft_picks": {
+   "path": "inputs/nflverse_draft_picks.parquet",
+   "sha256": "68940f7b20f4e776f86bf27d38b9975ba5bc3f17f7a6f345bdd87c8bd72c097f",
+   "rows": 12927
+  },
+  "nflverse_players": {
+   "path": "inputs/nflverse_players.parquet",
+   "sha256": "58ad30108bacf89e0f391f86b911cbbf6f26c9889f06aa7ab29018e803e45a07",
+   "rows": 24828
+  },
+  "nflverse_rosters": {
+   "path": "inputs/nflverse_rosters.parquet",
+   "sha256": "17553d565d763b4810ec9665fd609ab6686a6b4bcdd068acc520ba0618c8c13d",
+   "rows": 66480
+  },
+  "panel": {
+   "path": "inputs/panel.parquet",
+   "sha256": "d8d260a85379f212564599877b7c2b36a7ffca26c11ffd73c56bac5d75879a35",
+   "rows": 14776,
+   "seasons": [
+    1999,
+    2025
+   ],
+   "source": "copied from runs/20260906T131535Z/dg165_reproduction/inputs/panel.parquet"
+  },
+  "age_cross_check": {
+   "overlap_rows": 874,
+   "both_present": 871,
+   "agree_within_0.5": 871,
+   "max_abs_diff": 0.0,
+   "source": "/Users/davidleess/dg-build/preserved/2026-09-06-dg165-rookie-translation/prospects_with_outcomes_v3.csv",
+   "sha256": "15e17cd9164c5ab05f0440f0ca90bb93f89ce7735efa517d331495cd2bea11d0"
+  }
+ },
+ "environment": {
+  "python": "3.14.7",
+  "pandas": "3.0.5",
+  "numpy": "2.5.2",
+  "sklearn": "1.8.0",
+  "nflreadpy": "0.1.5"
+ },
+ "outputs": [
+  ".gitignore",
+  "EVALUATION.md",
+  "ROOKIES_2026.md",
+  "cohort.csv",
+  "evaluation.json",
+  "evaluation_sensitivity_unresolved_as_zero.json",
+  "out_of_time_predictions.csv",
+  "rookie_scores_2026.csv",
+  "sensitivity_unresolved_as_zero.json",
+  "training_descriptives.json",
+  "trend_experiment.json",
+  "manifest.json",
+  "REPORT.md"
+ ]
+}

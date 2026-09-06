@@ -1,132 +1,245 @@
-"""Human-readable rendering of the evaluation and the manifest. Numbers come from the JSON;
-nothing is computed here, so the markdown can never disagree with the machine-readable
-record it sits beside."""
+"""Human-readable rendering of the evaluation, the scores and the report. Every number in
+the markdown is read from the JSON record it sits beside; nothing is computed or typed
+here, so the prose can never disagree with the evidence (round-1 review, item 4: the
+previous REPORT quoted prevalences that its own JSON contradicted)."""
 from __future__ import annotations
 
-__all__ = ["render_evaluation_markdown", "render_scores_markdown"]
+__all__ = ["render_evaluation_markdown", "render_report_markdown", "render_scores_markdown"]
+
+ANNUAL_LABELS = {
+    "p_qual_year": "P(qualifies in season j)",
+    "p_appear_year": "P(appears in season j)",
+    "e_points_year": "E[season points] (unconditional; 0 without appearance)",
+    "e_games_year": "E[games] (unconditional)",
+    "e_points_year_given_appear": "E[season points | appears]",
+    "e_games_year_given_appear": "E[games | appears]",
+    "e_ppg_year_given_appear": "E[ppg | appears]",
+    "e_ppg_given_qual_year": "E[ppg | qualifies] (descriptive)",
+}
+HORIZON_LABELS = {
+    "p_qual_h": "P(any qualifying season in 1..h)",
+    "p_appear_by_h": "P(any appearance in 1..h)",
+    "e_qual_seasons_h": "E[qualifying seasons in 1..h]",
+}
 
 
 def _f(x, nd=3):
     if x is None:
         return "—"
     try:
-        if x != x:  # NaN
+        if x != x:
             return "—"
     except TypeError:
         pass
-    return f"{x:.{nd}f}"
+    if isinstance(x, (list, tuple)):
+        return "(" + ", ".join(_f(v, nd) for v in x) + ")"
+    try:
+        return f"{x:.{nd}f}"
+    except (TypeError, ValueError):
+        return str(x)
+
+
+def _binary_row(name: str, e: dict) -> str:
+    years = e.get("forecast_years") or []
+    span = f"{years[0]}–{years[-1]}" if years else "—"
+    return (f"| {name} | {span} | {e.get('n', 0)} | {_f(e.get('prevalence'), 2)} | {_f(e.get('mean_predicted'), 2)} | "
+            f"{_f(e.get('auc'))} {_f(e.get('auc_ci90'))} | {_f(e.get('brier'), 4)} / {_f(e.get('brier_training_baseline'), 4)} | "
+            f"{_f(e.get('log_loss'), 4)} / {_f(e.get('log_loss_training_baseline'), 4)} |")
+
+
+def _level_row(name: str, e: dict) -> str:
+    years = e.get("forecast_years") or []
+    span = f"{years[0]}–{years[-1]}" if years else "—"
+    return (f"| {name} | {span} | {e.get('n', 0)} | {_f(e.get('mean_actual'), 2)} | {_f(e.get('mean_predicted'), 2)} | "
+            f"{_f(e.get('rmse'), 2)} / {_f(e.get('rmse_training_baseline'), 2)} | {_f(e.get('bias'), 2)} |")
+
+
+BINARY_HEADER = ("| quantity | forecast years | n | prevalence | mean predicted | AUC (90% CI) | "
+                 "Brier model / training baseline | log loss model / baseline |\n|---|---|---:|---:|---:|---|---|---|")
+LEVEL_HEADER = ("| quantity | forecast years | n | mean actual | mean predicted | RMSE model / training baseline | bias |\n"
+                "|---|---|---:|---:|---:|---|---:|")
+
+
+def _slice_tables(e: dict, kind: str) -> list[str]:
+    lines = []
+    if e.get("by_position"):
+        lines += ["", "by position:", ""]
+        if kind == "binary":
+            lines += ["| position | n | prevalence | mean predicted | AUC | Brier model / baseline |", "|---|---:|---:|---:|---:|---|"]
+            for pos, b in e["by_position"].items():
+                lines.append(f"| {pos} | {b.get('n', 0)} | {_f(b.get('prevalence'), 2)} | {_f(b.get('mean_predicted'), 2)} | "
+                             f"{_f(b.get('auc'))} | {_f(b.get('brier'), 4)} / {_f(b.get('brier_training_baseline'), 4)} |")
+        else:
+            lines += ["| position | n | mean actual | mean predicted | RMSE model / baseline | bias |", "|---|---:|---:|---:|---|---:|"]
+            for pos, b in e["by_position"].items():
+                lines.append(f"| {pos} | {b.get('n', 0)} | {_f(b.get('mean_actual'), 2)} | {_f(b.get('mean_predicted'), 2)} | "
+                             f"{_f(b.get('rmse'), 2)} / {_f(b.get('rmse_training_baseline'), 2)} | {_f(b.get('bias'), 2)} |")
+    if e.get("by_round"):
+        lines += ["", "by round:", ""]
+        if kind == "binary":
+            lines += ["| round | n | actual rate | mean predicted |", "|---|---:|---:|---:|"]
+            for rnd, b in sorted(e["by_round"].items(), key=lambda kv: int(kv[0])):
+                lines.append(f"| {rnd} | {b.get('n', 0)} | {_f(b.get('prevalence'), 2)} | {_f(b.get('mean_predicted'), 2)} |")
+        else:
+            lines += ["| round | n | mean actual | mean predicted |", "|---|---:|---:|---:|"]
+            for rnd, b in sorted(e["by_round"].items(), key=lambda kv: int(kv[0])):
+                lines.append(f"| {rnd} | {b.get('n', 0)} | {_f(b.get('mean_actual'), 2)} | {_f(b.get('mean_predicted'), 2)} |")
+    return lines
 
 
 def render_evaluation_markdown(evaluation: dict) -> str:
-    pooled = evaluation.get("pooled_by_horizon", {})
+    annual = evaluation.get("annual", {})
+    horizon = evaluation.get("horizon", {})
     lines = [
-        "# DG-165 rookie draft-capital candidate — walk-forward evaluation",
+        "# DG-165 rookie draft-capital candidate — historical evaluation with information cutoffs",
         "",
-        "Every forecast year T is scored with a model fitted only on labels observable at T",
-        "(seasons <= T-1). Test rows are class T graded against what happened afterwards.",
-        "\"Base rate\" is the training prevalence applied to the test class: the no-model forecast.",
+        "One fit per forecast year T on labels completed by T−1 (the same procedure as final scoring); class T",
+        "graded against what happened afterwards, each quantity only where its own label is complete today.",
+        "\"Training baseline\" = the prevalence / mean of that label in the training set at T, carried per row.",
         "",
-        "## Pooled out-of-time results by horizon",
-        "",
-        "| horizon | forecast years | n | prevalence | AUC (90% CI) | Brier (model / base) | log loss (model / base) | E[N_h] RMSE (model / base) | bias |",
-        "|---|---|---:|---:|---|---|---|---|---:|",
+        "## Per-season quantities (season j = 1 is the rookie season)",
     ]
-    for h in sorted(pooled, key=int):
-        e = pooled[h]
-        q = e["qual"]
-        years = e["forecast_years"]
-        span = f"{years[0]}–{years[-1]}" if years else "—"
-        ci = e.get("qual_auc_ci90", [None, None])
-        s = e["seasons"]
-        lines.append(
-            f"| h = {h} | {span} | {e['n']} | {_f(q['prevalence'], 2)} | "
-            f"{_f(q['auc'])} ({_f(ci[0])}, {_f(ci[1])}) | {_f(q['brier'], 4)} / {_f(q['brier_base_rate'], 4)} | "
-            f"{_f(q['log_loss'], 4)} / {_f(q['log_loss_base_rate'], 4)} | "
-            f"{_f(s['rmse'])} / {_f(s['rmse_base_rate'])} | {_f(s['bias'], 3)} |"
-        )
-    lines += ["", "## P(played by h) — the availability event, reported separately", "",
-              "| horizon | n | prevalence | AUC | Brier (model / base) |", "|---|---:|---:|---:|---|"]
-    for h in sorted(pooled, key=int):
-        p = pooled[h]["played"]
-        lines.append(f"| h = {h} | {p['n']} | {_f(p['prevalence'], 2)} | {_f(p['auc'])} | {_f(p['brier'], 4)} / {_f(p['brier_base_rate'], 4)} |")
-
-    for h in sorted(pooled, key=int):
-        e = pooled[h]
-        lines += ["", f"## h = {h}: calibration of P(Q_{h}), out-of-time", "",
-                  "| predicted bin | n | mean predicted | actual |", "|---|---:|---:|---:|"]
-        for row in e["calibration_qual"]:
-            lines.append(f"| {row['bin']} | {row['n']} | {_f(row['predicted'])} | {_f(row['actual'])} |")
-        lines += ["", f"### h = {h}: by position", "",
-                  "| position | n | prevalence | AUC | Brier (model / base) | E[N] actual / predicted | RMSE (model / base) |",
-                  "|---|---:|---:|---:|---|---|---|"]
-        for pos, b in e["by_position"].items():
-            s = b["seasons"]
-            lines.append(
-                f"| {pos} | {b['n']} | {_f(b['prevalence'], 2)} | {_f(b['auc'])} | {_f(b['brier'], 4)} / {_f(b['brier_base_rate'], 4)} | "
-                f"{_f(s['mean_actual'], 2)} / {_f(s['mean_predicted'], 2)} | {_f(s['rmse'])} / {_f(s['rmse_base_rate'])} |"
-            )
-        lines += ["", f"### h = {h}: by round (out-of-time, actual vs predicted)", "",
-                  "| round | n | P(Q) actual | P(Q) predicted | E[N] actual | E[N] predicted |", "|---|---:|---:|---:|---:|---:|"]
-        for rnd, b in sorted(e["by_round"].items(), key=lambda kv: int(kv[0])):
-            lines.append(f"| {rnd} | {b['n']} | {_f(b['actual_qual_rate'], 2)} | {_f(b['predicted_qual_rate'], 2)} | "
-                         f"{_f(b['actual_seasons'], 2)} | {_f(b['predicted_seasons'], 2)} |")
-
-    level = evaluation.get("level_by_year", {})
-    if level:
-        lines += ["", "## The LEVEL: E[ppg | qualifies in season j], out-of-time, graded on qualifiers only", "",
-                  "ppg = regular-season PPR points / games with a weekly stat row. Comparator = the training qualifiers' mean rate at the position.", "",
-                  "| season j | n qualifiers | mean actual | mean predicted | RMSE (model / position mean) | bias |",
-                  "|---|---:|---:|---:|---|---:|"]
-        for j in sorted(level, key=int):
-            e = level[j]
-            lines.append(f"| {j} | {e['n']} | {_f(e['mean_actual'], 2)} | {_f(e['mean_predicted'], 2)} | "
-                         f"{_f(e['rmse'], 2)} / {_f(e['rmse_position_mean'], 2)} | {_f(e['bias'], 2)} |")
-        for j in sorted(level, key=int):
-            e = level[j]
-            lines += ["", f"### season {j}: level by position", "",
-                      "| position | n | mean actual | mean predicted | RMSE (model / position mean) |", "|---|---:|---:|---:|---|"]
-            for pos, b in e["by_position"].items():
-                lines.append(f"| {pos} | {b['n']} | {_f(b['mean_actual'], 2)} | {_f(b['mean_predicted'], 2)} | {_f(b['rmse'], 2)} / {_f(b['rmse_position_mean'], 2)} |")
-            lines += ["", f"### season {j}: level by round (qualifiers only)", "",
-                      "| round | n | mean actual | mean predicted |", "|---|---:|---:|---:|"]
-            for rnd, b in sorted(e["by_round"].items(), key=lambda kv: int(kv[0])):
-                lines.append(f"| {rnd} | {b['n']} | {_f(b['mean_actual'], 2)} | {_f(b['mean_predicted'], 2)} |")
-
-    absent = evaluation.get("absent_pairs", [])
-    lines += ["", "## Forecast-year / horizon pairs NOT evaluated, and why", ""]
+    for j in sorted(annual, key=int):
+        block = annual[j]
+        lines += ["", f"### season {j}", "", "Probabilities:", "", BINARY_HEADER]
+        for key in ("p_qual_year", "p_appear_year"):
+            if key in block:
+                lines.append(_binary_row(ANNUAL_LABELS[key], block[key]))
+        lines += ["", "Levels:", "", LEVEL_HEADER]
+        for key in ("e_points_year", "e_games_year", "e_points_year_given_appear", "e_games_year_given_appear",
+                    "e_ppg_year_given_appear", "e_ppg_given_qual_year"):
+            if key in block:
+                lines.append(_level_row(ANNUAL_LABELS[key], block[key]))
+        if "p_qual_year" in block and block["p_qual_year"].get("calibration"):
+            lines += ["", f"Calibration of P(qualifies in season {j}):", "", "| predicted bin | n | mean predicted | actual |", "|---|---:|---:|---:|"]
+            for row in block["p_qual_year"]["calibration"]:
+                lines.append(f"| {row['bin']} | {row['n']} | {_f(row['predicted'])} | {_f(row['actual'])} |")
+        for key in ("p_qual_year", "e_points_year"):
+            if key in block:
+                lines += ["", f"{ANNUAL_LABELS[key]} — slices:"]
+                lines += _slice_tables(block[key], "binary" if key.startswith("p_") else "level")
+        if "p_qual_year" in block and block["p_qual_year"].get("baseline_by_forecast_year"):
+            b = block["p_qual_year"]["baseline_by_forecast_year"]
+            lines += ["", "Training baseline for P(qualifies) by forecast year: " + ", ".join(f"{t}: {_f(v, 3)}" for t, v in b.items())]
+    lines += ["", "## Cumulative quantities (window seasons 1..h)"]
+    for h in sorted(horizon, key=int):
+        block = horizon[h]
+        lines += ["", f"### h = {h}", "", BINARY_HEADER]
+        for key in ("p_qual_h", "p_appear_by_h"):
+            if key in block:
+                lines.append(_binary_row(HORIZON_LABELS[key], block[key]))
+        lines += ["", LEVEL_HEADER]
+        if "e_qual_seasons_h" in block:
+            lines.append(_level_row(HORIZON_LABELS["e_qual_seasons_h"], block["e_qual_seasons_h"]))
+        if "p_qual_h" in block and block["p_qual_h"].get("calibration"):
+            lines += ["", f"Calibration of P(any qualifying season in 1..{h}):", "", "| predicted bin | n | mean predicted | actual |", "|---|---:|---:|---:|"]
+            for row in block["p_qual_h"]["calibration"]:
+                lines.append(f"| {row['bin']} | {row['n']} | {_f(row['predicted'])} | {_f(row['actual'])} |")
+    lines += ["", "## Not gradable, and why", ""]
+    absent = evaluation.get("absent", [])
     if not absent:
         lines.append("None.")
     for a in absent:
-        lines.append(f"- T = {a['forecast_year']}, h = {a['horizon']}: {a['reason']}")
-    lines += ["", "## Per-split detail", "",
-              "| T | h | train classes | n_train | n_test | AUC | Brier (model / base) |", "|---|---|---|---:|---:|---:|---|"]
-    for s in evaluation.get("per_split", []):
-        q = s["qual"]
-        lines.append(f"| {s['forecast_year']} | {s['horizon']} | {s['train_classes'][0]}–{s['train_classes'][1]} | "
-                     f"{s['n_train']} | {s['n_test']} | {_f(q['auc'])} | {_f(q['brier'], 4)} / {_f(q['brier_base_rate'], 4)} |")
+        where = ", ".join(f"{k} = {v}" for k, v in a.items() if k != "reason")
+        lines.append(f"- {where}: {a['reason']}")
+    skipped = evaluation.get("skipped_forecast_years", [])
+    if skipped:
+        lines += ["", "Forecast years skipped:", ""] + [f"- T = {s['forecast_year']}: {s['reason']}" for s in skipped]
+    lines += ["", "## Per forecast year", "", "| T | train classes | train rows | test rows | families on a constant fallback |", "|---|---|---:|---:|---|"]
+    for y in evaluation.get("per_forecast_year", []):
+        const = ", ".join(sorted(y.get("constant_fits", {}))) or "none"
+        lines.append(f"| {y['forecast_year']} | {y['train_classes'][0]}–{y['train_classes'][1]} | {y['n_train_rows']} | {y['n_test']} | {const} |")
     return "\n".join(lines) + "\n"
 
 
 def render_scores_markdown(scores, horizons, forecast_year: int, top: int = 80) -> str:
     """A readable table of the scored class; the CSV is the record, this is the glance."""
-    cols = ["pick", "round", "name", "position", "team", "age_at_draft", "coverage_status"]
-    level_years = [j for j in (1, 3, 5) if f"e_ppg_given_qual_year{j}" in scores.columns]
-    lines = [f"# {forecast_year} draft class — draft-capital candidate (research output, not served)", "",
-             "P(Q_h) = probability of at least one qualifying season within h NFL seasons; "
-             "E[N_h] = expected qualifying seasons within h. E[ppg|Q] yj = expected REG PPR points per stat-row game "
-             "IF he qualifies in season j (conditional; multiply on the consumer's side, never here). "
-             "90% intervals are fit uncertainty, not outcome spread.", "",
-             "| " + " | ".join(cols) + " | " + " | ".join(f"P(Q_{h})" for h in horizons) + " | "
-             + " | ".join(f"E[N_{h}]" for h in horizons) + f" | E[N_{max(horizons)}] 90% | "
-             + " | ".join(f"E[ppg\|Q] y{j}" for j in level_years) + " |",
-             "|" + "---|" * (len(cols) + 2 * len(horizons) + 1 + len(level_years))]
     hmax = max(horizons)
+    cols = ["pick", "round", "name", "position", "team", "age_at_draft", "identity_status", "coverage_status"]
+    head = (["P(A y1)", "E[pts y1]", "E[games y1]", "P(Q y1)", "E[ppg|Q y1]", "P(A y3)", "E[pts y3]", "P(Q y3)",
+             f"P(A by {hmax})", f"P(Q_{hmax})", f"E[N_{hmax}]", f"E[N_{hmax}] 90% fit"])
+    lines = [f"# {forecast_year} draft class — draft-capital candidate (research output, not served)", "",
+             "P(A yj) = appears in season j (a weekly stat row); E[pts yj] = expected REG PPR season total, unconditional "
+             "(zero without an appearance); P(Q yj) = qualifies by season total at the availability bar; "
+             "E[ppg|Q] = descriptive conditional rate. Intervals are fit uncertainty, not outcome spread.", "",
+             "| " + " | ".join(cols + head) + " |", "|" + "---|" * (len(cols) + len(head))]
     for _, r in scores.head(top).iterrows():
         cells = [str(r.get(c, "")) if c != "age_at_draft" else _f(r.get(c), 0) for c in cols]
-        cells += [_f(r[f"p_qual_h{h}"], 2) for h in horizons]
-        cells += [_f(r[f"e_qual_seasons_h{h}"], 2) for h in horizons]
-        lo, hi = r.get(f"e_qual_seasons_h{hmax}_lo90"), r.get(f"e_qual_seasons_h{hmax}_hi90")
-        cells.append(f"{_f(lo, 2)}–{_f(hi, 2)}")
-        cells += [_f(r[f"e_ppg_given_qual_year{j}"], 1) for j in level_years]
+        cells += [_f(r.get("p_appear_year1"), 2), _f(r.get("e_points_year1"), 0), _f(r.get("e_games_year1"), 1),
+                  _f(r.get("p_qual_year1"), 2), _f(r.get("e_ppg_given_qual_year1"), 1),
+                  _f(r.get("p_appear_year3"), 2), _f(r.get("e_points_year3"), 0), _f(r.get("p_qual_year3"), 2),
+                  _f(r.get(f"p_appear_by_h{hmax}"), 2), _f(r.get(f"p_qual_h{hmax}"), 2), _f(r.get(f"e_qual_seasons_h{hmax}"), 2),
+                  f"{_f(r.get(f'e_qual_seasons_h{hmax}_lo90'), 2)}–{_f(r.get(f'e_qual_seasons_h{hmax}_hi90'), 2)}"]
         lines.append("| " + " | ".join(cells) + " |")
+    return "\n".join(lines) + "\n"
+
+
+def render_report_markdown(manifest: dict, evaluation: dict, sensitivity: dict | None, scores, trend: dict | None = None) -> str:
+    """REPORT.md: the numeric record rendered from JSON, with number-free framing prose."""
+    lines = [
+        "# DG-165 — draft-capital rookie candidate: the record",
+        "",
+        f"Run `{manifest['run_dir']}` · git `{manifest['git_sha'][:8]}` · model `{manifest['model_version']}` · {manifest['status']}",
+        "",
+        "Every number below is rendered from `evaluation.json`, `manifest.json` and `rookie_scores_*.csv`; the prose",
+        "in `NOTES.md` interprets and carries no statistics of its own.",
+        "",
+        "## Definitions",
+        "",
+    ]
+    for k, v in manifest.get("definitions", {}).items():
+        lines.append(f"- **{k}**: {v}")
+    for k, v in manifest.get("units", {}).items():
+        lines.append(f"- **{k}**: {v}")
+    fd = manifest.get("forecast_date", {})
+    lines += ["", f"- **forecast cutoff**: {fd.get('forecast_cutoff')} · **label window**: {fd.get('label_window')}", ""]
+    cov = manifest.get("cohort", {}).get("coverage", {})
+    lines += ["## Cohort", "", "| item | value |", "|---|---:|"]
+    for k, v in cov.items():
+        lines.append(f"| {k} | {v} |")
+    lines += ["", "## Headline out-of-time results", "", "Per season (see `EVALUATION.md` for every quantity, slice and calibration table):", "", BINARY_HEADER]
+    for j in sorted(evaluation.get("annual", {}), key=int):
+        b = evaluation["annual"][j]
+        if "p_qual_year" in b:
+            lines.append(_binary_row(f"season {j}: P(qualifies)", b["p_qual_year"]))
+        if "p_appear_year" in b:
+            lines.append(_binary_row(f"season {j}: P(appears)", b["p_appear_year"]))
+    lines += ["", LEVEL_HEADER]
+    for j in sorted(evaluation.get("annual", {}), key=int):
+        b = evaluation["annual"][j]
+        for key in ("e_points_year", "e_games_year", "e_ppg_given_qual_year"):
+            if key in b:
+                lines.append(_level_row(f"season {j}: {ANNUAL_LABELS[key]}", b[key]))
+    lines += ["", "Cumulative:", "", BINARY_HEADER]
+    for h in sorted(evaluation.get("horizon", {}), key=int):
+        b = evaluation["horizon"][h]
+        for key in ("p_qual_h", "p_appear_by_h"):
+            if key in b:
+                lines.append(_binary_row(f"h = {h}: {HORIZON_LABELS[key]}", b[key]))
+    lines += ["", LEVEL_HEADER]
+    for h in sorted(evaluation.get("horizon", {}), key=int):
+        b = evaluation["horizon"][h]
+        if "e_qual_seasons_h" in b:
+            lines.append(_level_row(f"h = {h}: {HORIZON_LABELS['e_qual_seasons_h']}", b["e_qual_seasons_h"]))
+    if sensitivity:
+        lines += ["", "## Sensitivity: unresolved identities labelled zero instead of unknown", "",
+                  "| quantity | default (unknown excluded) | sensitivity arm (zero) | difference |", "|---|---:|---:|---:|"]
+        for row in sensitivity.get("evaluation_deltas", []):
+            lines.append(f"| {row['quantity']} | {_f(row['default'], 4)} | {_f(row['arm'], 4)} | {_f(row['delta'], 4)} |")
+        lines += ["", "Largest absolute change in a 2026 score under the sensitivity arm:", "", "| column | max abs change | player |", "|---|---:|---|"]
+        for row in sensitivity.get("score_deltas", []):
+            lines.append(f"| {row['column']} | {_f(row['max_abs_delta'], 4)} | {row['player']} |")
+    if trend:
+        lines += ["", "## Bounded trend experiment: plain vs class-year trend selected inside each training window", "",
+                  f"Decision: **{trend['decision']}** — {trend['rule']}. The auto arm chose the trend term in "
+                  f"{trend['auto_selected_trend_in_forecast_years']} of {trend['forecast_years_evaluated']} forecast years; "
+                  f"it improved {trend['auto_trend_wins']} of {trend['metrics_compared']} compared out-of-time metrics.", "",
+                  "| quantity | metric | plain | auto trend | improvement |", "|---|---|---:|---:|---:|"]
+        for label, c in trend["comparison"].items():
+            for metric in ("brier", "log_loss", "rmse"):
+                if f"plain_{metric}" in c:
+                    lines.append(f"| {label} | {metric} | {_f(c[f'plain_{metric}'], 4)} | {_f(c[f'auto_trend_{metric}'], 4)} | {_f(c[f'improvement_{metric}'], 4)} |")
+    if scores is not None and len(scores):
+        lines += ["", "## Scored class, first rows (see `ROOKIES_*.md`)", ""]
+        lines += render_scores_markdown(scores, manifest["model"]["horizons"], manifest["forecast_date"]["forecast_year"], top=12).split("\n")[4:]
     return "\n".join(lines) + "\n"

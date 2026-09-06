@@ -1,33 +1,42 @@
-"""The estimator: pooled logistic regressions on draft capital, position as a term.
+"""The estimator: draft capital → coherent per-season and cumulative forecasts.
 
 Why this shape and nothing richer:
 
 * The preserved study measured draft capital alone at AUC 0.813 (leave-one-class-out) and
   the college columns we hold at +0.004 on top of it, interval spanning zero. DG-162 and
-  DG-163 found the same pattern on the veteran side. The candidate is therefore the simple
-  thing, built honestly, not a wider thing built quickly.
+  DG-163 found the same pattern on the veteran side. The candidate is the simple thing
+  built honestly, not a wider thing built quickly.
 * Pooled across positions with position main effects and a position × log(pick)
-  interaction, because per-position samples (68-194 in the 2015-2020 study) do not support
-  separate models, while the slope of the pick curve plainly differs by position.
-* log(pick) rather than pick: the value curve is convex in pick number (pick 1 to 10 is a
-  bigger step than 200 to 210), and a single log term captures that without a spline.
+  interaction; log(pick) because the value curve is convex in pick number.
 
-Three families are fitted per horizon, each on the rows whose label is observable:
+THE CONSTRUCTION (round-1 review, item 3). Separate logistic fits per horizon produced
+cumulative probabilities that DECREASED with h for 80 of 80 rookies. Nested events are now
+built from per-season hazards, so coherence holds by arithmetic rather than by hope:
 
-    P(Q_h)        logistic on the design matrix, label ``q_h``
-    P(played_h)   logistic, label ``played_h``
-    P(qy_j)       logistic per NFL season j = 1..h, label ``qy_j``
+    a_j  = P(appears in season j | no appearance before j)     first-appearance hazard
+    ρ_j  = P(appears in season j | appeared before j)          re-appearance rate
+    q_j  = P(qualifies in season j | not qualified before j)   first-qualification hazard
+    r_j  = P(qualifies in season j | qualified before j)       re-qualification rate
 
-and E[N_h] = Σ_{j<=h} P(qy_j) — bounded by h by construction, monotone in h, and it says
-WHEN the qualifying seasons are expected, which is the delayed-breakout structure the review
-asked for. No product of P and a conditional mean is formed here.
+    P(appear by h) = 1 − Π_{j≤h} (1 − a_j)                      monotone in h
+    P(A_j)         = a_j (1 − P(appear by j−1)) + ρ_j P(appear by j−1)   ≤ P(appear by j)
+    P(Q_h), P(Qy_j) likewise from q_j and r_j
+    E[N_h]         = Σ_{j≤h} P(Qy_j)                              ≥ P(Q_h), ≤ h
 
-A fourth family, the LEVEL, is fitted when the training frame carries ``ppg_year_j``:
+Each hazard/rate is a logistic on the design matrix fitted to exactly its conditioning
+population (the at-risk rows, or the previously-qualified rows), with a recorded constant
+fallback when that population is too thin to fit — visible in ``n_train`` and
+``constant_fits``, never silent.
 
-    E[ppg_j | qy_j = 1]   ridge on the same design, fitted ONLY on rows that qualified in
-                          season j — the conditional rate the integration lane multiplies
-                          by P(qy_j) on ITS side (DG-178). Fitting it on all rows would make
-                          it an unconditional rate and count the qualification twice.
+LEVELS, each conditional on an exactly matched event:
+
+    E[points_j | A_j], E[games_j | A_j], E[ppg_j | A_j]    ridge on the appearers
+    E[ppg_j | Qy_j]                                          ridge on the qualifiers
+
+and the unconditional pair, valid because points and games are exactly zero when he does
+not appear:  E[points_j] = P(A_j) · E[points_j | A_j],  E[games_j] = P(A_j) · E[games_j | A_j].
+
+No other product is formed here. Replacement, lineup policy and value are the consumer's.
 """
 from __future__ import annotations
 
@@ -44,20 +53,25 @@ from src.dynasty_genius.rookie.cohort import SKILL_POSITIONS
 
 __all__ = ["FEATURE_COLUMNS", "MODEL_VERSION", "RookieCapitalModel", "design_matrix"]
 
-MODEL_VERSION = "dg165_rookie_capital_v1"
+MODEL_VERSION = "dg165_rookie_capital_v2_hazard"
 
 # The ONLY columns the model reads. Draft capital and the draft-day age, nothing else.
 FEATURE_COLUMNS: tuple[str, ...] = ("pick", "round", "age_at_draft", "position")
 
-# L2 strength. The design has 11 columns on ~2,200 rows; the default C=1 on standardised
-# features is mild shrinkage, kept explicit so a change is a visible decision.
+# L2 strength on standardised features, explicit so a change is a visible decision.
 L2_C = 1.0
+RIDGE_ALPHA = 1.0
+# Below this many rows, or with a single class, a family falls back to a recorded constant.
+MIN_ROWS_PER_FIT = 15
+MAX_GAMES = 17.0
 
 
-def _design_names(positions: tuple[str, ...]) -> list[str]:
+def _design_names(positions: tuple[str, ...], trend: bool = False) -> list[str]:
     names = ["log_pick", "round", "age_at_draft"]
     names += [f"pos_{p}" for p in positions]
     names += [f"log_pick_x_{p}" for p in positions]
+    if trend:
+        names.append("class_year")
     return names
 
 
@@ -66,14 +80,14 @@ def design_matrix(
     *,
     age_median_by_position: Mapping[str, float],
     positions: tuple[str, ...] = SKILL_POSITIONS,
+    trend_reference_year: int | None = None,
 ) -> np.ndarray:
     """Numeric design from the four feature columns. Age is imputed by position median.
 
-    Deliberately NO missing-age indicator. Measured 2026-09-06: every one of the 107
-    id-less washouts kept in the cohort lacks a birth date (PFR never recorded one for a
-    player who never played), so an indicator would learn "missing age ⇒ washout" — a
-    data-collection artifact — and penalise a 2026 rookie whose birth date is merely not
-    yet on file. Imputation alone keeps a missing age invisible to the fit.
+    Deliberately NO missing-age indicator: the id-less prospects all lack a birth date, so
+    an indicator would learn "missing age ⇒ no record", a data-collection artifact, and
+    penalise a 2026 rookie whose birth date is merely not yet on file. Imputation alone
+    keeps a missing age invisible to the fit (pinned by a test).
     """
     unknown = set(frame["position"]) - set(positions)
     if unknown:
@@ -88,20 +102,30 @@ def design_matrix(
         columns.append((frame["position"].to_numpy() == p).astype(float))
     for p in positions:
         columns.append(log_pick * (frame["position"].to_numpy() == p).astype(float))
+    if trend_reference_year is not None:
+        # A linear class-year term, centred on the last training class so that scoring a
+        # later class extrapolates by whole years. The bounded experiment the round-1
+        # review asked for; selected only inside training windows (evaluate.py).
+        columns.append(frame["draft_season"].astype(float).to_numpy() - float(trend_reference_year))
     return np.column_stack(columns)
 
 
+class _Constant:
+    """A recorded constant estimator for a population too thin to fit."""
+
+    def __init__(self, value: float):
+        self.value = float(value)
+
+    def predict_proba(self, X):
+        p = np.full(len(X), np.clip(self.value, 0.01, 0.99))
+        return np.column_stack([1 - p, p])
+
+    def predict(self, X):
+        return np.full(len(X), self.value)
+
+
 def _logistic() -> Pipeline:
-    return Pipeline(
-        [
-            ("scale", StandardScaler()),
-            ("clf", LogisticRegression(C=L2_C, max_iter=5000)),
-        ]
-    )
-
-
-# Ridge strength for the level; same standardised design, mild shrinkage, explicit.
-RIDGE_ALPHA = 1.0
+    return Pipeline([("scale", StandardScaler()), ("clf", LogisticRegression(C=L2_C, max_iter=5000))])
 
 
 def _ridge() -> Pipeline:
@@ -112,96 +136,154 @@ def _ridge() -> Pipeline:
 class RookieCapitalModel:
     """Fit once per forecast date on rows whose labels were observable at that date."""
 
-    horizons: tuple[int, ...] = (1, 2, 3, 4, 5)
+    horizons: tuple[int, ...] = (1, 2, 3, 4, 5, 6)
     positions: tuple[str, ...] = SKILL_POSITIONS
+    trend: bool = False
+    trend_reference_year: int | None = None
+    trend_selection: dict | None = None
     age_median_by_position: dict[str, float] = field(default_factory=dict)
-    _qual: dict[int, Pipeline] = field(default_factory=dict, repr=False)
-    _played: dict[int, Pipeline] = field(default_factory=dict, repr=False)
-    _year: dict[int, Pipeline] = field(default_factory=dict, repr=False)
-    _level: dict[int, Pipeline] = field(default_factory=dict, repr=False)
     n_train: dict[str, int] = field(default_factory=dict)
+    constant_fits: dict[str, float] = field(default_factory=dict)
+    _fits: dict[str, object] = field(default_factory=dict, repr=False)
 
     def __post_init__(self) -> None:
         self.horizons = tuple(sorted(set(int(h) for h in self.horizons)))
+        self.max_season = self.horizons[-1]
 
     # ------------------------------------------------------------------ fitting
     def fit(self, train: pd.DataFrame) -> "RookieCapitalModel":
         missing = [c for c in FEATURE_COLUMNS if c not in train.columns]
         if missing:
             raise ValueError(f"training frame lacks feature columns {missing}")
+        if self.trend:
+            self.trend_reference_year = int(train["draft_season"].max())
         ages = pd.to_numeric(train["age_at_draft"], errors="coerce")
         overall = float(np.nanmedian(ages)) if ages.notna().any() else 22.0
         self.age_median_by_position = {
-            p: float(np.nanmedian(ages[train["position"] == p])) if (train["position"] == p).any()
-            and ages[train["position"] == p].notna().any() else overall
+            p: float(np.nanmedian(ages[train["position"] == p]))
+            if (train["position"] == p).any() and ages[train["position"] == p].notna().any() else overall
             for p in self.positions
         }
-        for h in self.horizons:
-            self._qual[h] = self._fit_one(train, f"q_{h}")
-            self._played[h] = self._fit_one(train, f"played_{h}")
-        for j in range(1, self.horizons[-1] + 1):
-            self._year[j] = self._fit_one(train, f"qy_{j}")
-            if f"ppg_year_{j}" in train.columns:
-                self._level[j] = self._fit_level(train, j)
+        J = self.max_season
+        appear = np.column_stack([train[f"appear_{j}"].to_numpy(dtype=float) for j in range(1, J + 1)])
+        qual = np.column_stack([train[f"qy_{j}"].to_numpy(dtype=float) for j in range(1, J + 1)])
+        for j in range(1, J + 1):
+            season_known = ~np.isnan(appear[:, j - 1]) & ~np.isnan(qual[:, j - 1])
+            if j == 1:
+                appeared_before = np.zeros(len(train), dtype=bool)
+                qualified_before = np.zeros(len(train), dtype=bool)
+                history_known = np.ones(len(train), dtype=bool)
+            else:
+                history_known = ~np.isnan(appear[:, : j - 1]).any(axis=1) & ~np.isnan(qual[:, : j - 1]).any(axis=1)
+                appeared_before = np.nan_to_num(appear[:, : j - 1]).max(axis=1) == 1
+                qualified_before = np.nan_to_num(qual[:, : j - 1]).max(axis=1) == 1
+            rows_known = season_known & history_known
+            self._fit_binary(f"a_{j}", train, rows_known & ~appeared_before, appear[:, j - 1])
+            self._fit_binary(f"q_{j}", train, rows_known & ~qualified_before, qual[:, j - 1])
+            if j > 1:
+                self._fit_binary(f"rho_{j}", train, rows_known & appeared_before, appear[:, j - 1])
+                self._fit_binary(f"r_{j}", train, rows_known & qualified_before, qual[:, j - 1])
+            appeared = season_known & (appear[:, j - 1] == 1)
+            self._fit_level(f"points_{j}|A", train, appeared, train[f"points_{j}"].to_numpy(dtype=float))
+            self._fit_level(f"games_{j}|A", train, appeared, train[f"games_{j}"].to_numpy(dtype=float))
+            self._fit_level(f"ppg_{j}|A", train, appeared, train[f"ppg_{j}"].to_numpy(dtype=float))
+            qualified = season_known & (qual[:, j - 1] == 1)
+            self._fit_level(f"ppg_{j}|Q", train, qualified, train[f"ppg_{j}"].to_numpy(dtype=float))
         return self
 
-    def _fit_level(self, train: pd.DataFrame, j: int) -> Pipeline:
-        rows = train.loc[(train[f"qy_{j}"] == 1) & train[f"ppg_year_{j}"].notna()]
-        if len(rows) < 20:
-            raise ValueError(f"level year {j}: only {len(rows)} qualifying seasons with a rate; cannot fit")
-        X = design_matrix(rows, age_median_by_position=self.age_median_by_position, positions=self.positions)
-        self.n_train[f"level_year_{j}"] = int(len(rows))
-        return _ridge().fit(X, rows[f"ppg_year_{j}"].to_numpy(dtype=float))
+    def _fit_binary(self, name: str, train: pd.DataFrame, mask: np.ndarray, y_all: np.ndarray) -> None:
+        rows = train.loc[mask]
+        y = y_all[mask].astype(int)
+        self.n_train[name] = int(len(rows))
+        if len(rows) < MIN_ROWS_PER_FIT or y.min() == y.max():
+            value = float(y.mean()) if len(rows) else 0.5
+            self.constant_fits[name] = value
+            self._fits[name] = _Constant(value)
+            return
+        X = self._design(rows)
+        self._fits[name] = _logistic().fit(X, y)
 
-    def _fit_one(self, train: pd.DataFrame, label: str) -> Pipeline:
-        rows = train.loc[train[label].notna()]
-        y = rows[label].astype(int).to_numpy()
-        if len(rows) == 0 or y.min() == y.max():
-            raise ValueError(
-                f"label {label}: {len(rows)} observable rows with classes {sorted(set(y))}; "
-                "cannot fit a probability from a single class"
-            )
-        X = design_matrix(rows, age_median_by_position=self.age_median_by_position, positions=self.positions)
-        self.n_train[label] = int(len(rows))
-        return _logistic().fit(X, y)
+    def _fit_level(self, name: str, train: pd.DataFrame, mask: np.ndarray, y_all: np.ndarray) -> None:
+        mask = mask & ~np.isnan(y_all)
+        rows = train.loc[mask]
+        y = y_all[mask]
+        self.n_train[name] = int(len(rows))
+        if len(rows) < MIN_ROWS_PER_FIT:
+            value = float(y.mean()) if len(rows) else 0.0
+            self.constant_fits[name] = value
+            self._fits[name] = _Constant(value)
+            return
+        X = self._design(rows)
+        self._fits[name] = _ridge().fit(X, y)
+
+    def _design(self, frame: pd.DataFrame) -> np.ndarray:
+        return design_matrix(frame, age_median_by_position=self.age_median_by_position, positions=self.positions,
+                             trend_reference_year=self.trend_reference_year if self.trend else None)
 
     # ------------------------------------------------------------------ prediction
+    def _p(self, name: str, X: np.ndarray) -> np.ndarray:
+        return self._fits[name].predict_proba(X)[:, 1]
+
     def predict(self, frame: pd.DataFrame) -> pd.DataFrame:
-        """One row per input row: p_played_h, p_qual_h, e_qual_seasons_h, p_qual_year_j."""
-        if not self._qual:
+        """One row per input row; every column is derived from the hazard construction."""
+        if not self._fits:
             raise RuntimeError("model is not fitted")
-        X = design_matrix(frame, age_median_by_position=self.age_median_by_position, positions=self.positions)
+        X = self._design(frame)
         out = pd.DataFrame({"gsis_id": frame["gsis_id"].to_numpy()}, index=frame.index)
-        year_p = {}
-        for j, model in self._year.items():
-            year_p[j] = model.predict_proba(X)[:, 1]
-            out[f"p_qual_year{j}"] = year_p[j]
-        for j, model in self._level.items():
-            # A rate cannot be negative; the ridge line can dip below zero far outside the
-            # fitted range, and a clipped floor is more honest than a negative rate.
-            out[f"e_ppg_given_qual_year{j}"] = np.clip(model.predict(X), 0.0, None)
-        for h in self.horizons:
-            out[f"p_played_h{h}"] = self._played[h].predict_proba(X)[:, 1]
-            out[f"p_qual_h{h}"] = self._qual[h].predict_proba(X)[:, 1]
-            expected = np.sum([year_p[j] for j in range(1, h + 1)], axis=0)
-            out[f"e_qual_seasons_h{h}"] = np.clip(expected, 0.0, float(h))
-            with np.errstate(divide="ignore", invalid="ignore"):
-                given = np.where(out[f"p_qual_h{h}"] > 1e-9, out[f"e_qual_seasons_h{h}"] / out[f"p_qual_h{h}"], np.nan)
-            # E[N_h | Q_h] cannot exceed h and cannot be below 1 (a qualifier has >= 1).
-            out[f"e_qual_seasons_given_qual_h{h}"] = np.clip(given, 1.0, float(h))
+        n = len(frame)
+        appear_by = np.zeros(n)
+        qual_by = np.zeros(n)
+        expected_qual_seasons = np.zeros(n)
+        for j in range(1, self.max_season + 1):
+            a = self._p(f"a_{j}", X)
+            q = self._p(f"q_{j}", X)
+            if j == 1:
+                p_appear = a
+                p_qual = q
+                appear_by = a
+                qual_by = q
+            else:
+                rho = self._p(f"rho_{j}", X)
+                r = self._p(f"r_{j}", X)
+                p_appear = a * (1 - appear_by) + rho * appear_by
+                p_qual = q * (1 - qual_by) + r * qual_by
+                appear_by = appear_by + a * (1 - appear_by)
+                qual_by = qual_by + q * (1 - qual_by)
+            expected_qual_seasons = expected_qual_seasons + p_qual
+            points_given = np.clip(self._fits[f"points_{j}|A"].predict(X), 0.0, None)
+            games_given = np.clip(self._fits[f"games_{j}|A"].predict(X), 1.0, MAX_GAMES)
+            ppg_given = np.clip(self._fits[f"ppg_{j}|A"].predict(X), 0.0, None)
+            ppg_given_qual = np.clip(self._fits[f"ppg_{j}|Q"].predict(X), 0.0, None)
+            out[f"p_appear_year{j}"] = p_appear
+            out[f"p_qual_year{j}"] = p_qual
+            out[f"e_points_year{j}_given_appear"] = points_given
+            out[f"e_games_year{j}_given_appear"] = games_given
+            out[f"e_ppg_year{j}_given_appear"] = ppg_given
+            out[f"e_points_year{j}"] = p_appear * points_given
+            out[f"e_games_year{j}"] = p_appear * games_given
+            out[f"e_ppg_given_qual_year{j}"] = ppg_given_qual
+            if j in self.horizons:
+                out[f"p_appear_by_h{j}"] = appear_by
+                out[f"p_qual_h{j}"] = qual_by
+                out[f"e_qual_seasons_h{j}"] = np.clip(expected_qual_seasons, 0.0, float(j))
         return out
 
     def describe(self) -> dict:
         return {
             "model_version": MODEL_VERSION,
-            "estimator": "sklearn LogisticRegression (L2, C=%s) on StandardScaler" % L2_C,
-            "design_columns": _design_names(self.positions),
+            "estimator": f"per-season hazards and rates: sklearn LogisticRegression (L2, C={L2_C}); levels: Ridge (alpha={RIDGE_ALPHA}); all on StandardScaler",
+            "design_columns": _design_names(self.positions, self.trend),
+            "trend": bool(self.trend),
+            "trend_reference_year": self.trend_reference_year,
+            "trend_selection": self.trend_selection,
             "feature_columns": list(FEATURE_COLUMNS),
             "horizons": list(self.horizons),
+            "construction": (
+                "P(appear by h) = 1 - prod(1 - a_j); P(A_j) = a_j(1 - P(appear by j-1)) + rho_j P(appear by j-1); "
+                "same for qualification with q_j, r_j; E[N_h] = sum_j P(Qy_j); "
+                "E[points_j] = P(A_j) * E[points_j | A_j] (points are exactly 0 without an appearance)"
+            ),
             "age_median_by_position": self.age_median_by_position,
-            "n_train_by_label": dict(self.n_train),
-            "expected_seasons": "E[N_h] = sum_{j<=h} P(qualifies in NFL season j); bounded by h",
-            "level": ("E[ppg_j | qualifies in season j]: ridge (alpha=%s) on the same design, fitted only on "
-                      "qualifying player-seasons; ppg = REG PPR points / games with a weekly stat row" % RIDGE_ALPHA),
-            "level_years_fitted": sorted(self._level),
+            "n_train_by_family": dict(self.n_train),
+            "constant_fits": dict(self.constant_fits),
         }
