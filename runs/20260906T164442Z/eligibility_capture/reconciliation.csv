@@ -1,0 +1,354 @@
+sleeper_id,source,match_basis,sleeper_name,sleeper_position,fantasy_positions,league_eligibility,active,status,team,injury_status,years_exp,availability_class,my_gsis_id,name,draft_season,pick,draft_position,position_current_nflverse
+13269,rookie,name+position,Fernando Mendoza,QB,QB,QB,True,Active,LV,,0.0,rostered,00-0041562,Fernando Mendoza,2026.0,1.0,QB,QB
+13287,rookie,name+position,Jeremiyah Love,RB,RB,RB,True,Active,ARI,Questionable,0.0,rostered,00-0041027,Jeremiyah Love,2026.0,3.0,RB,RB
+13279,rookie,name+position,Carnell Tate,WR,WR,WR,True,Active,TEN,Questionable,0.0,rostered,00-0041438,Carnell Tate,2026.0,4.0,WR,WR
+13281,rookie,name+position,Jordyn Tyson,WR,WR,WR,True,Inactive,NO,IR,0.0,rostered,00-0041029,Jordyn Tyson,2026.0,8.0,WR,WR
+13275,rookie,name+position,Ty Simpson,QB,QB,QB,True,Active,LAR,,0.0,rostered,00-0041568,Ty Simpson,2026.0,13.0,QB,QB
+13330,rookie,name+position,Kenyon Sadiq,TE,TE,TE,True,Active,NYJ,Questionable,0.0,rostered,00-0041032,Kenyon Sadiq,2026.0,16.0,TE,TE
+13294,rookie,name+position,Makai Lemon,WR,WR,WR,True,Active,PHI,,0.0,rostered,00-0040867,Makai Lemon,2026.0,20.0,WR,WR
+13298,rookie,name+position,KC Concepcion,WR,WR,WR,True,Active,CLE,,0.0,rostered,00-0041547,KC Concepcion,2026.0,24.0,WR,WR
+13276,rookie,name+position,Omar Cooper,WR,WR,WR,True,Active,NYJ,,0.0,rostered,00-0041511,Omar Cooper Jr.,2026.0,30.0,WR,WR
+13286,rookie,name+position,Jadarian Price,RB,RB,RB,True,Active,SEA,,0.0,rostered,00-0041512,Jadarian Price,2026.0,32.0,RB,RB
+13417,rookie,name+position,De'Zhaun Stribling,WR,WR,WR,True,Active,SF,Questionable,0.0,rostered,00-0041035,De'Zhaun Stribling,2026.0,33.0,WR,WR
+13346,rookie,name+position,Denzel Boston,WR,WR,WR,True,Active,CLE,,0.0,rostered,00-0041037,Denzel Boston,2026.0,39.0,WR,WR
+13274,rookie,name+position,Germie Bernard,WR,WR,WR,True,Active,PIT,,0.0,rostered,00-0041489,Germie Bernard,2026.0,47.0,WR,WR
+13349,rookie,name+position,Eli Stowers,TE,TE,TE,True,Active,PHI,Questionable,0.0,rostered,00-0041483,Eli Stowers,2026.0,54.0,TE,TE
+13299,rookie,name+position,Nate Boerkircher,TE,TE,TE,True,Active,JAX,,0.0,rostered,00-0041503,Nate Boerkircher,2026.0,56.0,TE,TE
+13307,rookie,name+position,Marlin Klein,TE,TE,TE,True,Active,HOU,,0.0,active_free,00-0041472,Marlin Klein,2026.0,59.0,TE,TE
+13278,rookie,name+position,Max Klare,TE,TE,TE,True,Active,LAR,,0.0,rostered,00-0041510,Max Klare,2026.0,61.0,TE,TE
+13272,rookie,name+position,Carson Beck,QB,QB,QB,True,Active,ARI,,0.0,rostered,00-0041561,Carson Beck,2026.0,65.0,QB,QB
+13322,rookie,name+position,Sam Roush,TE,TE,TE,True,Active,CHI,,0.0,active_free,00-0041558,Sam Roush,2026.0,69.0,TE,TE
+13301,rookie,name+position,Antonio Williams,WR,WR,WR,True,Active,WAS,,0.0,rostered,00-0041040,Antonio Williams,2026.0,71.0,WR,WR
+13319,rookie,name+position,Oscar Delp,TE,TE,TE,True,Active,NO,Questionable,0.0,active_free,00-0041041,Oscar Delp,2026.0,73.0,TE,TE
+13285,rookie,name+position,Malachi Fields,WR,WR,WR,True,Active,NYG,,0.0,rostered,00-0041042,Malachi Fields,2026.0,74.0,WR,WR
+13296,rookie,name+position,Caleb Douglas,WR,WR,WR,True,Active,MIA,,0.0,rostered,00-0041523,Caleb Douglas,2026.0,75.0,WR,WR
+13289,rookie,name+position,Drew Allar,QB,QB,QB,True,Active,PIT,,0.0,rostered,00-0041565,Drew Allar,2026.0,76.0,QB,QB
+13320,rookie,name+position,Zachariah Branch,WR,WR,WR,True,Active,ATL,,0.0,rostered,00-0041044,Zachariah Branch,2026.0,79.0,WR,WR
+13293,rookie,name+position,Ja'Kobi Lane,WR,WR,WR,True,Active,BAL,,0.0,rostered,00-0040870,Ja'Kobi Lane,2026.0,80.0,WR,WR
+13353,rookie,name+position,Chris Brazzell,WR,WR,WR,True,Inactive,CAR,IR,0.0,rostered,00-0041047,Chris Brazzell II,2026.0,83.0,WR,WR
+13317,rookie,name+position,Ted Hurst,WR,WR,WR,True,Active,TB,,0.0,rostered,00-0041048,Ted Hurst,2026.0,84.0,WR,WR
+13434,rookie,name+position,Will Kacmarek,TE,TE,TE,True,Active,MIA,Questionable,0.0,active_free,00-0041524,Will Kacmarek,2026.0,87.0,TE,TE
+13411,rookie,name+position,Zavion Thomas,WR,WR,WR,True,Active,CHI,,0.0,rostered,00-0041051,Zavion Thomas,2026.0,89.0,WR,WR
+13414,rookie,name+position,Kaelon Black,RB,RB,RB,True,Active,SF,,0.0,rostered,00-0041052,Kaelon Black,2026.0,90.0,RB,RB
+13311,rookie,name+position,Chris Bell,WR,WR,WR,True,Active,MIA,,0.0,rostered,00-0041525,Chris Bell,2026.0,94.0,WR,WR
+13421,rookie,name+position,Eli Raridon,TE,TE,TE,True,Active,NE,,0.0,rostered,00-0041395,Eli Raridon,2026.0,95.0,TE,TE
+13380,rookie,name+position,Brenen Thompson,WR,WR,WR,True,Active,LAC,Questionable,0.0,active_free,00-0041550,Brenen Thompson,2026.0,105.0,WR,WR
+13345,rookie,name+position,Jonah Coleman,RB,RB,RB,True,Active,DEN,,0.0,rostered,00-0041496,Jonah Coleman,2026.0,108.0,RB,RB
+13303,rookie,name+position,Cade Klubnik,QB,QB,QB,True,Active,NYJ,,0.0,rostered,00-0041056,Cade Klubnik,2026.0,110.0,QB,QB
+13268,rookie,name+position,Elijah Sarratt,WR,WR,WR,True,Active,BAL,,0.0,rostered,00-0040876,Elijah Sarratt,2026.0,115.0,WR,WR
+13491,rookie,name+position,Kaden Wetjen,WR,WR,WR,True,Active,PIT,,0.0,active_free,00-0041397,Kaden Wetjen,2026.0,121.0,WR,WR
+13305,rookie,name+position,Mike Washington,RB,RB,RB,True,Active,LV,,0.0,rostered,00-0040878,Mike Washington Jr.,2026.0,122.0,RB,RB
+13402,rookie,name+position,Skyler Bell,WR,WR,WR,True,Active,BUF,,0.0,rostered,00-0041443,Skyler Bell,2026.0,125.0,WR,WR
+13324,rookie,last_name+team+position+rookie,Matt Hibner,TE,TE,TE,True,Active,BAL,,0.0,rostered,00-0040879,Matthew Hibner,2026.0,133.0,TE,TE
+13420,rookie,name+position,Bryce Lance,WR,WR,WR,True,Active,NO,,0.0,rostered,00-0041067,Bryce Lance,2026.0,136.0,WR,WR
+13477,rookie,name+position,Colbie Young,WR,WR,WR,True,Active,CIN,,0.0,active_free,00-0041069,Colbie Young,2026.0,140.0,WR,WR
+13297,rookie,name+position,Reggie Virgil,WR,WR,WR,True,Active,ARI,,0.0,active_free,00-0041070,Reggie Virgil,2026.0,143.0,WR,WR
+13400,rookie,name+position,Justin Joly,TE,TE,TE,True,Active,MIA,,0.0,rostered,00-0041077,Justin Joly,2026.0,152.0,TE,TE
+13516,rookie,name+position,Max Bredeson,RB,RB,RB,True,Active,MIN,,0.0,active_free,00-0041081,Max Bredeson,2026.0,159.0,TE,RB
+13337,rookie,name+position,Emmett Johnson,RB,RB,RB,True,Active,KC,,0.0,rostered,00-0041013,Emmett Johnson,2026.0,161.0,RB,RB
+13408,rookie,name+position,Tanner Koziol,TE,TE,TE,True,Active,JAX,,0.0,active_free,00-0041084,Tanner Koziol,2026.0,164.0,TE,TE
+13288,rookie,name+position,Nicholas Singleton,RB,RB,RB,True,Active,TEN,,0.0,rostered,00-0040886,Nicholas Singleton,2026.0,165.0,RB,RB
+13412,rookie,name+position,Kendrick Law,WR,WR,WR,True,Inactive,DET,IR,0.0,inactive_free,00-0041446,Kendrick Law,2026.0,168.0,WR,WR
+13433,rookie,name+position,Riley Nowakowski,TE,TE,TE,True,Active,PIT,,0.0,active_free,00-0041398,Riley Nowakowski,2026.0,169.0,TE,FB
+13435,rookie,name+position,Joe Royer,TE,TE,TE,True,Active,CLE,PUP,0.0,active_free,00-0041087,Joe Royer,2026.0,170.0,TE,TE
+13273,rookie,name+position,Josh Cuevas,TE,TE,TE,True,Active,BAL,,0.0,active_free,00-0040887,Josh Cuevas,2026.0,173.0,TE,TE
+13302,rookie,name+position,Adam Randall,RB,RB,RB,True,Inactive,BAL,IR,0.0,rostered,00-0040888,Adam Randall,2026.0,174.0,RB,RB
+13413,rookie,name+position,Cyrus Allen,WR,WR,WR,True,Active,KC,,0.0,rostered,00-0040890,Cyrus Allen,2026.0,176.0,WR,WR
+13338,rookie,name+position,Kevin Coleman,WR,WR,WR,True,Active,MIA,,0.0,active_free,00-0041529,Kevin Coleman Jr.,2026.0,177.0,WR,WR
+13335,rookie,name+position,Cole Payton,QB,QB,QB,True,Active,PHI,,0.0,active_free,00-0040891,Cole Payton,2026.0,178.0,QB,QB
+13429,rookie,name+position,Seydou Traore,TE,TE,TE,True,Active,MIA,,0.0,active_free,00-0041579,Seydou Traore,2026.0,180.0,TE,TE
+13306,rookie,name+position,Taylen Green,QB,QB,QB,True,Active,CLE,,0.0,active_free,00-0041092,Taylen Green,2026.0,182.0,QB,QB
+13308,rookie,name+position,Bauer Sharp,TE,TE,TE,True,Active,TB,,0.0,active_free,00-0041094,Bauer Sharp,2026.0,185.0,TE,TE
+13405,rookie,name+position,Kaytron Allen,RB,RB,RB,True,Active,WAS,,0.0,rostered,00-0041096,Kaytron Allen,2026.0,187.0,RB,RB
+13533,rookie,name+position,Barion Brown,WR,WR,WR,True,Active,NO,,0.0,active_free,00-0041099,Barion Brown,2026.0,190.0,WR,WR
+13394,rookie,name+position,Josh Cameron,WR,WR,WR,True,Active,JAX,,0.0,active_free,00-0041100,Josh Cameron,2026.0,191.0,WR,WR
+13329,rookie,name+position,Malik Benson,WR,WR,WR,True,Active,LV,,0.0,rostered,00-0040894,Malik Benson,2026.0,195.0,WR,WR
+13270,rookie,name+position,CJ Daniels,WR,WR,WR,True,Active,LAR,,0.0,active_free,00-0041399,CJ Daniels,2026.0,197.0,WR,WR
+13347,rookie,name+position,Demond Claiborne,RB,RB,RB,True,Active,MIN,,0.0,rostered,00-0041104,Demond Claiborne,2026.0,198.0,RB,RB
+13313,rookie,name+position,Emmanuel Henderson,WR,WR,WR,True,Active,SEA,,0.0,active_free,00-0040895,Emmanuel Henderson Jr.,2026.0,199.0,WR,WR
+13554,rookie,name+position,CJ Williams,WR,WR,WR,True,Active,JAX,,0.0,active_free,00-0041106,CJ Williams,2026.0,203.0,WR,WR
+13541,rookie,name+position,Lewis Bond,WR,WR,WR,True,Active,HOU,,0.0,active_free,00-0041467,Lewis Bond,2026.0,204.0,WR,WR
+13582,rookie,name+position,Anthony Smith,WR,WR,WR,True,Active,DAL,,0.0,active_free,00-0040900,Anthony Smith,2026.0,218.0,WR,WR
+13282,rookie,name+position,Jack Endries,TE,TE,TE,True,Active,CIN,,0.0,active_free,00-0041116,Jack Endries,2026.0,221.0,TE,TE
+13557,rookie,name+position,Athan Kaliakmanis,QB,QB,QB,True,Active,WAS,,0.0,active_free,00-0041117,Athan Kaliakmanis,2026.0,223.0,QB,QB
+13422,rookie,name+position,Jaren Kanak,TE,TE,TE,True,Inactive,TEN,IR,0.0,inactive_free,00-0040901,Jaren Kanak,2026.0,225.0,TE,TE
+13295,rookie,name+position,Behren Morton,QB,QB,QB,True,Active,NE,,0.0,active_free,00-0041123,Behren Morton,2026.0,234.0,QB,QB
+13424,rookie,name+position,Seth McGowan,RB,RB,RB,True,Active,IND,,0.0,rostered,00-0041125,Seth McGowan,2026.0,237.0,RB,RB
+13403,rookie,name+position,Jam Miller,RB,RB,RB,True,Active,,Questionable,0.0,active_free,00-0041129,Jam Miller,2026.0,245.0,RB,
+13580,rookie,name+position,Carsen Ryan,TE,TE,TE,True,Active,CLE,,0.0,active_free,00-0041131,Carsen Ryan,2026.0,248.0,TE,TE
+13404,rookie,name+position,Garrett Nussmeier,QB,QB,QB,True,Active,KC,,0.0,active_free,00-0040906,Garrett Nussmeier,2026.0,249.0,QB,QB
+13333,rookie,name+position,Deion Burks,WR,WR,WR,True,Active,IND,,0.0,active_free,00-0041132,Deion Burks,2026.0,254.0,WR,WR
+13577,rookie,name+position,Dallen Bentley,TE,TE,TE,True,Active,DEN,,0.0,active_free,00-0041133,Dallen Bentley,2026.0,256.0,TE,TE
+9502,extra,sleeper_id,Tank Dell,WR,WR,WR,True,Inactive,HOU,IR,3.0,rostered,,,,,,
+12530,extra,sleeper_id,Travis Hunter,DB,DB|WR,DB|WR,True,Active,JAX,,1.0,rostered,,,,,,
+8123,candidate_pool,sleeper_id,Hassan Haskins,RB,RB,RB,True,Active,NE,,4.0,active_free,,,,,,
+9494,candidate_pool,sleeper_id,Marvin Mims,WR,WR,WR,True,Active,DEN,Questionable,3.0,active_free,,,,,,
+4219,candidate_pool,sleeper_id,Jeremy McNichols,RB,RB,RB,True,Inactive,WAS,IR,9.0,inactive_free,,,,,,
+8119,candidate_pool,sleeper_id,Jahan Dotson,WR,WR,WR,True,Active,ATL,,4.0,active_free,,,,,,
+9230,candidate_pool,sleeper_id,Tanner McKee,QB,QB,QB,True,Active,PHI,,3.0,active_free,,,,,,
+12544,candidate_pool,sleeper_id,LeQuint Allen,RB,RB,RB,True,Active,JAX,Questionable,1.0,active_free,,,,,,
+11600,candidate_pool,sleeper_id,Ja'Tavion Sanders,TE,TE,TE,True,Active,CAR,,2.0,active_free,,,,,,
+2505,candidate_pool,sleeper_id,Darren Waller,TE,TE,TE,True,Active,CAR,,11.0,active_free,,,,,,
+3155,candidate_pool,sleeper_id,Laquon Treadwell,WR,WR,WR,True,Active,IND,,10.0,active_free,,,,,,
+5008,candidate_pool,sleeper_id,Durham Smythe,TE,TE,TE,True,Active,BAL,,8.0,active_free,,,,,,
+7039,candidate_pool,sleeper_id,Cody White,WR,WR,WR,True,Active,LV,,6.0,active_free,,,,,,
+11729,candidate_pool,sleeper_id,Sione Vaki,RB,RB,RB,True,Active,DET,,2.0,active_free,,,,,,
+10210,candidate_pool,sleeper_id,Cameron Latu,TE,TE,TE,True,Active,NE,,3.0,active_free,,,,,,
+8168,candidate_pool,sleeper_id,Skyy Moore,WR,WR,WR,True,Active,GB,,4.0,active_free,,,,,,
+11306,candidate_pool,sleeper_id,Xavier Gipson,WR,WR,WR,True,Active,,,3.0,active_free,,,,,,
+6151,candidate_pool,sleeper_id,Miles Sanders,RB,RB,RB,True,Active,,,7.0,active_free,,,,,,
+7746,candidate_pool,sleeper_id,Austin Trammell,WR,WR,WR,True,Active,JAX,,5.0,active_free,,,,,,
+11629,candidate_pool,sleeper_id,Devontez Walker,WR,WR,WR,True,Active,BAL,,2.0,active_free,,,,,,
+12472,candidate_pool,sleeper_id,Raheim Sanders,RB,RB,RB,True,Active,CLE,,1.0,active_free,,,,,,
+5010,candidate_pool,sleeper_id,Will Dissly,TE,TE,TE,True,Active,,Questionable,8.0,active_free,,,,,,
+12699,candidate_pool,sleeper_id,LaJohntay Wester,WR,WR,WR,True,Active,BAL,,1.0,active_free,,,,,,
+4082,candidate_pool,sleeper_id,Curtis Samuel,WR,WR,WR,True,Active,,,9.0,active_free,,,,,,
+12374,candidate_pool,sleeper_id,Brenden Bates,TE,TE,TE,True,Inactive,,Questionable,2.0,inactive_free,,,,,,
+11577,candidate_pool,sleeper_id,Will Shipley,RB,RB,RB,True,Active,PHI,,2.0,active_free,,,,,,
+5985,candidate_pool,sleeper_id,Foster Moreau,TE,TE,TE,True,Active,HOU,,7.0,active_free,,,,,,
+9479,candidate_pool,sleeper_id,Darnell Washington,TE,TE,TE,True,Active,PIT,,3.0,active_free,,,,,,
+7496,candidate_pool,sleeper_id,Nick Westbrook-Ikhine,WR,WR,WR,True,Active,IND,,6.0,active_free,,,,,,
+11377,candidate_pool,sleeper_id,Tyrell Shavers,WR,WR,WR,True,Active,BUF,PUP,3.0,active_free,,,,,,
+11068,candidate_pool,sleeper_id,Mitch Tinsley,WR,WR,WR,True,Active,HOU,,3.0,active_free,,,,,,
+6938,candidate_pool,sleeper_id,Cam Akers,RB,RB,RB,True,Active,,,6.0,active_free,,,,,,
+7610,candidate_pool,sleeper_id,Trey Lance,QB,QB,QB,True,Active,LAC,,5.0,active_free,,,,,,
+11820,candidate_pool,sleeper_id,Devin Culp,TE,TE,TE,True,Active,TB,,2.0,active_free,,,,,,
+13121,candidate_pool,sleeper_id,Ben Yurosek,TE,TE,TE,True,Active,MIN,,1.0,active_free,,,,,,
+4040,candidate_pool,sleeper_id,JuJu Smith-Schuster,WR,WR,WR,True,Active,,Questionable,9.0,active_free,,,,,,
+5848,candidate_pool,sleeper_id,Marquise Brown,WR,WR,WR,True,Active,PHI,,7.0,active_free,,,,,,
+9757,candidate_pool,sleeper_id,Kendre Miller,RB,RB,RB,True,Active,NO,Questionable,3.0,active_free,,,,,,
+4950,candidate_pool,sleeper_id,Christian Kirk,WR,WR,WR,True,Inactive,SF,IR,8.0,inactive_free,,,,,,
+11562,candidate_pool,sleeper_id,Spencer Rattler,QB,QB,QB,True,Active,NO,,2.0,active_free,,,,,,
+7538,candidate_pool,sleeper_id,Zach Wilson,QB,QB,QB,True,Active,NO,,5.0,active_free,,,,,,
+10225,candidate_pool,sleeper_id,Jonathan Mingo,WR,WR,WR,True,Active,DAL,,3.0,active_free,,,,,,
+4147,candidate_pool,sleeper_id,Samaje Perine,RB,RB,RB,True,Active,CIN,,9.0,active_free,,,,,,
+8135,candidate_pool,sleeper_id,Treylon Burks,WR,WR,WR,True,Active,WAS,,4.0,active_free,,,,,,
+11579,candidate_pool,sleeper_id,Audric Estime,RB,RB,RB,True,Active,NO,,2.0,active_free,,,,,,
+8207,candidate_pool,sleeper_id,Tyler Goodson,RB,RB,RB,True,Active,ATL,,4.0,active_free,,,,,,
+5906,candidate_pool,sleeper_id,Dawson Knox,TE,TE,TE,True,Active,BUF,,7.0,active_free,,,,,,
+6853,candidate_pool,sleeper_id,Van Jefferson,WR,WR,WR,True,Active,,,6.0,active_free,,,,,,
+2359,candidate_pool,sleeper_id,Ameer Abdullah,RB,RB,RB,True,Active,JAX,,11.0,active_free,,,,,,
+7842,candidate_pool,sleeper_id,Luke Farrell,TE,TE,TE,True,Active,SF,,5.0,active_free,,,,,,
+12543,candidate_pool,sleeper_id,Tahj Brooks,RB,RB,RB,True,Active,CIN,,1.0,active_free,,,,,,
+7828,candidate_pool,sleeper_id,Noah Gray,TE,TE,TE,True,Active,KC,,5.0,active_free,,,,,,
+8180,candidate_pool,sleeper_id,Jalen Nailor,WR,WR,WR,True,Active,LV,,4.0,active_free,,,,,,
+1234,candidate_pool,sleeper_id,Russell Wilson,QB,QB,QB,True,Active,,,14.0,active_free,,,,,,
+7602,candidate_pool,sleeper_id,Kylen Granson,TE,TE,TE,True,Active,TEN,,5.0,active_free,,,,,,
+10218,candidate_pool,sleeper_id,Xavier Hutchinson,WR,WR,WR,True,Active,HOU,,3.0,active_free,,,,,,
+19,candidate_pool,sleeper_id,Joe Flacco,QB,QB,QB,True,Active,CIN,,18.0,active_free,,,,,,
+10228,candidate_pool,sleeper_id,Charlie Jones,WR,WR,WR,True,Active,NYG,,3.0,active_free,,,,,,
+4054,candidate_pool,sleeper_id,Mo Alie-Cox,TE,TE,TE,True,Active,IND,,9.0,active_free,,,,,,
+4381,candidate_pool,sleeper_id,Taysom Hill,TE,TE,TE,True,Active,,,9.0,active_free,,,,,,
+4995,candidate_pool,sleeper_id,Ian Thomas,TE,TE,TE,True,Active,LV,,8.0,active_free,,,,,,
+12538,candidate_pool,sleeper_id,Brady Cook,QB,QB,QB,True,Active,MIA,,1.0,active_free,,,,,,
+4171,candidate_pool,sleeper_id,Josh Reynolds,WR,WR,WR,True,Active,,,9.0,active_free,,,,,,
+11895,candidate_pool,sleeper_id,Mason Tipton,WR,WR,WR,True,Active,NO,PUP,2.0,active_free,,,,,,
+7587,candidate_pool,sleeper_id,Dyami Brown,WR,WR,WR,True,Active,WAS,,5.0,active_free,,,,,,
+11942,candidate_pool,sleeper_id,Colson Yankoff,TE,TE,TE,True,Active,WAS,,2.0,active_free,,,,,,
+7608,candidate_pool,sleeper_id,Khalil Herbert,RB,RB,RB,True,Active,,,5.0,active_free,,,,,,
+12641,candidate_pool,sleeper_id,Jaylin Lane,WR,WR,WR,True,Active,WAS,,1.0,active_free,,,,,,
+12476,candidate_pool,sleeper_id,Devin Neal,RB,RB,RB,True,Inactive,,Questionable,1.0,inactive_free,,,,,,
+6427,candidate_pool,sleeper_id,Ashton Dulin,WR,WR,WR,True,Active,IND,,7.0,active_free,,,,,,
+4435,candidate_pool,sleeper_id,Anthony Firkser,TE,TE,TE,True,Inactive,,Questionable,9.0,inactive_free,,,,,,
+4972,candidate_pool,sleeper_id,Mason Rudolph,QB,QB,QB,True,Active,PIT,,8.0,active_free,,,,,,
+8127,candidate_pool,sleeper_id,Charlie Kolar,TE,TE,TE,True,Active,LAC,,4.0,active_free,,,,,,
+12491,candidate_pool,sleeper_id,Corey Kiner,RB,RB,RB,True,Active,NE,,1.0,active_free,,,,,,
+5938,candidate_pool,sleeper_id,Lil'Jordan Humphrey,WR,WR,WR,True,Active,DEN,,7.0,active_free,,,,,,
+11571,candidate_pool,sleeper_id,Isaiah Davis,RB,RB,RB,True,Active,NYJ,Questionable,2.0,active_free,,,,,,
+12357,candidate_pool,sleeper_id,David Martin-Robinson,TE,TE,TE,True,Active,TEN,,2.0,active_free,,,,,,
+6271,candidate_pool,sleeper_id,Olamide Zaccheaus,WR,WR,WR,True,Active,ATL,,7.0,active_free,,,,,,
+11617,candidate_pool,sleeper_id,Malachi Corley,WR,WR,WR,True,Active,CLE,,2.0,active_free,,,,,,
+6960,candidate_pool,sleeper_id,Tyler Johnson,WR,WR,WR,True,Active,,,6.0,active_free,,,,,,
+11299,candidate_pool,sleeper_id,Zavier Scott,RB,RB,RB,True,Active,CHI,,3.0,active_free,,,,,,
+7562,candidate_pool,sleeper_id,Tutu Atwell,WR,WR,WR,True,Active,LAR,,5.0,active_free,,,,,,
+11421,candidate_pool,sleeper_id,Ryan Miller,WR,WR,WR,True,Active,MIA,,3.0,active_free,,,,,,
+8143,candidate_pool,sleeper_id,Jerome Ford,RB,RB,RB,True,Inactive,WAS,Questionable,4.0,inactive_free,,,,,,
+6869,candidate_pool,sleeper_id,Adam Trautman,TE,TE,TE,True,Active,DEN,,6.0,active_free,,,,,,
+4080,candidate_pool,sleeper_id,Zay Jones,WR,WR,WR,True,Active,,,9.0,active_free,,,,,,
+3202,candidate_pool,sleeper_id,Austin Hooper,TE,TE,TE,True,Active,ATL,,10.0,active_free,,,,,,
+10871,candidate_pool,sleeper_id,Luke Schoonmaker,TE,TE,TE,True,Active,DAL,,3.0,active_free,,,,,,
+6699,candidate_pool,sleeper_id,Gunner Olszewski,WR,WR,WR,True,Inactive,NYG,IR,7.0,inactive_free,,,,,,
+8253,candidate_pool,sleeper_id,Deven Thompkins,WR,WR,WR,True,Active,LV,,4.0,active_free,,,,,,
+12670,candidate_pool,sleeper_id,KeAndre Lambert-Smith,WR,WR,WR,True,Active,LAC,,1.0,active_free,,,,,,
+8076,candidate_pool,sleeper_id,Michael Bandy,WR,WR,WR,True,Active,DEN,,5.0,active_free,,,,,,
+7612,candidate_pool,sleeper_id,Dee Eskridge,WR,WR,WR,True,Active,,,5.0,active_free,,,,,,
+6943,candidate_pool,sleeper_id,Gabe Davis,WR,WR,WR,True,Active,,Questionable,6.0,active_free,,,,,,
+7536,candidate_pool,sleeper_id,Quintin Morris,TE,TE,TE,True,Active,JAX,,5.0,active_free,,,,,,
+2374,candidate_pool,sleeper_id,Tyler Lockett,WR,WR,WR,True,Active,,,11.0,active_free,,,,,,
+11320,candidate_pool,sleeper_id,Nikko Remigio,WR,WR,WR,True,Active,KC,,3.0,active_free,,,,,,
+8917,candidate_pool,sleeper_id,KaVontae Turpin,WR,WR,WR,True,Active,DAL,,4.0,active_free,,,,,,
+7694,candidate_pool,sleeper_id,Tommy Tremble,TE,TE,TE,True,Active,CAR,,5.0,active_free,,,,,,
+7050,candidate_pool,sleeper_id,Josiah Deguara,TE,TE,TE,True,Active,,,6.0,active_free,,,,,,
+4443,candidate_pool,sleeper_id,Pharaoh Brown,TE,TE,TE,True,Active,IND,,9.0,active_free,,,,,,
+8122,candidate_pool,sleeper_id,Zonovan Knight,RB,RB,RB,True,Active,ARI,,4.0,active_free,,,,,,
+11588,candidate_pool,sleeper_id,Jawhar Jordan,RB,RB,RB,True,Active,HOU,,2.0,active_free,,,,,,
+6850,candidate_pool,sleeper_id,Harrison Bryant,TE,TE,TE,True,Active,,Questionable,6.0,active_free,,,,,,
+12412,candidate_pool,sleeper_id,Terrell Jennings,RB,RB,RB,True,Inactive,,Questionable,2.0,inactive_free,,,,,,
+12496,candidate_pool,sleeper_id,Tai Felton,WR,WR,WR,True,Active,MIN,,1.0,active_free,,,,,,
+3161,candidate_pool,sleeper_id,Carson Wentz,QB,QB,QB,True,Active,MIN,,10.0,active_free,,,,,,
+12171,candidate_pool,sleeper_id,British Brooks,RB,RB,RB,True,Active,HOU,Questionable,2.0,active_free,,,,,,
+8177,candidate_pool,sleeper_id,Grant Calcaterra,TE,TE,TE,True,Inactive,PHI,IR,4.0,inactive_free,,,,,,
+8223,candidate_pool,sleeper_id,Velus Jones,WR,RB,RB,True,Active,SEA,,4.0,active_free,,,,,,
+5955,candidate_pool,sleeper_id,Hunter Renfrow,WR,WR,WR,True,Active,,,7.0,active_free,,,,,,
+9497,candidate_pool,sleeper_id,Jalin Hyatt,WR,WR,WR,True,Active,NYG,,3.0,active_free,,,,,,
+12048,candidate_pool,sleeper_id,George Holani,RB,RB,RB,True,Active,SEA,,2.0,active_free,,,,,,
+11623,candidate_pool,sleeper_id,Jordan Whittington,WR,WR,WR,True,Active,LAR,,2.0,active_free,,,,,,
+7075,candidate_pool,sleeper_id,Charlie Woerner,TE,TE,TE,True,Active,ATL,,6.0,active_free,,,,,,
+11201,candidate_pool,sleeper_id,Blake Whiteheart,TE,TE,TE,True,Active,CLE,,3.0,active_free,,,,,,
+5185,candidate_pool,sleeper_id,Allen Lazard,WR,WR,WR,True,Active,,,7.0,active_free,,,,,,
+12503,candidate_pool,sleeper_id,Isaiah Bond,WR,WR,WR,True,Active,CLE,Questionable,1.0,active_free,,,,,,
+11994,candidate_pool,sleeper_id,Kameron Johnson,WR,WR,WR,True,Active,TB,,2.0,active_free,,,,,,
+4464,candidate_pool,sleeper_id,Nick Mullens,QB,QB,QB,True,Active,JAX,,9.0,active_free,,,,,,
+7607,candidate_pool,sleeper_id,Michael Carter,RB,RB,RB,True,Active,TEN,,5.0,active_free,,,,,,
+10214,candidate_pool,sleeper_id,Davis Allen,TE,TE,TE,True,Active,LAR,Questionable,3.0,active_free,,,,,,
+5133,candidate_pool,sleeper_id,Tyler Conklin,TE,TE,TE,True,Active,DET,,8.0,active_free,,,,,,
+7757,candidate_pool,sleeper_id,Ben Skowronek,WR,WR,WR,True,Active,PIT,Questionable,5.0,active_free,,,,,,
+829,candidate_pool,sleeper_id,Andy Dalton,QB,QB,QB,True,Active,PHI,,15.0,active_free,,,,,,
+8583,candidate_pool,sleeper_id,Stone Smartt,TE,TE,TE,True,Active,NO,,4.0,active_free,,,,,,
+10226,candidate_pool,sleeper_id,Andrei Iosivas,WR,WR,WR,True,Active,CIN,,3.0,active_free,,,,,,
+7595,candidate_pool,sleeper_id,Tylan Wallace,WR,WR,WR,True,Active,CLE,,5.0,active_free,,,,,,
+7090,candidate_pool,sleeper_id,Darnell Mooney,WR,WR,WR,True,Active,NYG,,6.0,active_free,,,,,,
+11608,candidate_pool,sleeper_id,Isaiah Williams,WR,WR,WR,True,Active,NYJ,,2.0,active_free,,,,,,
+1689,candidate_pool,sleeper_id,Adam Thielen,WR,WR,WR,True,Active,,NA,13.0,active_free,,,,,,
+11199,candidate_pool,sleeper_id,Emari Demercado,RB,RB,RB,True,Active,DAL,,3.0,active_free,,,,,,
+6111,candidate_pool,sleeper_id,Jake Browning,QB,QB,QB,True,Active,,,7.0,active_free,,,,,,
+12485,candidate_pool,sleeper_id,Tez Johnson,WR,WR,WR,True,Active,TB,,1.0,active_free,,,,,,
+6039,candidate_pool,sleeper_id,Ty Johnson,RB,RB,RB,True,Active,BUF,Questionable,7.0,active_free,,,,,,
+12473,candidate_pool,sleeper_id,Mitchell Evans,TE,TE,TE,True,Active,CAR,,1.0,active_free,,,,,,
+12889,candidate_pool,sleeper_id,Beaux Collins,WR,WR,WR,True,Inactive,ATL,IR,1.0,inactive_free,,,,,,
+6847,candidate_pool,sleeper_id,Devin Duvernay,WR,WR,WR,True,Active,ARI,,6.0,active_free,,,,,,
+4454,candidate_pool,sleeper_id,Kendrick Bourne,WR,WR,WR,True,Active,ARI,,9.0,active_free,,,,,,
+7670,candidate_pool,sleeper_id,Joshua Palmer,WR,WR,WR,True,Active,BUF,,5.0,active_free,,,,,,
+7233,candidate_pool,sleeper_id,Andre Baccellia,WR,WR,WR,True,Active,,Questionable,6.0,active_free,,,,,,
+8225,candidate_pool,sleeper_id,Daniel Bellinger,TE,TE,TE,True,Active,TEN,,4.0,active_free,,,,,,
+7537,candidate_pool,sleeper_id,Jaret Patterson,RB,RB,RB,True,Active,,,5.0,active_free,,,,,,
+11433,candidate_pool,sleeper_id,Nate Adkins,TE,TE,TE,True,Active,DEN,,3.0,active_free,,,,,,
+11574,candidate_pool,sleeper_id,Dylan Laube,RB,RB,RB,True,Active,LV,,2.0,active_free,,,,,,
+11280,candidate_pool,sleeper_id,Brady Russell,RB,RB,RB,True,Active,SEA,,3.0,active_free,,,,,,
+4314,candidate_pool,sleeper_id,Johnny Mundt,TE,TE,TE,True,Active,PHI,,9.0,active_free,,,,,,
+9482,candidate_pool,sleeper_id,Michael Mayer,TE,TE,TE,True,Active,LV,,3.0,active_free,,,,,,
+11439,candidate_pool,sleeper_id,Jaleel McLaughlin,RB,RB,RB,True,Active,CLE,,3.0,active_free,,,,,,
+4234,candidate_pool,sleeper_id,Noah Brown,WR,WR,WR,True,Active,,,9.0,active_free,,,,,,
+5086,candidate_pool,sleeper_id,Marquez Valdes-Scantling,WR,WR,WR,True,Active,,,8.0,active_free,,,,,,
+12658,candidate_pool,sleeper_id,Jackson Hawes,TE,TE,TE,True,Active,BUF,,1.0,active_free,,,,,,
+8129,candidate_pool,sleeper_id,Dameon Pierce,RB,RB,RB,True,Active,PHI,,4.0,active_free,,,,,,
+3286,candidate_pool,sleeper_id,Demarcus Robinson,WR,WR,WR,True,Active,SF,,10.0,active_free,,,,,,
+8200,candidate_pool,sleeper_id,Kevin Austin,WR,WR,WR,True,Active,NO,,4.0,active_free,,,,,,
+7891,candidate_pool,sleeper_id,Brock Wright,TE,TE,TE,True,Active,DET,,5.0,active_free,,,,,,
+10224,candidate_pool,sleeper_id,Brayden Willis,TE,TE,TE,True,Active,,,3.0,active_free,,,,,,
+1479,candidate_pool,sleeper_id,Keenan Allen,WR,WR,WR,True,Active,IND,,13.0,active_free,,,,,,
+8172,candidate_pool,sleeper_id,Greg Dulcich,TE,TE,TE,True,Active,MIA,,4.0,active_free,,,,,,
+7946,candidate_pool,sleeper_id,Jack Stoll,TE,TE,TE,True,Inactive,,Questionable,5.0,inactive_free,,,,,,
+4718,candidate_pool,sleeper_id,Dare Ogunbowale,RB,RB,RB,True,Active,LV,,9.0,active_free,,,,,,
+12531,candidate_pool,sleeper_id,Trevor Etienne,RB,RB,RB,True,Active,CAR,IR,1.0,active_free,,,,,,
+9220,candidate_pool,sleeper_id,Evan Hull,RB,RB,RB,True,Active,ARI,,3.0,active_free,,,,,,
+11593,candidate_pool,sleeper_id,Brevyn Spann-Ford,TE,TE,TE,True,Active,DAL,,2.0,active_free,,,,,,
+7571,candidate_pool,sleeper_id,Rashod Bateman,WR,WR,WR,True,Active,BAL,,5.0,active_free,,,,,,
+12516,candidate_pool,sleeper_id,Kalel Mullings,RB,RB,RB,True,Active,TEN,,1.0,active_free,,,,,,
+7531,candidate_pool,sleeper_id,Feleipe Franks,TE,TE,TE,True,Active,CAR,,5.0,active_free,,,,,,
+11157,candidate_pool,sleeper_id,Brycen Tremayne,WR,WR,WR,True,Active,CAR,,3.0,active_free,,,,,,
+12539,candidate_pool,sleeper_id,Arian Smith,WR,WR,WR,True,Active,NYJ,,1.0,active_free,,,,,,
+4351,candidate_pool,sleeper_id,Tim Patrick,WR,WR,WR,True,Active,NYJ,,9.0,active_free,,,,,,
+4992,candidate_pool,sleeper_id,Dante Pettis,WR,WR,WR,True,Active,,,8.0,active_free,,,,,,
+10227,candidate_pool,sleeper_id,Payne Durham,TE,TE,TE,True,Active,TB,,3.0,active_free,,,,,,
+3200,candidate_pool,sleeper_id,Sterling Shepard,WR,WR,WR,True,Active,,,10.0,active_free,,,,,,
+6386,candidate_pool,sleeper_id,Alex Bachman,WR,WR,WR,True,Active,LAR,,7.0,active_free,,,,,,
+3976,candidate_pool,sleeper_id,Mitchell Trubisky,QB,QB,QB,True,Active,TEN,Questionable,9.0,active_free,,,,,,
+5973,candidate_pool,sleeper_id,Josh Oliver,TE,TE,TE,True,Active,MIN,,7.0,active_free,,,,,,
+10235,candidate_pool,sleeper_id,Roschon Johnson,RB,RB,RB,True,Active,CHI,,3.0,active_free,,,,,,
+8117,candidate_pool,sleeper_id,Jalen Tolbert,WR,WR,WR,True,Active,MIA,,4.0,active_free,,,,,,
+11806,candidate_pool,sleeper_id,Casey Washington,WR,WR,WR,True,Active,CAR,,2.0,active_free,,,,,,
+12523,candidate_pool,sleeper_id,Jimmy Horn,WR,WR,WR,True,Active,CAR,,1.0,active_free,,,,,,
+8145,candidate_pool,sleeper_id,Jeremy Ruckert,TE,TE,TE,True,Active,NYJ,,4.0,active_free,,,,,,
+3269,candidate_pool,sleeper_id,Chris Moore,WR,WR,WR,True,Active,BAL,,10.0,active_free,,,,,,
+8849,candidate_pool,sleeper_id,Tanner Conner,TE,TE,TE,True,Active,,,4.0,active_free,,,,,,
+4981,candidate_pool,sleeper_id,Calvin Ridley,WR,WR,WR,True,Active,TEN,,8.0,active_free,,,,,,
+5096,candidate_pool,sleeper_id,Ray-Ray McCloud,WR,WR,WR,True,Inactive,,Questionable,8.0,inactive_free,,,,,,
+11921,candidate_pool,sleeper_id,Xavier Weaver,WR,WR,WR,True,Inactive,,Questionable,2.0,inactive_free,,,,,,
+11210,candidate_pool,sleeper_id,Malik Heath,WR,WR,WR,True,Active,ATL,,3.0,active_free,,,,,,
+2307,candidate_pool,sleeper_id,Marcus Mariota,QB,QB,QB,True,Active,WAS,Questionable,11.0,active_free,,,,,,
+7535,candidate_pool,sleeper_id,Hunter Long,TE,TE,TE,True,Active,ARI,,5.0,active_free,,,,,,
+7716,candidate_pool,sleeper_id,John Bates,TE,TE,TE,True,Active,WAS,Questionable,5.0,active_free,,,,,,
+11599,candidate_pool,sleeper_id,Cade Stover,TE,TE,TE,True,Active,HOU,,2.0,active_free,,,,,,
+8139,candidate_pool,sleeper_id,Zamir White,RB,RB,RB,True,Active,NO,,4.0,active_free,,,,,,
+827,candidate_pool,sleeper_id,Tyrod Taylor,QB,QB,QB,True,Active,GB,,15.0,active_free,,,,,,
+12541,candidate_pool,sleeper_id,Dont'e Thornton,WR,WR,WR,True,Inactive,LV,IR,1.0,inactive_free,,,,,,
+8147,candidate_pool,sleeper_id,John Metchie,WR,WR,WR,True,Active,CAR,,4.0,active_free,,,,,,
+1339,candidate_pool,sleeper_id,Zach Ertz,TE,TE,TE,True,Active,,,13.0,active_free,,,,,,
+9501,candidate_pool,sleeper_id,DeMario Douglas,WR,WR,WR,True,Active,NE,,3.0,active_free,,,,,,
+13075,candidate_pool,sleeper_id,Myles Price,WR,WR,WR,True,Active,MIN,,1.0,active_free,,,,,,
+8125,candidate_pool,sleeper_id,Calvin Austin,WR,WR,WR,True,Inactive,NYG,IR,4.0,inactive_free,,,,,,
+4177,candidate_pool,sleeper_id,Mack Hollins,WR,WR,WR,True,Active,NE,,9.0,active_free,,,,,,
+12500,candidate_pool,sleeper_id,Quinn Ewers,QB,QB,QB,True,Active,JAX,,1.0,active_free,,,,,,
+8527,candidate_pool,sleeper_id,Dareke Young,WR,WR,WR,True,Active,LV,,4.0,active_free,,,,,,
+7585,candidate_pool,sleeper_id,Davis Mills,QB,QB,QB,True,Active,HOU,,5.0,active_free,,,,,,
+8254,candidate_pool,sleeper_id,Julius Chestnut,RB,RB,RB,True,Active,TEN,,4.0,active_free,,,,,,
+13079,candidate_pool,sleeper_id,Jahdae Walker,WR,WR,WR,True,Active,CHI,,1.0,active_free,,,,,,
+8208,candidate_pool,sleeper_id,Tyler Badie,RB,RB,RB,True,Active,DEN,,4.0,active_free,,,,,,
+6828,candidate_pool,sleeper_id,AJ Dillon,RB,RB,RB,True,Active,CAR,,6.0,active_free,,,,,,
+2749,candidate_pool,sleeper_id,Raheem Mostert,RB,RB,RB,True,Active,,Questionable,11.0,active_free,,,,,,
+5285,candidate_pool,sleeper_id,Ross Dwelley,TE,TE,TE,True,Active,,,8.0,active_free,,,,,,
+12656,candidate_pool,sleeper_id,Robbie Ouzts,RB,RB,RB,True,Inactive,SEA,IR,1.0,inactive_free,,,,,,
+8698,candidate_pool,sleeper_id,Jake Tonges,TE,TE,TE,True,Active,SF,,4.0,active_free,,,,,,
+7596,candidate_pool,sleeper_id,Elijah Moore,WR,WR,WR,True,Active,PHI,,5.0,active_free,,,,,,
+10234,candidate_pool,sleeper_id,Derius Davis,WR,WR,WR,True,Active,LAC,,3.0,active_free,,,,,,
+12542,candidate_pool,sleeper_id,Efton Chism,WR,WR,WR,True,Active,NE,,1.0,active_free,,,,,,
+6588,candidate_pool,sleeper_id,Tom Kennedy,WR,WR,WR,True,Active,DET,,7.0,active_free,,,,,,
+5857,candidate_pool,sleeper_id,Noah Fant,TE,TE,TE,True,Active,NO,,7.0,active_free,,,,,,
+8160,candidate_pool,sleeper_id,Kenny Pickett,QB,QB,QB,True,Active,CAR,,4.0,active_free,,,,,,
+12775,candidate_pool,sleeper_id,Max Brosmer,QB,QB,QB,True,Active,MIN,,1.0,active_free,,,,,,
+8111,candidate_pool,sleeper_id,Cade Otton,TE,TE,TE,True,Active,TB,,4.0,active_free,,,,,,
+12470,candidate_pool,sleeper_id,Riley Leonard,QB,QB,QB,True,Active,IND,,1.0,active_free,,,,,,
+10212,candidate_pool,sleeper_id,Josh Whyle,TE,TE,TE,True,Active,GB,,3.0,active_free,,,,,,
+4988,candidate_pool,sleeper_id,Nick Chubb,RB,RB,RB,True,Active,,,8.0,active_free,,,,,,
+7204,candidate_pool,sleeper_id,Reggie Gilliam,RB,RB,RB,True,Active,NE,,6.0,active_free,,,,,,
+6865,candidate_pool,sleeper_id,Colby Parkinson,TE,TE,TE,True,Active,LAR,,6.0,active_free,,,,,,
+6154,candidate_pool,sleeper_id,David Sills,WR,WR,WR,True,Active,TB,IR,7.0,active_free,,,,,,
+11034,candidate_pool,sleeper_id,Jalen Brooks,WR,WR,WR,True,Active,ARI,,3.0,active_free,,,,,,
+6012,candidate_pool,sleeper_id,Travis Homer,RB,RB,RB,True,Active,PIT,,7.0,active_free,,,,,,
+6826,candidate_pool,sleeper_id,Cole Kmet,TE,TE,TE,True,Active,CHI,,6.0,active_free,,,,,,
+11630,candidate_pool,sleeper_id,Roman Wilson,WR,WR,WR,True,Active,PIT,,2.0,active_free,,,,,,
+3634,candidate_pool,sleeper_id,Kalif Raymond,WR,WR,WR,True,Active,CHI,,10.0,active_free,,,,,,
+11474,candidate_pool,sleeper_id,Dylan Drummond,WR,WR,WR,True,Active,ATL,,3.0,active_free,,,,,,
+11510,candidate_pool,sleeper_id,Hunter Luepke,FB,RB,RB,True,Active,DAL,,3.0,active_free,,,,,,
+6920,candidate_pool,sleeper_id,Isaiah Hodgins,WR,WR,WR,True,Active,,,6.0,active_free,,,,,,
+8885,candidate_pool,sleeper_id,Tucker Fisk,TE,TE,TE,True,Active,,,4.0,active_free,,,,,,
+4189,candidate_pool,sleeper_id,Eric Saubert,TE,TE,TE,True,Active,SEA,,9.0,active_free,,,,,,
+5970,candidate_pool,sleeper_id,Greg Dortch,WR,WR,WR,True,Active,BUF,,7.0,active_free,,,,,,
+6001,candidate_pool,sleeper_id,Drew Sample,TE,TE,TE,True,Active,CIN,,7.0,active_free,,,,,,
+6694,candidate_pool,sleeper_id,D'Ernest Johnson,RB,RB,RB,True,Active,,,7.0,active_free,,,,,,
+9506,candidate_pool,sleeper_id,Sean Tucker,RB,RB,RB,True,Active,TB,Questionable,3.0,active_free,,,,,,
+4179,candidate_pool,sleeper_id,Joshua Dobbs,QB,QB,QB,True,Active,DET,,9.0,active_free,,,,,,
+8195,candidate_pool,sleeper_id,Ronnie Rivers,RB,RB,RB,True,Active,LAR,,4.0,active_free,,,,,,
+5347,candidate_pool,sleeper_id,Nyheim Miller-Hines,RB,RB,RB,True,Active,,,8.0,active_free,,,,,,
+12045,candidate_pool,sleeper_id,Jack Westover,TE,TE,TE,True,Active,WAS,,2.0,active_free,,,,,,
+13150,candidate_pool,sleeper_id,Darius Cooper,WR,WR,WR,True,Active,PHI,,1.0,active_free,,,,,,
+10867,candidate_pool,sleeper_id,Jake Bobo,WR,WR,WR,True,Inactive,SEA,IR,3.0,inactive_free,,,,,,
+4574,candidate_pool,sleeper_id,Cooper Rush,QB,QB,QB,True,Active,ATL,,9.0,active_free,,,,,,
+6144,candidate_pool,sleeper_id,Trayveon Williams,RB,RB,RB,True,Active,,,7.0,active_free,,,,,,
+11168,candidate_pool,sleeper_id,Xavier Smith,WR,WR,WR,True,Active,LAR,,3.0,active_free,,,,,,
+7720,candidate_pool,sleeper_id,Kene Nwangwu,RB,RB,RB,True,Active,NYJ,,5.0,active_free,,,,,,
+12482,candidate_pool,sleeper_id,Savion Williams,WR,WR,WR,True,Inactive,GB,IR,1.0,inactive_free,,,,,,
+13101,candidate_pool,sleeper_id,Gage Larvadain,WR,WR,WR,True,Active,,,1.0,active_free,,,,,,
+11762,candidate_pool,sleeper_id,Anthony Gould,WR,WR,WR,True,Active,IND,,2.0,active_free,,,,,,
+4993,candidate_pool,sleeper_id,Mike Gesicki,TE,TE,TE,True,Active,CIN,,8.0,active_free,,,,,,
+6945,candidate_pool,sleeper_id,Antonio Gibson,RB,RB,RB,True,Active,,Questionable,6.0,active_free,,,,,,
+8489,candidate_pool,sleeper_id,Drew Ogletree,TE,TE,TE,True,Active,IND,,4.0,active_free,,,,,,
+3271,candidate_pool,sleeper_id,Tyler Higbee,TE,TE,TE,True,Active,LAR,,10.0,active_free,,,,,,
+4039,candidate_pool,sleeper_id,Cooper Kupp,WR,WR,WR,True,Active,SEA,,9.0,active_free,,,,,,
+11633,candidate_pool,sleeper_id,Jamari Thrash,WR,WR,WR,True,Inactive,CLE,IR,2.0,inactive_free,,,,,,
+4098,candidate_pool,sleeper_id,Kareem Hunt,RB,RB,RB,True,Active,,,9.0,active_free,,,,,,
+4198,candidate_pool,sleeper_id,Jamal Agnew,WR,WR,WR,True,Active,,Questionable,8.0,active_free,,,,,,
+11557,candidate_pool,sleeper_id,Joe Milton,QB,QB,QB,True,Active,DAL,,2.0,active_free,,,,,,
+5409,candidate_pool,sleeper_id,Tanner Hudson,TE,TE,TE,True,Active,CIN,,8.0,active_free,,,,,,
+12718,candidate_pool,sleeper_id,Konata Mumpfield,WR,WR,WR,True,Active,LAR,,1.0,active_free,,,,,,
+1426,candidate_pool,sleeper_id,DeAndre Hopkins,WR,WR,WR,True,Active,,,13.0,active_free,,,,,,
+6290,candidate_pool,sleeper_id,Scotty Miller,WR,WR,WR,True,Active,CHI,,7.0,active_free,,,,,,
+7083,candidate_pool,sleeper_id,Tyler Huntley,QB,QB,QB,True,Active,BAL,,6.0,active_free,,,,,,
+1166,candidate_pool,sleeper_id,Kirk Cousins,QB,QB,QB,True,Active,LV,,14.0,active_free,,,,,,
+12455,candidate_pool,sleeper_id,Brashard Smith,RB,RB,RB,True,Active,KC,,1.0,active_free,,,,,,
+11371,candidate_pool,sleeper_id,Julian Hill,TE,TE,TE,True,Inactive,NE,IR,3.0,inactive_free,,,,,,
+2197,candidate_pool,sleeper_id,Brandin Cooks,WR,WR,WR,True,Active,,,12.0,active_free,,,,,,
+8500,candidate_pool,sleeper_id,John FitzPatrick,TE,TE,TE,True,Active,,Questionable,4.0,active_free,,,,,,
+6931,candidate_pool,sleeper_id,DeeJay Dallas,RB,RB,RB,True,Active,MIN,,6.0,active_free,,,,,,
+10231,candidate_pool,sleeper_id,Elijah Higgins,TE,TE,TE,True,Active,ARI,,3.0,active_free,,,,,,

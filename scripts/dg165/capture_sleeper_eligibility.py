@@ -96,7 +96,7 @@ def main(argv=None) -> int:
     rk = rec.loc[rec["source"] == "rookie"]
     summary = {
         "rookies": int(len(rk)),
-        "rookies_matched": int(rk["match_basis"].isin(["gsis_id", "name+position"]).sum()),
+        "rookies_matched": int(rk["sleeper_id"].notna().sum()),
         "rookies_by_match_basis": rk["match_basis"].value_counts().to_dict(),
         "rookies_eligibility_known": int((rk["league_eligibility"] != "unknown").sum()),
         "rookies_where_sleeper_eligibility_differs_from_draft_position": rk.loc[
