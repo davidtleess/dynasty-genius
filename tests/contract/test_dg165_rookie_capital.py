@@ -599,3 +599,23 @@ def test_labels_outside_the_artifact_covered_seasons_stay_unknown_never_zero():
     assert np.isnan(labels["appear_1"]) and np.isnan(labels["points_1"]) and np.isnan(labels["qy_1"])
     assert labels["appear_2"] == 1 and labels["points_2"] == 200.0 and labels["qy_2"] == 1
     assert np.isnan(labels["q_2"]) and np.isnan(labels["n_2"]) and np.isnan(labels["appear_by_2"])   # a window with an unknown season is unknown
+
+
+def test_manifest_definitions_derive_their_window_from_the_outcome_block():
+    """Logged 2026-09-06 follow-up: definitions prose said 'regular-season' while outcomes/units named the
+    championship window. Prose is now generated from the bound outcome block, so they cannot disagree."""
+    from src.dynasty_genius.rookie.definitions import manifest_definitions
+
+    rule = "Equal-weight REG stat records in weeks 1-16 through 2020 and weeks 1-17 from 2021; POST records do not contribute outcomes."
+    d = manifest_definitions(
+        outcome_block={"window_rule": rule, "scoring_preset": "nflverse_default_ppr_championship_window_v1"},
+        bar={"QB": 37, "RB": 45, "WR": 71, "TE": 21},
+        last_completed_season=2025,
+    )
+    assert set(d) == {"qualifying_season", "appearance", "season_points", "games", "identity_unresolved"}
+    for key in ("qualifying_season", "appearance", "season_points", "games"):
+        assert "regular-season" not in d[key], key
+        assert rule in d[key], key
+    assert "2025" in d["identity_unresolved"]
+    legacy = manifest_definitions(outcome_block=None, bar={"QB": 37}, last_completed_season=2025)
+    assert "regular-season" in legacy["season_points"]

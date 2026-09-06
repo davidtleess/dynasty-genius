@@ -51,6 +51,7 @@ from src.dynasty_genius.rookie.cohort import (  # noqa: E402
     load_players,
     load_rosters,
 )
+from src.dynasty_genius.rookie.definitions import manifest_definitions  # noqa: E402
 from src.dynasty_genius.rookie.evaluate import (  # noqa: E402
     POLICIES,
     evaluate_forecast_years,
@@ -356,18 +357,7 @@ def main(argv=None) -> int:
             "labels_through": last_completed,
             "last_completed_season": last_completed,
         },
-        "definitions": {
-            "qualifying_season": (f"finished at or above the bar rank for the position by league-window points ({outcome_block['window_rule']}); "
-                                  if outcome_block else "finished at or above the bar rank for the position by regular-season PPR total; ")
-                                 + f"bar = {bar}; tie-robust N-th largest (canonical DG-164 cells); a qualifying season is by construction an appearance; "
-                                   "cohort players are ranked at their DRAFT role every season, others at their weekly-stats position",
-            "appearance": "at least one weekly stat row in nflverse regular-season player stats (not 'dressed', not 'took a snap'); "
-                          "a player without a stat row scored zero fantasy points that season",
-            "season_points": "regular-season PPR points (nflverse weekly fantasy_points_ppr), exactly 0 without an appearance",
-            "games": "weeks with a weekly stat row, exactly 0 without an appearance",
-            "identity_unresolved": "no gsis_id in nflverse draft picks and no match in the players table or 1999-%d rosters by draft key or name+year; "
-                                   "labels NaN, never zero, except in the named sensitivity arm" % last_completed,
-        },
+        "definitions": manifest_definitions(outcome_block=outcome_block, bar=bar, last_completed_season=last_completed),
         "units": ({
             "scoring_scope": f"championship window: {outcome_block['window_rule']}; scoring preset {outcome_block['scoring_preset']}; "
                              f"league_scoring_exact=False — {outcome_block['scoring_caveat']}",
