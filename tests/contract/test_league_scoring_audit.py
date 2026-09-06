@@ -532,3 +532,56 @@ def test_manifest_carries_schema_sources_settings_sha_and_qualification():
     assert m["settings_sha256"] == lsa.settings_sha256(SETTINGS)
     assert m["league_scoring_exact"] is False and m["championship_window"] == {"weeks": [1, 17], "week_18_included": False}
     assert "fum_rec" in m["team_keys_never_applied_to_individuals"] and "fum_rec" not in m["individual_keys_credited"]
+
+
+# ── Task 8: CLI writes an immutable, hashed run ───────────────────────────────────────────────
+
+def test_cli_writes_an_immutable_run_with_hashed_sources_and_refuses_to_overwrite(tmp_path):
+    import subprocess
+    import sys
+    weekly_p, pbp_p, quar_p = tmp_path / "w.parquet", tmp_path / "p.parquet", tmp_path / "q.parquet"
+    weekly([dict(player_id="00-1", week=1, receptions=2, receiving_yards=20, fantasy_points_ppr=4.0)]).to_parquet(weekly_p)
+    pd.DataFrame([play("G1", 1, 1, fumble=0, season=2025)]).to_parquet(pbp_p)
+    q = weekly([dict(player_id=None, week=1, fantasy_points_ppr=0.0)])
+    q["quarantine_reason"] = "placeholder"
+    q.to_parquet(quar_p)
+    season = _season_dir(tmp_path, {1: [{"roster_id": 1, "players_points": {"11": 4.0}}]})
+    snap = tmp_path / "snapshot.json"
+    snap.write_text(json.dumps({"league": {"scoring_settings": SETTINGS}}))
+    idmap = tmp_path / "ids.parquet"
+    pd.DataFrame({"sleeper_id": ["11"], "gsis_id": ["00-1"]}).to_parquet(idmap)
+    out_root = tmp_path / "runs"
+    cmd = [sys.executable, "scripts/dg177/run_league_scoring_audit.py", "--weekly", str(weekly_p), "--pbp", str(pbp_p),
+           "--quarantine", str(quar_p), "--sleeper-season-dir", str(season), "--league-snapshot", str(snap),
+           "--idmap", str(idmap), "--season", "2025", "--out-root", str(out_root), "--run-id", "20260101T000000Z"]
+    first = subprocess.run(cmd, capture_output=True, text=True)
+    assert first.returncode == 0, first.stderr
+    run = out_root / "20260101T000000Z" / "dg177_league_scoring_audit"
+    m = json.loads((run / "manifest.json").read_text())
+    assert set(m["outputs"]) == {"components.csv", "event_ledger.csv", "reconciliation.csv", "unresolved.csv",
+                                 "quarantine_reaudit.csv", "report.md"}
+    assert m["sources"]["weekly"]["sha256"] and m["coverage"]["status_exact"] == 1 and m["league_scoring_exact"] is False
+    assert m["launch"]["git_head"] and m["season"] == 2025
+    second = subprocess.run(cmd, capture_output=True, text=True)
+    assert second.returncode == 1 and "exists" in (second.stderr + second.stdout)
+
+
+def test_cli_refuses_a_settings_mismatch_before_writing_anything(tmp_path):
+    import subprocess
+    import sys
+    weekly_p, pbp_p, quar_p = tmp_path / "w.parquet", tmp_path / "p.parquet", tmp_path / "q.parquet"
+    weekly([dict(player_id="00-1", week=1, fantasy_points_ppr=0.0)]).to_parquet(weekly_p)
+    pd.DataFrame([play("G1", 1, 1, fumble=0, season=2025)]).to_parquet(pbp_p)
+    weekly([dict(player_id=None, week=1, fantasy_points_ppr=0.0)]).to_parquet(quar_p)
+    season = _season_dir(tmp_path, {1: []}, settings={**SETTINGS, "rec": 0.5})
+    snap = tmp_path / "snapshot.json"
+    snap.write_text(json.dumps({"league": {"scoring_settings": SETTINGS}}))
+    idmap = tmp_path / "ids.parquet"
+    pd.DataFrame({"sleeper_id": ["11"], "gsis_id": ["00-1"]}).to_parquet(idmap)
+    out_root = tmp_path / "runs"
+    cmd = [sys.executable, "scripts/dg177/run_league_scoring_audit.py", "--weekly", str(weekly_p), "--pbp", str(pbp_p),
+           "--quarantine", str(quar_p), "--sleeper-season-dir", str(season), "--league-snapshot", str(snap),
+           "--idmap", str(idmap), "--season", "2025", "--out-root", str(out_root), "--run-id", "20260101T000001Z"]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    assert res.returncode == 1 and "rec" in res.stderr
+    assert not (out_root / "20260101T000001Z").exists()
