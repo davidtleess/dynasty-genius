@@ -18,6 +18,8 @@ Definitions (each is a stated rule, not an inference):
     ``listed_position`` is the players table's current listing, kept beside it.
   * ``age`` is season minus birth year from the players table; a missing birth date is
     ``identity_status = resolved_no_birth_date`` with ``age = NaN``, not a guess.
+  * ``seasons_played`` counts seasons OBSERVED since the first pulled season; it is
+    left-censored, not career length (a 32-year-old in the first season shows 1).
 """
 from __future__ import annotations
 

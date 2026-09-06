@@ -168,9 +168,13 @@ def main(argv: list[str] | None = None) -> int:
     pull_seasons = list(range(args.first_season, LAST_COMPLETE_SEASON + 1))
 
     pulled_at = datetime.now(timezone.utc)
-    weekly = pull_weekly_stats(pull_seasons)
-    weekly, dropped = drop_unattributed_zero_rows(weekly)
-    source_validation = {**validate_weekly_source(weekly, seasons=pull_seasons), **dropped}
+    raw_weekly = pull_weekly_stats(pull_seasons)
+    weekly, dropped = drop_unattributed_zero_rows(raw_weekly)
+    dropped_rows = raw_weekly[~raw_weekly.index.isin(weekly.index)] if len(raw_weekly) != len(weekly) else raw_weekly.iloc[0:0]
+    source_validation = {**validate_weekly_source(weekly, seasons=pull_seasons), **dropped,
+                         "cleaning": "the dropped placeholder rows and unattributed stat lines are a disclosed cleaning "
+                                     "exception, not proof of source completeness; they are kept in dropped_rows.csv "
+                                     "so the cleaning can be replayed"}
     weekly_bytes = gzip.compress(weekly.to_csv(index=False).encode("utf-8"))
     players = nfl.load_players()
     players = players.to_pandas() if hasattr(players, "to_pandas") else players
@@ -289,6 +293,10 @@ def main(argv: list[str] | None = None) -> int:
     results = {
         "run_id": run_id, "started_utc": started.isoformat(), "manifest": manifest,
         "cohort": {"rule": COHORT_RULE, "production_scope": PRODUCTION_SCOPE, "features": list(BASIC_FEATURES),
+                   "feature_notes": {"seasons_played": f"seasons OBSERVED since the cohort start ({args.first_season}); "
+                                                       "left-censored, not full career length",
+                                     "position_rule": "modal stat-line position must be QB/RB/WR/TE; a two-way "
+                                                      "player whose stat lines say CB is excluded by this rule"},
                    "rows": int(len(df)), "seasons": [seasons[0], seasons[-1]],
                    "rows_by_position": df.groupby("position").size().to_dict()},
         "horizon_support": {str(j): s for j, s in support.items()},
@@ -310,13 +318,15 @@ def main(argv: list[str] | None = None) -> int:
     (out_dir / "players_snapshot.csv.gz").write_bytes(players_bytes)
     (out_dir / "predictions.csv").rename(out_dir / "historical_predictions.csv")
     manifest["exports"] = {"candidate": "basic_forecasts.csv", "comparator": "none"}
+    (out_dir / "dropped_rows.csv").write_text(dropped_rows.to_csv(index=False))
     manifest["outputs"] = {name: hashlib.sha256((out_dir / name).read_bytes()).hexdigest()
                            for name in ["basic_forecasts.csv", "results.json", "historical_predictions.csv",
-                                        "basic_cohort.csv.gz", "weekly_stats_snapshot.csv.gz", "players_snapshot.csv.gz"]}
-    manifest["outputs"]["annual_forecasts.csv"] = manifest["outputs"]["basic_forecasts.csv"]  # the consumer's required key
+                                        "basic_cohort.csv.gz", "weekly_stats_snapshot.csv.gz", "players_snapshot.csv.gz",
+                                        "dropped_rows.csv"]
+                           + (["universe_reconciliation.csv"] if len(reconciled) else [])}
     manifest["outputs_sha256"] = dict(manifest["outputs"])
     manifest["evaluation_status"] = evaluation_status({"historical": historical}, historical_predictions, arm_key=None)
-    validate_manifest(manifest, known_arms={ARM}, required_inputs=("weekly_stats_sha256", "players_sha256"))
+    validate_manifest(manifest, known_arms={ARM}, required_inputs=("weekly_stats_sha256", "players_sha256"), run_dir=out_dir)
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     print(f"wrote {written} + basic_forecasts.csv, basic_cohort.csv.gz, snapshots, manifest.json to {out_dir}")
     print(report)

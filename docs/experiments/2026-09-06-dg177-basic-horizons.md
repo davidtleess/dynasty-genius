@@ -16,11 +16,11 @@ row built from what is observed, not a fabricated stat line. This cohort is deli
 | term | value |
 |---|---|
 | seasons | 2005–2025 weekly stats; 14,555 feature rows (QB 1,968 · RB 3,821 · WR 5,652 · TE 3,114) |
-| features | `ppg_t`, `games_t` (ALL games with a stat line, the DG-024 production definition, untouched), `age`, `ppg_t_minus_1`, `games_t_minus_1`, its availability flag, `ppg_last_observed`, `seasons_since_last_observed`, `seasons_played` |
-| cohort rule | a row exists for season t if the player appeared in t or t−1; a whole missed season after an active one is a zero-games row with NaN production; two straight absent seasons leave the cohort |
+| features | `ppg_t`, `games_t` (ALL games with a stat line, the DG-024 production definition, untouched), `age`, `ppg_t_minus_1`, `games_t_minus_1`, its availability flag, `ppg_last_observed`, `seasons_since_last_observed`, `seasons_played` (seasons OBSERVED since 2005, left-censored: a 32-year-old in 2005 shows 1 — not career length) |
+| cohort rule | a row exists for season t only if the player appeared in t or t−1 (played this season or last); a whole missed season after an active one is a zero-games row with NaN production; two straight absent seasons leave the cohort; a row is modelled only if its modal stat-line position is QB/RB/WR/TE — Travis Hunter (CB by stat line) is excluded by that rule |
 | position | the season's modal stat-line position; the players table's listing is carried beside it |
 | age | season minus birth year from the players table; a missing birth date is a flagged NaN, never a guess |
-| labels | REG scope, `fantasy_points_ppr`, event = appeared (≥ 1 stat-row game), horizons 1–5, censoring and unresolved identities as in the annual contract; the source passed the completeness, uniqueness and non-missing-scoring checks (173 placeholder rows dropped and counted; two unattributed stat lines, 6.0 points in 2005 and 3.1 in 2012, dropped under the stated 10-point-per-season tolerance and listed) |
+| labels | REG scope, `fantasy_points_ppr`, event = appeared (≥ 1 stat-row game), horizons 1–5, censoring and unresolved identities as in the annual contract; the source passed the completeness, uniqueness and non-missing-scoring checks (444 placeholder rows dropped and counted; two unattributed stat lines, 6.0 points in 2005 and 3.1 in 2012, dropped under the stated 10-point-per-season tolerance and listed — a **disclosed cleaning exception, not proof of source completeness**; the snapshot in this run is post-cleaning and the dropped raw rows were not retained, so replaying the cleaning step needs a fresh pull; future runs write `dropped_rows.csv`) |
 | policy | the same selection policy as the annual handoff (baseline / candidate ridge / bounded blend, chosen per position, horizon and quantity on closed inner folds, applied by the same function final scoring calls) |
 
 ## 2. What the closed history supports
@@ -28,8 +28,8 @@ row built from what is observed, not a fabricated stat line. This cohort is deli
 Every horizon has enough closed feature seasons to evaluate, but nested selection needs a training window deep
 enough for an inner fold whose candidate can itself be fitted, so the evaluable folds shrink with the horizon:
 year 1 on 14 folds (forecast seasons 2012–2025), year 2 on 12, year 3 on 9 of 10, year 4 on 5 of 8, **year 5 on 1
-of 6** (forecast season 2025 only). Skipped folds are written with the reason. Year 5 therefore has forecasts and
-one graded season; it is not unsupported, and it is not well measured either.
+of 6** — graded on the single 2020-features → 2025-outcomes season only. Skipped folds are written with the reason.
+Year 5 therefore has forecasts and one graded season; it is not unsupported, and it is not broadly validated either.
 
 ## 3. Policy evidence (pooled; Δ = policy − training-only baseline, 90% player-resampled)
 
@@ -62,14 +62,18 @@ positions and horizons.
 
 ## 4. The reading
 
-1. **On this cohort the policy beats its training-only baselines detectably at every position for years one to
-   four**, on both the appearance probability and unconditional season points, with the margin over persistence
-   growing with the horizon because persistence decays badly and the appearance model does the work.
+1. **On this cohort the policy's unconditional season points beat the training-only persistence baseline within
+   the reported 90% interval at every position for years one to four**, with the margin over persistence growing
+   with the horizon because persistence decays badly and the appearance model does the work. The appearance
+   probability has a lower historical Brier score than the base rate everywhere; that is a point comparison without
+   an interval, and not by itself a calibration proof (§5b). Codex's independent check on this run: the active subgroup with at
+   least four games retains the RMSE gains at all positions for years one to four, so the gain is not only zeros
+   against a weak baseline.
 2. **These numbers are not comparable to the annual handoff's.** This cohort admits one-game seasons and whole
    absences, so its base appearance rates are 0.6 rather than 0.8 and its baselines are weaker; the served file's
    population is the ≥ 4-game player. Same event, same scoring, different population; each artifact says which.
-3. **Year 5 is one fold.** Its intervals are what one forecast season can say. Do not read year 5 as measured; read
-   it as "forecast, graded once".
+3. **Year 5 is one fold: 2020 features graded on 2025 outcomes.** Its intervals are what one forecast season can
+   say. Do not read year 5 as validated; read it as "forecast, graded once".
 4. **Absences are observations.** 137 of the 750 inference rows are players whose whole 2025 was an absence after an
    active 2024; they carry NaN production, their last observed rate, and one season since last observed. Tank Dell is
    one of them: appearance probability 0.34 for 2026 and 0.37 for 2027, expected 2026 points 22.9, year-5 appearance
@@ -105,7 +109,7 @@ was sufficient to evaluate, never validated.
 ## 6. What this does not support
 
 - **Comparability with the annual handoff** is by event and scoring only, not by population (§4.2).
-- **Year 5** rests on one fold; years 3 and 4 on 9 and 5.
+- **Year 5** rests on one fold (2020→2025); years 3 and 4 on 9 and 5. No claim of a market edge is made anywhere.
 - **Hunter** is unforecast here because his stat-line position is CB. Which position model should forecast a two-way
   player is a modelling choice, stated, not made.
 - **Basic features only.** No tracking, opportunity or efficiency columns; that is the point of the cohort, and it

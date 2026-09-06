@@ -76,8 +76,8 @@ companion report) is where year 2 and beyond are graded.
 1. **Year 1, folds 2021–2023.** The policy's unconditional season points beat the training-only persistence
    baseline within the reported 90% interval at RB (+0.053 [+0.028, +0.079] r²) and WR (+0.030 [+0.013, +0.048]);
    at QB (+0.015 [−0.009, +0.041]) and TE (+0.014 [−0.012, +0.043]) the interval includes zero and the result is
-   inconclusive. The appearance probability's Brier score is below the base rate at all four positions; that alone
-   is not a calibration proof, and the companion status record carries expected calibration error and reliability
+   inconclusive. The appearance probability has a lower historical Brier score than the base rate at all four positions; that is
+   a point comparison without an interval and not a calibration proof, and the companion status record carries expected calibration error and reliability
    slope/intercept computed from the graded predictions.
 2. **Year 2: zero evaluated policy folds** at every position on this file. The year-2 quantities are exported with
    their policy chosen on the full closed window and are ungraded here. That is a statement about the evaluable

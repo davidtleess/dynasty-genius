@@ -179,6 +179,7 @@ class ManifestShapeError(ValueError):
 def validate_manifest(
     manifest: dict[str, Any], *, known_arms: frozenset[str] | set[str] = KNOWN_ARMS,
     required_inputs: tuple[str, ...] = ("training_csv_sha256",),
+    run_dir: Path | None = None,
 ) -> None:
     """Assert the manifest's structure: arms and positions at their own levels, feature
     names that pass the feature gate, and input/output hashes present. Round-1's manifest
@@ -216,13 +217,31 @@ def validate_manifest(
     candidate = manifest.get("candidate_arm")
     if candidate not in by_arm or by_position != by_arm[candidate]:
         raise ManifestShapeError("features_by_position must equal features_by_arm[candidate_arm]")
-    for block, required in (("inputs", tuple(required_inputs)), ("outputs", ("annual_forecasts.csv",))):
+    exports = manifest.get("exports") or {}
+    candidate_export = exports.get("candidate")
+    if not isinstance(candidate_export, str) or not candidate_export:
+        raise ManifestShapeError("exports.candidate must name the candidate export file")
+    # The required output is whatever the manifest itself says it exports — never a fixed
+    # filename. A hash for a file the run did not write (an alias to satisfy a validator)
+    # is refused below by name when a run directory is given.
+    for block, required in (("inputs", tuple(required_inputs)), ("outputs", (candidate_export,))):
         values = manifest.get(block)
         if not isinstance(values, dict) or not values:
             raise ManifestShapeError(f"{block} hashes are missing")
         for key in required:
             if not isinstance(values.get(key), str) or len(values[key]) != 64:
                 raise ManifestShapeError(f"{block}: {key} must carry a sha256")
+    if run_dir is not None:
+        run_dir = Path(run_dir)
+        for name, sha in manifest["outputs"].items():
+            path = run_dir / name
+            if not path.is_file():
+                raise ManifestShapeError(f"outputs names {name!r} but no such file exists in {run_dir}")
+            actual = hashlib.sha256(path.read_bytes()).hexdigest()
+            if actual != sha:
+                raise ManifestShapeError(f"outputs: {name!r} hash {sha[:12]}… does not match the file ({actual[:12]}…)")
+        if manifest.get("outputs_sha256") not in (None, manifest["outputs"]):
+            raise ManifestShapeError("outputs_sha256 must equal outputs")
     for key in ("event", "exposure_definition", "scoring_scope", "label_window", "quantities", "forecast_cutoff"):
         if key not in manifest:
             raise ManifestShapeError(f"target term {key!r} is missing")
@@ -381,8 +400,12 @@ def main(argv: list[str] | None = None) -> int:
 
     # A missing player-season is an OBSERVED absence only if the source is complete,
     # unique and fully scored. Refuses otherwise; the facts go into the manifest.
+    raw_weekly = weekly
     weekly, dropped = drop_unattributed_zero_rows(weekly)
-    source_validation = {**validate_weekly_source(weekly, seasons=PULL_SEASONS), **dropped}
+    dropped_rows = raw_weekly[~raw_weekly.index.isin(weekly.index)] if len(raw_weekly) != len(weekly) else raw_weekly.iloc[0:0]
+    source_validation = {**validate_weekly_source(weekly, seasons=PULL_SEASONS), **dropped,
+                         "cleaning": "the snapshot in this run is post-cleaning; the dropped rows are kept in "
+                                     "dropped_rows.csv so the cleaning step can be replayed"}
     outcomes = season_outcomes(weekly, scope=SCOPE, validation=source_validation)
     outcomes_all = season_outcomes(weekly, scope="ALL", validation=source_validation)
     labelled = annual_targets(df, outcomes, horizons=HORIZONS, last_complete_season=LAST_COMPLETE_SEASON)
@@ -493,18 +516,20 @@ def main(argv: list[str] | None = None) -> int:
     for arm, frame in exported.items():
         (out_dir / EXPORTS[arm]).write_text(frame.to_csv(index=False))
     (out_dir / "weekly_stats_snapshot.csv.gz").write_bytes(snapshot_bytes)
+    (out_dir / "dropped_rows.csv").write_text(dropped_rows.to_csv(index=False))
     (out_dir / "predictions.csv").rename(out_dir / "historical_predictions.csv")
     # Output hashes are known only now; the manifest is written LAST, validated first.
     manifest["outputs"] = {
         name: hashlib.sha256((out_dir / name).read_bytes()).hexdigest()
-        for name in [*EXPORTS.values(), "results.json", "historical_predictions.csv", "weekly_stats_snapshot.csv.gz"]
+        for name in [*EXPORTS.values(), "results.json", "historical_predictions.csv", "weekly_stats_snapshot.csv.gz",
+                     "dropped_rows.csv"]
     }
     manifest["outputs_sha256"] = dict(manifest["outputs"])
     manifest["evaluation_status"] = evaluation_status(
         {"historical": {p: {h: arms[ARM_CANDIDATE] for h, arms in per.items()} for p, per in historical.items()}},
         historical_predictions, arm_key=ARM_CANDIDATE,
     )
-    validate_manifest(manifest)
+    validate_manifest(manifest, run_dir=out_dir)
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     print(f"wrote {written + list(EXPORTS.values()) + ['manifest.json', 'weekly_stats_snapshot.csv.gz']} to {out_dir}")
     print(report)

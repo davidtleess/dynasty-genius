@@ -205,3 +205,40 @@ def test_manifest_states_what_the_bootstrap_means_and_carries_an_evaluation_stat
     assert m["intervals"] == "none exported; " + BOOTSTRAP_MEANING
     assert m["meaning"]["supported"] == SUPPORTED_MEANING
     assert m["evaluation_status"] == {}                      # filled by the runner from graded results
+
+
+# ── Codex review of 155259Z: outputs must be real files, and the candidate export is whatever exports names ──
+
+def test_validate_manifest_requires_the_named_candidate_export_not_a_fixed_filename(tmp_path):
+    m = _good_manifest()
+    m["exports"] = {"candidate": "basic_forecasts.csv", "comparator": "none"}
+    m["outputs"] = {"basic_forecasts.csv": "d" * 64}
+    validate_manifest(m)                                    # the named candidate export carries a hash
+    m["outputs"] = {"annual_forecasts.csv": "d" * 64}       # a hash for a file the manifest does not export
+    with pytest.raises(ManifestShapeError, match="basic_forecasts.csv"):
+        validate_manifest(m)
+
+
+def test_validate_manifest_with_a_run_dir_refuses_a_missing_file_or_a_wrong_hash(tmp_path):
+    import hashlib
+    payload = b"player_id,p_appear_year1\nA,0.5\n"
+    (tmp_path / "annual_forecasts.csv").write_bytes(payload)
+    m = _good_manifest()
+
+    def set_outputs(values):
+        m["outputs"] = values
+        m["outputs_sha256"] = dict(values)          # builders write both; the validator holds them equal
+
+    set_outputs({"annual_forecasts.csv": hashlib.sha256(payload).hexdigest()})
+    validate_manifest(m, run_dir=tmp_path)                  # exists, hash matches
+    set_outputs({"annual_forecasts.csv": "0" * 64})
+    with pytest.raises(ManifestShapeError, match="hash"):
+        validate_manifest(m, run_dir=tmp_path)
+    set_outputs({"annual_forecasts.csv": hashlib.sha256(payload).hexdigest(), "ghost.csv": "1" * 64})
+    with pytest.raises(ManifestShapeError, match="ghost.csv"):
+        validate_manifest(m, run_dir=tmp_path)              # a fictitious entry is refused by name
+    m["outputs_sha256"] = {"annual_forecasts.csv": "2" * 64}
+    set_outputs({"annual_forecasts.csv": hashlib.sha256(payload).hexdigest()})
+    m["outputs_sha256"] = {"annual_forecasts.csv": "2" * 64}
+    with pytest.raises(ManifestShapeError, match="outputs_sha256"):
+        validate_manifest(m, run_dir=tmp_path)              # the alias must not drift from outputs
