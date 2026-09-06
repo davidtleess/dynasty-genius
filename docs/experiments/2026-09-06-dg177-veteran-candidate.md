@@ -1,49 +1,61 @@
 # DG-177 — A veteran forecast candidate, evaluated with information available at the time
 
-**Date:** 2026-09-06 · **Lane:** Davids-MacBook-Pro-23481 (veteran forecasting seat) · **Branch:** `ticket/DG-177`
-from origin/main `ecc260ef` · **Run:** `runs/20260906T133309Z/dg177_veteran_candidate/` · **Report-only.** Nothing served
-was trained, promoted, restarted or written. Every input was read-only; every output is inside the run directory.
+**Date:** 2026-09-06 (round 1 corrections applied the same day) · **Lane:** Davids-MacBook-Pro-23481 (veteran
+forecasting seat) · **Branch:** `ticket/DG-177` from origin/main `ecc260ef` · **Primary run:**
+`runs/20260906T144343Z/dg177_veteran_candidate/` (corrected recipe) · **Pre-correction run kept for the record:**
+`runs/20260906T133309Z/` · **Report-only.** Nothing served was trained, promoted, restarted or written. Every input was
+read-only; every output is inside a run directory.
 
 ## 1. What the ticket asked and what was built
 
 DG-162 found the product reads three columns (`ppg_t`, `games_t`, `age`) and that the other features buy little.
-It measured that under a walk-forward one season stricter than necessary, and it measured no new football input.
-This ticket asks for a reusable, honest evaluation path and one justified feature family tested through it.
+It measured that under a walk-forward one season stricter than necessary, with the served recipe's player-leaky
+inner penalty selection, and it measured no new football input. This ticket asks for a reusable, honest evaluation
+path and one justified feature family tested through it. Codex's round-1 review then required four corrections,
+all applied here (§2).
 
-Built, with tests written first (47 in `tests/test_dg177_*.py`, two guards mutation-checked):
+Built, with tests written first and two guards mutation-checked:
 
-- `src/dynasty_genius/eval/veteran_candidate.py` — the cutoff rule, a refusal for any training row whose label was
-  not final at the forecast (`FutureLabelError`), the feature gate (delegates to the Engine B contract's
-  future-season and DG-173 projection bans), the deployed recipe refit inside each window, a paired bootstrap that
-  resamples players, skipped folds written as skipped, and run directories that are never overwritten.
-- `src/dynasty_genius/eval/opportunity_features.py` — the family: raw realized opportunity per game from the
-  warehouse's `ff_opportunity` table (targets, air yards, carries, pass attempts). Its expected-points columns are
-  exposed separately as `xfp_*` and named exploratory (§6).
-- `scripts/experiments/dg177_veteran_candidate.py` — the runner: five arms plus two exploratory arms per position,
-  two cutoff rules, provenance that names the bytes, and a report that prints every fold and every arm.
+- `src/dynasty_genius/models/label_closure.py` — the ONE label-closure rule (`feature_season + window <= test
+  season`) that every walk-forward now shares; `assert_labels_known` refuses an open label.
+- `src/dynasty_genius/models/leak_free_tuning.py` — ridge penalty selection on expanding-time inner folds
+  clustered on player, with every inner training label closed at its validation season and the imputer fitted
+  inside each inner fold. The deployed trainer imports it under its old name.
+- `src/dynasty_genius/eval/veteran_candidate.py` — the evaluator: folds, the feature gate (the contract's
+  future-season and DG-173 projection bans), two named recipes (§2), paired player-resampled bootstraps against
+  two references, top-k aggregated by forecast season, skipped folds written as skipped, run directories never
+  overwritten.
+- `src/dynasty_genius/eval/opportunity_features.py` — raw realized opportunity per PRODUCT game (§2, item 2);
+  the third-party expected-points columns exposed separately as `xfp_*`, named exploratory.
+- `scripts/experiments/dg177_veteran_candidate.py` — the runner and its report.
+- Corrected inherited splits: `eval/backtest_harness.py` (both mask sites), `models/availability.py`, and the
+  trainer's inner selection and pre-split imputation (`scripts/train_engine_b.py`).
 
-## 2. The cutoff, and why it is not DG-162's
+## 2. The round-1 corrections, and what each one cost
 
-The label `avg_ppg_t1_t2` for a row with feature season *t* is the mean PPG over *t+1* and *t+2*
-(`feature_assembly._calc_avg`), so it is final only when season *t+2* has been played. A forecast made after season
-*s* may train on rows with **t + 2 ≤ s**. That is the primary rule here (`labels_known_at_cutoff`), and it is the
-same admissibility the deployed trainer encodes as `no_shared_outcome_season` (DG-026) for a single test season —
-a test asserts the two definitions agree for every test season used.
+1. **Label closure everywhere.** The outer rule was already closed here; three inherited paths were not. The
+   harness split on `feature_season < test_year` (a row one season before the test year is labelled FROM the test
+   year's outcome seasons); the availability walk-forward trained on every earlier season; the trainer's inner
+   selection validated on season *v* and trained on *v−1* rows whose labels reach *v+1*, after imputing on the
+   whole window. All three now use the shared rule; the trainer's inner folds impute per fold. Tests show an open
+   label cannot move the fold it was open for (harness, availability, tuning). **Cost:** the corrected inner
+   selection needs a closed validation season inside the training window, i.e. three feature seasons for a
+   two-season label. The training file starts in 2018, so the 2020 and 2021 test folds cannot be fitted honestly
+   and are written as skipped; **2022 and 2023 are the evaluable folds** for the two-year target.
+2. **The denominator is the product's.** The opportunity source holds rows only for weeks with an opportunity —
+   fewer than `games_t` on 1,061 of 3,337 joined rows, never more. Rates now divide by `games_t` (all games with a
+   stat line, DG-024, untouched); a stat-line game with no source row is an observed zero-opportunity game (3,265
+   counted); a season absent from the source is NaN with `opp_source_available = False` (47 rows), never zero.
+3. **Annual forecasts on explicit seasonal events** — a separate artifact and contract; see
+   `2026-09-06-dg177-annual-forecasts.md` (written when that run completes) and the ticket.
+4. **Evaluate as final scoring fits.** Every arm is now fitted with the corrected procedure (`leak_free`: alpha on
+   closed, player-clustered inner folds, imputer per inner fold, then a median imputer on the whole training window
+   and a Ridge at that alpha). The served 2026-08-31 recipe (RidgeCV, random player-leaky 5-fold) survives only as
+   the named arm `deployed_recipe_reproduction`. Top-k overlap is taken within each forecast season and averaged.
 
-DG-162's `earn.py` used `feature_season <= s-3`, i.e. **t + 2 < s**. That forbids a training label season from
-being a test *feature* season, which is not a leak: the test row's own outcome seasons (*s+1*, *s+2*) are still
-untouched. It costs one training season per fold. Kept here as `window_closed_before_test` so DG-162 can be
-reproduced exactly (§3), not used for the new measurement.
+## 3. Reproduction of DG-162 §1 — still exact
 
-⚠ **Finding, not touched:** `src/dynasty_genius/eval/backtest_harness.py` `WalkForwardDriver._build_fold_data`
-splits on `feature_season < test_year`. A training row at *s−1* is labelled from *s* and *s+1*; the test row at *s*
-is labelled from *s+1* and *s+2*. They share an outcome season. That is the leak DG-026 fixed in the trainer and
-did not fix in the harness. Another lane's file; reported to the orchestrator.
-
-## 3. Reproduction of DG-162 §1 — exact
-
-Same strict rule, same 60/10 row minimums, same median imputer and `RidgeCV(cv=5)` on the served grid, pooled
-over the same test seasons. Every number matches to the precision DG-162 published:
+Under DG-162's stricter rule and the served recipe on every arm, every number matches to the precision published:
 
 | pos | n (this / DG-162) | `ppg_t` alone r² | served set r² | Δr² served − 3 columns |
 |---|---|---|---|---|
@@ -52,105 +64,79 @@ over the same test seasons. Every number matches to the precision DG-162 publish
 | WR | 456 / 456 | 0.623 / 0.623 | 0.661 / 0.661 | +0.010 / +0.010 |
 | TE | 244 / 244 | 0.588 / 0.588 | 0.605 / 0.605 | +0.008 / +0.008 |
 
-The harness reproduces the prior work before it says anything new.
+## 4. Results under the honest rule and the corrected recipe (folds 2022, 2023)
 
-## 4. Results under the honest rule
+Pooled r² by arm; "served set" is the served pickle's feature list for the position, fitted `leak_free`:
 
-Test seasons 2020–2023; a fold needs 60 training rows. **QB 2020 is skipped** (training on 2018 alone gives 40
-eligible rows — 52 in the file, 12 with no observed outcome) and is written as skipped in the artifact. Everything
-else is evaluated. Pooled r² by arm; "served set" is the served pickle's feature list for the position:
-
-| arm | QB (n 141, 67 players) | RB (384, 169) | WR (616, 265) | TE (323, 143) |
+| arm | QB (n 95, 60 players) | RB (185, 119) | WR (303, 188) | TE (161, 104) |
 |---|---:|---:|---:|---:|
-| `ppg_t` alone | 0.344 | 0.575 | 0.617 | 0.597 |
-| recent production, 3 columns | 0.381 | 0.586 | 0.641 | 0.606 |
-| served set (deployed recipe) | 0.412 | 0.593 | 0.653 | 0.620 |
-| 3 columns + opportunity | 0.405 | 0.584 | 0.641 | 0.584 |
-| served set + opportunity | 0.433 | 0.592 | 0.650 | 0.606 |
-| *exploratory:* 3 columns + xFP | 0.362 | 0.585 | 0.642 | 0.611 |
-| *exploratory:* served set + xFP | 0.342 | 0.590 | 0.655 | 0.619 |
+| `ppg_t` alone | 0.333 | 0.548 | 0.624 | 0.592 |
+| recent production, 3 columns | 0.363 | 0.574 | 0.660 | 0.605 |
+| **served set (leak_free)** | 0.416 | 0.601 | 0.679 | 0.625 |
+| served set, old recipe (reproduction) | 0.390 | 0.594 | 0.675 | 0.630 |
+| 3 columns + opportunity | 0.373 | 0.570 | 0.661 | 0.569 |
+| served set + opportunity | 0.416 | 0.595 | 0.679 | 0.589 |
+| *exploratory:* 3 columns + xFP | 0.363 | 0.571 | 0.662 | 0.500 |
+| *exploratory:* served set + xFP | 0.435 | 0.593 | 0.681 | 0.619 |
 
-Paired differences on identical rows, 90% interval from 2,000 player-resampled draws. Δr² unless stated.
+Paired differences on identical rows, 90% interval from 2,000 player-resampled draws, Δr²:
 
-**Served set vs 3 columns** (DG-162's question, honest rule):
-
-| pos | Δr² [90%] | ΔRMSE [90%] | detectable? |
+| pos | served − 3 columns | served + opportunity − served | old recipe − corrected recipe |
 |---|---|---|---|
-| QB | +0.031 [−0.014, +0.077] | −0.116 [−0.272, +0.052] | no |
-| RB | +0.007 [−0.009, +0.022] | −0.030 [−0.094, +0.032] | no |
-| WR | +0.012 [+0.003, +0.020] | −0.050 [−0.087, −0.015] | yes, about a hundredth |
-| TE | +0.014 [+0.006, +0.024] | −0.042 [−0.070, −0.016] | yes, about a hundredth |
+| QB | +0.052 [+0.015, +0.092] | +0.000 [−0.066, +0.055] | −0.025 [−0.053, +0.004] |
+| RB | +0.027 [+0.005, +0.047] | −0.006 [−0.015, +0.002] | −0.007 [−0.017, +0.002] |
+| WR | +0.020 [+0.007, +0.032] | +0.000 [−0.002, +0.002] | −0.004 [−0.008, −0.001] |
+| TE | +0.020 [−0.007, +0.045] | −0.036 [−0.107, +0.011] | +0.005 [−0.016, +0.027] |
 
-**Opportunity family** — added to 3 columns, and added to the served set:
+Per fold and per metric (RMSE, MAE, Spearman, top-k by season) are in the run's `report.md` and `results.json`;
+`predictions.csv` holds one row per test row per arm.
 
-| pos | 3 col + opp vs 3 col, Δr² [90%] | served + opp vs served, Δr² [90%] | served + opp vs served, ΔSpearman [90%] |
-|---|---|---|---|
-| QB | +0.025 [−0.012, +0.059] | +0.021 [-0.024, +0.063] | +0.026 [-0.002, +0.052] |
-| RB | −0.002 [−0.009, +0.005] | -0.001 [-0.006, +0.005] | +0.001 [-0.003, +0.005] |
-| WR | +0.000 [−0.004, +0.004] | -0.003 [-0.008, +0.002] | -0.001 [-0.005, +0.002] |
-| TE | −0.022 [−0.076, +0.018] | -0.014 [-0.045, +0.010] | -0.003 [-0.012, +0.007] |
+## 5. The reading — stated as narrowly as the experiment supports
 
-Per fold at QB, served set + opportunity vs 3 columns, Δr²: 2021 −0.019 [−0.163, +0.130] · 2022 +0.091 [+0.038,
-+0.143] · 2023 +0.073 [+0.019, +0.136]. Against the 3-column reference the pooled QB result is Δr² +0.052 [−0.001,
-+0.106], ΔRMSE −0.197 [−0.384, +0.002], ΔSpearman +0.036 [+0.003, +0.071].
-
-## 5. The reading
-
-1. **DG-162's finding survives the honest cutoff.** The served feature set beats three columns detectably only at
-   WR and TE, by about a hundredth of r², and not at QB or RB. Nothing here rehabilitates the usage features.
-2. **The opportunity family earns nothing at RB or WR, and the null is bounded, not merely undetected.** At RB the
-   family's effect over three columns is between −0.009 and +0.005 r²; at WR between −0.004 and +0.004. Those are
-   the widths of the difference, resampling players — "equal to within a hundredth" rather than "we could not tell".
-   Added to the served set it takes a little away at both (WR 0.653 → 0.650, TE 0.620 → 0.606).
-3. **At TE the family may hurt.** 3 columns + opportunity is −0.022 r² with an interval reaching −0.076; RMSE rises
-   0.065. The interval spans zero, so harm is not established, but nothing supports adding it.
-4. **QB is the one place with any signal, and over the served set it is not detectable.** Served set +
-   opportunity is the best QB arm on every pooled metric, and over *three columns* its Spearman gain excludes zero
-   (+0.036 [+0.003, +0.071]). But that bundles the family with the served set's own extra columns. Over the served
-   set alone the family is Δr² +0.021 [−0.024, +0.063] and ΔSpearman +0.026 [−0.002, +0.052], carried by the 2022
-   fold (+0.121 [+0.043, +0.226]) with 2021 going the other way (−0.075 [−0.202, +0.039]) and 2023 flat (+0.012
-   [−0.011, +0.035]). 141 rows, 67 players, three folds. The right description is *a candidate for one follow-up
-   under the trainer's leak-free alpha selection*, not an edge and not a promotion case.
-5. **The exploratory expected-points columns add nothing the served set does not already have** — over the
-   served set they are WR +0.002 [−0.001, +0.004], TE −0.001 [−0.010, +0.009], RB −0.003 [−0.008, +0.002] — and at QB
-   they are detectably worse (−0.069 [−0.134, −0.018]; over three columns ΔSpearman −0.027 [−0.053, −0.004]). Since
-   they are retrospective (§6) this is reassuring rather than disappointing: the retrospective statistic did not
-   smuggle in an advantage, and it is not a candidate.
+1. **The served feature set earns its place over three columns under the corrected procedure** at QB, RB and WR
+   (intervals exclude zero) and by a similar point estimate at TE (interval reaches −0.007). That is a stronger
+   statement than DG-162's, and it comes from a different procedure on different folds: DG-162's old-recipe result
+   is reproduced exactly (§3), and under the OLD recipe on these same two folds the gain was smaller. Read it as
+   "the corrected penalty selection lets the extra columns help", not as a revision of DG-162's measurement.
+2. **The tested raw-rate ridge additions showed little gain.** Added to the served set, the four per-game
+   opportunity rates change r² by an amount bounded within ±0.015 at RB and ±0.002 at WR, and by an undetectable
+   amount at QB and TE (TE's point estimate is negative with a wide interval). **This does not prove opportunity
+   information has no value.** It shows that four season-level rates, entered linearly into a ridge that already
+   reads a season's PPG and games, add nothing a ridge can use. Weekly structure, nonlinearity, interactions with
+   role, or a different estimand were not tested.
+3. **The corrected recipe is at least as good as the served one on these folds** (WR detectably, the others
+   within a hundredth), while being honest about where its penalty came from.
+4. **The exploratory expected-points columns are not a candidate.** They are retrospective (§6). Their apparent
+   QB gain over the served set (+0.020 [−0.002, +0.047]) is exactly the kind of number a retrospective statistic
+   can produce, and it is not evidence.
 
 ## 6. What this does not support, and the caveats that travel with the numbers
 
-- **Estimand.** Every arm forecasts E[PPG | the player posted a qualifying season in t+1 or t+2]. Whether he
-  returns at all is the availability model's question (the P(plays) half of the served value) and is not measured
-  here. A veteran ranking needs both; this increment measures one.
-- **"Deployed" means the served pickle's recipe**, a median imputer and `RidgeCV` over the served grid with
-  unshuffled 5-fold selection, refit inside each window. The trainer on main now selects alpha on player-clustered
-  expanding-time folds (DG-027); the served artifact of 2026-08-31 predates that. Both facts are in the provenance
-  block. The alpha selection inside the window is the same for every arm, so it cannot favour one.
+- **Estimand.** Every arm forecasts E[two-season mean PPG | the player posted a qualifying season in t+1 or t+2].
+  Whether he returns at all is not measured here; the annual artifact (item 3) is where events are explicit.
+- **Two folds.** Under the corrected procedure the evaluable history is test seasons 2022 and 2023 — 95 QB rows
+  from 60 players up to 303 WR rows from 188. Intervals of ±0.04 r² at QB are what that can say. A longer file,
+  not a looser rule, is what would add folds.
+- **The bootstrap is conditional on the fitted models.** Resampling players from fixed fits captures sampling
+  uncertainty in the comparison; it does not capture model or season uncertainty, and it is not a forecast interval.
 - **xFP is retrospective.** nflverse's ffopportunity documentation (read 2026-09-06) says the expected-points model
-  "uses xgboost and tidymodels trained on public nflverse data from 2006-2020". That window overlaps feature seasons
-  2018–2020 at play level, and the model version behind each warehouse row is not recorded. The `xfp_*` arms are
-  therefore labelled exploratory and are not point-in-time evidence. The `opp_*` family carries no fitted weights.
-  This distinction was raised by the orchestrator before the run and is the reason the family is raw counts.
-- **Sample.** QB trains on 80–169 rows per fold. Intervals of ±0.05 r² are what that sample can say. The 2020 fold
-  is skipped for QB only, so QB pools three test seasons where the others pool four.
-- **Top-k overlap is coarse** (k = 12 or 24 from the product's own `PRIMARY_NDCG_K`; one hit is 0.04–0.08) and its
-  intervals are wide everywhere. Spearman is the ranking metric to read.
-- **Population coverage of the family** is 98–100% of training rows per position and season (table in the run
-  report). The unjoined 1–2% are median-imputed inside the fold.
-- **Third-party projections and rankings never enter an arm.** The gate is the contract's own DG-173 class test;
-  a mutation that disables it fails seven tests.
+  "uses xgboost and tidymodels trained on public nflverse data from 2006-2020", overlapping feature seasons
+  2018–2020 at play level; the model version behind each row is not recorded. The `opp_*` family carries no fitted
+  weights. This distinction was raised by the orchestrator before the first run and is why the family is raw counts.
+- **Top-k overlap is coarse** (k = 12 or 24 from `PRIMARY_NDCG_K`; one hit is 0.04–0.08) even when aggregated by
+  season. Spearman is the ranking metric to read.
+- **Third-party projections and rankings never enter an arm.** The gate is the contract's DG-173 class test; a
+  mutation that disables it fails seven tests.
+- **Splits reported, not touched (outside the review's named files):** `eval/te_role_risk_experiment.py:82`,
+  `eval/qb_v3_walk_forward.py:131` and `eval/te_archetype_bakeoff.py:100` still split on `feature_season <
+  test_year`. They are experiment harnesses owned by other tickets; the shared rule is one import away.
 
 ## 7. Reproduce
 
     cd ~/dg-wt/DG-177
-    .venv/bin/python -m pytest -q tests/test_dg177_veteran_candidate.py tests/test_dg177_opportunity_features.py tests/test_dg177_runner.py
-    .venv/bin/python scripts/experiments/dg177_veteran_candidate.py --draws 2000      # ~3.5 min, new runs/<utc>/
+    .venv/bin/python -m pytest -q tests/test_label_closure.py tests/test_leak_free_tuning.py \
+        tests/test_dg177_veteran_candidate.py tests/test_dg177_opportunity_features.py tests/test_dg177_runner.py
+    .venv/bin/python scripts/experiments/dg177_veteran_candidate.py --draws 2000      # ~15 min, new runs/<utc>/
 
-The run directory holds `results.json` (every arm, fold, delta and the provenance block), `predictions.csv`
-(one row per test row per arm — the paired errors), and `report.md`.
-
-## 8. What would come next, if the orchestrator wants it
-
-- QB opportunity under the trainer's leak-free alpha recipe (`select_alpha_leak_free`), same folds, to see whether
-  the signal in §5.4 survives honest penalty selection. Engineering, not a football decision.
-- Nothing here is a promotion case. The served model is unchanged and should stay so on this evidence.
+The run directory holds `results.json` (every arm, fold, fit, delta and the provenance block), `predictions.csv`
+(one row per test row per arm — the paired errors) and `report.md`.

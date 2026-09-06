@@ -109,16 +109,20 @@ class TestCandidateFeatureGate:
 
 # ── fitting inside the window ─────────────────────────────────────────────────
 
-def _panel(n_players=40, seasons=SEASONS, seed=0, positions=("WR",)):
+def _panel(n_players=80, seasons=SEASONS, seed=0, positions=("WR",)):
+    """Staggered careers (2-4 contiguous seasons each): a player-held-out inner fold
+    needs players who are absent from the validation season, as the real panel has."""
     rng = np.random.default_rng(seed)
     rows = []
     for pos in positions:
         for p in range(n_players):
             skill = rng.normal(10, 3)
-            for s in seasons:
+            start = int(rng.integers(0, len(seasons) - 1))
+            career = seasons[start:start + int(rng.integers(2, 5))]
+            for s in career:
                 x1 = skill + rng.normal(0, 1)
                 x2 = rng.normal(0, 1)
-                y = 0.8 * x1 + 0.5 * x2 + rng.normal(0, 1)
+                y = 0.8 * x1 + 2.0 * x2 + rng.normal(0, 1)
                 rows.append({
                     "player_id": f"{pos}-{p:03d}", "position": pos, "feature_season": s,
                     "x1": x1, "x2": x2, "avg_ppg_t1_t2": y, "training_eligible": True,
@@ -162,22 +166,25 @@ class TestFitPredictArm:
 
 class TestBuildFolds:
     def test_thin_fold_is_reported_as_skipped_not_dropped(self):
-        df = _panel(n_players=40)  # 40 rows per season
-        folds = build_folds(df, test_seasons=[2020, 2021, 2022], min_train_rows=60)
+        df = _panel()
+        n_2018 = int((df.feature_season == 2018).sum())
+        folds = build_folds(df, test_seasons=[2020, 2021, 2022], min_train_rows=n_2018 + 1)
         by_season = {f.test_season: f for f in folds}
         assert set(by_season) == {2020, 2021, 2022}
-        assert by_season[2020].skipped_reason is not None      # only 2018 -> 40 rows
-        assert by_season[2020].n_train == 40
+        assert by_season[2020].skipped_reason is not None      # only 2018 -> below the minimum
+        assert by_season[2020].n_train == n_2018
         assert by_season[2021].skipped_reason is None
         assert by_season[2021].train_seasons == [2018, 2019]
         assert by_season[2022].train_seasons == [2018, 2019, 2020]
 
     def test_folds_count_players_as_well_as_rows(self):
-        df = _panel(n_players=40)
-        (fold,) = build_folds(df, test_seasons=[2022], min_train_rows=60)
-        assert fold.n_train_players == 40
-        assert fold.n_test_players == 40
-        assert fold.n_test == 40
+        df = _panel()
+        (fold,) = build_folds(df, test_seasons=[2022], min_train_rows=10)
+        train = df[df.feature_season <= 2020]
+        test = df[df.feature_season == 2022]
+        assert fold.n_train_players == train.player_id.nunique()
+        assert fold.n_test_players == test.player_id.nunique()
+        assert fold.n_test == len(test)
 
 
 # ── metrics and the paired bootstrap ──────────────────────────────────────────
@@ -227,29 +234,33 @@ class TestScoreAndBootstrap:
 
 class TestRunCandidateEvaluation:
     def test_every_arm_is_retained_and_every_fold_is_accounted_for(self):
-        df = _panel(n_players=40, positions=("WR",))
-        arms = {"x1_only": ["x1"], "x1_and_x2": ["x1", "x2"], "noise": ["x2"]}
+        df = _panel(positions=("WR",))
+        arms = {"x1_only": ["x1"], "x1_and_x2": ["x1", "x2"], "x2_only": ["x2"]}
         result, predictions = run_candidate_evaluation(
             df, arms=arms, test_seasons=[2020, 2021, 2022, 2023],
-            reference_arms=["x1_only", "x1_and_x2"], min_train_rows=60, draws=50, seed=0,
+            reference_arms=["x1_only", "x1_and_x2"], min_train_rows=10, draws=50, seed=0,
             k_by_position={"WR": 10},
         )
         wr = result["positions"]["WR"]
         assert [f["test_season"] for f in wr["folds"]] == [2020, 2021, 2022, 2023]
-        assert wr["folds"][0]["skipped_reason"] is not None
+        # 2020 trains on 2018 alone and 2021 on 2018-2019: neither window holds a closed
+        # inner validation season, so the leak-free recipe cannot fit and says so
+        assert "leak_free alpha selection" in wr["folds"][0]["skipped_reason"]
+        assert "leak_free alpha selection" in wr["folds"][1]["skipped_reason"]
+        assert wr["evaluated_test_seasons"] == [2022, 2023]
         assert set(wr["pooled"]) == set(arms)             # the losing arm is retained
         # one block of paired differences per reference arm, against every OTHER arm
         assert set(wr["deltas"]) == {"x1_only", "x1_and_x2"}
-        assert set(wr["deltas"]["x1_only"]) == {"x1_and_x2", "noise"}
-        assert set(wr["deltas"]["x1_and_x2"]) == {"x1_only", "noise"}
-        assert set(wr["folds"][1]["deltas"]) == {"x1_only", "x1_and_x2"}
+        assert set(wr["deltas"]["x1_only"]) == {"x1_and_x2", "x2_only"}
+        assert set(wr["deltas"]["x1_and_x2"]) == {"x1_only", "x2_only"}
+        assert set(wr["folds"][2]["deltas"]) == {"x1_only", "x1_and_x2"}   # 2022: first evaluated fold
         # a reference compared with itself would be a tautology; it is not emitted
         assert "x1_only" not in wr["deltas"]["x1_only"]
-        # the informative arm beats the reference, the noise arm loses
+        # the arm with both signals beats each single-signal arm; the weaker single loses
         assert wr["pooled"]["x1_and_x2"]["rmse"] < wr["pooled"]["x1_only"]["rmse"]
-        assert wr["pooled"]["noise"]["rmse"] > wr["pooled"]["x1_only"]["rmse"]
+        assert wr["pooled"]["x2_only"]["rmse"] > wr["pooled"]["x1_only"]["rmse"]
         # predictions are row-level, one per (row, arm), over the evaluated folds only
-        n_test_rows = len(df[df.feature_season.isin([2021, 2022, 2023])])
+        n_test_rows = len(df[df.feature_season.isin([2022, 2023])])
         assert len(predictions) == n_test_rows * len(arms)
         assert set(predictions.columns) >= {
             "player_id", "position", "feature_season", "arm", "y_true", "y_pred"
@@ -296,3 +307,73 @@ class TestWriteRunArtifact:
         with pytest.raises(FileExistsError):
             write_run_artifact(out, {"positions": {}}, pd.DataFrame(), provenance={},
                                report_md="")
+
+
+# ── round 1: the recipe is the one final scoring fits, and a reproduction arm is named ──
+
+from src.dynasty_genius.eval.veteran_candidate import fit_arm  # noqa: E402
+
+
+class TestRecipes:
+    def test_leak_free_recipe_selects_alpha_with_closed_inner_labels(self):
+        df = _panel()
+        train = df[df.feature_season <= 2021]
+        test = df[df.feature_season == 2023].reset_index(drop=True)
+        pred, meta = fit_arm(train, test, ["x1", "x2"], recipe="leak_free")
+        assert len(pred) == len(test) and np.isfinite(pred).all()
+        assert meta["recipe"] == "leak_free"
+        assert meta["alpha"] in meta["alpha_grid"]
+        assert meta["alpha_selection"]["label_window_seasons"] == 2
+        assert meta["alpha_selection"]["preprocessing"] == "median_imputer_fit_inside_each_inner_fold"
+        assert meta["final_fit"] == "median_imputer_on_training_window -> Ridge(alpha)"
+
+    def test_deployed_reproduction_recipe_is_the_old_ridgecv(self):
+        df = _panel()
+        train = df[df.feature_season <= 2021]
+        test = df[df.feature_season == 2023].reset_index(drop=True)
+        pred, meta = fit_arm(train, test, ["x1", "x2"], recipe="deployed_reproduction")
+        assert meta["recipe"] == "deployed_reproduction"
+        assert "RidgeCV" in meta["final_fit"]
+        assert len(pred) == len(test)
+
+    def test_unknown_recipe_is_refused(self):
+        df = _panel()
+        with pytest.raises(ValueError):
+            fit_arm(df[df.feature_season <= 2021], df[df.feature_season == 2023], ["x1"], recipe="nope")
+
+    def test_evaluation_records_a_recipe_per_arm_and_runs_reproduction_arms_old_style(self):
+        df = _panel()
+        result, _ = run_candidate_evaluation(
+            df, arms={"a": ["x1"], "a_old": ["x1"]}, test_seasons=[2022, 2023],
+            reference_arms=["a"], k_by_position={"WR": 10}, draws=20, seed=0, min_train_rows=10,
+            recipe="leak_free", arm_recipes={"a_old": "deployed_reproduction"},
+        )
+        assert result["config"]["recipe"] == "leak_free"
+        assert result["config"]["recipes_by_arm"] == {"a": "leak_free", "a_old": "deployed_reproduction"}
+        fold = result["positions"]["WR"]["folds"][0]
+        assert fold["fit"]["a"]["recipe"] == "leak_free"
+        assert fold["fit"]["a_old"]["recipe"] == "deployed_reproduction"
+
+
+class TestTopKByForecastSeason:
+    def test_topk_is_averaged_within_forecast_seasons_not_over_concatenated_years(self):
+        # Two seasons. Within each, predictions rank perfectly. Season B's scale is 10x
+        # season A's, so a top-k taken over the concatenation would be all season B.
+        y = np.array([5, 4, 3, 2, 1, 50, 40, 30, 20, 10], dtype=float)
+        p = np.array([5, 4, 3, 2, 1, 0.5, 0.4, 0.3, 0.2, 0.1], dtype=float)
+        folds = np.array([2021] * 5 + [2022] * 5)
+        m = score_predictions(y, p, k=2, fold_ids=folds)
+        assert m["topk_overlap"] == pytest.approx(1.0)
+        assert m["topk_aggregation"] == "mean_over_forecast_seasons"
+        # and the naive concatenated version is what we must NOT report
+        assert score_predictions(y, p, k=2)["topk_overlap"] < 1.0
+
+    def test_bootstrap_carries_fold_ids_into_topk(self):
+        rng = np.random.default_rng(3)
+        y = rng.normal(size=200)
+        a = y + rng.normal(scale=0.3, size=200)
+        groups = np.repeat(np.arange(50), 4)
+        folds = np.tile(np.array([2020, 2021, 2022, 2023]), 50)
+        out = paired_cluster_bootstrap(y, a, a, groups, draws=30, seed=0, k=10, fold_ids=folds)
+        assert out["delta_topk_overlap"]["point"] == 0.0
+        assert out["topk_aggregation"] == "mean_over_forecast_seasons"

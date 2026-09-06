@@ -49,6 +49,8 @@ from src.dynasty_genius.eval.opportunity_features import (  # noqa: E402
     EXPLORATORY_XFP_FEATURES,
     RAW_OPPORTUNITY_FEATURES,
     SOURCE_TABLE,
+    attach_opportunity_rates,
+    denominator_facts,
     join_coverage,
     load_opportunity_season_features,
 )
@@ -69,7 +71,14 @@ ARM_RECENT_3_OPP = "recent_production_3col+opportunity"
 ARM_DEPLOYED_OPP = "deployed_recipe+opportunity"
 ARM_RECENT_3_XFP = "exploratory:recent_production_3col+xfp"
 ARM_DEPLOYED_XFP = "exploratory:deployed_recipe+xfp"
+ARM_DEPLOYED_REPRO = "deployed_recipe_reproduction"
 EXPLORATORY_ARMS: frozenset[str] = frozenset({ARM_RECENT_3_XFP, ARM_DEPLOYED_XFP})
+#: The served feature list under the served 2026-08-31 recipe (RidgeCV, random
+#: player-leaky 5-fold selection). A NAMED reproduction, never a candidate.
+REPRODUCTION_ARMS: frozenset[str] = frozenset({ARM_DEPLOYED_REPRO})
+#: Every other arm is fitted the way final scoring now fits (review round 1, item 4).
+PRIMARY_RECIPE = "leak_free"
+REPRODUCTION_RECIPE = "deployed_reproduction"
 
 #: DG-162's "simple recent-production baseline": what he scored, how often, how old.
 RECENT_PRODUCTION_FEATURES: list[str] = ["ppg_t", "games_t", "age"]
@@ -109,7 +118,13 @@ def build_arms(served_features: list[str]) -> dict[str, list[str]]:
         ARM_DEPLOYED_OPP: [*served, *RAW_OPPORTUNITY_FEATURES],
         ARM_RECENT_3_XFP: [*RECENT_PRODUCTION_FEATURES, *EXPLORATORY_XFP_FEATURES],
         ARM_DEPLOYED_XFP: [*served, *EXPLORATORY_XFP_FEATURES],
+        ARM_DEPLOYED_REPRO: list(served),
     }
+
+
+def arm_recipes(arms: dict[str, list[str]]) -> dict[str, str]:
+    """Recipe per arm: the corrected procedure everywhere except the named reproduction."""
+    return {name: (REPRODUCTION_RECIPE if name in REPRODUCTION_ARMS else PRIMARY_RECIPE) for name in arms}
 
 
 def served_feature_lists(manifest_path: Path, root: Path) -> dict[str, dict[str, Any]]:
@@ -201,6 +216,10 @@ def render_report(results: dict[str, Any], provenance: dict[str, Any]) -> str:
     lines.append("# DG-177 — veteran forecast candidate, evaluated at the cutoff\n")
     lines.append(f"Rule: `{cfg['rule']}` · reference arms: {cfg['reference_arms']} · "
                  f"test seasons: {cfg.get('test_seasons')} · git: `{provenance.get('git_head', '—')}`\n")
+    if cfg.get("recipes_by_arm"):
+        old = sorted(a for a, r in cfg["recipes_by_arm"].items() if r != cfg.get("recipe"))
+        lines.append(f"Recipe: `{cfg.get('recipe')}` for every arm"
+                     + (f" except {old} (`{cfg['recipes_by_arm'][old[0]]}`)" if old else "") + ".\n")
     lines.append("Deltas are metric(arm) − metric(reference) on identical rows, 90% interval from a "
                  "bootstrap that resamples players. RMSE lower is better; r², Spearman and top-k "
                  "overlap higher is better.\n")
@@ -215,6 +234,12 @@ def render_report(results: dict[str, Any], provenance: dict[str, Any]) -> str:
                 f"{fold['n_train']} / {fold['n_train_players']} | "
                 f"{fold['n_test']} / {fold['n_test_players']} | {status} |"
             )
+        fits = [(f["test_season"], {a: m["alpha"] for a, m in f.get("fit", {}).items()
+                                     if a in cfg.get("reference_arms", [])})
+                for f in block["folds"] if f["skipped_reason"] is None and f.get("fit")]
+        if fits:
+            lines.append("\nAlpha selected per fold for the reference arms: "
+                         + " · ".join(f"{s}: {a}" for s, a in fits) + "\n")
         if not block.get("pooled"):
             lines.append("\nNo fold was evaluable for this position.\n")
             continue
@@ -263,6 +288,14 @@ def render_report(results: dict[str, Any], provenance: dict[str, Any]) -> str:
                 f"{_fmt(row['delta_r2_deployed_vs_3col'])} / {_fmt(row['published_delta_r2'])} |"
             )
     if results.get("coverage"):
+        facts = results["coverage"].get("denominator")
+        if facts:
+            lines.append("\n## Opportunity denominator\n")
+            lines.append(f"Rates divide by `{facts['denominator']}`. Rows {facts['rows']}, joined "
+                         f"{facts['rows_joined']}, unavailable (NaN, never zero) {facts['rows_unavailable']}; "
+                         f"{facts['rows_with_zero_opportunity_games']} joined rows had fewer source weeks than "
+                         f"product games, and {facts['zero_opportunity_games_counted']} zero-opportunity games "
+                         "were counted in the denominator rather than dropped.\n")
         lines.append("\n## Opportunity family coverage (training rows joined to a season aggregate)\n")
         lines.append("| pos | " + " | ".join(results["coverage"]["seasons"]) + " |")
         lines.append("|---|" + "---|" * len(results["coverage"]["seasons"]))
@@ -297,6 +330,7 @@ def _warehouse_facts(conn: sqlite3.Connection) -> dict[str, Any]:
 def _evaluate_all_positions(
     df: pd.DataFrame, served: dict[str, dict[str, Any]], *, rule: str, test_seasons: list[int],
     draws: int, seed: int, min_train_rows: int, k_by_position: dict[str, int],
+    recipe: str = PRIMARY_RECIPE, recipes_override: dict[str, str] | None = None,
 ) -> tuple[dict[str, Any], pd.DataFrame]:
     positions: dict[str, Any] = {}
     frames: list[pd.DataFrame] = []
@@ -307,10 +341,12 @@ def _evaluate_all_positions(
             continue
         arms = build_arms(served[position]["features"])
         arms_by_position[position] = arms
+        recipes = arm_recipes(arms) if recipes_override is None else dict(recipes_override)
         result, predictions = run_candidate_evaluation(
             df[df["position"] == position], arms=arms, test_seasons=test_seasons,
             reference_arms=REFERENCE_ARMS, k_by_position=k_by_position, rule=rule,
             min_train_rows=min_train_rows, draws=draws, seed=seed,
+            recipe=recipe, arm_recipes=recipes,
         )
         positions.update(result["positions"])
         frames.append(predictions)
@@ -376,9 +412,8 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         conn.close()
     coverage = join_coverage(df, opportunity)
-    merged = df.merge(opportunity, on=["player_id", "feature_season"], how="left", validate="m:1")
-    if len(merged) != len(df):
-        raise RuntimeError(f"opportunity join changed the row count: {len(df)} -> {len(merged)}")
+    merged = attach_opportunity_rates(df, opportunity)
+    facts = denominator_facts(merged)
 
     print(f"rows {len(df)} · feature seasons {feature_seasons} · opportunity rows {len(opportunity)}")
     primary, predictions = _evaluate_all_positions(
@@ -387,7 +422,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     results: dict[str, Any] = {
         **primary,
-        "coverage": {"seasons": [str(s) for s in feature_seasons], "by_position": coverage},
+        "coverage": {"seasons": [str(s) for s in feature_seasons], "by_position": coverage,
+                     "denominator": facts},
         "outcome": OUTCOME_COLUMN,
         "label_window_seasons": LABEL_WINDOW_SEASONS,
         "recipe": DEPLOYED_RECIPE,
@@ -395,9 +431,12 @@ def main(argv: list[str] | None = None) -> int:
         "started_utc": started.isoformat(),
     }
     if not args.skip_reproduction and args.rule != REPRODUCTION_RULE:
+        # DG-162's table was made with the served recipe on every arm; reproduce it that way.
         strict, _ = _evaluate_all_positions(
             merged, served, rule=REPRODUCTION_RULE, test_seasons=args.test_seasons, draws=args.draws,
             seed=args.seed, min_train_rows=args.min_train_rows, k_by_position=dict(PRIMARY_NDCG_K),
+            recipe=REPRODUCTION_RECIPE,
+            recipes_override={a: REPRODUCTION_RECIPE for a in build_arms([])},
         )
         results["reproduction_dg162"] = _reproduction_table(strict)
         results["strict_rule_full_results"] = strict["positions"]
@@ -427,7 +466,9 @@ def main(argv: list[str] | None = None) -> int:
             "the model version behind each warehouse row is not recorded. That window overlaps "
             "feature seasons 2018-2020 at play level, so arms using them are labelled "
             "exploratory and are not point-in-time evidence.",
-            "opp_* columns are raw per-game counts from the feature season only.",
+            "opp_* columns are raw counts from the feature season only, per PRODUCT game "
+            "(games_t, all games with a stat line, DG-024); source weeks missing from a joined "
+            "season are observed zero-opportunity games; an absent season is NaN, never zero.",
         ],
         "finished_utc": datetime.now(timezone.utc).isoformat(),
     })

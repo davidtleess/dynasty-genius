@@ -16,11 +16,15 @@ import pytest
 from scripts.experiments.dg177_veteran_candidate import (
     ARM_DEPLOYED,
     ARM_DEPLOYED_OPP,
+    ARM_DEPLOYED_REPRO,
     ARM_PPG_ONLY,
     ARM_RECENT_3,
     ARM_RECENT_3_OPP,
     EXPLORATORY_ARMS,
+    PRIMARY_RECIPE,
     RECENT_PRODUCTION_FEATURES,
+    REPRODUCTION_ARMS,
+    arm_recipes,
     build_arms,
     collect_provenance,
     render_report,
@@ -63,6 +67,14 @@ def test_arms_are_the_baselines_the_deployed_list_and_one_family():
     assert arms[ARM_DEPLOYED] == served
     assert arms[ARM_RECENT_3_OPP] == ["ppg_t", "games_t", "age", *RAW_OPPORTUNITY_FEATURES]
     assert arms[ARM_DEPLOYED_OPP] == [*served, *RAW_OPPORTUNITY_FEATURES]
+    # the served feature list also runs under the served 2026-08-31 recipe, as a NAMED
+    # reproduction arm — the only arm that uses the old player-leaky RidgeCV selection
+    assert arms[ARM_DEPLOYED_REPRO] == served
+    assert REPRODUCTION_ARMS == frozenset({ARM_DEPLOYED_REPRO})
+    recipes = arm_recipes(arms)
+    assert recipes[ARM_DEPLOYED_REPRO] == "deployed_reproduction"
+    assert PRIMARY_RECIPE == "leak_free"
+    assert all(recipes[a] == "leak_free" for a in arms if a not in REPRODUCTION_ARMS)
     # the third-party expected-points columns only ever appear in arms named exploratory
     for name, feats in arms.items():
         if set(feats) & set(EXPLORATORY_XFP_FEATURES):

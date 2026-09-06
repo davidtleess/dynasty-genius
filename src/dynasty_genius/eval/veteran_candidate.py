@@ -39,8 +39,7 @@ from typing import Any, Iterable
 import numpy as np
 import pandas as pd
 from scipy import stats as scipy_stats
-from sklearn.impute import SimpleImputer
-from sklearn.linear_model import RidgeCV
+from sklearn.linear_model import Ridge, RidgeCV
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 from src.dynasty_genius.models.engine_b_contract import (
@@ -54,6 +53,10 @@ from src.dynasty_genius.models.label_closure import (  # noqa: F401  (re-exporte
     FutureLabelError,
     admissible_train_seasons,
     assert_labels_known,
+)
+from src.dynasty_genius.models.leak_free_tuning import (
+    make_imputer,
+    select_alpha_leak_free,
 )
 
 #: The penalty grid the served Engine B v2 pickles were selected from
@@ -127,25 +130,88 @@ def validate_candidate_features(features: list[str]) -> None:
 
 # ── fitting inside the window ─────────────────────────────────────────────────
 
+#: ``leak_free`` is the corrected procedure and the one final scoring fits: the ridge
+#: penalty is chosen on expanding-time inner folds clustered on player with every inner
+#: training label closed at its validation season and the imputer fitted inside each
+#: inner fold; the final model is a median imputer on the whole training window and a
+#: Ridge at that penalty. ``deployed_reproduction`` is the served 2026-08-31 recipe —
+#: RidgeCV with random, player-leaky 5-fold selection inside the training window —
+#: kept as a NAMED reproduction arm, never as a candidate.
+RECIPES = ("leak_free", "deployed_reproduction")
+LEAK_FREE_FINAL_FIT = "median_imputer_on_training_window -> Ridge(alpha)"
+DEPLOYED_REPRODUCTION_FINAL_FIT = "median_imputer_on_training_window -> RidgeCV(alphas, cv=5)"
+
+
+class RecipeCannotFit(ValueError):
+    """The recipe cannot be fitted honestly on this training window (e.g. too few
+    closed seasons for an inner selection). A fold is skipped, never degraded."""
+
+
+def fit_arm(
+    train: pd.DataFrame,
+    test: pd.DataFrame,
+    features: list[str],
+    *,
+    recipe: str = "leak_free",
+    alphas: Iterable[float] = DEPLOYED_ALPHA_GRID,
+    outcome: str = OUTCOME_COLUMN,
+    window: int = LABEL_WINDOW_SEASONS,
+) -> tuple[np.ndarray, dict[str, Any]]:
+    """Fit one arm on ``train`` only and forecast ``test``; return predictions and how
+    the fit was made. Nothing is fitted on ``test``."""
+    if recipe not in RECIPES:
+        raise ValueError(f"unknown recipe {recipe!r}; expected one of {RECIPES}")
+    alphas = [float(a) for a in alphas]
+    x_train_raw = train[list(features)].astype(float).to_numpy()
+    x_test_raw = test[list(features)].astype(float).to_numpy()
+    y_train = train[outcome].to_numpy(dtype=float)
+
+    if recipe == "leak_free":
+        try:
+            alpha, selection = select_alpha_leak_free(
+                x_train_raw, y_train, train["feature_season"].to_numpy(),
+                train["player_id"].to_numpy(), alphas, window=window,
+            )
+        except ValueError as err:
+            raise RecipeCannotFit(f"leak_free alpha selection: {err}") from err
+        imputer = make_imputer("median")
+        model = Ridge(alpha=alpha).fit(imputer.fit_transform(x_train_raw), y_train)
+        meta = {
+            "recipe": recipe,
+            "alpha": float(alpha),
+            "alpha_grid": alphas,
+            "alpha_selection": {k: v for k, v in selection.items() if k != "fold_indices"},
+            "final_fit": LEAK_FREE_FINAL_FIT,
+        }
+    else:
+        imputer = make_imputer("median")
+        model = RidgeCV(alphas=alphas, cv=5).fit(imputer.fit_transform(x_train_raw), y_train)
+        meta = {
+            "recipe": recipe,
+            "alpha": float(model.alpha_),
+            "alpha_grid": alphas,
+            "alpha_selection": {
+                "method": "RidgeCV random unshuffled 5-fold within the training window "
+                          "(served 2026-08-31 recipe; the same player can sit on both sides)",
+            },
+            "final_fit": DEPLOYED_REPRODUCTION_FINAL_FIT,
+        }
+    pred = np.asarray(model.predict(imputer.transform(x_test_raw)), dtype=float)
+    return pred, meta
+
+
 def fit_predict_arm(
     train: pd.DataFrame,
     test: pd.DataFrame,
     features: list[str],
     *,
+    recipe: str = "leak_free",
     alphas: Iterable[float] = DEPLOYED_ALPHA_GRID,
     outcome: str = OUTCOME_COLUMN,
 ) -> np.ndarray:
-    """Fit the deployed recipe on ``train`` only and forecast ``test``.
-
-    Nothing is fitted on ``test``: the imputer's medians and the ridge penalty both come
-    from the training rows, which is what makes a test row's prediction independent of
-    every other test row.
-    """
-    imputer = SimpleImputer(strategy="median", keep_empty_features=True)
-    x_train = imputer.fit_transform(train[list(features)].astype(float))
-    x_test = imputer.transform(test[list(features)].astype(float))
-    model = RidgeCV(alphas=list(alphas), cv=5).fit(x_train, train[outcome].to_numpy(dtype=float))
-    return np.asarray(model.predict(x_test), dtype=float)
+    """Predictions only; see ``fit_arm``."""
+    pred, _ = fit_arm(train, test, features, recipe=recipe, alphas=alphas, outcome=outcome)
+    return pred
 
 
 # ── metrics ───────────────────────────────────────────────────────────────────
@@ -165,7 +231,25 @@ def _spearman(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     return float(scipy_stats.spearmanr(y_true, y_pred).statistic)
 
 
-def score_predictions(y_true: np.ndarray, y_pred: np.ndarray, k: int) -> dict[str, float]:
+TOPK_BY_SEASON = "mean_over_forecast_seasons"
+TOPK_SINGLE = "single_forecast_season"
+
+
+def _topk_by_fold(y_true: np.ndarray, y_pred: np.ndarray, k: int, fold_ids: np.ndarray | None) -> float:
+    """Top-k overlap taken WITHIN each forecast season and averaged, never over the
+    concatenation of years — a top-k over concatenated seasons is dominated by whichever
+    season scored highest, which is not a ranking question anyone asks."""
+    if fold_ids is None:
+        return _topk_overlap(y_true, y_pred, k)
+    fold_ids = np.asarray(fold_ids)
+    values = [_topk_overlap(y_true[fold_ids == f], y_pred[fold_ids == f], k) for f in np.unique(fold_ids)]
+    values = [v for v in values if np.isfinite(v)]
+    return float(np.mean(values)) if values else float("nan")
+
+
+def score_predictions(
+    y_true: np.ndarray, y_pred: np.ndarray, k: int, fold_ids: np.ndarray | None = None
+) -> dict[str, Any]:
     y_true = np.asarray(y_true, dtype=float)
     y_pred = np.asarray(y_pred, dtype=float)
     return {
@@ -174,7 +258,8 @@ def score_predictions(y_true: np.ndarray, y_pred: np.ndarray, k: int) -> dict[st
         "mae": float(mean_absolute_error(y_true, y_pred)),
         "r2": float(r2_score(y_true, y_pred)) if len(y_true) >= 2 else float("nan"),
         "spearman": _spearman(y_true, y_pred),
-        "topk_overlap": _topk_overlap(y_true, y_pred, k),
+        "topk_overlap": _topk_by_fold(y_true, y_pred, k, fold_ids),
+        "topk_aggregation": TOPK_BY_SEASON if fold_ids is not None else TOPK_SINGLE,
         "k": int(min(k, len(y_true))),
     }
 
@@ -191,6 +276,7 @@ def paired_cluster_bootstrap(
     draws: int,
     seed: int,
     k: int,
+    fold_ids: np.ndarray | None = None,
 ) -> dict[str, Any]:
     """Bootstrap ``metric(b) - metric(a)`` on identical rows, resampling clusters.
 
@@ -202,12 +288,14 @@ def paired_cluster_bootstrap(
     pred_a = np.asarray(pred_a, dtype=float)
     pred_b = np.asarray(pred_b, dtype=float)
     groups = np.asarray(groups)
+    fold_ids = None if fold_ids is None else np.asarray(fold_ids)
     if not (len(y_true) == len(pred_a) == len(pred_b) == len(groups)):
         raise ValueError("paired bootstrap needs one y_true, pred_a, pred_b and group per row")
 
     def deltas(idx: np.ndarray) -> dict[str, float]:
-        a = score_predictions(y_true[idx], pred_a[idx], k)
-        b = score_predictions(y_true[idx], pred_b[idx], k)
+        f = None if fold_ids is None else fold_ids[idx]
+        a = score_predictions(y_true[idx], pred_a[idx], k, fold_ids=f)
+        b = score_predictions(y_true[idx], pred_b[idx], k, fold_ids=f)
         return {m: b[m] - a[m] for m in _DELTA_METRICS}
 
     point = deltas(np.arange(len(y_true)))
@@ -227,6 +315,7 @@ def paired_cluster_bootstrap(
         "draws": int(draws),
         "seed": int(seed),
         "ci": f"percentile_{CI_PERCENTILES[0]:g}_{CI_PERCENTILES[1]:g}",
+        "topk_aggregation": TOPK_BY_SEASON if fold_ids is not None else TOPK_SINGLE,
     }
     for m in _DELTA_METRICS:
         arr = np.asarray(samples[m], dtype=float)
@@ -252,6 +341,8 @@ def run_candidate_evaluation(
     seed: int = 20260906,
     alphas: Iterable[float] = DEPLOYED_ALPHA_GRID,
     outcome: str = OUTCOME_COLUMN,
+    recipe: str = "leak_free",
+    arm_recipes: dict[str, str] | None = None,
 ) -> tuple[dict[str, Any], pd.DataFrame]:
     """Score every arm on identical walk-forward test rows, per position.
 
@@ -266,6 +357,10 @@ def run_candidate_evaluation(
     unknown = [r for r in reference_arms if r not in arms]
     if unknown or not reference_arms:
         raise ValueError(f"reference arms {unknown or reference_arms!r} are not among {sorted(arms)}")
+    recipes_by_arm = {name: (arm_recipes or {}).get(name, recipe) for name in arms}
+    for name, r in recipes_by_arm.items():
+        if r not in RECIPES:
+            raise ValueError(f"arm {name!r} names unknown recipe {r!r}; expected one of {RECIPES}")
     for name, features in arms.items():
         validate_candidate_features(features)
         missing = sorted(set(features) - set(df.columns))
@@ -287,11 +382,11 @@ def run_candidate_evaluation(
         k = int(k_by_position.get(position, 12))
         folds_out: list[dict[str, Any]] = []
         pooled: dict[str, dict[str, list[np.ndarray]]] = {
-            name: {"y_true": [], "y_pred": [], "groups": []} for name in arms
+            name: {"y_true": [], "y_pred": [], "groups": [], "fold_ids": []} for name in arms
         }
         for fold in build_folds(pos_df, test_seasons, rule=rule,
                                 min_train_rows=min_train_rows, min_test_rows=min_test_rows):
-            record: dict[str, Any] = {**asdict(fold), "arms": {}, "deltas": {}}
+            record: dict[str, Any] = {**asdict(fold), "arms": {}, "fit": {}, "deltas": {}}
             if fold.skipped_reason is None:
                 train = pos_df[pos_df["feature_season"].isin(fold.train_seasons)]
                 test = pos_df[pos_df["feature_season"] == fold.test_season]
@@ -299,12 +394,24 @@ def run_candidate_evaluation(
                 y_true = test[outcome].to_numpy(dtype=float)
                 groups = test["player_id"].to_numpy()
                 preds: dict[str, np.ndarray] = {}
-                for name, features in arms.items():
-                    preds[name] = fit_predict_arm(train, test, features, alphas=alphas, outcome=outcome)
+                try:
+                    for name, features in arms.items():
+                        preds[name], record["fit"][name] = fit_arm(
+                            train, test, features, recipe=recipes_by_arm[name],
+                            alphas=alphas, outcome=outcome,
+                        )
+                except RecipeCannotFit as err:
+                    # Paired comparison needs every arm on identical rows: if one recipe
+                    # cannot be fitted honestly here, the whole fold is skipped and says why.
+                    record.update({"skipped_reason": str(err), "arms": {}, "fit": {}, "deltas": {}})
+                    folds_out.append(record)
+                    continue
+                for name in arms:
                     record["arms"][name] = score_predictions(y_true, preds[name], k)
                     pooled[name]["y_true"].append(y_true)
                     pooled[name]["y_pred"].append(preds[name])
                     pooled[name]["groups"].append(groups)
+                    pooled[name]["fold_ids"].append(np.full(len(y_true), fold.test_season))
                     prediction_rows.append(pd.DataFrame({
                         "player_id": test["player_id"].to_numpy(),
                         "position": position,
@@ -330,13 +437,15 @@ def run_candidate_evaluation(
             cat = {name: {key: np.concatenate(v) for key, v in parts.items()}
                    for name, parts in pooled.items()}
             for name in arms:
-                pooled_metrics[name] = score_predictions(cat[name]["y_true"], cat[name]["y_pred"], k)
+                pooled_metrics[name] = score_predictions(
+                    cat[name]["y_true"], cat[name]["y_pred"], k, fold_ids=cat[name]["fold_ids"]
+                )
             for reference in reference_arms:
                 ref = cat[reference]
                 pooled_deltas[reference] = {
                     name: paired_cluster_bootstrap(
                         ref["y_true"], ref["y_pred"], cat[name]["y_pred"], ref["groups"],
-                        draws=draws, seed=seed, k=k,
+                        draws=draws, seed=seed, k=k, fold_ids=ref["fold_ids"],
                     )
                     for name in arms if name != reference
                 }
@@ -355,7 +464,14 @@ def run_candidate_evaluation(
             "test_seasons": test_seasons,
             "reference_arms": reference_arms,
             "arms": {name: list(features) for name, features in arms.items()},
-            "recipe": DEPLOYED_RECIPE,
+            "recipe": recipe,
+            "recipes_by_arm": recipes_by_arm,
+            "recipe_definitions": {
+                "leak_free": "alpha on expanding-time inner folds clustered on player, inner labels "
+                             "closed at the validation season, imputer fitted inside each inner fold; "
+                             + LEAK_FREE_FINAL_FIT,
+                "deployed_reproduction": "the served 2026-08-31 recipe: " + DEPLOYED_RECIPE,
+            },
             "alpha_grid": list(alphas),
             "min_train_rows": min_train_rows,
             "min_test_rows": min_test_rows,

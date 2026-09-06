@@ -154,6 +154,8 @@ AUTHORIZED_EVAL_FILES = {
     # opportunity family. Report-only research consumers; nothing served reads them.
     "veteran_candidate.py",
     "opportunity_features.py",
+    "annual_outcomes.py",
+    "annual_forecasts.py",
     "__init__.py",
     "backtest_artifact.py",
     "backtest_harness.py",
