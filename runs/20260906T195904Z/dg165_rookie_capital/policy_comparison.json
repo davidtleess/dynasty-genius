@@ -1,0 +1,96 @@
+{
+ "policy": "inner_menu",
+ "comparison": {
+  "plain": {
+   "p_qual_year1": {
+    "brier": {
+     "policy": 0.11821242303755117,
+     "exploratory": 0.12029894385448739,
+     "difference": 0.0020865208169362215,
+     "difference_ci90": [
+      0.000391149511888457,
+      0.003919353039250953
+     ],
+     "reading": "positive difference favours the policy"
+    },
+    "log_loss": {
+     "policy": 0.3774604099525875,
+     "exploratory": 0.3830765396349012,
+     "difference": 0.005616129682313675,
+     "difference_ci90": [
+      0.0007820212236977903,
+      0.010749878746980562
+     ],
+     "reading": "positive difference favours the policy"
+    },
+    "auc": {
+     "policy": 0.8489274483378259,
+     "exploratory": 0.8505868149146452,
+     "difference": 0.00165936657681931,
+     "difference_ci90": [
+      -0.0016674061298240506,
+      0.004986044234851527
+     ],
+     "reading": "negative difference favours the policy"
+    }
+   },
+   "p_appear_year1": {
+    "brier": {
+     "policy": 0.13153357662585982,
+     "exploratory": 0.13314681685902588,
+     "difference": 0.0016132402331660578,
+     "difference_ci90": [
+      2.9322055361227794e-05,
+      0.003205431783168651
+     ],
+     "reading": "positive difference favours the policy"
+    }
+   },
+   "e_points_year1": {
+    "rmse": {
+     "policy": 51.566718572296985,
+     "exploratory": 52.842454167042085,
+     "difference": 1.2757355947451003,
+     "difference_ci90": [
+      0.7129945976979577,
+      1.7816362703615292
+     ],
+     "reading": "positive difference favours the policy"
+    }
+   },
+   "p_qual_year3": {
+    "brier": {
+     "policy": 0.14487218185482775,
+     "exploratory": 0.14417504660932523,
+     "difference": -0.0006971352455025226,
+     "difference_ci90": [
+      -0.0015106485345932007,
+      0.00013900352704998965
+     ],
+     "reading": "positive difference favours the policy"
+    }
+   },
+   "e_points_year3": {
+    "rmse": {
+     "policy": 69.30732560321582,
+     "exploratory": 69.26194573641371,
+     "difference": -0.04537986680210793,
+     "difference_ci90": [
+      -0.2745451420882354,
+      0.18295121445202792
+     ],
+     "reading": "positive difference favours the policy"
+    }
+   }
+  }
+ },
+ "evidence_status": {
+  "inner_menu": "retrospective historical evaluation with forecast cutoffs enforced; the policy selects, if at all, only inside each training window, but the policy menu itself was refined after inspecting these historical years, so this is not untouched independent confirmation",
+  "plain": "exploratory comparison against the declared policy on the same retrospective evaluation; never used to reassign the canonical evidence"
+ },
+ "paired_bootstrap": {
+  "n_boot": 1000,
+  "rows": 1445,
+  "resampling": "test rows (forecast year, prospect) drawn once per replicate, both arms re-scored on the same draw"
+ }
+}
