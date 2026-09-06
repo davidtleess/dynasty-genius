@@ -89,19 +89,32 @@ def market_price(row: dict) -> float | None:
     return float(value)
 
 
-def format_explains(a: dict, b: dict) -> bool:
-    """Does the format difference already account for the gap?
+def format_explains(better: dict, worse: dict) -> bool:
+    """Is the gap already accounted for by the format the market prices FOR?
 
-    The market prices for 0.5 PPR starting three receivers; his league is full PPR
-    starting two, and DG-169 measured what that is worth by position. A player the
-    market underprices FOR HIS FORMAT is not a market error — it is a format mismatch,
-    and translating is how we tell them apart. A contradiction only counts if it
-    SURVIVES the translation.
+    The market publishes for 0.5 PPR starting three receivers; his league is full PPR
+    superflex starting two, and DG-169 measured what that is worth by position. If the
+    DOMINANT player's position carries the larger correction, then the market pricing
+    them alike already underprices him for his format — and a finding that he is better
+    is partly the format rather than a market error.
+
+    ⚠ TWO EARLIER VERSIONS OF THIS FUNCTION WERE WRONG, in opposite directions, and the
+    simplest possible test caught the second in one second after a day of hand-running
+    caught neither.
+
+    The first compared TRANSLATED prices to decide which players the market prices
+    ALIKE, which made the largest correction in the table into the loudest finding —
+    four tight ends aged 30 to 36 in the top six, manufactured.
+
+    The second tested whether translation preserved the sign of the price difference.
+    But the pairs this screen exists to find are priced within 10% of each other, so
+    that difference is near zero and its sign is meaningless — for two players at the
+    SAME price it returned "explained" every time, discarding the clearest possible
+    contradiction. It compared prices when the question was about positions.
     """
-    ta = a["market"] * LEAGUE_TRANSLATION.get(a["pos"], 1.0)
-    tb = b["market"] * LEAGUE_TRANSLATION.get(b["pos"], 1.0)
-    # if translation reverses or erases the price ordering, the format explains it
-    return (a["market"] - b["market"]) * (ta - tb) <= 0 or abs(ta - tb) / max(ta, tb) < 0.02
+    ta = LEAGUE_TRANSLATION.get(better["pos"], 1.0)
+    tb = LEAGUE_TRANSLATION.get(worse["pos"], 1.0)
+    return ta > tb * 1.05
 
 
 def dominates(a: dict, b: dict) -> bool:
