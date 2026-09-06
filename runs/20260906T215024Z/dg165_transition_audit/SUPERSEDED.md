@@ -1,0 +1,1 @@
+Superseded by `runs/20260906T215655Z/dg165_transition_audit` (same numbers; the successor adds label provenance — artifact vs convention_zero — on every paired row, and binds the veteran run's corrected companion as the target of record). All original files in this directory are left byte-for-byte as written.
