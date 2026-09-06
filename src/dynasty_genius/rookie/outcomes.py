@@ -21,18 +21,28 @@ attribution; nothing missing is fabricated as zero.
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 __all__ = ["CommonOutcomes", "OutcomeInputs", "load_common_outcomes", "outcome_binding", "outcome_inputs",
-           "qualification_panel", "season_stats_from_outcomes", "weekly_positions_by_player_season"]
+           "qualification_panel", "season_stats_from_outcomes", "weekly_positions_by_player_season",
+           "weekly_positions_from_capture"]
 
 REQUIRED = ("player_id", "season", "points", "games", "appeared")
 SCHEMA_VERSION = "dg179_league_season_outcomes_v1"
+EXPECTED_PRESET = "nflverse_default_ppr_championship_window_v1"
+EXPECTED_WINDOW_RULE = (
+    "Equal-weight REG stat records in weeks 1-16 through 2020 and weeks 1-17 "
+    "from 2021; earlier windows are a modelling convention, not a claim about "
+    "David's historical league settings. POST records do not contribute outcomes."
+)
+EXPECTED_EXPOSURE = "unique stat_record weeks within the outcome window"
 COVERAGE_STATUSES = ("qualified_research_game_complete_identified_rows", "calendar_checked_game_coverage_unverified")
 SCORING_CAVEAT = ("nflverse default-PPR championship-window research outcomes; exact-league scoring is unsupported pending complete "
                   "attribution of lost-fumble scope, fum_rec_td, st_ff and st_fum_rec; nothing missing is fabricated as zero")
@@ -51,6 +61,7 @@ class CommonOutcomes:
     manifest_path: Path
     csv_sha256: str
     manifest_sha256: str
+    csv_bytes: int = 0
 
     @property
     def labels_through(self) -> int:
@@ -74,55 +85,122 @@ def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def canonical_sha256(value) -> str:
+    """The artifact's own identity recipe (DG-179): JSON, sorted keys, compact separators."""
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+
+
 def load_common_outcomes(csv_path: Path | str, manifest_path: Path | str) -> CommonOutcomes:
+    """Read both files ONCE as bytes, hash those bytes, parse the same bytes, and refuse
+    anything that is not exactly the declared, internally consistent research artifact."""
     csv_path, manifest_path = Path(csv_path), Path(manifest_path)
-    frame = pd.read_csv(csv_path)
+    csv_raw, manifest_raw = csv_path.read_bytes(), manifest_path.read_bytes()
+    manifest = json.loads(manifest_raw.decode("utf-8"))
+    _verify_manifest(manifest, csv_raw)
+    frame = pd.read_csv(io.BytesIO(csv_raw), dtype={"player_id": str}, keep_default_na=True)
     missing = [c for c in REQUIRED if c not in frame.columns]
     if missing:
         raise ValueError(f"common outcome artifact lacks columns {missing}")
-    idless = frame["player_id"].isna() | (frame["player_id"].astype(str).str.strip() == "")
+    frame = _validate_rows(frame, manifest["season_windows"])
+    return CommonOutcomes(frame=frame, manifest=manifest, csv_path=csv_path, manifest_path=manifest_path,
+                          csv_sha256=hashlib.sha256(csv_raw).hexdigest(), manifest_sha256=hashlib.sha256(manifest_raw).hexdigest(),
+                          csv_bytes=len(csv_raw))
+
+
+def _validate_rows(frame: pd.DataFrame, season_windows: Mapping) -> pd.DataFrame:
+    """Row-level guards: nonblank ids, unique keys, integral non-negative games within the
+    season's declared window, finite points, literal boolean appearance equal to games >= 1,
+    and zero games => zero points. Unknown values refuse; nothing becomes a failure label."""
+    ids = frame["player_id"]
+    idless = ids.isna() | (ids.astype(str).str.strip() == "")
     if idless.any():
         raise ValueError(f"{int(idless.sum())} rows without a player_id; the artifact must decide them, this adapter will not")
-    frame["player_id"] = frame["player_id"].astype(str).str.strip()
-    frame["season"] = frame["season"].astype(int)
+    if (ids.astype(str) != ids.astype(str).str.strip()).any():
+        raise ValueError("player_id values must be unpadded; padded ids are refused, not repaired")
+    frame = frame.copy()
+    frame["player_id"] = ids.astype(str)
+    season = pd.to_numeric(frame["season"], errors="coerce")
+    if season.isna().any() or (season != np.floor(season)).any():
+        raise ValueError("season must be an integral year on every row")
+    frame["season"] = season.astype(int)
     if frame.duplicated(["player_id", "season"]).any():
         raise ValueError(f"{int(frame.duplicated(['player_id', 'season']).sum())} duplicate (player_id, season) rows")
+    covered = {int(k): v for k, v in season_windows.items()}
+    outside = sorted(set(frame["season"].unique()) - set(covered))
+    if outside:
+        raise ValueError(f"outcome rows for seasons {outside} that the manifest's season_windows do not cover")
     games = pd.to_numeric(frame["games"], errors="coerce")
+    if games.isna().any() or (games < 0).any() or (games != np.floor(games)).any():
+        raise ValueError("games must be a non-negative integer on every row (negative or fractional games refused, never truncated)")
+    max_weeks = frame["season"].map(lambda y: len(covered[y]["included_reg_weeks"]))
+    if (games > max_weeks).any():
+        raise ValueError("games exceed the season's declared included_reg_weeks on some rows")
+    points = pd.to_numeric(frame["points"], errors="coerce")
+    if points.isna().any() or not np.isfinite(points.to_numpy(dtype=float)).all():
+        raise ValueError("points must be finite on every row; a missing or infinite value is refused, never treated as zero")
     appeared = frame["appeared"].map(lambda v: 1 if v in TRUE_VALUES else (0 if v in FALSE_VALUES else None)).astype(float)
-    if games.isna().any() or appeared.isna().any():
-        raise ValueError("games and appeared must be present on every row and appeared must be boolean (one mask)")
+    if appeared.isna().any():
+        raise ValueError("appeared must be a literal boolean on every row (one mask)")
     if ((appeared == 1) != (games >= 1)).any():
         bad = int(((appeared == 1) != (games >= 1)).sum())
         raise ValueError(f"mask disagreement on {bad} rows: appeared must equal games >= 1")
+    if ((games == 0) & (points != 0)).any():
+        raise ValueError("zero games with nonzero points on some rows: the mask is not one mask")
     frame["games"] = games.astype(int)
     frame["appeared"] = appeared.astype(int)
-    frame["points"] = pd.to_numeric(frame["points"], errors="coerce")
-    manifest = json.loads(manifest_path.read_text())
-    _verify_manifest(manifest, csv_path)
-    covered = {int(k) for k in manifest["season_windows"]}
-    outside = sorted(set(frame["season"].unique()) - covered)
-    if outside:
-        raise ValueError(f"outcome rows for seasons {outside} that the manifest's season_windows do not cover")
-    return CommonOutcomes(frame=frame, manifest=manifest, csv_path=csv_path, manifest_path=manifest_path,
-                          csv_sha256=_sha(csv_path), manifest_sha256=_sha(manifest_path))
+    frame["points"] = points.astype(float)
+    return frame
 
 
-def _verify_manifest(manifest: Mapping, csv_path: Path) -> None:
-    """Fail closed on the implemented DG-179 schema: version, declared CSV hash, honest flags."""
+def _verify_manifest(manifest: Mapping, csv_raw: bytes) -> None:
+    """Fail closed on the implemented DG-179 schema: version, exact preset and window rule,
+    declared CSV hash against the bytes read, honest flags, and every declared identity
+    RECOMPUTED with the artifact's own canonical recipe."""
     if manifest.get("schema_version") != SCHEMA_VERSION:
         raise ValueError(f"schema_version {manifest.get('schema_version')!r} is not {SCHEMA_VERSION!r}")
     for key in ("scoring_preset", "window_rule", "season_windows", "exposure_definition", "last_complete_season", "coverage_status",
-                "source_identity", "source_identity_sha256", "scoring_identity", "window_identity", "target_identity", "outputs"):
+                "source_identity", "source_identity_sha256", "scoring_identity", "window_identity", "target_identity", "outputs",
+                "saved_league_scoring_settings", "saved_league_scoring_sha256"):
         if key not in manifest:
             raise ValueError(f"outcome manifest lacks {key}")
+    if manifest["scoring_preset"] != EXPECTED_PRESET:
+        raise ValueError(f"scoring_preset {manifest['scoring_preset']!r} is not the expected {EXPECTED_PRESET!r}")
+    if manifest["window_rule"] != EXPECTED_WINDOW_RULE:
+        raise ValueError("window_rule is not the expected championship-window rule")
+    if manifest["exposure_definition"] != EXPECTED_EXPOSURE:
+        raise ValueError("exposure_definition is not the expected stat-record-week definition")
     if manifest.get("league_scoring_exact") is not False:
         raise ValueError("league_scoring_exact must be False for this research artifact; an exact-league claim is refused")
     if manifest["coverage_status"] not in COVERAGE_STATUSES:
         raise ValueError(f"coverage_status {manifest['coverage_status']!r} is not a recognised value {COVERAGE_STATUSES}")
+    windows = manifest["season_windows"]
+    for year, w in windows.items():
+        final = 18 if int(year) >= 2021 else 17
+        if (w.get("included_reg_weeks") != list(range(1, final)) or w.get("excluded_final_reg_week") != final
+                or w.get("expected_full_reg_weeks") != list(range(1, final + 1)) or w.get("weekly_weight") != 1.0):
+            raise ValueError(f"season_windows[{year}] does not match the declared rule (weeks 1..{final - 1}, final week {final} excluded, weight 1.0)")
+    if int(manifest["last_complete_season"]) != max(int(y) for y in windows):
+        raise ValueError("last_complete_season does not equal the last season in season_windows")
     declared = (manifest["outputs"].get("outcomes.csv") or {}).get("sha256")
-    actual = _sha(csv_path)
+    actual = hashlib.sha256(csv_raw).hexdigest()
     if declared != actual:
         raise ValueError(f"outcomes.csv sha256 {actual[:12]}… does not match the manifest's declared {str(declared)[:12]}…")
+    declared_bytes = (manifest["outputs"].get("outcomes.csv") or {}).get("bytes")
+    if declared_bytes is not None and int(declared_bytes) != len(csv_raw):
+        raise ValueError("outcomes.csv byte count does not match the manifest's declared bytes")
+    scoring = manifest["saved_league_scoring_settings"]
+    checks = {
+        "saved_league_scoring_sha256": canonical_sha256(scoring),
+        "scoring_identity": canonical_sha256({"preset": manifest["scoring_preset"], "source_column": "fantasy_points_ppr",
+                                              "saved_league_settings": scoring, "league_scoring_exact": False}),
+        "window_identity": canonical_sha256({"rule": manifest["window_rule"], "seasons": windows}),
+        "source_identity_sha256": canonical_sha256(manifest["source_identity"]),
+    }
+    checks["target_identity"] = canonical_sha256({"scoring_identity": checks["scoring_identity"], "window_identity": checks["window_identity"],
+                                                  "exposure_definition": manifest["exposure_definition"], "schema_version": manifest["schema_version"]})
+    for key, recomputed in checks.items():
+        if manifest[key] != recomputed:
+            raise ValueError(f"{key} declared {str(manifest[key])[:12]}… does not recompute from the manifest's own contents ({recomputed[:12]}…)")
 
 
 def season_stats_from_outcomes(outcomes: CommonOutcomes) -> dict[tuple[str, int], tuple[float, int]]:
@@ -235,3 +313,31 @@ def outcome_inputs(
     qualifying = qualifying_season_keys(ranked, {p: bar[p] for p in require_positions if p in bar})
     return OutcomeInputs(outcomes=outcomes, season_stats=season_stats_from_outcomes(outcomes), qualifying=qualifying,
                          panel=panel, panel_report=report, binding=outcome_binding(outcomes))
+
+
+def weekly_positions_from_capture(capture_dir: Path | str) -> tuple[dict[tuple[str, int], str], dict]:
+    """Weekly positions from an immutable capture, AFTER every raw file's bytes are verified
+    against the capture manifest. Positions decide qualification ranks, so a tampered or
+    missing raw file refuses the run rather than ranking on altered bytes."""
+    capture_dir = Path(capture_dir)
+    manifest_path = capture_dir / "manifest.json"
+    manifest_raw = manifest_path.read_bytes()
+    manifest = json.loads(manifest_raw.decode("utf-8"))
+    frames, verified = [], []
+    for entry in manifest["files"]:
+        path = capture_dir / entry["path"]
+        if not path.exists():
+            raise ValueError(f"weekly capture raw file missing: {path.name}")
+        raw = path.read_bytes()
+        actual = hashlib.sha256(raw).hexdigest()
+        if actual != entry["sha256"]:
+            raise ValueError(f"weekly capture raw file {path.name} sha256 {actual[:12]}… does not match the manifest's {entry['sha256'][:12]}…")
+        frames.append(pd.read_parquet(io.BytesIO(raw), columns=["player_id", "season", "week", "season_type", "position"]))
+        verified.append({"path": entry["path"], "sha256": actual, "bytes": len(raw)})
+    if not frames:
+        raise ValueError(f"weekly capture {capture_dir} lists no raw files")
+    positions = weekly_positions_by_player_season(pd.concat(frames, ignore_index=True))
+    evidence = {"capture_dir": str(capture_dir), "manifest_sha256": hashlib.sha256(manifest_raw).hexdigest(),
+                "files_verified": len(verified), "files": verified,
+                "meaning": "every raw parquet's bytes were hashed and matched the capture manifest before any position was read"}
+    return positions, evidence

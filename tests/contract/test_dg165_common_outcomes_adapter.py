@@ -25,30 +25,51 @@ from src.dynasty_genius.rookie.outcomes import (
 )
 
 SCHEMA = "dg179_league_season_outcomes_v1"
+PRESET = "nflverse_default_ppr_championship_window_v1"
+WINDOW_RULE = ("Equal-weight REG stat records in weeks 1-16 through 2020 and weeks 1-17 "
+               "from 2021; earlier windows are a modelling convention, not a claim about "
+               "David's historical league settings. POST records do not contribute outcomes.")
+EXPOSURE = "unique stat_record weeks within the outcome window"
+
+
+def _canonical(value) -> str:
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+
+
+def _windows(seasons=(2020, 2021)) -> dict:
+    out = {}
+    for season in seasons:
+        final = 18 if season >= 2021 else 17
+        out[str(season)] = {"included_reg_weeks": list(range(1, final)), "excluded_final_reg_week": final,
+                            "expected_full_reg_weeks": list(range(1, final + 1)), "weekly_weight": 1.0}
+    return out
 
 
 def _manifest(csv_bytes: bytes, **overrides) -> dict:
-    """The implemented DG-179 manifest shape (read from Codex's module 2026-09-06)."""
+    """The implemented DG-179 manifest shape with INTERNALLY CONSISTENT identity hashes (the
+    same canonical recipe Codex's module uses), so a test can alter one and watch the
+    loader refuse the inconsistency."""
+    scoring = {"rec": 1.0}
+    windows = _windows()
+    scoring_identity = _canonical({"preset": PRESET, "source_column": "fantasy_points_ppr",
+                                   "saved_league_settings": scoring, "league_scoring_exact": False})
+    window_identity = _canonical({"rule": WINDOW_RULE, "seasons": windows})
+    source = {"sha256": "d" * 64, "source_preparation": {"schema_version": "dg179_source_preparation_v1"}}
     m = {
-        "schema_version": SCHEMA,
-        "scoring_preset": "nflverse_default_ppr_championship_window_v1",
-        "league_scoring_exact": False,
-        "saved_league_scoring_settings": {"rec": 1.0}, "saved_league_scoring_sha256": "c" * 64,
+        "schema_version": SCHEMA, "scoring_preset": PRESET, "league_scoring_exact": False,
+        "saved_league_scoring_settings": scoring, "saved_league_scoring_sha256": _canonical(scoring),
         "exact_league_scoring_gaps": {"fum_lost": "not established"},
         "scoring_rule": "Sum supplied fantasy_points_ppr; no component rescoring or generator-equivalence claim.",
-        "window_rule": "Equal-weight REG stat records in weeks 1-16 through 2020 and weeks 1-17 from 2021; POST records do not contribute outcomes.",
-        "season_windows": {"2020": {"included_reg_weeks": list(range(1, 17)), "excluded_final_reg_week": 17, "expected_full_reg_weeks": list(range(1, 18)), "weekly_weight": 1.0},
-                           "2021": {"included_reg_weeks": list(range(1, 18)), "excluded_final_reg_week": 18, "expected_full_reg_weeks": list(range(1, 19)), "weekly_weight": 1.0}},
-        "exposure_definition": "unique stat_record weeks within the outcome window",
+        "window_rule": WINDOW_RULE, "season_windows": windows, "exposure_definition": EXPOSURE,
         "appearance_definition": "At least one stat record inside the identical points/games window.",
         "zero_definition": "Identified full-source player-season with no in-window stat record; never a fabricated unknown pair.",
-        "last_complete_season": 2021,
-        "coverage_status": "qualified_research_game_complete_identified_rows",
+        "last_complete_season": 2021, "coverage_status": "qualified_research_game_complete_identified_rows",
         "source_validation": {"seasons": {"2020": {"reg_players": 600}, "2021": {"reg_players": 600}}},
         "source_validation_limitations": "not proof that no individual record was omitted",
-        "source_identity": {"sha256": "d" * 64, "source_preparation": {"schema_version": "dg179_source_preparation_v1"}},
-        "source_identity_sha256": "e" * 64,
-        "scoring_identity": "f" * 64, "window_identity": "1" * 64, "target_identity": "2" * 64,
+        "source_identity": source, "source_identity_sha256": _canonical(source),
+        "scoring_identity": scoring_identity, "window_identity": window_identity,
+        "target_identity": _canonical({"scoring_identity": scoring_identity, "window_identity": window_identity,
+                                       "exposure_definition": EXPOSURE, "schema_version": SCHEMA}),
         "outputs": {"outcomes.csv": {"sha256": hashlib.sha256(csv_bytes).hexdigest(), "bytes": len(csv_bytes)}},
         "outcome_rows": csv_bytes.count(b"\n") - 1,
     }
@@ -78,14 +99,14 @@ def test_loader_refuses_a_mask_that_disagrees_duplicates_and_idless_rows(tmp_pat
         load_common_outcomes(csv, man)
 
 
-def test_season_stats_come_only_from_appeared_rows_and_points_are_never_filled(tmp_path):
-    csv, man = _write(tmp_path, [("a", 2020, 100.0, 10, 1), ("b", 2020, 0.0, 0, 0), ("c", 2021, None, 3, 1)])
+def test_season_stats_come_only_from_appeared_rows_and_negative_points_are_kept(tmp_path):
+    csv, man = _write(tmp_path, [("a", 2020, 100.0, 10, 1), ("b", 2020, 0.0, 0, 0), ("c", 2021, -3.5, 3, 1)])
     out = load_common_outcomes(csv, man)
     assert isinstance(out, CommonOutcomes) and out.labels_through == 2021
     stats = season_stats_from_outcomes(out)
     assert stats[("a", 2020)] == (100.0, 10)
     assert ("b", 2020) not in stats                       # did not appear → absent, the measured zero
-    assert ("c", 2021) in stats and stats[("c", 2021)][1] == 3 and stats[("c", 2021)][0] != stats[("c", 2021)][0]  # NaN kept
+    assert stats[("c", 2021)] == (-3.5, 3)                # a legitimate negative season stays negative
 
 
 def test_qualification_panel_ranks_cohort_players_at_their_draft_role_and_others_at_weekly_position(tmp_path):
@@ -108,8 +129,8 @@ def test_outcome_binding_records_identities_hashes_window_coverage_and_the_cavea
     assert b["schema_version"] == SCHEMA and b["scoring_preset"] == "nflverse_default_ppr_championship_window_v1"
     assert b["league_scoring_exact"] is False and b["coverage_status"] == "qualified_research_game_complete_identified_rows"
     assert b["labels_through"] == 2021 and "weeks 1-16 through 2020" in b["window_rule"] and b["covered_seasons"] == [2020, 2021]
-    assert b["target_identity"] == "2" * 64 and b["scoring_identity"] == "f" * 64 and b["window_identity"] == "1" * 64
-    assert b["source_identity_sha256"] == "e" * 64 and len(b["csv_sha256"]) == 64 and len(b["manifest_sha256"]) == 64
+    assert len(b["target_identity"]) == 64 and len(b["scoring_identity"]) == 64 and len(b["window_identity"]) == 64
+    assert len(b["source_identity_sha256"]) == 64 and len(b["csv_sha256"]) == 64 and len(b["manifest_sha256"]) == 64
     assert b["exposure_definition"] == "unique stat_record weeks within the outcome window"
     assert "not proof" in b["qualification_note"].lower() and b["scoring_caveat"].startswith("nflverse")
 
@@ -159,3 +180,82 @@ def test_outcome_inputs_bind_the_artifact_and_cut_the_bar_on_the_common_outcomes
     assert ("r1", 2021) in inputs.qualifying and ("v1", 2021) in inputs.qualifying and ("v2", 2021) not in inputs.qualifying
     assert inputs.season_stats[("r1", 2021)] == (300.0, 16) and ("gone", 2021) not in inputs.season_stats
     assert inputs.panel_report["ranked_at_draft_role"] == 1
+
+
+
+# ----------------------------------------------------------------------------- hardened guards (Codex, 2026-09-06)
+@pytest.mark.parametrize("rows, reason", [
+    ([("a", 2020, 100.0, -1, 0)], "games"),                     # negative games
+    ([("a", 2020, 100.0, 1.9, 1)], "games"),                    # fractional games (would truncate to 1)
+    ([("a", 2020, 100.0, 17, 1)], "games"),                     # more games than the 2020 window's 16 included weeks
+    ([("a", 2020, 100.0, 0, 0)], "zero games"),                 # points without a game
+    ([("a", 2020, float("inf"), 5, 1)], "finite"),              # infinite points
+    ([("a", 2020, None, 5, 1)], "finite"),                      # missing points must not become a qualification failure
+    ([("a", 2020, 10.0, 5, 0)], "mask"),                        # appeared False with games
+    ([("  ", 2020, 10.0, 5, 1)], "player_id"),                  # blank id
+])
+def test_loader_refuses_each_row_level_counterexample(tmp_path, rows, reason):
+    csv, man = _write(tmp_path, rows)
+    with pytest.raises(ValueError, match=reason):
+        load_common_outcomes(csv, man)
+
+
+def test_loader_recomputes_the_declared_identities_and_refuses_an_altered_one(tmp_path):
+    rows = [("a", 2020, 100.0, 10, 1)]
+    for key in ("target_identity", "window_identity", "scoring_identity", "source_identity_sha256", "saved_league_scoring_sha256"):
+        csv, man = _write(tmp_path, rows, **{key: "9" * 64})
+        with pytest.raises(ValueError, match=key):
+            load_common_outcomes(csv, man)
+
+
+def test_loader_requires_the_exact_expected_preset_and_window_rule(tmp_path):
+    csv, man = _write(tmp_path, [("a", 2020, 100.0, 10, 1)], scoring_preset="some_other_preset")
+    with pytest.raises(ValueError, match="scoring_preset"):
+        load_common_outcomes(csv, man)
+    bad_windows = _windows()
+    bad_windows["2020"]["included_reg_weeks"] = list(range(1, 18))   # includes the final week
+    csv, man = _write(tmp_path, [("a", 2020, 100.0, 10, 1)], season_windows=bad_windows)
+    with pytest.raises(ValueError, match="season_windows"):
+        load_common_outcomes(csv, man)
+
+
+def test_loader_parses_the_same_bytes_it_hashed(tmp_path):
+    csv, man = _write(tmp_path, [("a", 2020, 100.0, 10, 1)])
+    out = load_common_outcomes(csv, man)
+    assert out.csv_sha256 == hashlib.sha256(csv.read_bytes()).hexdigest()
+    assert out.csv_bytes == len(csv.read_bytes())
+
+
+def _capture_dir(tmp_path):
+    """A tiny weekly capture: two raw parquet files and a manifest with their true hashes."""
+    from src.dynasty_genius.rookie.weekly_source import release_url
+
+    raw = tmp_path / "capture" / "raw"
+    raw.mkdir(parents=True)
+    files = []
+    for season, pos in ((2021, "TE"), (2022, "FB")):
+        frame = pd.DataFrame({"player_id": ["p", "p", None], "season": [season] * 3, "week": [1, 2, 3],
+                              "season_type": ["REG", "REG", "REG"], "position": [pos, pos, None]})
+        path = raw / f"stats_player_week_{season}.parquet"
+        frame.to_parquet(path, index=False)
+        files.append({"season": season, "url": release_url(season), "path": f"raw/{path.name}",
+                      "sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "bytes": path.stat().st_size, "rows": 3})
+    (tmp_path / "capture" / "manifest.json").write_text(json.dumps({"files": files}))
+    return tmp_path / "capture"
+
+
+def test_weekly_positions_from_capture_verify_every_raw_file_against_the_manifest(tmp_path):
+    from src.dynasty_genius.rookie.outcomes import weekly_positions_from_capture
+
+    capture = _capture_dir(tmp_path)
+    positions, evidence = weekly_positions_from_capture(capture)
+    assert positions[("p", 2021)] == "TE" and positions[("p", 2022)] == "FB"
+    assert evidence["files_verified"] == 2 and len(evidence["manifest_sha256"]) == 64
+    # tamper with one raw file after the manifest was written → refuse, do not read positions
+    path = capture / "raw" / "stats_player_week_2022.parquet"
+    pd.DataFrame({"player_id": ["p"], "season": [2022], "week": [1], "season_type": ["REG"], "position": ["WR"]}).to_parquet(path, index=False)
+    with pytest.raises(ValueError, match="sha256"):
+        weekly_positions_from_capture(capture)
+    path.unlink()
+    with pytest.raises(ValueError, match="missing"):
+        weekly_positions_from_capture(capture)

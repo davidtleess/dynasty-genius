@@ -70,7 +70,7 @@ from src.dynasty_genius.rookie.labels import (  # noqa: E402
 from src.dynasty_genius.rookie.model import MODEL_VERSION  # noqa: E402
 from src.dynasty_genius.rookie.outcomes import (  # noqa: E402
     outcome_inputs,
-    weekly_positions_by_player_season,
+    weekly_positions_from_capture,
 )
 from src.dynasty_genius.rookie.panel import build_panel, load_panel  # noqa: E402
 from src.dynasty_genius.rookie.report import (  # noqa: E402
@@ -119,15 +119,6 @@ def parse_args(argv=None):
     p.add_argument("--weekly-capture", type=Path, default=None,
                    help="a weekly_source_capture run directory; its raw files supply the weekly position per player-season")
     return p.parse_args(argv)
-
-
-def _weekly_positions_from_capture(capture_dir: Path) -> dict:
-    frames = []
-    for path in sorted((capture_dir / "raw").glob("stats_player_week_*.parquet")):
-        frames.append(pd.read_parquet(path, columns=["player_id", "season", "week", "season_type", "position"]))
-    if not frames:
-        raise SystemExit(f"no raw weekly files under {capture_dir / 'raw'}")
-    return weekly_positions_by_player_season(pd.concat(frames, ignore_index=True))
 
 
 def _headline(evaluation: dict) -> dict[str, float]:
@@ -187,7 +178,8 @@ def main(argv=None) -> int:
         # The COMMON outcome artifact (DG-179): both producers label from identical outcomes.
         if args.outcomes_manifest is None or args.weekly_capture is None:
             raise SystemExit("--outcomes-csv needs --outcomes-manifest and --weekly-capture")
-        weekly_positions = _weekly_positions_from_capture(args.weekly_capture)
+        weekly_positions, capture_evidence = weekly_positions_from_capture(args.weekly_capture)
+        print(f"weekly capture verified: {capture_evidence['files_verified']} raw files hashed and matched before positions were read")
         oi = outcome_inputs(args.outcomes_csv, args.outcomes_manifest, cohort=cohort, weekly_positions=weekly_positions, bar=bar)
         if oi.labels_through < last_completed:
             raise SystemExit(f"outcome artifact labels through {oi.labels_through}; the run needs {last_completed}")
@@ -208,7 +200,7 @@ def main(argv=None) -> int:
         outcome_block = {**oi.binding, "panel_report": oi.panel_report,
                          "cohort_restriction": {"first_class": first_covered, "dropped_classes": dropped_classes,
                                                 "reason": "the artifact does not cover those rookie seasons; unknown, never zero"},
-                         "weekly_capture": {"path": str(args.weekly_capture), "manifest_sha256": sha256_file(args.weekly_capture / "manifest.json")}}
+                         "weekly_capture": capture_evidence}
         print(f"outcomes: {oi.binding['schema_version']} rows {oi.binding['outcome_rows']} covered {oi.binding['covered_seasons'][0]}-{oi.binding['covered_seasons'][-1]} "
               f"labels_through {oi.labels_through} target {oi.binding['target_identity'][:12]} | panel {oi.panel_report}")
     else:
@@ -396,7 +388,14 @@ def main(argv=None) -> int:
         "no_composition_claims": "nothing here states how these quantities compose with Engine A, Engine B or the DG-164 cells; "
                                  "that comparability is the ranking lane's typed contract (DG-178)",
         "cohort": {"source": "nflreadpy.load_draft_picks(); identities resolved via load_players() and load_rosters(1999-%d)" % last_completed,
-                   "classes": [args.first_class, T], "positions": ["QB", "RB", "WR", "TE"], "coverage": coverage,
+                   "classes": [args.first_class, T], "positions": ["QB", "RB", "WR", "TE"],
+                   "coverage": coverage,
+                   "coverage_meaning": "the CAPTURED source population (every skill-position pick in the requested classes), before any restriction",
+                   "source_population": {"rows": int(coverage["rows"]), "classes": [args.first_class, T]},
+                   "modelling_cohort": {"rows": int(len(cohort)), "classes": [int(cohort["draft_season"].min()), int(cohort["draft_season"].max())],
+                                        "dropped_rows": int(coverage["rows"] - len(cohort)),
+                                        "dropped_classes": (outcome_block or {}).get("cohort_restriction", {}).get("dropped_classes", []),
+                                        "reason": "classes whose rookie season the outcome artifact does not cover are excluded explicitly; labels outside the covered seasons are unknown, never zero"},
                    "join_key": "(draft_season, pick) — unique within a draft year; `position` is the draft-table classification the model "
                                "uses, `position_current` is the nflverse players-table position at run time; treat position as an attribute",
                    "rookies_with_position_change": [{"name": r["name"], "pick": int(r["pick"]), "draft_position": r["position"], "current_position": r["position_current"]}
