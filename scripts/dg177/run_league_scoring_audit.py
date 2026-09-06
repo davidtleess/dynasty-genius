@@ -31,7 +31,8 @@ sys.path.insert(0, str(ROOT))
 from src.dynasty_genius.eval import league_scoring_audit as lsa  # noqa: E402
 from src.dynasty_genius.eval.run_provenance import launch_provenance  # noqa: E402
 
-OUTPUTS = ("components.csv", "event_ledger.csv", "reconciliation.csv", "unresolved.csv", "quarantine_reaudit.csv", "report.md")
+OUTPUTS = ("components.csv", "event_ledger.csv", "unattributed_events.csv", "reconciliation.csv", "unresolved.csv",
+           "quarantine_reaudit.csv", "report.md")
 
 
 def _render(m: dict, rec: pd.DataFrame, comps: pd.DataFrame) -> str:
@@ -110,7 +111,10 @@ def main(argv: list[str] | None = None) -> int:
         if "season" in quar:
             quar = quar[pd.to_numeric(quar["season"], errors="coerce") == args.season]
         quar_audit = lsa.audit_quarantine(quar, settings)
-        counts = {**lsa.coverage_counts(comps, rec, sleeper, identity), **lsa.window_delta_summary(comps, settings)}
+        counts = {**lsa.coverage_counts(comps, rec, sleeper, identity), **lsa.window_delta_summary(comps, settings),
+                  "events_total": int(len(events)), "events_unattributed": int((events["status"] == "missing_id").sum()),
+                  "events_ambiguous": int((events["status"] == "ambiguous").sum()),
+                  "events_nullified": int((events["status"] == "nullified").sum())}
         kickers = bool(weekly["position"].isin(["K", "P"]).any()) if "position" in weekly else False
         qual = lsa.exact_qualification(classification, counts, kicker_rows_present=kickers)
     except lsa.ScoringAuditError as err:
@@ -119,6 +123,8 @@ def main(argv: list[str] | None = None) -> int:
     out_dir.mkdir(parents=True)
     comps.to_csv(out_dir / "components.csv", index=False)
     events.to_csv(out_dir / "event_ledger.csv", index=False)
+    # events that could not be attributed to a verified player/side never disappear: they are listed here and counted
+    events[events["status"] != "attributed"].to_csv(out_dir / "unattributed_events.csv", index=False)
     rec.to_csv(out_dir / "reconciliation.csv", index=False)
     pd.concat([rec[rec.status == "unresolved"].assign(source="reconciliation"),
                comps[comps.attribution_status == "unresolved"].assign(source="components")],

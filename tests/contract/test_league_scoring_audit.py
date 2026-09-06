@@ -559,8 +559,8 @@ def test_cli_writes_an_immutable_run_with_hashed_sources_and_refuses_to_overwrit
     assert first.returncode == 0, first.stderr
     run = out_root / "20260101T000000Z" / "dg177_league_scoring_audit"
     m = json.loads((run / "manifest.json").read_text())
-    assert set(m["outputs"]) == {"components.csv", "event_ledger.csv", "reconciliation.csv", "unresolved.csv",
-                                 "quarantine_reaudit.csv", "report.md"}
+    assert set(m["outputs"]) == {"components.csv", "event_ledger.csv", "unattributed_events.csv", "reconciliation.csv",
+                                 "unresolved.csv", "quarantine_reaudit.csv", "report.md"}
     assert m["sources"]["weekly"]["sha256"] and m["coverage"]["status_exact"] == 1 and m["league_scoring_exact"] is False
     assert m["launch"]["git_head"] and m["season"] == 2025
     report = (run / "report.md").read_text()
@@ -637,3 +637,72 @@ def test_sleeper_points_from_captured_payloads_equals_the_directory_loader(tmp_p
     a = lsa.load_sleeper_week_points(d)
     b = lsa.sleeper_week_points_from_payloads({int(n[-7:-5]): c.json()["payload"] for n, c in captured.items()})
     pd.testing.assert_frame_equal(a, b)
+
+
+# ── root's acceptance review: four failure paths that returned a success signal ──────────────
+
+def test_missing_or_invalid_required_counts_are_refused_never_imputed_to_zero():
+    w = weekly([dict(player_id="P1", week=1, receptions=None)])
+    with pytest.raises(lsa.ScoringAuditError, match="receptions"):
+        lsa.player_week_components(w, _events([]))
+    w2 = weekly([dict(player_id="P1", week=1)])
+    w2["rushing_yards"] = ["bad"]
+    with pytest.raises(lsa.ScoringAuditError, match="rushing_yards"):
+        lsa.player_week_components(w2, _events([]))
+    ok = lsa.player_week_components(weekly([dict(player_id="P1", week=1, receiving_yards=-7, fantasy_points_ppr=-0.7)]), _events([]))
+    assert float(lsa.research_ppr_from_components(ok).iloc[0]) == pytest.approx(-0.7)
+
+
+def test_weekly_lost_total_below_its_splits_is_a_contradiction_not_a_clamp():
+    w = weekly([dict(player_id="P1", week=1, sack_fumbles_lost=1, fumbles_lost_total=0, fantasy_points_ppr=-2.0)])
+    c = lsa.player_week_components(w, _events([]))
+    assert c.iloc[0].attribution_status == "unresolved" and c.iloc[0].unresolved_reason == "weekly_lost_total_below_splits"
+    sleeper = pd.DataFrame({"week": [1], "sleeper_id": ["11"], "sleeper_points": [-2.0], "roster_id": 1, "status": "ok", "duplicates_collapsed": 0})
+    identity = pd.DataFrame({"sleeper_id": ["11"], "gsis_id": ["P1"], "identity_status": ["resolved"]})
+    assert lsa.reconcile(c, sleeper, identity, SETTINGS).iloc[0].status == "unresolved"
+
+
+def test_recovery_with_an_unknown_side_is_ambiguous_and_never_a_special_teams_credit():
+    w = weekly([dict(player_id="P1", week=2, fumble_recovery_opp=1)])
+    ev = _events([play("G1", 5, 2, play_type="punt", special_teams_play=1, fumbled_1_player_id="R1", fumbled_1_team=None,
+                       fumble_recovery_1_player_id="P1", fumble_recovery_1_team="AAA", fumble_lost=1, desc="FUMBLES")])
+    rec = ev[ev.event_type == "recovery"].iloc[0]
+    assert rec.status == "ambiguous" and rec.ambiguity_reason == "unknown_recovery_side"
+    c = lsa.player_week_components(w, ev).iloc[0]
+    assert int(c.st_opp_recoveries) == 0 and c.attribution_status == "unresolved"
+    assert float(lsa.league_points(lsa.player_week_components(w, ev), SETTINGS).iloc[0]) == 0.0
+
+
+def test_weekly_forced_or_recovery_counts_without_matching_events_are_unresolved_not_zero_special_teams():
+    w = weekly([dict(player_id="P1", week=3, def_fumbles_forced=1), dict(player_id="P2", week=3, fumble_recovery_opp=1),
+                dict(player_id="P3", week=3, fumble_recovery_own=1)])
+    c = lsa.player_week_components(w, _events([])).set_index("player_id")
+    for pid in ("P1", "P2", "P3"):
+        assert c.loc[pid, "attribution_status"] == "unresolved", pid
+        assert c.loc[pid, "unresolved_reason"] == "pbp_event_count_disagrees_with_weekly", pid
+
+
+def test_events_with_a_missing_player_id_are_kept_in_the_unattributed_ledger(tmp_path):
+    import subprocess
+    import sys
+    weekly_p, pbp_p, quar_p = tmp_path / "w.parquet", tmp_path / "p.parquet", tmp_path / "q.parquet"
+    weekly([dict(player_id="00-1", week=1, fantasy_points_ppr=0.0)]).to_parquet(weekly_p)
+    pd.DataFrame([play("G1", 1, 1, season=2025, fumbled_1_player_id="00-1", fumbled_1_team="AAA", fumble_recovery_1_player_id=None,
+                       fumble_recovery_1_team="BBB", fumble_lost=1, desc="FUMBLES")]).to_parquet(pbp_p)
+    weekly([dict(player_id=None, week=1, fantasy_points_ppr=0.0)]).to_parquet(quar_p)
+    season = _season_dir(tmp_path, {1: []})
+    snap = tmp_path / "snapshot.json"
+    snap.write_text(json.dumps({"league": {"scoring_settings": SETTINGS}}))
+    idmap = tmp_path / "ids.parquet"
+    pd.DataFrame({"sleeper_id": ["11"], "gsis_id": ["00-1"]}).to_parquet(idmap)
+    out_root = tmp_path / "runs"
+    cmd = [sys.executable, "scripts/dg177/run_league_scoring_audit.py", "--weekly", str(weekly_p), "--pbp", str(pbp_p),
+           "--quarantine", str(quar_p), "--sleeper-season-dir", str(season), "--league-snapshot", str(snap),
+           "--idmap", str(idmap), "--season", "2025", "--out-root", str(out_root), "--run-id", "20260101T000002Z"]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    assert res.returncode == 0, res.stderr
+    run = out_root / "20260101T000002Z" / "dg177_league_scoring_audit"
+    led = pd.read_csv(run / "unattributed_events.csv")
+    assert len(led) == 1 and led.iloc[0].event_type == "recovery" and led.iloc[0].status == "missing_id"
+    m = json.loads((run / "manifest.json").read_text())
+    assert m["coverage"]["events_unattributed"] == 1 and "unattributed_events.csv" in m["outputs"]
