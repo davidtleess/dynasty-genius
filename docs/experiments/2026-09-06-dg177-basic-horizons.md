@@ -125,3 +125,35 @@ was sufficient to evaluate, never validated.
 Outputs: `basic_forecasts.csv` (750 rows, years 1–5), `universe_reconciliation.csv` and `_detail.csv`, `manifest.json`,
 `results.json`, `historical_predictions.csv` (11 MB, kept on disk and pinned by sha in the manifest), the cohort and
 both snapshots.
+
+## 8. Same-season offensive-role fallback and the regrade (run `20260906T191832Z`, the current five-year producer)
+
+Codex's increment asked for a general, historically valid repair of offensive-role coverage. Rule (`eval/basic_cohort.py`,
+`resolve_offensive_role`): a player-season whose modal stat-line position is not QB/RB/WR/TE may be modelled under
+exactly one offensive role found among that SAME season's historical roster rows (position and depth-chart columns,
+dated inside the season, so captured before the forecast origin); two distinct roles abstain; none is unknown; no rows
+is no evidence. Offensive stat-line positions are kept whatever the roster says; today's listing never resolves a
+historical fold; nobody is named in code; the stat-line position, the source and the evidence stay on the row; points
+are the stat lines' PPR as before, so a pure defender contributes zero. Roster evidence chooses the MODEL cohort only —
+league eligibility is Sleeper's. Source: DG-165's immutable capture (one season-end roster row per player-season,
+1999–2025, week-dated), hashed as a required manifest input.
+
+**What it did:** 233 player-seasons resolved by roster role (RB 196, TE 26, WR 10, QB 1; 2–29 per season), 0 abstained
+for conflicting roles, 30,164 non-offensive player-seasons with no offensive role stay out, 3,376 without any roster
+row stay out. Cohort 14,555 → 14,788 rows; 2025 inference rows 750 → 759; the universe's three
+`position_outside_modelled_set` rows are now forecasts: Travis Hunter (stat line CB; 2025 roster week 19 WR/WR → WR;
+7 games, 9.1 PPG; 2026 appearance 0.89, expected REG points 85.4), Andrew Beck (→ RB), Connor Heyward (→ TE).
+
+**Regrade vs `155259Z` (policy re-selected on closed inner folds; every horizon):** fold counts unchanged
+(14/12/9/5/1). RB, where nearly all the added rows land, moved a few thousandths: year 1 unconditional-points Δr²
++0.088 [+0.069, +0.105] vs +0.091 before, year 5 +0.226 [+0.087, +0.291] vs +0.261 [+0.048, +0.361]; RB Brier 0.139 vs
+0.136 (low-usage backs dilute). QB year 3 went from +0.062 [+0.000, +0.110] to +0.062 [−0.001, +0.112] — the same
+number, an interval that now just includes zero. WR and TE are unchanged to the third decimal. No cell's reading
+changed; year 5 remains one fold. Full table in the run's `results.json` and the status record beside it.
+
+**Cleaning note, per Codex's championship-window contract:** this run's cleaner still applied its then-default
+10-point tolerance to the two unattributed stat lines (2005, 2012); since checkpoint `1c189c2b`'s successor the
+default refuses them and a tolerance must be passed explicitly as a disclosed exception. The corrected companion
+manifest beside the run records that, names the window (`all_reg_weeks`), and states that "validated" means week
+labels, uniqueness and non-missing values — not game coverage, which the shared outcome contract checks.
+`historical_predictions.csv` (11 MB) stays on disk, pinned by sha.

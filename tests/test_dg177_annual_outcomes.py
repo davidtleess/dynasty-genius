@@ -259,3 +259,23 @@ def test_split_returns_exactly_the_removed_rows_even_from_the_middle_and_leaves_
     pd.testing.assert_frame_equal(kept, expected_kept)                    # kept rows unchanged, in order
     assert facts["unattributed_zero_rows_dropped"] == 2 and len(facts["unattributed_stat_lines_dropped"]) == 1
     assert facts["removed_rows"] == 3
+
+
+# ── Codex championship-window contract: no automatic tolerance; "validated" is not coverage ──
+
+def test_by_default_any_unattributed_stat_line_with_points_is_refused():
+    from src.dynasty_genius.eval.annual_outcomes import split_unattributed_rows
+
+    weekly = _full_weekly()
+    stray = pd.DataFrame([(None, 2022, 6, "REG", None, 3.1)], columns=WEEKLY_COLUMNS)
+    with pytest.raises(SourceIncompleteError, match="unattributed"):
+        split_unattributed_rows(pd.concat([weekly, stray], ignore_index=True))          # no tolerance unless stated
+    kept, removed, facts = split_unattributed_rows(pd.concat([weekly, stray], ignore_index=True), tolerated_points_per_season=10.0)
+    assert facts["tolerated_points_per_season"] == 10.0 and facts["cleaning_exception"] is True
+
+
+def test_validation_facts_say_game_coverage_was_not_checked():
+    facts = validate_weekly_source(_full_weekly(), seasons=[2022, 2023], min_players_per_season=3)
+    assert facts["validated"] is True
+    assert facts["game_coverage_checked"] is False
+    assert "week labels" in facts["what_validated_means"] and "not game coverage" in facts["what_validated_means"]

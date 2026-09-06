@@ -374,6 +374,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--draws", type=int, default=2000)
     parser.add_argument("--seed", type=int, default=20260906)
+    parser.add_argument("--tolerated-unattributed-points", type=float, default=0.0,
+                        help="per-season points tolerance for unattributed stat lines; 0 (default) refuses them. Any "
+                             "non-zero value is a disclosed cleaning exception recorded in the manifest.")
     parser.add_argument("--min-train-rows", type=int, default=60)
     parser.add_argument("--out-root", type=Path, default=RUNS_ROOT)
     args = parser.parse_args(argv)
@@ -402,7 +405,7 @@ def main(argv: list[str] | None = None) -> int:
     # unique and fully scored. Refuses otherwise; the facts go into the manifest.
     # The cleaner returns the removed rows itself (original indices); an index difference
     # taken after its reset named trailing positions, not the rows that left.
-    weekly, dropped_rows, dropped = split_unattributed_rows(weekly)
+    weekly, dropped_rows, dropped = split_unattributed_rows(weekly, tolerated_points_per_season=args.tolerated_unattributed_points)
     source_validation = {**validate_weekly_source(weekly, seasons=PULL_SEASONS), **dropped,
                          "cleaning": "the snapshot in this run is post-cleaning; the dropped rows are kept in "
                                      "dropped_rows.csv so the cleaning step can be replayed"}

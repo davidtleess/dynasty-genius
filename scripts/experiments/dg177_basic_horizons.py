@@ -168,6 +168,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--draws", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=20260906)
+    parser.add_argument("--tolerated-unattributed-points", type=float, default=0.0,
+                        help="per-season points tolerance for unattributed stat lines; 0 (default) refuses them. Any "
+                             "non-zero value is a disclosed cleaning exception recorded in the manifest.")
     parser.add_argument("--first-season", type=int, default=FIRST_SEASON)
     parser.add_argument("--min-train-rows", type=int, default=60)
     parser.add_argument("--out-root", type=Path, default=RUNS_ROOT)
@@ -194,7 +197,7 @@ def main(argv: list[str] | None = None) -> int:
     raw_weekly = pull_weekly_stats(pull_seasons)
     # The cleaner returns the removed rows itself (original indices); an index difference
     # taken after its reset named trailing positions, not the rows that left.
-    weekly, dropped_rows, dropped = split_unattributed_rows(raw_weekly)
+    weekly, dropped_rows, dropped = split_unattributed_rows(raw_weekly, tolerated_points_per_season=args.tolerated_unattributed_points)
     source_validation = {**validate_weekly_source(weekly, seasons=pull_seasons), **dropped,
                          "cleaning": "the dropped placeholder rows and unattributed stat lines are a disclosed cleaning "
                                      "exception, not proof of source completeness; they are kept in dropped_rows.csv "
@@ -274,7 +277,8 @@ def main(argv: list[str] | None = None) -> int:
 
     # inference cohort: every 2025 basic-cohort row, zero-games rows included
     inference = df[df["feature_season"] == INFERENCE_SEASON].reset_index(drop=True)
-    forecasts = inference[["player_id", "position", "listed_position", "feature_season", "identity_status", "games_t", "seasons_since_last_observed"]].copy()
+    forecasts = inference[["player_id", "position", "statline_position", "position_source", "role_evidence", "listed_position",
+                           "feature_season", "identity_status", "games_t", "seasons_since_last_observed"]].copy()
     forecasts.insert(4, "forecast_cutoff", f"post-{INFERENCE_SEASON}-season")
     forecasts.insert(5, "arm", ARM)
     fits: dict[str, Any] = {}

@@ -43,7 +43,7 @@ class SourceIncompleteError(ValueError):
 
 
 def split_unattributed_rows(
-    weekly: pd.DataFrame, *, tolerated_points_per_season: float = 10.0
+    weekly: pd.DataFrame, *, tolerated_points_per_season: float = 0.0
 ) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     """Separate rows with no player id from the rest, and say exactly what was removed.
 
@@ -51,10 +51,13 @@ def split_unattributed_rows(
     (no id, no position, zero points; 173 over 2018-2025, 444 over 2005-2025), harmless by
     construction. The rare one is a stat line nobody could attribute (measured 2026-09-06
     over 2005-2025: a 2005 team-level row worth 6.0 and a 2012 "D.Bryant" line worth 3.1).
-    Those cannot be given to a player, so they are removed too — but only under a small,
-    stated per-season tolerance, and every one is LISTED in the facts. Above the tolerance
-    the source is refused: that much unattributed scoring could turn an appearance into an
-    absence.
+    Those cannot be given to a player. By DEFAULT they are refused (tolerance 0.0): the
+    Codex championship-window contract owns source cleaning and no tolerance is adopted
+    automatically. A caller may state a per-season tolerance explicitly; then such rows
+    are removed, every one is LISTED in the facts, and the facts carry
+    ``cleaning_exception: True`` so the manifest shows a disclosed exception rather than
+    proof of completeness. Above a stated tolerance the source is refused: that much
+    unattributed scoring could turn an appearance into an absence.
 
     Returns ``(kept, removed, facts)``. ``removed`` carries the removed rows with their
     ORIGINAL indices, so a caller never has to reconstruct them from an index difference —
@@ -88,6 +91,7 @@ def split_unattributed_rows(
         "unattributed_stat_lines_dropped": listed,
         "unattributed_points_dropped_by_season": by_season,
         "tolerated_points_per_season": float(tolerated_points_per_season),
+        "cleaning_exception": bool(listed),
         "removed_rows": int(removed_mask.sum()),
     }
     return weekly[~removed_mask].reset_index(drop=True), weekly[removed_mask], facts
@@ -150,7 +154,12 @@ def validate_weekly_source(
         if players < min_players_per_season:
             problems.append(f"season {season} has {players} players, below the floor of {min_players_per_season}")
     facts.update({"duplicate_rows": dup, "missing_points": missing_points, "missing_player_id": missing_id,
-                  "min_players_per_season": int(min_players_per_season), "validated": not problems})
+                  "min_players_per_season": int(min_players_per_season), "validated": not problems,
+                  "game_coverage_checked": False,
+                  "what_validated_means": "every requested season present with its full regular-season week labels and a "
+                                          "credible player count, unique player-weeks, no missing points or ids — not "
+                                          "game coverage (games per week against the NFL calendar), which is the shared "
+                                          "outcome contract's check"})
     if problems:
         raise SourceIncompleteError("weekly source cannot support observed absence: " + "; ".join(problems))
     return facts
