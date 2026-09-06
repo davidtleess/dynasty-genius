@@ -1,0 +1,100 @@
+{
+ "ticket": "DG-165",
+ "purpose": "Sleeper fantasy eligibility capture and reconciliation (read-only public source)",
+ "source_url": "https://api.sleeper.app/v1/players/nfl",
+ "docs": "https://docs.sleeper.com/",
+ "captured_at": "2026-09-06T16:41:07.845290+00:00",
+ "http_status": "reused",
+ "raw_reused_from": "runs/20260906T164107Z/eligibility_capture/raw/sleeper_players_nfl.json",
+ "raw": {
+  "path": "raw/sleeper_players_nfl.json (gitignored)",
+  "bytes": 14651641,
+  "sha256": "97b15239da2747f66314f0c3091dcd34b8d699c0dcbd7c8c2129c76314854654",
+  "players": 12226
+ },
+ "authority": "fantasy_positions is the placement authority; a missing field stays unknown and is never inferred from the NFL position or the draft table; active/status classify availability and never suppress; rostered players are always in the universe",
+ "inputs": {
+  "rookie_cohort": {
+   "path": "runs/20260906T154706Z/dg165_rookie_capital/cohort.csv",
+   "sha256": "ad5d939c3c18ba7d6a1d08e553902be4515a6d96fb08072073a8f228122994ce"
+  },
+  "dg178_pool_report": {
+   "path": "/Users/davidleess/dg-wt/DG-178/runs/20260906T161634Z/dg178_audit/report.json",
+   "sha256": "c2cc308e3ed3429ac102d5a2798fe5a72e2b440baebc251884679bd407328c22"
+  },
+  "dg178_universe": {
+   "path": "/Users/davidleess/dg-wt/DG-178/runs/20260906T153607Z/dg178_universe/eligible_universe.csv",
+   "sha256": "942f64148d70fa149f6556587a407fba9b942e2d32941de16f0aabcda6e1bfd3"
+  },
+  "named_extra": {
+   "9502": "Tank Dell",
+   "12530": "Travis Hunter"
+  }
+ },
+ "summary": {
+  "rookies": 80,
+  "rookies_matched": 79,
+  "rookies_by_match_basis": {
+   "name+position": 79,
+   "last_name+team+position+rookie": 1
+  },
+  "rookies_eligibility_known": 80,
+  "rookies_where_sleeper_eligibility_differs_from_draft_position": [
+   {
+    "name": "Max Bredeson",
+    "pick": 159.0,
+    "draft_position": "TE",
+    "position_current_nflverse": "RB",
+    "league_eligibility": "RB",
+    "availability_class": "active_free"
+   }
+  ],
+  "rookies_availability": {
+   "rostered": 45,
+   "active_free": 33,
+   "inactive_free": 2
+  },
+  "named_extra": [
+   {
+    "sleeper_id": "9502",
+    "sleeper_name": "Tank Dell",
+    "sleeper_position": "WR",
+    "league_eligibility": "WR",
+    "active": true,
+    "status": "Inactive",
+    "team": "HOU",
+    "availability_class": "rostered"
+   },
+   {
+    "sleeper_id": "12530",
+    "sleeper_name": "Travis Hunter",
+    "sleeper_position": "DB",
+    "league_eligibility": "DB|WR",
+    "active": true,
+    "status": "Active",
+    "team": "JAX",
+    "availability_class": "rostered"
+   }
+  ],
+  "candidate_pool": {
+   "ids": 271,
+   "availability": {
+    "active_free": 251,
+    "inactive_free": 20
+   },
+   "eligibility_unknown": 0,
+   "eligibility_differs_from_sleeper_position": 2
+  },
+  "all_players": {
+   "rows": 12226,
+   "fantasy_positions_missing": 333,
+   "active_flag_missing": 0
+  }
+ },
+ "outputs_sha256": {
+  ".gitignore": "e138ca829d938927384c82d7f176eaa6c61a82bd28ba28320ddd736a505c3b4f",
+  "reconciliation.csv": "03405d50b74b052f89f174ba1f27e5d3a755466e1204b1bf6792fef6e7431c15",
+  "sleeper_eligibility.csv": "30d4af903bf136d4f9dd4f45af7825a4ecd26b36a34f8708aa934f4378f8df9f"
+ },
+ "rookie_forecasts": "unchanged; this capture joins eligibility beside them and alters no forecast"
+}
