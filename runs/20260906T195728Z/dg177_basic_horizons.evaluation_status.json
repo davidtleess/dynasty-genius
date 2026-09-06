@@ -1,0 +1,754 @@
+{
+  "run_dir": "runs/20260906T195728Z/dg177_basic_horizons",
+  "run_id": "20260906T195728Z",
+  "results_sha256": "0b91d35f530ae7712d1dcc4ba64669f23be97aeff1a353f52193d64c5311d0be",
+  "historical_predictions_sha256": "f4fe6644d3dd6e347b89d573eb05730b3bbda522355f648f7f0087eaf66aa1f1",
+  "arm": null,
+  "written_utc": "2026-09-06T20:13:54.580037+00:00",
+  "companion_of_immutable_run": true,
+  "meaning": {
+    "supported": "closed history sufficient to evaluate; not validation",
+    "bootstrap": "bootstrap intervals are sampling uncertainty conditional on the fitted models (players resampled from fixed fits); not model, selection or season uncertainty, and not a forecast interval",
+    "brier": "a better Brier score alone is not a calibration proof; read the expected calibration error and the reliability slope/intercept (1 and 0 when calibrated) beside it",
+    "evaluated": "at least one outer policy fold graded; the interval decides the word",
+    "no_evaluated_policy_fold": "forecast exported, zero outer folds graded on this file"
+  },
+  "positions": {
+    "QB": {
+      "year1": {
+        "status": "evaluated",
+        "evaluated_folds": 14,
+        "skipped_folds": 0,
+        "forecast_seasons_graded": [
+          2012,
+          2013,
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "skip_reasons": [],
+        "unconditional_points_delta_r2_vs_baseline": {
+          "point": 0.06375751628119786,
+          "ci90": [
+            0.04227153118564538,
+            0.0824683727160742
+          ]
+        },
+        "baseline_improvement": "within the reported 90% interval",
+        "brier": 0.1573463413857042,
+        "baseline_brier": 0.22743907578686395,
+        "calibration": {
+          "n": 1307,
+          "mean_predicted": 0.6632495039462751,
+          "observed_rate": 0.6511094108645754,
+          "ece": 0.03286149487357647,
+          "reliability_slope": 0.9938539222121477,
+          "reliability_intercept": -0.07580979955261982,
+          "status": "ok"
+        }
+      },
+      "year2": {
+        "status": "evaluated",
+        "evaluated_folds": 12,
+        "skipped_folds": 0,
+        "forecast_seasons_graded": [
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "skip_reasons": [],
+        "unconditional_points_delta_r2_vs_baseline": {
+          "point": 0.060400422414091715,
+          "ci90": [
+            0.02068615021065572,
+            0.09438902226355451
+          ]
+        },
+        "baseline_improvement": "within the reported 90% interval",
+        "brier": 0.17610945709735992,
+        "baseline_brier": 0.24493848021498596,
+        "calibration": {
+          "n": 1114,
+          "mean_predicted": 0.5933474470439855,
+          "observed_rate": 0.573608617594255,
+          "ece": 0.028584618813761748,
+          "reliability_slope": 0.9240289257471502,
+          "reliability_intercept": -0.09299034300567113,
+          "status": "ok"
+        }
+      },
+      "year3": {
+        "status": "evaluated",
+        "evaluated_folds": 9,
+        "skipped_folds": 1,
+        "forecast_seasons_graded": [
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "skip_reasons": [
+          "policy selection for year 3: no inner validation season with closed training rows and a fittable candidate (seasons pres"
+        ],
+        "unconditional_points_delta_r2_vs_baseline": {
+          "point": 0.06825103222999152,
+          "ci90": [
+            0.005047867224442923,
+            0.11950143440244246
+          ]
+        },
+        "baseline_improvement": "within the reported 90% interval",
+        "brier": 0.18155413144443186,
+        "baseline_brier": 0.25059539481500565,
+        "calibration": {
+          "n": 834,
+          "mean_predicted": 0.5295312998435177,
+          "observed_rate": 0.5071942446043165,
+          "ece": 0.040794204704618475,
+          "reliability_slope": 0.9214399877075325,
+          "reliability_intercept": -0.12156427041122093,
+          "status": "ok"
+        }
+      },
+      "year4": {
+        "status": "evaluated",
+        "evaluated_folds": 5,
+        "skipped_folds": 3,
+        "forecast_seasons_graded": [
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "skip_reasons": [
+          "policy selection for year 4: no inner validation season with closed training rows and a fittable candidate (seasons pres"
+        ],
+        "unconditional_points_delta_r2_vs_baseline": {
+          "point": 0.10098093171728229,
+          "ci90": [
+            0.02427327995117995,
+            0.15761528673752037
+          ]
+        },
+        "baseline_improvement": "within the reported 90% interval",
+        "brier": 0.17548340689830919,
+        "baseline_brier": 0.24751132765588335,
+        "calibration": {
+          "n": 473,
+          "mean_predicted": 0.45587589338269835,
+          "observed_rate": 0.44608879492600423,
+          "ece": 0.07732028351463788,
+          "reliability_slope": 1.5538162428788684,
+          "reliability_intercept": 0.03369007927620441,
+          "status": "ok"
+        }
+      },
+      "year5": {
+        "status": "evaluated",
+        "evaluated_folds": 1,
+        "skipped_folds": 5,
+        "forecast_seasons_graded": [
+          2025
+        ],
+        "skip_reasons": [
+          "policy selection for year 5: no inner validation season with closed training rows and a fittable candidate (seasons pres"
+        ],
+        "unconditional_points_delta_r2_vs_baseline": {
+          "point": 0.1566643548894503,
+          "ci90": [
+            -0.05882183836816959,
+            0.2851524427887954
+          ]
+        },
+        "baseline_improvement": "inconclusive: the 90% interval includes zero",
+        "brier": 0.13192853945663188,
+        "baseline_brier": 0.2390040119511892,
+        "calibration": {
+          "n": 97,
+          "mean_predicted": 0.4184095850681101,
+          "observed_rate": 0.3917525773195876,
+          "ece": 0.10802160193773053,
+          "reliability_slope": 1.6110611945788338,
+          "reliability_intercept": -0.06179424479747068,
+          "status": "ok"
+        }
+      }
+    },
+    "RB": {
+      "year1": {
+        "status": "evaluated",
+        "evaluated_folds": 14,
+        "skipped_folds": 0,
+        "forecast_seasons_graded": [
+          2012,
+          2013,
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "skip_reasons": [],
+        "unconditional_points_delta_r2_vs_baseline": {
+          "point": 0.09257107225943029,
+          "ci90": [
+            0.07343732335528591,
+            0.11017478473810109
+          ]
+        },
+        "baseline_improvement": "within the reported 90% interval",
+        "brier": 0.1397574612541749,
+        "baseline_brier": 0.23886545620302357,
+        "calibration": {
+          "n": 2775,
+          "mean_predicted": 0.5891209946451671,
+          "observed_rate": 0.6057657657657658,
+          "ece": 0.02674698246103899,
+          "reliability_slope": 0.9377444617609716,
+          "reliability_intercept": 0.13690671710572,
+          "status": "ok"
+        }
+      },
+      "year2": {
+        "status": "evaluated",
+        "evaluated_folds": 12,
+        "skipped_folds": 0,
+        "forecast_seasons_graded": [
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "skip_reasons": [],
+        "unconditional_points_delta_r2_vs_baseline": {
+          "point": 0.13392408532995304,
+          "ci90": [
+            0.10088307229073598,
+            0.16201043664205877
+          ]
+        },
+        "baseline_improvement": "within the reported 90% interval",
+        "brier": 0.16961685318229786,
+        "baseline_brier": 0.24981152589503916,
+        "calibration": {
+          "n": 2402,
+          "mean_predicted": 0.4533139663605581,
+          "observed_rate": 0.4791840133222315,
+          "ece": 0.04522407523640771,
+          "reliability_slope": 0.8463287599305553,
+          "reliability_intercept": 0.14363394361488227,
+          "status": "ok"
+        }
+      },
+      "year3": {
+        "status": "evaluated",
+        "evaluated_folds": 9,
+        "skipped_folds": 1,
+        "forecast_seasons_graded": [
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "skip_reasons": [
+          "policy selection for year 3: no inner validation season with closed training rows and a fittable candidate (seasons pres"
+        ],
+        "unconditional_points_delta_r2_vs_baseline": {
+          "point": 0.1734434840523308,
+          "ci90": [
+            0.13602807096205877,
+            0.20112908858595502
+          ]
+        },
+        "baseline_improvement": "within the reported 90% interval",
+        "brier": 0.16603754485010475,
+        "baseline_brier": 0.2329647921806049,
+        "calibration": {
+          "n": 1842,
+          "mean_predicted": 0.34587457023363827,
+          "observed_rate": 0.36807817589576547,
+          "ece": 0.05357481836762632,
+          "reliability_slope": 1.3316804601912582,
+          "reliability_intercept": 0.3074120010477504,
+          "status": "ok"
+        }
+      },
+      "year4": {
+        "status": "evaluated",
+        "evaluated_folds": 5,
+        "skipped_folds": 3,
+        "forecast_seasons_graded": [
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "skip_reasons": [
+          "policy selection for year 4: no inner validation season with closed training rows and a fittable candidate (seasons pres"
+        ],
+        "unconditional_points_delta_r2_vs_baseline": {
+          "point": 0.20852358199505905,
+          "ci90": [
+            0.15335133161179051,
+            0.24754228588338076
+          ]
+        },
+        "baseline_improvement": "within the reported 90% interval",
+        "brier": 0.15299828610383961,
+        "baseline_brier": 0.20989534326725012,
+        "calibration": {
+          "n": 1042,
+          "mean_predicted": 0.2577228801939803,
+          "observed_rate": 0.29558541266794625,
+          "ece": 0.055391047258643036,
+          "reliability_slope": 1.3520768148641695,
+          "reliability_intercept": 0.5670194994584389,
+          "status": "ok"
+        }
+      },
+      "year5": {
+        "status": "evaluated",
+        "evaluated_folds": 1,
+        "skipped_folds": 5,
+        "forecast_seasons_graded": [
+          2025
+        ],
+        "skip_reasons": [
+          "policy selection for year 5: no inner validation season with closed training rows and a fittable candidate (seasons pres"
+        ],
+        "unconditional_points_delta_r2_vs_baseline": {
+          "point": 0.22795521415444164,
+          "ci90": [
+            0.09103841247553608,
+            0.29155049648419706
+          ]
+        },
+        "baseline_improvement": "within the reported 90% interval",
+        "brier": 0.12788034593075542,
+        "baseline_brier": 0.1694818460623649,
+        "calibration": {
+          "n": 206,
+          "mean_predicted": 0.1891766194056951,
+          "observed_rate": 0.21359223300970873,
+          "ece": 0.04334475922891897,
+          "reliability_slope": 1.3607805064559264,
+          "reliability_intercept": 0.6275134005537869,
+          "status": "ok"
+        }
+      }
+    },
+    "WR": {
+      "year1": {
+        "status": "evaluated",
+        "evaluated_folds": 14,
+        "skipped_folds": 0,
+        "forecast_seasons_graded": [
+          2012,
+          2013,
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "skip_reasons": [],
+        "unconditional_points_delta_r2_vs_baseline": {
+          "point": 0.10731625363581287,
+          "ci90": [
+            0.09178089786435856,
+            0.11992642108907006
+          ]
+        },
+        "baseline_improvement": "within the reported 90% interval",
+        "brier": 0.13564546443160477,
+        "baseline_brier": 0.2394857049109576,
+        "calibration": {
+          "n": 3944,
+          "mean_predicted": 0.601983684949979,
+          "observed_rate": 0.6044624746450304,
+          "ece": 0.02127932006226109,
+          "reliability_slope": 0.9068375501131486,
+          "reliability_intercept": 0.043430305683941316,
+          "status": "ok"
+        }
+      },
+      "year2": {
+        "status": "evaluated",
+        "evaluated_folds": 12,
+        "skipped_folds": 0,
+        "forecast_seasons_graded": [
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "skip_reasons": [],
+        "unconditional_points_delta_r2_vs_baseline": {
+          "point": 0.14941766862682881,
+          "ci90": [
+            0.1201888897367922,
+            0.1734961045415604
+          ]
+        },
+        "baseline_improvement": "within the reported 90% interval",
+        "brier": 0.15551870572775994,
+        "baseline_brier": 0.2502668651108947,
+        "calibration": {
+          "n": 3404,
+          "mean_predicted": 0.48332657945197904,
+          "observed_rate": 0.48325499412455936,
+          "ece": 0.017542543247710436,
+          "reliability_slope": 0.9051954258735038,
+          "reliability_intercept": -0.001368828511190121,
+          "status": "ok"
+        }
+      },
+      "year3": {
+        "status": "evaluated",
+        "evaluated_folds": 9,
+        "skipped_folds": 1,
+        "forecast_seasons_graded": [
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "skip_reasons": [
+          "policy selection for year 3: no inner validation season with closed training rows and a fittable candidate (seasons pres"
+        ],
+        "unconditional_points_delta_r2_vs_baseline": {
+          "point": 0.2052426055391452,
+          "ci90": [
+            0.16160478300430986,
+            0.2404350149564143
+          ]
+        },
+        "baseline_improvement": "within the reported 90% interval",
+        "brier": 0.15155089496502896,
+        "baseline_brier": 0.23719233210571006,
+        "calibration": {
+          "n": 2568,
+          "mean_predicted": 0.3847934680193362,
+          "observed_rate": 0.38590342679127726,
+          "ece": 0.013088540947523888,
+          "reliability_slope": 0.9647091676694468,
+          "reliability_intercept": -0.0037390192660180562,
+          "status": "ok"
+        }
+      },
+      "year4": {
+        "status": "evaluated",
+        "evaluated_folds": 5,
+        "skipped_folds": 3,
+        "forecast_seasons_graded": [
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "skip_reasons": [
+          "policy selection for year 4: no inner validation season with closed training rows and a fittable candidate (seasons pres"
+        ],
+        "unconditional_points_delta_r2_vs_baseline": {
+          "point": 0.21136236250408846,
+          "ci90": [
+            0.13772446638773514,
+            0.2682963621119912
+          ]
+        },
+        "baseline_improvement": "within the reported 90% interval",
+        "brier": 0.14710661472998093,
+        "baseline_brier": 0.21652497070861224,
+        "calibration": {
+          "n": 1452,
+          "mean_predicted": 0.2956678975587582,
+          "observed_rate": 0.31611570247933884,
+          "ece": 0.03152441986754246,
+          "reliability_slope": 0.9841614067572091,
+          "reliability_intercept": 0.13302567594007944,
+          "status": "ok"
+        }
+      },
+      "year5": {
+        "status": "evaluated",
+        "evaluated_folds": 1,
+        "skipped_folds": 5,
+        "forecast_seasons_graded": [
+          2025
+        ],
+        "skip_reasons": [
+          "policy selection for year 5: no inner validation season with closed training rows and a fittable candidate (seasons pres"
+        ],
+        "unconditional_points_delta_r2_vs_baseline": {
+          "point": 0.12514064123924318,
+          "ci90": [
+            -0.033546745762472054,
+            0.23627228943557171
+          ]
+        },
+        "baseline_improvement": "inconclusive: the 90% interval includes zero",
+        "brier": 0.13993017743100936,
+        "baseline_brier": 0.185517309854433,
+        "calibration": {
+          "n": 294,
+          "mean_predicted": 0.23148941709135715,
+          "observed_rate": 0.24489795918367346,
+          "ece": 0.0851920024913758,
+          "reliability_slope": 1.1780208830486438,
+          "reliability_intercept": 0.2650527011505397,
+          "status": "ok"
+        }
+      }
+    },
+    "TE": {
+      "year1": {
+        "status": "evaluated",
+        "evaluated_folds": 14,
+        "skipped_folds": 0,
+        "forecast_seasons_graded": [
+          2012,
+          2013,
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "skip_reasons": [],
+        "unconditional_points_delta_r2_vs_baseline": {
+          "point": 0.06103028651182352,
+          "ci90": [
+            0.04282345683833886,
+            0.07686383907814934
+          ]
+        },
+        "baseline_improvement": "within the reported 90% interval",
+        "brier": 0.1476937979216672,
+        "baseline_brier": 0.23474224939630622,
+        "calibration": {
+          "n": 2202,
+          "mean_predicted": 0.6145717127941548,
+          "observed_rate": 0.6244323342415985,
+          "ece": 0.020949273485430603,
+          "reliability_slope": 0.9322894190816806,
+          "reliability_intercept": 0.09088800161488453,
+          "status": "ok"
+        }
+      },
+      "year2": {
+        "status": "evaluated",
+        "evaluated_folds": 12,
+        "skipped_folds": 0,
+        "forecast_seasons_graded": [
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "skip_reasons": [],
+        "unconditional_points_delta_r2_vs_baseline": {
+          "point": 0.09296331326025631,
+          "ci90": [
+            0.059247205646281914,
+            0.12167919630095687
+          ]
+        },
+        "baseline_improvement": "within the reported 90% interval",
+        "brier": 0.16494456662514356,
+        "baseline_brier": 0.25033781639871044,
+        "calibration": {
+          "n": 1900,
+          "mean_predicted": 0.5030292052499328,
+          "observed_rate": 0.5063157894736842,
+          "ece": 0.029940984110253213,
+          "reliability_slope": 0.9424713367146791,
+          "reliability_intercept": 0.024386034349426954,
+          "status": "ok"
+        }
+      },
+      "year3": {
+        "status": "evaluated",
+        "evaluated_folds": 9,
+        "skipped_folds": 1,
+        "forecast_seasons_graded": [
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "skip_reasons": [
+          "policy selection for year 3: no inner validation season with closed training rows and a fittable candidate (seasons pres"
+        ],
+        "unconditional_points_delta_r2_vs_baseline": {
+          "point": 0.12717921374953767,
+          "ci90": [
+            0.08854575647576544,
+            0.15790673005126485
+          ]
+        },
+        "baseline_improvement": "within the reported 90% interval",
+        "brier": 0.16584046881708794,
+        "baseline_brier": 0.24094413511446405,
+        "calibration": {
+          "n": 1445,
+          "mean_predicted": 0.4020932982758163,
+          "observed_rate": 0.40415224913494807,
+          "ece": 0.047749443167174534,
+          "reliability_slope": 1.3682395741571571,
+          "reliability_intercept": 0.12252372574147571,
+          "status": "ok"
+        }
+      },
+      "year4": {
+        "status": "evaluated",
+        "evaluated_folds": 5,
+        "skipped_folds": 3,
+        "forecast_seasons_graded": [
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "skip_reasons": [
+          "policy selection for year 4: no inner validation season with closed training rows and a fittable candidate (seasons pres"
+        ],
+        "unconditional_points_delta_r2_vs_baseline": {
+          "point": 0.18405402578033914,
+          "ci90": [
+            0.13367230517992126,
+            0.22514082111930772
+          ]
+        },
+        "baseline_improvement": "within the reported 90% interval",
+        "brier": 0.1538529163798413,
+        "baseline_brier": 0.21505869668714037,
+        "calibration": {
+          "n": 815,
+          "mean_predicted": 0.31095099304442947,
+          "observed_rate": 0.3128834355828221,
+          "ece": 0.05824220393293357,
+          "reliability_slope": 1.4634213810786818,
+          "reliability_intercept": 0.31025818338506556,
+          "status": "ok"
+        }
+      },
+      "year5": {
+        "status": "evaluated",
+        "evaluated_folds": 1,
+        "skipped_folds": 5,
+        "forecast_seasons_graded": [
+          2025
+        ],
+        "skip_reasons": [
+          "policy selection for year 5: no inner validation season with closed training rows and a fittable candidate (seasons pres"
+        ],
+        "unconditional_points_delta_r2_vs_baseline": {
+          "point": 0.19875169632914924,
+          "ci90": [
+            0.10665671691771153,
+            0.2772721607125469
+          ]
+        },
+        "baseline_improvement": "within the reported 90% interval",
+        "brier": 0.1325987986449845,
+        "baseline_brier": 0.1975657807665082,
+        "calibration": {
+          "n": 163,
+          "mean_predicted": 0.2429833886554078,
+          "observed_rate": 0.26993865030674846,
+          "ece": 0.08188156252687631,
+          "reliability_slope": 1.0874361145542606,
+          "reliability_intercept": 0.2678078079858353,
+          "status": "ok"
+        }
+      }
+    }
+  }
+}

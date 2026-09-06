@@ -157,3 +157,68 @@ default refuses them and a tolerance must be passed explicitly as a disclosed ex
 manifest beside the run records that, names the window (`all_reg_weeks`), and states that "validated" means week
 labels, uniqueness and non-missing values — not game coverage, which the shared outcome contract checks.
 `historical_predictions.csv` (11 MB) stays on disk, pinned by sha.
+
+## 9. Championship-window refit on the common outcome artifact (run `20260906T195728Z`)
+
+**Labels come from DG-179's common artifact**, not from this lane's own aggregation:
+`dg-wt/DG-179/runs/20260906T194819Z/league_season_outcomes/` — `outcomes.csv` sha `199a48be…`, manifest sha
+`d3812d0d…`, target identity `049d2229…`, scoring preset `nflverse_default_ppr_championship_window_v1` (REG weeks 1–16
+through 2020, 1–17 from 2021, equal weights; NOT David's exact league scoring — `league_scoring_exact false`),
+coverage `qualified_research_game_complete_identified_rows`, `individual_stat_completeness_proven false`, seasons
+2001–2025. Window id `championship_week17`. Features are unchanged (ALL NFL games, DG-024); same cohort, same
+offensive-role fallback, same policy space; the policy was re-selected on closed inner folds on the new labels.
+
+**Label verification (every fitted label read back from `historical_predictions.csv`):** 14,944 labels equal the
+artifact's row for (player, feature season + horizon); 15,335 cohort rows absent from the artifact inside its covered
+seasons carry zero / not-appeared, which is the artifact's own zero definition; 0 mismatches; no fitted label lies
+outside 2001–2025 (feature seasons 2011–2024 → target seasons 2012–2025); 2026 forecasts are unknown, never zero.
+
+**Evidence, all-games regrade `191832Z` → championship refit (pooled policy; Δr² = policy − training-only baseline,
+unconditional points; the same folds 14/12/9/5/1):**
+
+| pos | year1 | year2 | year3 | year4 | year5 (one fold) |
+|---|---|---|---|---|---|
+| QB | +0.054 → +0.064 | +0.052 → +0.060 | +0.062 → +0.068 | +0.099 → +0.101 | +0.091 → +0.157 |
+| RB | +0.088 → +0.093 | +0.132 → +0.134 | +0.171 → +0.173 | +0.209 → +0.209 | +0.226 → +0.228 |
+| WR | +0.103 → +0.107 | +0.145 → +0.149 | +0.203 → +0.205 | +0.207 → +0.211 | +0.122 → +0.125 |
+| TE | +0.056 → +0.061 | +0.088 → +0.093 | +0.118 → +0.127 | +0.176 → +0.184 | +0.197 → +0.199 |
+
+Brier, AUC and the points-given-appearance Δr² move by thousandths in every cell (points|appear is 0.005–0.016 lower
+at years 1–4, unconditional points 0.002–0.010 higher); year-5 cells remain one fold and are not evidence. Appearance
+base rates are one to two points lower (QB year 1 0.67 → 0.65) because a player whose only games fall in the excluded
+final REG week no longer counts as appeared. No cell's reading changes. The old-target metrics are not validation of
+the new labels; the new cells were graded on the artifact's labels only.
+
+**2026 forecasts (feature season 2025, 759 rows, identity all resolved):** expected window points are 5–8% below the
+all-REG numbers and appearance probabilities are unchanged to 0.003 — Travis Hunter (WR by 2025 roster role) 0.887 /
+80.4 (was 0.890 / 85.4); Tucker Kraft 0.929 / 120.4 (was 0.931 / 126.9).
+
+**Aging-reference sensitivity (logged for Codex's football choice; nothing changed here — the reference scenario is
+DG-178's composition):** among unrostered forecast players (QB 57, RB 122, WR 212, TE 123), the fixed same-player
+reference (the season-1 best available, carried through every season) versus the per-season best available, expected
+window points years 1–5: QB Flacco 115 / 86 / 45 / 32 / 18 vs 115 / 86 / 75 / 69 / 59 (Rattler from year 3); RB Hunt
+88 / 46 / 25 / 13 / 4 vs 88 / 76 / 55 / 50 / 51 (B. Smith, then L. Allen); WR Mims identical (106 / 98 / 93 / 85 / 71);
+TE Parkinson identical through year 4, 49 vs 50 at year 5. The fixed reference ages out at QB and RB by year 3; the
+per-season reference is a different player by then. Same shape on the all-games regrade.
+
+**Companion manifest `runs/20260906T195728Z/dg177_basic_horizons.manifest.corrected.json` (sha `b73027d0…`),
+hash-bound to the immutable run (original manifest `253d5461…`, results.json `0b91d35f…`, forecasts `a43f3126…`,
+unchanged):** adds DG-178's outcome-binding block (`outcome.{target_identity, outcomes_csv_sha256, manifest_sha256,
+scoring_preset, coverage_status, last_complete_season}`, top-level `scoring`, the artifact's `exposure_definition`)
+and discloses three things about the run as written: (1) the manifest embedded in `results.json` disagrees with
+`manifest.json` on `evaluation_status, exports, inputs, label_source, role_fallback, scoring_scope, window_id` — it
+still reads the all-games scope, because the runner finalized those after writing; `manifest.json` is the target of
+record; (2) `git_head 39545f8e` is the branch HEAD at FINISH time — the process started 19:57:28Z, before that commit
+(20:02:19Z), so the code it ran predates the outcome-binding block, which is why the original manifest lacks
+`outcome`; (3) `results.json`'s `feature_notes.position_rule` text is stale; the rule that ran is stated in the
+companion. Status record `dg177_basic_horizons.evaluation_status.json` (sha `05a01003…`): every horizon `evaluated`,
+which means graded on closed folds — not validated.
+
+**Code corrections (`528f989c`, tests first):** the runner now sets label source, window, scoring scope, evaluation
+status, role fallback and the outcome block BEFORE `results.json` embeds the manifest, reads the embedded manifest
+back from disk after hashing the outputs and refuses to finish on any disagreement outside the output hashes;
+`feature_notes.position_rule` states the rule that runs. The common-outcome reader parses the exact bytes it hashed
+and refuses, before any cast, blank or padded ids, missing / non-finite values, non-integral seasons or games,
+negative or over-window games, undeclared seasons and unrecognised appearance flags, while keeping legitimate
+negative points and the zero-game / appearance parity. Open (reported, not patched): the manifest's `git_head` is
+still read at finish time; it should be captured at launch.
