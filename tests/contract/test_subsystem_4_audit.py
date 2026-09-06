@@ -159,6 +159,7 @@ AUTHORIZED_EVAL_FILES = {
     "basic_cohort.py",
     "universe_reconciliation.py",
     "evaluation_status.py",
+    "common_outcomes.py",
     "__init__.py",
     "backtest_artifact.py",
     "backtest_harness.py",

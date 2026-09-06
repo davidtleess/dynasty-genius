@@ -209,13 +209,20 @@ def annual_targets(
     out["identity_status"] = np.where(resolved, "resolved", "unresolved_in_source")
     lookup = outcomes.set_index(["player_id", "season"])[["games", "points"]]
 
+    covered = outcomes.attrs.get("seasons_covered")
+    covered_set = {int(s) for s in covered} if covered else None
     for j in horizons:
         season = out["feature_season"].astype(int) + j
         keyed = pd.MultiIndex.from_arrays([out["player_id"], season])
         hit = lookup.reindex(keyed)
         games = hit["games"].to_numpy(dtype=float)
         points = hit["points"].to_numpy(dtype=float)
+        # Unknown is censored: a season after the last complete one, or one the outcome
+        # artifact says it does not cover. Only a covered, complete season with no row is
+        # an observed absence.
         censored = (season > int(last_complete_season)).to_numpy()
+        if covered_set is not None:
+            censored = censored | (~season.isin(covered_set)).to_numpy()
         observed = resolved.to_numpy() & ~censored
         absent = observed & np.isnan(games)
         games = np.where(absent, 0.0, games)
@@ -238,6 +245,7 @@ def annual_targets(
         "exposure": EXPOSURE,
         "scope": outcomes.attrs.get("scope"),
         "scoring": outcomes.attrs.get("scoring", SCORING_COLUMN),
+        "seasons_covered": covered,
         "label_window_seasons": {f"year{j}": j for j in horizons},
         "last_complete_season": int(last_complete_season),
         "source_validation": dict(validation),

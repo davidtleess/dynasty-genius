@@ -57,6 +57,7 @@ from src.dynasty_genius.eval.basic_cohort import (  # noqa: E402
     build_basic_cohort,
     validate_players_table,
 )
+from src.dynasty_genius.eval.common_outcomes import load_common_outcomes  # noqa: E402
 from src.dynasty_genius.eval.evaluation_status import (  # noqa: E402
     SUPPORTED_MEANING,
     evaluation_status,
@@ -163,6 +164,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out-root", type=Path, default=RUNS_ROOT)
     parser.add_argument("--universe", type=Path, default=None,
                         help="DG-178's eligible_universe.csv; every row gets a forecast or a precise reason")
+    parser.add_argument("--outcomes-artifact", type=Path, default=None,
+                        help="Codex's common player-season outcome CSV (labels); features stay ALL NFL games")
+    parser.add_argument("--outcomes-manifest", type=Path, default=None, help="its manifest (scoring identifier, window, sha256)")
     parser.add_argument("--roster-roles", type=Path, default=DEFAULT_ROSTER_ROLES,
                         help="historical roster capture (parquet) for the same-season offensive-role fallback; "
                              "'none' disables it")
@@ -217,7 +221,22 @@ def main(argv: list[str] | None = None) -> int:
     }
     cohort = cohort_all[cohort_all["position"].isin(POSITIONS)].reset_index(drop=True)
     print("role fallback:", role_counts["by_source"], "| resolved by roster:", role_counts["resolved_by_roster_by_position"])
-    outcomes = season_outcomes(weekly, scope=SCOPE, validation=source_validation)
+    if args.outcomes_artifact is not None:
+        # Labels from the COMMON artifact (REG league window, nflverse-default PPR, not exact league
+        # scoring); features above stay ALL NFL games. Points, games and appearance come from one mask.
+        common_manifest = json.loads(args.outcomes_manifest.read_text())
+        outcomes = load_common_outcomes(args.outcomes_artifact, common_manifest)
+        label_source = {"kind": "common_outcome_artifact", "path": str(args.outcomes_artifact),
+                        "manifest": str(args.outcomes_manifest), "csv_sha256": outcomes.attrs["csv_sha256"],
+                        "manifest_sha256": hashlib.sha256(args.outcomes_manifest.read_bytes()).hexdigest(),
+                        "scoring": outcomes.attrs["scoring"], "exact_league_scoring": False,
+                        "weeks": outcomes.attrs["weeks"], "seasons_covered": outcomes.attrs["seasons_covered"]}
+        scope_label = outcomes.attrs["scope"]
+    else:
+        outcomes = season_outcomes(weekly, scope=SCOPE, validation=source_validation)
+        label_source = {"kind": "this_lane_REG_aggregation", "scoring": "fantasy_points_ppr (nflverse weekly column)",
+                        "exact_league_scoring": False, "weeks": "all REG weeks"}
+        scope_label = SCOPE
     labelled = annual_targets(cohort, outcomes, horizons=HORIZONS, last_complete_season=LAST_COMPLETE_SEASON)
     df = pd.concat([cohort.reset_index(drop=True), labelled.drop(columns=["player_id", "position", "feature_season", "identity_status"])], axis=1)
     seasons = sorted(int(s) for s in df["feature_season"].unique())
@@ -304,6 +323,7 @@ def main(argv: list[str] | None = None) -> int:
         "players_table": "nflreadpy.load_players()", "players_sha256": hashlib.sha256(players_bytes).hexdigest(),
         "players_facts": players_facts, "nflreadpy": nfl.__version__,
     }
+    source["label_source"] = label_source
     manifest = build_manifest(
         horizons=evaluable_horizons(support), inference_season=INFERENCE_SEASON, last_complete_season=LAST_COMPLETE_SEASON,
         scope=SCOPE, source=source, git_head=_git("rev-parse", "HEAD"),
@@ -360,6 +380,12 @@ def main(argv: list[str] | None = None) -> int:
     manifest["outputs_sha256"] = dict(manifest["outputs"])
     manifest["evaluation_status"] = evaluation_status({"historical": historical}, historical_predictions, arm_key=None)
     manifest["role_fallback"] = results["role_fallback"]
+    manifest["label_source"] = label_source
+    if label_source["kind"] == "common_outcome_artifact":
+        manifest["scoring_scope"] = {"scope": scope_label, "scoring": label_source["scoring"],
+                                     "exact_league_scoring": False, "weeks": label_source["weeks"],
+                                     "season_types": ["REG"]}
+        manifest["inputs"]["common_outcomes_sha256"] = label_source["csv_sha256"]
     validate_manifest(manifest, known_arms={ARM},
                       required_inputs=("weekly_stats_sha256", "players_sha256") + (("roster_roles_sha256",) if roster_facts.get("supplied") else ()),
                       run_dir=out_dir)
