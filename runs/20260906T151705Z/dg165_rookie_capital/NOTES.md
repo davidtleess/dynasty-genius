@@ -58,9 +58,9 @@ extrapolation of a linear term — the kind of correction to re-check each seaso
 
 The previous run wrote the plain arm's evaluation and predictions before the trend experiment decided, and
 then scored the class with the trend model — the integration lane graded the wrong arm. Here the experiment
-runs both arms with the one procedure and the arm the pre-stated rule selects supplies  and
-; the other arm sits beside them as  and
-. The scored class is unchanged. One residual to carry: after the trend
+runs both arms with the one procedure and the arm the pre-stated rule selects supplies `evaluation.json` and
+`out_of_time_predictions.csv`; the other arm sits beside them as `evaluation_other_arm_plain.json` and
+`out_of_time_predictions_plain.csv`. The scored class is unchanged. One residual to carry: after the trend
 term the season-one points bias is small overall but remains clearly negative for quarterbacks, which the
 by-position table in EVALUATION.md shows and no further term was added to chase.
 
