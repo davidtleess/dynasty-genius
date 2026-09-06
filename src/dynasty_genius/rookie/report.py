@@ -232,7 +232,7 @@ def render_report_markdown(manifest: dict, evaluation: dict, sensitivity: dict |
             lines.append(f"| {row['column']} | {_f(row['max_abs_delta'], 4)} | {row['player']} |")
     if trend:
         lines += ["", "## Model policy and exploratory comparison", "",
-                  f"Declared policy: **{trend['policy']}** — {trend['evidence_status'].get(trend['policy'], '')}", ""]
+                  f"Declared policy: **{trend['policy']}** — evidence status: {trend['evidence_status'].get(trend['policy'], '')}", ""]
         for name, status in trend["evidence_status"].items():
             if name != trend["policy"]:
                 lines.append(f"- `{name}`: {status}")

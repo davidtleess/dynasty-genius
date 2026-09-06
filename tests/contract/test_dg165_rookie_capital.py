@@ -449,7 +449,8 @@ def test_policy_experiment_declares_the_policy_ex_ante_and_never_picks_a_winner_
     # the declared policy is the canonical arm; the others are exploratory; no decision field
     assert result["policy"] == "inner_menu" and set(result["arms"]) == {"inner_menu", "plain"}
     assert "decision" not in result and "auto_trend_wins" not in result
-    assert result["evidence_status"]["inner_menu"].startswith("independent")
+    assert result["evidence_status"]["inner_menu"].startswith("retrospective historical evaluation with forecast cutoffs enforced")
+    assert "not untouched independent confirmation" in result["evidence_status"]["inner_menu"]
     assert result["evidence_status"]["plain"].startswith("exploratory")
     assert set(result["predictions"]) == {"inner_menu", "plain"}
     # the comparison bounds the DIFFERENCE with a paired bootstrap, it does not crown a winner

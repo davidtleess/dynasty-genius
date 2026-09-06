@@ -411,9 +411,10 @@ def _metric(rows: pd.DataFrame, ycol: str, pcol: str, metric: str) -> float:
 def policy_experiment(cohort: pd.DataFrame, *, policy: str, exploratory: tuple[str, ...] = ("plain",), **kwargs) -> dict:
     """Evaluate the DECLARED policy and, beside it, exploratory alternatives.
 
-    The policy is fixed before the outer loop (round-2 review, item 1): its outer
-    evaluation is evidence about the policy and is never swapped for an alternative's
-    on the strength of that same outer loop. Alternatives are compared to it by a PAIRED
+    The policy is fixed before the outer loop runs (round-2 review, item 1): its outer
+    evaluation is never swapped for an alternative's on the strength of that same outer
+    loop. It is a retrospective historical evaluation with forecast cutoffs enforced, not
+    untouched independent confirmation: the menu was refined after these years were seen. Alternatives are compared to it by a PAIRED
     bootstrap of the difference (the two arms grade the same test rows, so rows are
     resampled once and both arms re-scored on the same draw); the comparison is
     exploratory and is labelled so. No decision is made here.
@@ -457,9 +458,15 @@ def policy_experiment(cohort: pd.DataFrame, *, policy: str, exploratory: tuple[s
         "arms": arms,
         "predictions": predictions,
         "comparison": comparison,
+        # Copy correction (Codex, 2026-09-06): the policy MENU was refined after inspecting
+        # these historical years, so the outer evaluation is a retrospective historical
+        # evaluation with forecast cutoffs enforced — not untouched independent confirmation.
         "evidence_status": {
-            policy: "independent of the policy choice: the policy was declared before the outer loop and selects, if at all, only inside each training window",
-            **{name: "exploratory comparison against the declared policy; not an independent confirmation and never used to reassign the canonical evidence"
+            policy: "retrospective historical evaluation with forecast cutoffs enforced; the policy selects, if at all, only inside "
+                    "each training window, but the policy menu itself was refined after inspecting these historical years, so this "
+                    "is not untouched independent confirmation",
+            **{name: "exploratory comparison against the declared policy on the same retrospective evaluation; never used to "
+                     "reassign the canonical evidence"
                for name in exploratory if name != policy},
         },
         "paired_bootstrap": {"n_boot": n_boot, "rows": int(len(base)), "resampling": "test rows (forecast year, prospect) drawn once per replicate, both arms re-scored on the same draw"},
