@@ -45,7 +45,6 @@ from scripts.experiments.dg177_veteran_candidate import (  # noqa: E402
     RUNS_ROOT,
     _fmt,
     _fmt_delta,
-    _git,
     collect_provenance,
     served_feature_lists,
 )
@@ -75,6 +74,7 @@ from src.dynasty_genius.eval.evaluation_status import (  # noqa: E402
     SUPPORTED_MEANING,
     evaluation_status,
 )
+from src.dynasty_genius.eval.run_provenance import launch_provenance  # noqa: E402
 from src.dynasty_genius.eval.veteran_candidate import (
     validate_candidate_features,  # noqa: E402
     write_run_artifact,  # noqa: E402
@@ -380,6 +380,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--min-train-rows", type=int, default=60)
     parser.add_argument("--out-root", type=Path, default=RUNS_ROOT)
     args = parser.parse_args(argv)
+    launch = launch_provenance()
 
     from src.dynasty_genius.eval.backtest_harness import PRIMARY_NDCG_K
 
@@ -483,7 +484,8 @@ def main(argv: list[str] | None = None) -> int:
         "nflreadpy": nflreadpy.__version__,
     }
     provenance = collect_provenance(files, extra={
-        "git_head": _git("rev-parse", "HEAD"), "git_branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
+        "launch": launch, "git_head": launch["git_head"], "git_branch": launch["git_branch"],
+                  "git_dirty_at_launch": launch["git_dirty"],
         "worktree": json.loads((ROOT / ".dg-worktree.json").read_text()) if (ROOT / ".dg-worktree.json").exists() else None,
         "source": source, "finished_utc": datetime.now(timezone.utc).isoformat(),
     })
@@ -499,7 +501,7 @@ def main(argv: list[str] | None = None) -> int:
     }
     manifest = build_manifest(
         horizons=HORIZONS, inference_season=INFERENCE_SEASON, last_complete_season=LAST_COMPLETE_SEASON,
-        scope=SCOPE, source=source, git_head=_git("rev-parse", "HEAD"),
+        scope=SCOPE, source=source, git_head=launch["git_head"],
         features_by_arm=features_by_arm, inputs=manifest_inputs, source_validation=source_validation,
         selection_policy=selection_policy,
         population=f"every row of the {INFERENCE_SEASON} feature partition of the training file "

@@ -31,7 +31,6 @@ from scripts.experiments.dg177_annual_forecasts import (  # noqa: E402
     RUNS_ROOT,
     _fmt,
     _fmt_delta,
-    _git,
     build_manifest,
     pull_weekly_stats,
     validate_manifest,
@@ -62,6 +61,7 @@ from src.dynasty_genius.eval.evaluation_status import (  # noqa: E402
     SUPPORTED_MEANING,
     evaluation_status,
 )
+from src.dynasty_genius.eval.run_provenance import launch_provenance  # noqa: E402
 from src.dynasty_genius.eval.universe_reconciliation import (
     reconcile_universe,  # noqa: E402
 )
@@ -219,6 +219,7 @@ def main(argv: list[str] | None = None) -> int:
                         help="historical roster capture (parquet) for the same-season offensive-role fallback; "
                              "'none' disables it")
     args = parser.parse_args(argv)
+    launch = launch_provenance()
 
     import nflreadpy as nfl
 
@@ -381,7 +382,7 @@ def main(argv: list[str] | None = None) -> int:
     source["label_source"] = label_source
     manifest = build_manifest(
         horizons=evaluable_horizons(support), inference_season=INFERENCE_SEASON, last_complete_season=LAST_COMPLETE_SEASON,
-        scope=SCOPE, source=source, git_head=_git("rev-parse", "HEAD"),
+        scope=SCOPE, source=source, git_head=launch["git_head"],
         features_by_arm={ARM: {p: list(BASIC_FEATURES) for p in POSITIONS}}, candidate_arm=ARM,
         candidate_rationale="the basic cohort's only arm: first-party production, games, age, one lag and last-seen "
                             "features; the selection policy (baseline / candidate / bounded blend) is chosen per "
@@ -402,6 +403,7 @@ def main(argv: list[str] | None = None) -> int:
     # Everything the manifest can know BEFORE the files exist is set here, so the manifest
     # embedded in results.json and the final manifest.json describe the same target.
     manifest["exports"] = {"candidate": "basic_forecasts.csv", "comparator": "none"}
+    manifest["launch"] = launch
     manifest["evaluation_status"] = evaluation_status({"historical": historical}, historical_predictions, arm_key=None)
     manifest["role_fallback"] = role_fallback
     manifest["label_source"] = label_source
@@ -431,7 +433,8 @@ def main(argv: list[str] | None = None) -> int:
         "config": {"draws": args.draws, "seed": args.seed, "min_train_rows": args.min_train_rows,
                    "min_training_seasons": MIN_TRAINING_SEASONS, "first_season": args.first_season},
     }
-    provenance = {"git_head": _git("rev-parse", "HEAD"), "git_branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
+    provenance = {"launch": launch, "git_head": launch["git_head"], "git_branch": launch["git_branch"],
+                  "git_dirty_at_launch": launch["git_dirty"],
                   "source": source, "finished_utc": datetime.now(timezone.utc).isoformat()}
     report = _render(results)
     written = write_run_artifact(out_dir, results, historical_predictions, provenance=provenance, report_md=report)
