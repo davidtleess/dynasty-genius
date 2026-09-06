@@ -11,6 +11,7 @@ idp_* keys, which this league does not set).
 """
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 
@@ -178,3 +179,73 @@ def extract_fumble_events(pbp: pd.DataFrame) -> pd.DataFrame:
     if dup.any():
         raise ScoringAuditError(f"{int(dup.sum())} duplicate events at the event grain")
     return out
+
+
+# ── player-week components: weekly counts are the authority, play-by-play supplies the split ───
+
+CHAMPIONSHIP_WEEKS = range(1, 18)
+UNRESOLVED_LOST = "pbp_lost_count_disagrees_with_weekly"
+UNRESOLVED_TD = "pbp_recovery_td_count_disagrees_with_weekly"
+UNRESOLVED_ST_TD = "recovery_td_on_special_teams_no_ground_truth"
+UNRESOLVED_EVENT = "event_ambiguous_or_missing_id"
+SPLIT_COLUMNS = ("pbp_fumbles_lost", "pbp_recovery_tds", "st_forced_fumbles", "st_opp_recoveries", "st_own_recoveries",
+                 "non_st_forced_fumbles", "non_st_opp_recoveries", "own_recoveries", "st_recovery_tds",
+                 "problem_events", "capacity_plays", "capacity_plays_needing_split")
+
+
+def _count(events: pd.DataFrame, mask: pd.Series) -> pd.Series:
+    sub = events[mask].dropna(subset=["player_id"])
+    return sub.groupby(["player_id", "week"]).size()
+
+
+def player_week_components(weekly: pd.DataFrame, events: pd.DataFrame) -> pd.DataFrame:
+    w = weekly[weekly["season_type"] == "REG"].copy()
+    if w.duplicated(["player_id", "week"]).any():
+        raise ScoringAuditError("duplicate (player_id, week) rows in the weekly source")
+    for c in WEEKLY_COMPONENT_COLUMNS:
+        w[c] = _num(w, c)
+    w["extra_fumbles_lost"] = (w["fumbles_lost_total"] - w["sack_fumbles_lost"] - w["rushing_fumbles_lost"]
+                              - w["receiving_fumbles_lost"]).clip(lower=0)
+    idx = pd.MultiIndex.from_frame(w[["player_id", "week"]])
+
+    def col(series: pd.Series) -> np.ndarray:
+        return series.reindex(idx).fillna(0).to_numpy(dtype=int) if len(series) else np.zeros(len(w), dtype=int)
+
+    for c in SPLIT_COLUMNS:
+        w[c] = 0
+    live = events[events["status"] != "nullified"] if len(events) else events
+    ok = live[live["status"] == "attributed"] if len(live) else live
+    if len(ok):
+        is_fum, is_rec, is_ff, is_td = (ok.event_type == t for t in ("fumble", "recovery", "forced_fumble", "recovery_td"))
+        st = ok.special_teams.astype(bool)
+        own = ok.own_team.fillna(False).astype(bool)
+        w["pbp_fumbles_lost"] = col(_count(ok, is_fum & ok.lost.fillna(False).astype(bool)))
+        w["pbp_recovery_tds"] = col(_count(ok, is_td))
+        w["st_recovery_tds"] = col(_count(ok, is_td & st))
+        w["st_forced_fumbles"] = col(_count(ok, is_ff & st))
+        w["st_opp_recoveries"] = col(_count(ok, is_rec & st & ~own))
+        w["st_own_recoveries"] = col(_count(ok, is_rec & st & own))
+        w["non_st_forced_fumbles"] = col(_count(ok, is_ff & ~st))
+        w["non_st_opp_recoveries"] = col(_count(ok, is_rec & ~st & ~own))
+        w["own_recoveries"] = col(_count(ok, is_rec & own))
+    if len(live):
+        cap = live[(live.status == "ambiguous") & (live.ambiguity_reason == AMBIGUITY_CAPACITY)]
+        # only special-teams credits depend on the slot pairing (own vs opponent ball); on offensive plays
+        # no recovery or forced fumble is ever credited, and the weekly counts stay the authority
+        cap_needs_split = cap[cap.special_teams.astype(bool)]
+        other_bad = live[live.status.isin(["missing_id", "ambiguous"]) & (live.ambiguity_reason != AMBIGUITY_CAPACITY)]
+        w["capacity_plays"] = col(_count(cap, pd.Series(True, index=cap.index))) if len(cap) else 0
+        w["capacity_plays_needing_split"] = col(_count(cap_needs_split, pd.Series(True, index=cap_needs_split.index))) if len(cap_needs_split) else 0
+        w["problem_events"] = col(_count(other_bad, pd.Series(True, index=other_bad.index))) if len(other_bad) else 0
+    w["championship_window"] = w["week"].isin(list(CHAMPIONSHIP_WEEKS))
+    skip = w["capacity_plays"] > 0
+    lost_ok = w["pbp_fumbles_lost"] == w["fumbles_lost_total"]
+    w["cross_check"] = np.select([skip, lost_ok], ["skipped_capacity_ambiguity", "ok"], default="disagrees")
+    reason = pd.Series("", index=w.index, dtype=object)
+    reason[((w["problem_events"] > 0) | (w["capacity_plays_needing_split"] > 0)) & (reason == "")] = UNRESOLVED_EVENT
+    reason[(w["cross_check"] == "disagrees") & (reason == "")] = UNRESOLVED_LOST
+    reason[(~skip) & (w["pbp_recovery_tds"] != w["fumble_recovery_tds"]) & (reason == "")] = UNRESOLVED_TD
+    reason[(w["st_recovery_tds"] > 0) & (reason == "")] = UNRESOLVED_ST_TD
+    w["unresolved_reason"] = reason
+    w["attribution_status"] = np.where(reason == "", "attributed", "unresolved")
+    return w.reset_index(drop=True)

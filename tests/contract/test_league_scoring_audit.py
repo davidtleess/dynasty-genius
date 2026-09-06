@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from src.dynasty_genius.eval import league_scoring_audit as lsa
 
@@ -212,3 +213,119 @@ def test_description_touchdown_text_never_creates_a_recovery_touchdown():
 def test_empty_play_by_play_yields_an_empty_ledger_with_the_full_schema():
     ev = lsa.extract_fumble_events(pbp([]))
     assert len(ev) == 0 and {"game_id", "play_id", "event_slot", "event_type", "player_id", "status", "ambiguity_reason"} <= set(ev.columns)
+
+
+# ── Task 4: player-week components, cross-checks, championship label ──────────────────────────
+
+def _events(rows):
+    return lsa.extract_fumble_events(pbp(rows))
+
+
+def test_components_split_special_teams_from_offense_and_flag_the_window():
+    w = weekly([dict(player_id="P1", week=17, fumbles_lost_total=1, receiving_fumbles_lost=0),
+                dict(player_id="P1", week=18, fumbles_lost_total=0)])
+    ev = _events([play("G1", 1, 17, play_type="punt", special_teams_play=1, fumbled_1_player_id="P1", fumbled_1_team="AAA",
+                       fumble_recovery_1_player_id="D1", fumble_recovery_1_team="BBB", fumble_lost=1, desc="MUFFS, FUMBLES")])
+    c = lsa.player_week_components(w, ev).set_index("week")
+    assert int(c.loc[17, "extra_fumbles_lost"]) == 1 and int(c.loc[17, "pbp_fumbles_lost"]) == 1
+    assert bool(c.loc[17, "championship_window"]) is True and bool(c.loc[18, "championship_window"]) is False
+    assert c.loc[17, "attribution_status"] == "attributed" and c.loc[17, "cross_check"] == "ok"
+
+
+def test_st_forced_and_opponent_recovery_by_the_same_player_count_once_each():
+    w = weekly([dict(player_id="P1", week=13, def_fumbles_forced=1, fumble_recovery_opp=1)])
+    ev = _events([play("G1", 722, 13, play_type="kickoff", special_teams_play=1, fumbled_1_player_id="R1", fumbled_1_team="BBB",
+                       forced_fumble_player_1_player_id="P1", forced_fumble_player_1_team="AAA",
+                       fumble_recovery_1_player_id="P1", fumble_recovery_1_team="AAA", fumble_lost=1, desc="FUMBLES")])
+    c = lsa.player_week_components(w, ev).iloc[0]
+    assert int(c.st_forced_fumbles) == 1 and int(c.st_opp_recoveries) == 1 and int(c.st_own_recoveries) == 0
+    assert c.attribution_status == "attributed"
+
+
+def test_own_team_special_teams_recovery_is_counted_attributed_and_never_credited():
+    # root's ground truth: a kickoff recovered by a teammate of the fumbler; Sleeper paid nothing
+    w = weekly([dict(player_id="P1", week=5, receptions=2, receiving_yards=27, fumble_recovery_own=1, fantasy_points_ppr=4.7)])
+    ev = _events([play("G1", 1358, 5, play_type="kickoff", special_teams_play=1, fumbled_1_player_id="P5", fumbled_1_team="AAA",
+                       fumble_recovery_1_player_id="P1", fumble_recovery_1_team="AAA", fumble_lost=0, desc="FUMBLES")])
+    c = lsa.player_week_components(w, ev).iloc[0]
+    assert int(c.st_own_recoveries) == 1 and int(c.st_opp_recoveries) == 0 and c.attribution_status == "attributed"
+
+
+def test_capacity_ambiguous_offensive_play_keeps_weekly_lost_total_as_authority():
+    w = weekly([dict(player_id="P1", week=17, passing_yards=200, sack_fumbles_lost=1, fumbles_lost_total=1)])
+    ev = _events([play("G1", 1501, 17, play_type="pass", fumble_lost=1, fumbled_1_player_id="P1", fumbled_1_team="AAA",
+                       fumble_recovery_1_player_id="P1", fumble_recovery_1_team="AAA", fumbled_2_player_id="P1", fumbled_2_team="AAA",
+                       fumble_recovery_2_player_id="D1", fumble_recovery_2_team="BBB",
+                       desc="P1 FUMBLES, recovers. P1 FUMBLES, RECOVERED by BBB-D1. D1 FUMBLES, RECOVERED by AAA-P7.")])
+    c = lsa.player_week_components(w, ev).iloc[0]
+    assert c.cross_check == "skipped_capacity_ambiguity" and c.attribution_status == "attributed"
+    assert int(c.extra_fumbles_lost) == 0
+
+
+def test_capacity_ambiguous_special_teams_play_makes_the_week_unresolved():
+    w = weekly([dict(player_id="P1", week=3, fumbles_lost_total=1)])
+    ev = _events([play("G1", 9, 3, play_type="punt", special_teams_play=1, fumble_lost=1, fumbled_1_player_id="P1", fumbled_1_team="AAA",
+                       fumble_recovery_1_player_id="D1", fumble_recovery_1_team="BBB",
+                       desc="MUFFS, FUMBLES, FUMBLES again")])
+    c = lsa.player_week_components(w, ev).iloc[0]
+    assert c.attribution_status == "unresolved" and c.unresolved_reason == "event_ambiguous_or_missing_id"
+
+
+def test_recovery_touchdown_on_a_special_teams_play_has_no_ground_truth_and_is_unresolved():
+    w = weekly([dict(player_id="P1", week=6, special_teams_tds=1, fumble_recovery_tds=1, fumble_recovery_opp=1)])
+    ev = _events([play("G1", 40, 6, play_type="punt", special_teams_play=1, fumbled_1_player_id="R1", fumbled_1_team="BBB",
+                       fumble_recovery_1_player_id="P1", fumble_recovery_1_team="AAA", fumble_lost=1,
+                       touchdown=1, return_touchdown=1, td_player_id="P1", td_team="AAA", desc="FUMBLES")])
+    c = lsa.player_week_components(w, ev).iloc[0]
+    assert c.attribution_status == "unresolved" and c.unresolved_reason == "recovery_td_on_special_teams_no_ground_truth"
+
+
+def test_weekly_and_pbp_lost_counts_must_agree_or_the_week_is_unresolved():
+    w = weekly([dict(player_id="P1", week=3, fumbles_lost_total=2, rushing_fumbles_lost=1)])
+    ev = _events([play("G1", 1, 3, fumbled_1_player_id="P1", fumbled_1_team="AAA", fumble_recovery_1_player_id="D1",
+                       fumble_recovery_1_team="BBB", fumble_lost=1, desc="FUMBLES")])
+    c = lsa.player_week_components(w, ev).iloc[0]
+    assert c.cross_check == "disagrees"
+    assert c.attribution_status == "unresolved" and c.unresolved_reason == "pbp_lost_count_disagrees_with_weekly"
+
+
+def test_extra_lost_fumble_with_an_uncredited_opponent_recovery_on_the_same_offensive_play():
+    # root's ground truth: an interception returned and fumbled; the passer recovers (opponent ball, offensive play)
+    # and later loses a fumble on a non-rush/pass play: Sleeper paid −2 and nothing for the recovery
+    w = weekly([dict(player_id="P1", week=14, passing_yards=240, rushing_yards=8, fumbles_lost_total=1, fumble_recovery_opp=1)])
+    ev = _events([play("G1", 1390, 14, play_type="pass", fumble_lost=1, fumbled_1_player_id="D1", fumbled_1_team="BBB",
+                       forced_fumble_player_1_player_id="P8", forced_fumble_player_1_team="AAA",
+                       fumble_recovery_1_player_id="P1", fumble_recovery_1_team="AAA",
+                       fumbled_2_player_id="P1", fumbled_2_team="AAA", fumble_recovery_2_player_id="D2", fumble_recovery_2_team="BBB",
+                       desc="INTERCEPTED. FUMBLES, RECOVERED by AAA-P1. FUMBLES, RECOVERED by BBB-D2.")])
+    c = lsa.player_week_components(w, ev).iloc[0]
+    assert int(c.non_st_opp_recoveries) == 1 and int(c.pbp_fumbles_lost) == 1 and c.attribution_status == "attributed"
+
+
+def test_overlapping_touchdown_makes_the_recovery_td_week_unresolved():
+    w = weekly([dict(player_id="P2", week=4, rushing_tds=1, fumble_recovery_tds=1, fumble_recovery_own=1)])
+    ev = _events([play("G1", 1, 4, fumbled_1_player_id="P9", fumbled_1_team="AAA", fumble_recovery_1_player_id="P2",
+                       fumble_recovery_1_team="AAA", touchdown=1, rush_touchdown=1, td_player_id="P2", td_team="AAA", desc="FUMBLES")])
+    c = lsa.player_week_components(w, ev).iloc[0]
+    assert c.attribution_status == "unresolved"
+    assert c.unresolved_reason in ("pbp_recovery_td_count_disagrees_with_weekly", "event_ambiguous_or_missing_id")
+
+
+def test_nullified_events_never_reach_components():
+    w = weekly([dict(player_id="P1", week=5)])
+    ev = _events([play("G1", 1, 5, play_type="no_play", fumbled_1_player_id="P1", fumbled_1_team="AAA",
+                       fumble_recovery_1_player_id="D1", fumble_recovery_1_team="BBB", fumble_lost=1)])
+    c = lsa.player_week_components(w, ev).iloc[0]
+    assert int(c.pbp_fumbles_lost) == 0 and c.attribution_status == "attributed"
+
+
+def test_weekly_only_lost_fumble_with_no_play_is_unresolved_not_credited_silently():
+    w = weekly([dict(player_id="P1", week=2, fumbles_lost_total=1)])
+    c = lsa.player_week_components(w, _events([])).iloc[0]
+    assert c.attribution_status == "unresolved" and c.unresolved_reason == "pbp_lost_count_disagrees_with_weekly"
+
+
+def test_duplicate_weekly_player_weeks_are_refused():
+    w = weekly([dict(player_id="P1", week=1), dict(player_id="P1", week=1)])
+    with pytest.raises(lsa.ScoringAuditError, match="duplicate"):
+        lsa.player_week_components(w, _events([]))

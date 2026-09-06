@@ -672,7 +672,7 @@ def player_week_components(weekly: pd.DataFrame, events: pd.DataFrame) -> pd.Dat
             w[c] = 0
     if len(live):
         cap = live[(live.status == "ambiguous") & (live.ambiguity_reason == AMBIGUITY_CAPACITY)]
-        cap_needs_split = cap[cap.special_teams.astype(bool) | cap.event_type.isin(["recovery", "recovery_td", "forced_fumble"])]
+        cap_needs_split = cap[cap.special_teams.astype(bool)]
         other_bad = live[live.status.isin(["missing_id", "ambiguous"]) & (live.ambiguity_reason != AMBIGUITY_CAPACITY)]
         w["capacity_plays"] = col(cap.dropna(subset=["player_id"]).groupby(["player_id", "week"]).size()) if len(cap) else 0
         w["capacity_plays_needing_split"] = col(cap_needs_split.dropna(subset=["player_id"]).groupby(["player_id", "week"]).size()) if len(cap_needs_split) else 0
