@@ -1,0 +1,4671 @@
+{
+ "vintage": "2026-09-05T13:00:48.017163+00:00",
+ "source": "model_forward_capture.db \u2014 joinable (served) + prediction_snapshot (projection)",
+ "note": "the runtime artifact for this vintage was overwritten by the 14:00 refresh; these rows are the durable record of what the board consumed",
+ "rows": [
+  {
+   "player_key": "sleeper:5859",
+   "name": "A.J. Brown",
+   "pos": "WR",
+   "dvs": 56.9,
+   "xvar": 11.9,
+   "projection_2y": 12.057
+  },
+  {
+   "player_key": "sleeper:11603",
+   "name": "AJ Barner",
+   "pos": "TE",
+   "dvs": 42.1,
+   "xvar": 0.3,
+   "projection_2y": 8.664
+  },
+  {
+   "player_key": "sleeper:6828",
+   "name": "AJ Dillon",
+   "pos": "RB",
+   "dvs": 5.6,
+   "xvar": -39.6,
+   "projection_2y": 2.497
+  },
+  {
+   "player_key": "sleeper:4199",
+   "name": "Aaron Jones",
+   "pos": "RB",
+   "dvs": 31.7,
+   "xvar": -13.5,
+   "projection_2y": 8.103
+  },
+  {
+   "player_key": "sleeper:96",
+   "name": "Aaron Rodgers",
+   "pos": "QB",
+   "dvs": 52.0,
+   "xvar": -9.0,
+   "projection_2y": 13.518
+  },
+  {
+   "player_key": "sleeper:13302",
+   "name": "Adam Randall",
+   "pos": "RB",
+   "dvs": 28.48,
+   "xvar": -16.72,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:1689",
+   "name": "Adam Thielen",
+   "pos": "WR",
+   "dvs": 7.5,
+   "xvar": -37.5,
+   "projection_2y": 2.844
+  },
+  {
+   "player_key": "sleeper:6869",
+   "name": "Adam Trautman",
+   "pos": "TE",
+   "dvs": 13.4,
+   "xvar": -28.4,
+   "projection_2y": 3.431
+  },
+  {
+   "player_key": "sleeper:11625",
+   "name": "Adonai Mitchell",
+   "pos": "WR",
+   "dvs": 27.0,
+   "xvar": -18.0,
+   "projection_2y": 5.813
+  },
+  {
+   "player_key": "sleeper:8142",
+   "name": "Alec Pierce",
+   "pos": "WR",
+   "dvs": 49.7,
+   "xvar": 4.7,
+   "projection_2y": 10.312
+  },
+  {
+   "player_key": "sleeper:6386",
+   "name": "Alex Bachman",
+   "pos": "WR",
+   "dvs": 0.1,
+   "xvar": -44.9,
+   "projection_2y": 0.042
+  },
+  {
+   "player_key": "sleeper:5185",
+   "name": "Allen Lazard",
+   "pos": "WR",
+   "dvs": 5.4,
+   "xvar": -39.6,
+   "projection_2y": 1.998
+  },
+  {
+   "player_key": "sleeper:4035",
+   "name": "Alvin Kamara",
+   "pos": "RB",
+   "dvs": 31.0,
+   "xvar": -14.2,
+   "projection_2y": 8.489
+  },
+  {
+   "player_key": "sleeper:2359",
+   "name": "Ameer Abdullah",
+   "pos": "RB",
+   "dvs": 6.0,
+   "xvar": -39.2,
+   "projection_2y": 1.727
+  },
+  {
+   "player_key": "sleeper:7547",
+   "name": "Amon-Ra St. Brown",
+   "pos": "WR",
+   "dvs": 81.1,
+   "xvar": 36.1,
+   "projection_2y": 16.547
+  },
+  {
+   "player_key": "sleeper:7233",
+   "name": "Andre Baccellia",
+   "pos": "WR",
+   "dvs": 0.9,
+   "xvar": -44.1,
+   "projection_2y": 0.682
+  },
+  {
+   "player_key": "sleeper:10226",
+   "name": "Andrei Iosivas",
+   "pos": "WR",
+   "dvs": 24.6,
+   "xvar": -20.4,
+   "projection_2y": 5.492
+  },
+  {
+   "player_key": "sleeper:829",
+   "name": "Andy Dalton",
+   "pos": "QB",
+   "dvs": 2.5,
+   "xvar": -58.5,
+   "projection_2y": 5.329
+  },
+  {
+   "player_key": "sleeper:4435",
+   "name": "Anthony Firkser",
+   "pos": "TE",
+   "dvs": 3.3,
+   "xvar": -38.5,
+   "projection_2y": 2.185
+  },
+  {
+   "player_key": "sleeper:11762",
+   "name": "Anthony Gould",
+   "pos": "WR",
+   "dvs": 3.0,
+   "xvar": -42.0,
+   "projection_2y": 0.873
+  },
+  {
+   "player_key": "sleeper:13582",
+   "name": "Anthony Smith",
+   "pos": "WR",
+   "dvs": 5.95,
+   "xvar": -39.05,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:6945",
+   "name": "Antonio Gibson",
+   "pos": "RB",
+   "dvs": 10.8,
+   "xvar": -34.4,
+   "projection_2y": 4.119
+  },
+  {
+   "player_key": "sleeper:13301",
+   "name": "Antonio Williams",
+   "pos": "WR",
+   "dvs": 43.54,
+   "xvar": -1.46,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:12539",
+   "name": "Arian Smith",
+   "pos": "WR",
+   "dvs": 12.6,
+   "xvar": -32.4,
+   "projection_2y": 3.208
+  },
+  {
+   "player_key": "sleeper:6427",
+   "name": "Ashton Dulin",
+   "pos": "WR",
+   "dvs": 4.3,
+   "xvar": -40.7,
+   "projection_2y": 1.351
+  },
+  {
+   "player_key": "sleeper:12527",
+   "name": "Ashton Jeanty",
+   "pos": "RB",
+   "dvs": 57.6,
+   "xvar": 12.4,
+   "projection_2y": 11.712
+  },
+  {
+   "player_key": "sleeper:13557",
+   "name": "Athan Kaliakmanis",
+   "pos": "QB",
+   "dvs": 7.23,
+   "xvar": -53.77,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:11579",
+   "name": "Audric Estime",
+   "pos": "RB",
+   "dvs": 33.2,
+   "xvar": -12.0,
+   "projection_2y": 8.058
+  },
+  {
+   "player_key": "sleeper:3202",
+   "name": "Austin Hooper",
+   "pos": "TE",
+   "dvs": 16.2,
+   "xvar": -25.6,
+   "projection_2y": 4.018
+  },
+  {
+   "player_key": "sleeper:7746",
+   "name": "Austin Trammell",
+   "pos": "WR",
+   "dvs": 3.6,
+   "xvar": -41.4,
+   "projection_2y": 1.39
+  },
+  {
+   "player_key": "sleeper:4892",
+   "name": "Baker Mayfield",
+   "pos": "QB",
+   "dvs": 77.2,
+   "xvar": 16.2,
+   "projection_2y": 16.143
+  },
+  {
+   "player_key": "sleeper:8122",
+   "name": "Bam Knight",
+   "pos": "RB",
+   "dvs": 32.6,
+   "xvar": -12.6,
+   "projection_2y": 7.192
+  },
+  {
+   "player_key": "sleeper:13533",
+   "name": "Barion Brown",
+   "pos": "WR",
+   "dvs": 18.85,
+   "xvar": -26.15,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:13308",
+   "name": "Bauer Sharp",
+   "pos": "TE",
+   "dvs": 19.36,
+   "xvar": -22.44,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:12889",
+   "name": "Beaux Collins",
+   "pos": "WR",
+   "dvs": 5.4,
+   "xvar": -39.6,
+   "projection_2y": 2.198
+  },
+  {
+   "player_key": "sleeper:13295",
+   "name": "Behren Morton",
+   "pos": "QB",
+   "dvs": 0.0,
+   "xvar": -61.0,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:11596",
+   "name": "Ben Sinnott",
+   "pos": "TE",
+   "dvs": 14.0,
+   "xvar": -27.8,
+   "projection_2y": 3.863
+  },
+  {
+   "player_key": "sleeper:7757",
+   "name": "Ben Skowronek",
+   "pos": "WR",
+   "dvs": 5.4,
+   "xvar": -39.6,
+   "projection_2y": 1.287
+  },
+  {
+   "player_key": "sleeper:13121",
+   "name": "Ben Yurosek",
+   "pos": "TE",
+   "dvs": 5.8,
+   "xvar": -36.0,
+   "projection_2y": 2.094
+  },
+  {
+   "player_key": "sleeper:12490",
+   "name": "Bhayshul Tuten",
+   "pos": "RB",
+   "dvs": 30.7,
+   "xvar": -14.5,
+   "projection_2y": 6.502
+  },
+  {
+   "player_key": "sleeper:9509",
+   "name": "Bijan Robinson",
+   "pos": "RB",
+   "dvs": 86.8,
+   "xvar": 41.6,
+   "projection_2y": 17.516
+  },
+  {
+   "player_key": "sleeper:11586",
+   "name": "Blake Corum",
+   "pos": "RB",
+   "dvs": 32.3,
+   "xvar": -12.9,
+   "projection_2y": 6.713
+  },
+  {
+   "player_key": "sleeper:11201",
+   "name": "Blake Whiteheart",
+   "pos": "TE",
+   "dvs": 5.8,
+   "xvar": -36.0,
+   "projection_2y": 2.064
+  },
+  {
+   "player_key": "sleeper:8204",
+   "name": "Bo Melton",
+   "pos": "CB",
+   "dvs": null,
+   "xvar": null,
+   "projection_2y": 2.142
+  },
+  {
+   "player_key": "sleeper:11563",
+   "name": "Bo Nix",
+   "pos": "QB",
+   "dvs": 85.6,
+   "xvar": 24.6,
+   "projection_2y": 17.318
+  },
+  {
+   "player_key": "sleeper:12538",
+   "name": "Brady Cook",
+   "pos": "QB",
+   "dvs": 22.0,
+   "xvar": -39.0,
+   "projection_2y": 7.549
+  },
+  {
+   "player_key": "sleeper:11280",
+   "name": "Brady Russell",
+   "pos": "RB",
+   "dvs": 0.8,
+   "xvar": -44.4,
+   "projection_2y": 0.224
+  },
+  {
+   "player_key": "sleeper:11576",
+   "name": "Braelon Allen",
+   "pos": "RB",
+   "dvs": 16.0,
+   "xvar": -29.2,
+   "projection_2y": 4.893
+  },
+  {
+   "player_key": "sleeper:2197",
+   "name": "Brandin Cooks",
+   "pos": "WR",
+   "dvs": 10.7,
+   "xvar": -34.3,
+   "projection_2y": 3.189
+  },
+  {
+   "player_key": "sleeper:12455",
+   "name": "Brashard Smith",
+   "pos": "RB",
+   "dvs": 26.0,
+   "xvar": -19.2,
+   "projection_2y": 5.515
+  },
+  {
+   "player_key": "sleeper:5121",
+   "name": "Braxton Berrios",
+   "pos": "WR",
+   "dvs": 0.0,
+   "xvar": -45.0,
+   "projection_2y": -0.619
+  },
+  {
+   "player_key": "sleeper:10224",
+   "name": "Brayden Willis",
+   "pos": "TE",
+   "dvs": 2.8,
+   "xvar": -39.0,
+   "projection_2y": 1.43
+  },
+  {
+   "player_key": "sleeper:8155",
+   "name": "Breece Hall",
+   "pos": "RB",
+   "dvs": 59.2,
+   "xvar": 14.0,
+   "projection_2y": 12.258
+  },
+  {
+   "player_key": "sleeper:12374",
+   "name": "Brenden Bates",
+   "pos": "TE",
+   "dvs": 4.6,
+   "xvar": -37.2,
+   "projection_2y": 2.127
+  },
+  {
+   "player_key": "sleeper:13380",
+   "name": "Brenen Thompson",
+   "pos": "WR",
+   "dvs": 33.61,
+   "xvar": -11.39,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:9480",
+   "name": "Brenton Strange",
+   "pos": "TE",
+   "dvs": 29.3,
+   "xvar": -12.5,
+   "projection_2y": 6.287
+  },
+  {
+   "player_key": "sleeper:11593",
+   "name": "Brevyn Spann-Ford",
+   "pos": "TE",
+   "dvs": 14.2,
+   "xvar": -27.6,
+   "projection_2y": 3.457
+  },
+  {
+   "player_key": "sleeper:8154",
+   "name": "Brian Robinson",
+   "pos": "RB",
+   "dvs": 25.0,
+   "xvar": -20.2,
+   "projection_2y": 5.472
+  },
+  {
+   "player_key": "sleeper:11631",
+   "name": "Brian Thomas Jr.",
+   "pos": "WR",
+   "dvs": 51.2,
+   "xvar": 6.2,
+   "projection_2y": 10.632
+  },
+  {
+   "player_key": "sleeper:8414",
+   "name": "Britain Covey",
+   "pos": "WR",
+   "dvs": 0.0,
+   "xvar": -45.0,
+   "projection_2y": -0.432
+  },
+  {
+   "player_key": "sleeper:12171",
+   "name": "British Brooks",
+   "pos": "RB",
+   "dvs": 7.7,
+   "xvar": -37.5,
+   "projection_2y": 2.572
+  },
+  {
+   "player_key": "sleeper:11604",
+   "name": "Brock Bowers",
+   "pos": "TE",
+   "dvs": 56.3,
+   "xvar": 14.5,
+   "projection_2y": 11.621
+  },
+  {
+   "player_key": "sleeper:8183",
+   "name": "Brock Purdy",
+   "pos": "QB",
+   "dvs": 71.7,
+   "xvar": 10.7,
+   "projection_2y": 15.121
+  },
+  {
+   "player_key": "sleeper:7891",
+   "name": "Brock Wright",
+   "pos": "TE",
+   "dvs": 11.1,
+   "xvar": -30.7,
+   "projection_2y": 3.435
+  },
+  {
+   "player_key": "sleeper:13420",
+   "name": "Bryce Lance",
+   "pos": "WR",
+   "dvs": 24.09,
+   "xvar": -20.91,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:9228",
+   "name": "Bryce Young",
+   "pos": "QB",
+   "dvs": 72.8,
+   "xvar": 11.8,
+   "projection_2y": 14.89
+  },
+  {
+   "player_key": "sleeper:11157",
+   "name": "Brycen Tremayne",
+   "pos": "WR",
+   "dvs": 16.7,
+   "xvar": -28.3,
+   "projection_2y": 3.935
+  },
+  {
+   "player_key": "sleeper:11584",
+   "name": "Bucky Irving",
+   "pos": "RB",
+   "dvs": 52.8,
+   "xvar": 7.6,
+   "projection_2y": 11.06
+  },
+  {
+   "player_key": "sleeper:9758",
+   "name": "C.J. Stroud",
+   "pos": "QB",
+   "dvs": 69.8,
+   "xvar": 8.8,
+   "projection_2y": 14.493
+  },
+  {
+   "player_key": "sleeper:13270",
+   "name": "CJ Daniels",
+   "pos": "WR",
+   "dvs": 9.52,
+   "xvar": -35.48,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:13554",
+   "name": "CJ Williams",
+   "pos": "WR",
+   "dvs": 16.55,
+   "xvar": -28.45,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:13303",
+   "name": "Cade Klubnik",
+   "pos": "QB",
+   "dvs": 39.39,
+   "xvar": -21.61,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:8111",
+   "name": "Cade Otton",
+   "pos": "TE",
+   "dvs": 33.4,
+   "xvar": -8.4,
+   "projection_2y": 7.34
+  },
+  {
+   "player_key": "sleeper:11599",
+   "name": "Cade Stover",
+   "pos": "TE",
+   "dvs": 10.4,
+   "xvar": -31.4,
+   "projection_2y": 3.428
+  },
+  {
+   "player_key": "sleeper:13296",
+   "name": "Caleb Douglas",
+   "pos": "WR",
+   "dvs": 38.79,
+   "xvar": -6.21,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:11560",
+   "name": "Caleb Williams",
+   "pos": "QB",
+   "dvs": 85.2,
+   "xvar": 24.2,
+   "projection_2y": 17.204
+  },
+  {
+   "player_key": "sleeper:8125",
+   "name": "Calvin Austin III",
+   "pos": "WR",
+   "dvs": 25.3,
+   "xvar": -19.7,
+   "projection_2y": 5.57
+  },
+  {
+   "player_key": "sleeper:4981",
+   "name": "Calvin Ridley",
+   "pos": "WR",
+   "dvs": 10.8,
+   "xvar": -34.2,
+   "projection_2y": 4.761
+  },
+  {
+   "player_key": "sleeper:6938",
+   "name": "Cam Akers",
+   "pos": "RB",
+   "dvs": 5.1,
+   "xvar": -40.1,
+   "projection_2y": 2.398
+  },
+  {
+   "player_key": "sleeper:12481",
+   "name": "Cam Skattebo",
+   "pos": "RB",
+   "dvs": 57.6,
+   "xvar": 12.4,
+   "projection_2y": 12.106
+  },
+  {
+   "player_key": "sleeper:12522",
+   "name": "Cam Ward",
+   "pos": "QB",
+   "dvs": 69.2,
+   "xvar": 8.2,
+   "projection_2y": 14.276
+  },
+  {
+   "player_key": "sleeper:10210",
+   "name": "Cameron Latu",
+   "pos": "TE",
+   "dvs": 6.8,
+   "xvar": -35.0,
+   "projection_2y": 2.146
+  },
+  {
+   "player_key": "sleeper:13279",
+   "name": "Carnell Tate",
+   "pos": "WR",
+   "dvs": 55.12,
+   "xvar": 10.12,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:13580",
+   "name": "Carsen Ryan",
+   "pos": "TE",
+   "dvs": 18.32,
+   "xvar": -23.48,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:13272",
+   "name": "Carson Beck",
+   "pos": "QB",
+   "dvs": 48.92,
+   "xvar": -12.08,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:3161",
+   "name": "Carson Wentz",
+   "pos": "QB",
+   "dvs": 31.1,
+   "xvar": -29.9,
+   "projection_2y": 10.395
+  },
+  {
+   "player_key": "sleeper:11806",
+   "name": "Casey Washington",
+   "pos": "WR",
+   "dvs": 9.4,
+   "xvar": -35.6,
+   "projection_2y": 3.403
+  },
+  {
+   "player_key": "sleeper:10444",
+   "name": "Cedric Tillman",
+   "pos": "WR",
+   "dvs": 21.2,
+   "xvar": -23.8,
+   "projection_2y": 4.975
+  },
+  {
+   "player_key": "sleeper:5113",
+   "name": "Cedrick Wilson",
+   "pos": "WR",
+   "dvs": 0.0,
+   "xvar": -45.0,
+   "projection_2y": -0.038
+  },
+  {
+   "player_key": "sleeper:6786",
+   "name": "CeeDee Lamb",
+   "pos": "WR",
+   "dvs": 63.1,
+   "xvar": 18.1,
+   "projection_2y": 13.517
+  },
+  {
+   "player_key": "sleeper:10228",
+   "name": "Charlie Jones",
+   "pos": "WR",
+   "dvs": 2.0,
+   "xvar": -43.0,
+   "projection_2y": 0.511
+  },
+  {
+   "player_key": "sleeper:8127",
+   "name": "Charlie Kolar",
+   "pos": "TE",
+   "dvs": 12.7,
+   "xvar": -29.1,
+   "projection_2y": 3.128
+  },
+  {
+   "player_key": "sleeper:7075",
+   "name": "Charlie Woerner",
+   "pos": "TE",
+   "dvs": 2.8,
+   "xvar": -39.0,
+   "projection_2y": 1.163
+  },
+  {
+   "player_key": "sleeper:9224",
+   "name": "Chase Brown",
+   "pos": "RB",
+   "dvs": 60.3,
+   "xvar": 15.1,
+   "projection_2y": 12.208
+  },
+  {
+   "player_key": "sleeper:8210",
+   "name": "Chigoziem Okonkwo",
+   "pos": "TE",
+   "dvs": 31.5,
+   "xvar": -10.3,
+   "projection_2y": 6.738
+  },
+  {
+   "player_key": "sleeper:12540",
+   "name": "Chimere Dike",
+   "pos": "WR",
+   "dvs": 38.0,
+   "xvar": -7.0,
+   "projection_2y": 8.008
+  },
+  {
+   "player_key": "sleeper:13311",
+   "name": "Chris Bell",
+   "pos": "WR",
+   "dvs": 39.47,
+   "xvar": -5.53,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:13353",
+   "name": "Chris Brazzell II",
+   "pos": "WR",
+   "dvs": 34.82,
+   "xvar": -10.18,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:11370",
+   "name": "Chris Brooks",
+   "pos": "RB",
+   "dvs": 12.6,
+   "xvar": -32.6,
+   "projection_2y": 2.741
+  },
+  {
+   "player_key": "sleeper:4037",
+   "name": "Chris Godwin",
+   "pos": "WR",
+   "dvs": 30.7,
+   "xvar": -14.3,
+   "projection_2y": 8.193
+  },
+  {
+   "player_key": "sleeper:3048",
+   "name": "Chris Manhertz",
+   "pos": "TE",
+   "dvs": 0.0,
+   "xvar": -41.8,
+   "projection_2y": -0.293
+  },
+  {
+   "player_key": "sleeper:3269",
+   "name": "Chris Moore",
+   "pos": "WR",
+   "dvs": 6.7,
+   "xvar": -38.3,
+   "projection_2y": 2.527
+  },
+  {
+   "player_key": "sleeper:8144",
+   "name": "Chris Olave",
+   "pos": "WR",
+   "dvs": 65.4,
+   "xvar": 20.4,
+   "projection_2y": 13.419
+  },
+  {
+   "player_key": "sleeper:10219",
+   "name": "Chris Rodriguez",
+   "pos": "RB",
+   "dvs": 26.6,
+   "xvar": -18.6,
+   "projection_2y": 5.982
+  },
+  {
+   "player_key": "sleeper:4950",
+   "name": "Christian Kirk",
+   "pos": "WR",
+   "dvs": 23.4,
+   "xvar": -21.6,
+   "projection_2y": 5.916
+  },
+  {
+   "player_key": "sleeper:4034",
+   "name": "Christian McCaffrey",
+   "pos": "RB",
+   "dvs": 92.7,
+   "xvar": 47.5,
+   "projection_2y": 18.826
+  },
+  {
+   "player_key": "sleeper:8167",
+   "name": "Christian Watson",
+   "pos": "WR",
+   "dvs": 45.0,
+   "xvar": 0.0,
+   "projection_2y": 9.783
+  },
+  {
+   "player_key": "sleeper:7594",
+   "name": "Chuba Hubbard",
+   "pos": "RB",
+   "dvs": 40.1,
+   "xvar": -5.1,
+   "projection_2y": 8.471
+  },
+  {
+   "player_key": "sleeper:7039",
+   "name": "Cody White",
+   "pos": "WR",
+   "dvs": 7.3,
+   "xvar": -37.7,
+   "projection_2y": 2.826
+  },
+  {
+   "player_key": "sleeper:13477",
+   "name": "Colbie Young",
+   "pos": "WR",
+   "dvs": 23.38,
+   "xvar": -21.62,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:6865",
+   "name": "Colby Parkinson",
+   "pos": "TE",
+   "dvs": 36.6,
+   "xvar": -5.2,
+   "projection_2y": 7.652
+  },
+  {
+   "player_key": "sleeper:6826",
+   "name": "Cole Kmet",
+   "pos": "TE",
+   "dvs": 27.1,
+   "xvar": -14.7,
+   "projection_2y": 6.021
+  },
+  {
+   "player_key": "sleeper:13335",
+   "name": "Cole Payton",
+   "pos": "QB",
+   "dvs": 19.85,
+   "xvar": -41.15,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:11942",
+   "name": "Colson Yankoff",
+   "pos": "TE",
+   "dvs": 6.5,
+   "xvar": -35.3,
+   "projection_2y": 2.13
+  },
+  {
+   "player_key": "sleeper:12517",
+   "name": "Colston Loveland",
+   "pos": "TE",
+   "dvs": 48.6,
+   "xvar": 6.8,
+   "projection_2y": 9.908
+  },
+  {
+   "player_key": "sleeper:4039",
+   "name": "Cooper Kupp",
+   "pos": "WR",
+   "dvs": 32.4,
+   "xvar": -12.6,
+   "projection_2y": 7.372
+  },
+  {
+   "player_key": "sleeper:4574",
+   "name": "Cooper Rush",
+   "pos": "QB",
+   "dvs": 4.2,
+   "xvar": -56.8,
+   "projection_2y": 3.947
+  },
+  {
+   "player_key": "sleeper:12491",
+   "name": "Corey Kiner",
+   "pos": "RB",
+   "dvs": 10.4,
+   "xvar": -34.8,
+   "projection_2y": 3.826
+  },
+  {
+   "player_key": "sleeper:5045",
+   "name": "Courtland Sutton",
+   "pos": "WR",
+   "dvs": 52.2,
+   "xvar": 7.2,
+   "projection_2y": 10.914
+  },
+  {
+   "player_key": "sleeper:6659",
+   "name": "Craig Reynolds",
+   "pos": "RB",
+   "dvs": 0.0,
+   "xvar": -45.2,
+   "projection_2y": -0.02
+  },
+  {
+   "player_key": "sleeper:4082",
+   "name": "Curtis Samuel",
+   "pos": "WR",
+   "dvs": 3.4,
+   "xvar": -41.6,
+   "projection_2y": 1.671
+  },
+  {
+   "player_key": "sleeper:13413",
+   "name": "Cyrus Allen",
+   "pos": "WR",
+   "dvs": 17.15,
+   "xvar": -27.85,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:6790",
+   "name": "D'Andre Swift",
+   "pos": "RB",
+   "dvs": 56.8,
+   "xvar": 11.6,
+   "projection_2y": 11.632
+  },
+  {
+   "player_key": "sleeper:6694",
+   "name": "D'Ernest Johnson",
+   "pos": "RB",
+   "dvs": 0.5,
+   "xvar": -44.7,
+   "projection_2y": 0.226
+  },
+  {
+   "player_key": "sleeper:4983",
+   "name": "D.J. Moore",
+   "pos": "WR",
+   "dvs": 47.8,
+   "xvar": 2.8,
+   "projection_2y": 10.127
+  },
+  {
+   "player_key": "sleeper:12471",
+   "name": "DJ Giddens",
+   "pos": "RB",
+   "dvs": 11.7,
+   "xvar": -33.5,
+   "projection_2y": 3.854
+  },
+  {
+   "player_key": "sleeper:5846",
+   "name": "DK Metcalf",
+   "pos": "WR",
+   "dvs": 48.5,
+   "xvar": 3.5,
+   "projection_2y": 10.414
+  },
+  {
+   "player_key": "sleeper:3294",
+   "name": "Dak Prescott",
+   "pos": "QB",
+   "dvs": 76.9,
+   "xvar": 15.9,
+   "projection_2y": 16.239
+  },
+  {
+   "player_key": "sleeper:5022",
+   "name": "Dallas Goedert",
+   "pos": "TE",
+   "dvs": 46.9,
+   "xvar": 5.1,
+   "projection_2y": 10.074
+  },
+  {
+   "player_key": "sleeper:13577",
+   "name": "Dallen Bentley",
+   "pos": "TE",
+   "dvs": 14.44,
+   "xvar": -27.36,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:10236",
+   "name": "Dalton Kincaid",
+   "pos": "TE",
+   "dvs": 43.2,
+   "xvar": 1.4,
+   "projection_2y": 9.179
+  },
+  {
+   "player_key": "sleeper:5001",
+   "name": "Dalton Schultz",
+   "pos": "TE",
+   "dvs": 41.9,
+   "xvar": 0.1,
+   "projection_2y": 8.884
+  },
+  {
+   "player_key": "sleeper:8129",
+   "name": "Dameon Pierce",
+   "pos": "RB",
+   "dvs": 4.0,
+   "xvar": -41.2,
+   "projection_2y": 1.694
+  },
+  {
+   "player_key": "sleeper:8225",
+   "name": "Daniel Bellinger",
+   "pos": "TE",
+   "dvs": 19.0,
+   "xvar": -22.8,
+   "projection_2y": 4.423
+  },
+  {
+   "player_key": "sleeper:5870",
+   "name": "Daniel Jones",
+   "pos": "QB",
+   "dvs": 68.6,
+   "xvar": 7.6,
+   "projection_2y": 14.288
+  },
+  {
+   "player_key": "sleeper:4992",
+   "name": "Dante Pettis",
+   "pos": "WR",
+   "dvs": 2.6,
+   "xvar": -42.4,
+   "projection_2y": 1.234
+  },
+  {
+   "player_key": "sleeper:4718",
+   "name": "Dare Ogunbowale",
+   "pos": "RB",
+   "dvs": 2.7,
+   "xvar": -42.5,
+   "projection_2y": 0.744
+  },
+  {
+   "player_key": "sleeper:8527",
+   "name": "Dareke Young",
+   "pos": "WR",
+   "dvs": 2.9,
+   "xvar": -42.1,
+   "projection_2y": 0.932
+  },
+  {
+   "player_key": "sleeper:13150",
+   "name": "Darius Cooper",
+   "pos": "WR",
+   "dvs": 11.5,
+   "xvar": -33.5,
+   "projection_2y": 3.576
+  },
+  {
+   "player_key": "sleeper:6149",
+   "name": "Darius Slayton",
+   "pos": "WR",
+   "dvs": 23.7,
+   "xvar": -21.3,
+   "projection_2y": 5.69
+  },
+  {
+   "player_key": "sleeper:7090",
+   "name": "Darnell Mooney",
+   "pos": "WR",
+   "dvs": 23.7,
+   "xvar": -21.3,
+   "projection_2y": 5.532
+  },
+  {
+   "player_key": "sleeper:9479",
+   "name": "Darnell Washington",
+   "pos": "TE",
+   "dvs": 22.2,
+   "xvar": -19.6,
+   "projection_2y": 4.922
+  },
+  {
+   "player_key": "sleeper:2505",
+   "name": "Darren Waller",
+   "pos": "TE",
+   "dvs": 22.0,
+   "xvar": -19.8,
+   "projection_2y": 6.869
+  },
+  {
+   "player_key": "sleeper:2133",
+   "name": "Davante Adams",
+   "pos": "WR",
+   "dvs": 56.4,
+   "xvar": 11.4,
+   "projection_2y": 12.067
+  },
+  {
+   "player_key": "sleeper:12357",
+   "name": "David Martin-Robinson",
+   "pos": "TE",
+   "dvs": 8.4,
+   "xvar": -33.4,
+   "projection_2y": 2.59
+  },
+  {
+   "player_key": "sleeper:5892",
+   "name": "David Montgomery",
+   "pos": "RB",
+   "dvs": 43.6,
+   "xvar": -1.6,
+   "projection_2y": 9.308
+  },
+  {
+   "player_key": "sleeper:4033",
+   "name": "David Njoku",
+   "pos": "TE",
+   "dvs": 28.4,
+   "xvar": -13.4,
+   "projection_2y": 7.608
+  },
+  {
+   "player_key": "sleeper:6154",
+   "name": "David Sills",
+   "pos": "WR",
+   "dvs": 11.8,
+   "xvar": -33.2,
+   "projection_2y": 3.628
+  },
+  {
+   "player_key": "sleeper:10214",
+   "name": "Davis Allen",
+   "pos": "TE",
+   "dvs": 21.0,
+   "xvar": -20.8,
+   "projection_2y": 4.654
+  },
+  {
+   "player_key": "sleeper:7585",
+   "name": "Davis Mills",
+   "pos": "QB",
+   "dvs": 29.2,
+   "xvar": -31.8,
+   "projection_2y": 7.359
+  },
+  {
+   "player_key": "sleeper:5906",
+   "name": "Dawson Knox",
+   "pos": "TE",
+   "dvs": 27.3,
+   "xvar": -14.5,
+   "projection_2y": 6.012
+  },
+  {
+   "player_key": "sleeper:9226",
+   "name": "De'Von Achane",
+   "pos": "RB",
+   "dvs": 81.6,
+   "xvar": 36.4,
+   "projection_2y": 16.545
+  },
+  {
+   "player_key": "sleeper:13417",
+   "name": "De'Zhaun Stribling",
+   "pos": "WR",
+   "dvs": 42.04,
+   "xvar": -2.96,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:2750",
+   "name": "DeAndre Carter",
+   "pos": "WR",
+   "dvs": 0.0,
+   "xvar": -45.0,
+   "projection_2y": -2.177
+  },
+  {
+   "player_key": "sleeper:1426",
+   "name": "DeAndre Hopkins",
+   "pos": "WR",
+   "dvs": 12.4,
+   "xvar": -32.6,
+   "projection_2y": 3.502
+  },
+  {
+   "player_key": "sleeper:7525",
+   "name": "DeVonta Smith",
+   "pos": "WR",
+   "dvs": 52.9,
+   "xvar": 7.9,
+   "projection_2y": 11.055
+  },
+  {
+   "player_key": "sleeper:7612",
+   "name": "Dee Eskridge",
+   "pos": "WR",
+   "dvs": 1.2,
+   "xvar": -43.8,
+   "projection_2y": 0.354
+  },
+  {
+   "player_key": "sleeper:6931",
+   "name": "DeeJay Dallas",
+   "pos": "RB",
+   "dvs": 0.5,
+   "xvar": -44.7,
+   "projection_2y": 0.256
+  },
+  {
+   "player_key": "sleeper:5872",
+   "name": "Deebo Samuel",
+   "pos": "WR",
+   "dvs": 43.5,
+   "xvar": -1.5,
+   "projection_2y": 9.506
+  },
+  {
+   "player_key": "sleeper:13333",
+   "name": "Deion Burks",
+   "pos": "WR",
+   "dvs": 3.62,
+   "xvar": -41.38,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:3286",
+   "name": "Demarcus Robinson",
+   "pos": "WR",
+   "dvs": 16.3,
+   "xvar": -28.7,
+   "projection_2y": 4.2
+  },
+  {
+   "player_key": "sleeper:9501",
+   "name": "Demario Douglas",
+   "pos": "WR",
+   "dvs": 34.0,
+   "xvar": -11.0,
+   "projection_2y": 7.066
+  },
+  {
+   "player_key": "sleeper:13347",
+   "name": "Demond Claiborne",
+   "pos": "RB",
+   "dvs": 18.3,
+   "xvar": -26.9,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:13346",
+   "name": "Denzel Boston",
+   "pos": "WR",
+   "dvs": 45.02,
+   "xvar": 0.02,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:10234",
+   "name": "Derius Davis",
+   "pos": "WR",
+   "dvs": 3.3,
+   "xvar": -41.7,
+   "projection_2y": 0.865
+  },
+  {
+   "player_key": "sleeper:3198",
+   "name": "Derrick Henry",
+   "pos": "RB",
+   "dvs": 62.3,
+   "xvar": 17.1,
+   "projection_2y": 12.909
+  },
+  {
+   "player_key": "sleeper:11834",
+   "name": "Devaughn Vele",
+   "pos": "WR",
+   "dvs": 19.6,
+   "xvar": -25.4,
+   "projection_2y": 5.404
+  },
+  {
+   "player_key": "sleeper:8253",
+   "name": "Deven Thompkins",
+   "pos": "WR",
+   "dvs": 1.7,
+   "xvar": -43.3,
+   "projection_2y": 0.622
+  },
+  {
+   "player_key": "sleeper:11820",
+   "name": "Devin Culp",
+   "pos": "TE",
+   "dvs": 5.7,
+   "xvar": -36.1,
+   "projection_2y": 2.495
+  },
+  {
+   "player_key": "sleeper:6847",
+   "name": "Devin Duvernay",
+   "pos": "WR",
+   "dvs": 5.0,
+   "xvar": -40.0,
+   "projection_2y": 1.131
+  },
+  {
+   "player_key": "sleeper:12476",
+   "name": "Devin Neal",
+   "pos": "RB",
+   "dvs": 29.5,
+   "xvar": -15.7,
+   "projection_2y": 6.841
+  },
+  {
+   "player_key": "sleeper:6130",
+   "name": "Devin Singletary",
+   "pos": "RB",
+   "dvs": 27.0,
+   "xvar": -18.2,
+   "projection_2y": 5.988
+  },
+  {
+   "player_key": "sleeper:11629",
+   "name": "Devontez Walker",
+   "pos": "WR",
+   "dvs": 19.1,
+   "xvar": -25.9,
+   "projection_2y": 5.107
+  },
+  {
+   "player_key": "sleeper:12486",
+   "name": "Dillon Gabriel",
+   "pos": "QB",
+   "dvs": 40.7,
+   "xvar": -20.3,
+   "projection_2y": 9.935
+  },
+  {
+   "player_key": "sleeper:12541",
+   "name": "Dont'e Thornton",
+   "pos": "WR",
+   "dvs": 15.0,
+   "xvar": -30.0,
+   "projection_2y": 3.889
+  },
+  {
+   "player_key": "sleeper:9486",
+   "name": "Dontayvion Wicks",
+   "pos": "WR",
+   "dvs": 25.0,
+   "xvar": -20.0,
+   "projection_2y": 5.629
+  },
+  {
+   "player_key": "sleeper:8112",
+   "name": "Drake London",
+   "pos": "WR",
+   "dvs": 69.1,
+   "xvar": 24.1,
+   "projection_2y": 14.238
+  },
+  {
+   "player_key": "sleeper:11564",
+   "name": "Drake Maye",
+   "pos": "QB",
+   "dvs": 95.2,
+   "xvar": 34.2,
+   "projection_2y": 19.19
+  },
+  {
+   "player_key": "sleeper:13289",
+   "name": "Drew Allar",
+   "pos": "QB",
+   "dvs": 49.36,
+   "xvar": -11.64,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:8489",
+   "name": "Drew Ogletree",
+   "pos": "TE",
+   "dvs": 6.8,
+   "xvar": -35.0,
+   "projection_2y": 2.042
+  },
+  {
+   "player_key": "sleeper:6001",
+   "name": "Drew Sample",
+   "pos": "TE",
+   "dvs": 8.9,
+   "xvar": -32.9,
+   "projection_2y": 2.702
+  },
+  {
+   "player_key": "sleeper:5008",
+   "name": "Durham Smythe",
+   "pos": "TE",
+   "dvs": 3.3,
+   "xvar": -38.5,
+   "projection_2y": 1.543
+  },
+  {
+   "player_key": "sleeper:7587",
+   "name": "Dyami Brown",
+   "pos": "WR",
+   "dvs": 15.7,
+   "xvar": -29.3,
+   "projection_2y": 3.831
+  },
+  {
+   "player_key": "sleeper:11474",
+   "name": "Dylan Drummond",
+   "pos": "WR",
+   "dvs": 6.6,
+   "xvar": -38.4,
+   "projection_2y": 2.502
+  },
+  {
+   "player_key": "sleeper:11574",
+   "name": "Dylan Laube",
+   "pos": "RB",
+   "dvs": 8.7,
+   "xvar": -36.5,
+   "projection_2y": 2.106
+  },
+  {
+   "player_key": "sleeper:12469",
+   "name": "Dylan Sampson",
+   "pos": "RB",
+   "dvs": 32.6,
+   "xvar": -12.6,
+   "projection_2y": 6.872
+  },
+  {
+   "player_key": "sleeper:12542",
+   "name": "Efton Chism",
+   "pos": "WR",
+   "dvs": 13.4,
+   "xvar": -31.6,
+   "projection_2y": 3.677
+  },
+  {
+   "player_key": "sleeper:13421",
+   "name": "Eli Raridon",
+   "pos": "TE",
+   "dvs": 31.55,
+   "xvar": -10.25,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:13349",
+   "name": "Eli Stowers",
+   "pos": "TE",
+   "dvs": 35.18,
+   "xvar": -6.62,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:12499",
+   "name": "Elic Ayomanor",
+   "pos": "WR",
+   "dvs": 38.8,
+   "xvar": -6.2,
+   "projection_2y": 8.179
+  },
+  {
+   "player_key": "sleeper:12521",
+   "name": "Elijah Arroyo",
+   "pos": "TE",
+   "dvs": 18.8,
+   "xvar": -23.0,
+   "projection_2y": 4.321
+  },
+  {
+   "player_key": "sleeper:10231",
+   "name": "Elijah Higgins",
+   "pos": "TE",
+   "dvs": 20.0,
+   "xvar": -21.8,
+   "projection_2y": 4.368
+  },
+  {
+   "player_key": "sleeper:7596",
+   "name": "Elijah Moore",
+   "pos": "WR",
+   "dvs": 11.8,
+   "xvar": -33.2,
+   "projection_2y": 3.239
+  },
+  {
+   "player_key": "sleeper:13268",
+   "name": "Elijah Sarratt",
+   "pos": "WR",
+   "dvs": 31.85,
+   "xvar": -13.15,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:11435",
+   "name": "Emanuel Wilson",
+   "pos": "RB",
+   "dvs": 21.7,
+   "xvar": -23.5,
+   "projection_2y": 4.603
+  },
+  {
+   "player_key": "sleeper:11199",
+   "name": "Emari Demercado",
+   "pos": "RB",
+   "dvs": 18.5,
+   "xvar": -26.7,
+   "projection_2y": 4.509
+  },
+  {
+   "player_key": "sleeper:12514",
+   "name": "Emeka Egbuka",
+   "pos": "WR",
+   "dvs": 52.8,
+   "xvar": 7.8,
+   "projection_2y": 10.847
+  },
+  {
+   "player_key": "sleeper:13313",
+   "name": "Emmanuel Henderson Jr.",
+   "pos": "WR",
+   "dvs": 12.69,
+   "xvar": -32.31,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:13337",
+   "name": "Emmett Johnson",
+   "pos": "RB",
+   "dvs": 28.55,
+   "xvar": -16.65,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:4189",
+   "name": "Eric Saubert",
+   "pos": "TE",
+   "dvs": 3.2,
+   "xvar": -38.6,
+   "projection_2y": 1.691
+  },
+  {
+   "player_key": "sleeper:4066",
+   "name": "Evan Engram",
+   "pos": "TE",
+   "dvs": 24.2,
+   "xvar": -17.6,
+   "projection_2y": 5.733
+  },
+  {
+   "player_key": "sleeper:9220",
+   "name": "Evan Hull",
+   "pos": "RB",
+   "dvs": 6.8,
+   "xvar": -38.4,
+   "projection_2y": 2.755
+  },
+  {
+   "player_key": "sleeper:7531",
+   "name": "Feleipe Franks",
+   "pos": "TE",
+   "dvs": 3.9,
+   "xvar": -37.9,
+   "projection_2y": 1.57
+  },
+  {
+   "player_key": "sleeper:13269",
+   "name": "Fernando Mendoza",
+   "pos": "QB",
+   "dvs": 70.73,
+   "xvar": 9.73,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:5985",
+   "name": "Foster Moreau",
+   "pos": "TE",
+   "dvs": 4.8,
+   "xvar": -37.0,
+   "projection_2y": 1.943
+  },
+  {
+   "player_key": "sleeper:6943",
+   "name": "Gabriel Davis",
+   "pos": "WR",
+   "dvs": 10.1,
+   "xvar": -34.9,
+   "projection_2y": 3.475
+  },
+  {
+   "player_key": "sleeper:13101",
+   "name": "Gage Larvadain",
+   "pos": "WR",
+   "dvs": 15.9,
+   "xvar": -29.1,
+   "projection_2y": 3.785
+  },
+  {
+   "player_key": "sleeper:6011",
+   "name": "Gardner Minshew",
+   "pos": "QB",
+   "dvs": 3.2,
+   "xvar": -57.8,
+   "projection_2y": 3.149
+  },
+  {
+   "player_key": "sleeper:13404",
+   "name": "Garrett Nussmeier",
+   "pos": "QB",
+   "dvs": 0.0,
+   "xvar": -61.0,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:8146",
+   "name": "Garrett Wilson",
+   "pos": "WR",
+   "dvs": 49.4,
+   "xvar": 4.4,
+   "projection_2y": 11.233
+  },
+  {
+   "player_key": "sleeper:1373",
+   "name": "Geno Smith",
+   "pos": "QB",
+   "dvs": 50.2,
+   "xvar": -10.8,
+   "projection_2y": 12.89
+  },
+  {
+   "player_key": "sleeper:12048",
+   "name": "George Holani",
+   "pos": "RB",
+   "dvs": 13.9,
+   "xvar": -31.3,
+   "projection_2y": 3.643
+  },
+  {
+   "player_key": "sleeper:4217",
+   "name": "George Kittle",
+   "pos": "TE",
+   "dvs": 46.0,
+   "xvar": 4.2,
+   "projection_2y": 10.724
+  },
+  {
+   "player_key": "sleeper:8137",
+   "name": "George Pickens",
+   "pos": "WR",
+   "dvs": 71.8,
+   "xvar": 26.8,
+   "projection_2y": 14.592
+  },
+  {
+   "player_key": "sleeper:13274",
+   "name": "Germie Bernard",
+   "pos": "WR",
+   "dvs": 43.6,
+   "xvar": -1.4,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:8177",
+   "name": "Grant Calcaterra",
+   "pos": "TE",
+   "dvs": 8.6,
+   "xvar": -33.2,
+   "projection_2y": 3.049
+  },
+  {
+   "player_key": "sleeper:5970",
+   "name": "Greg Dortch",
+   "pos": "WR",
+   "dvs": 20.1,
+   "xvar": -24.9,
+   "projection_2y": 4.733
+  },
+  {
+   "player_key": "sleeper:8172",
+   "name": "Greg Dulcich",
+   "pos": "TE",
+   "dvs": 22.4,
+   "xvar": -19.4,
+   "projection_2y": 5.721
+  },
+  {
+   "player_key": "sleeper:12502",
+   "name": "Gunnar Helm",
+   "pos": "TE",
+   "dvs": 31.2,
+   "xvar": -10.6,
+   "projection_2y": 6.678
+  },
+  {
+   "player_key": "sleeper:6699",
+   "name": "Gunner Olszewski",
+   "pos": "WR",
+   "dvs": 13.9,
+   "xvar": -31.1,
+   "projection_2y": 3.246
+  },
+  {
+   "player_key": "sleeper:12506",
+   "name": "Harold Fannin",
+   "pos": "TE",
+   "dvs": 49.8,
+   "xvar": 8.0,
+   "projection_2y": 10.191
+  },
+  {
+   "player_key": "sleeper:6850",
+   "name": "Harrison Bryant",
+   "pos": "TE",
+   "dvs": 3.6,
+   "xvar": -38.2,
+   "projection_2y": 1.559
+  },
+  {
+   "player_key": "sleeper:8123",
+   "name": "Hassan Haskins",
+   "pos": "RB",
+   "dvs": 8.0,
+   "xvar": -37.2,
+   "projection_2y": 2.317
+  },
+  {
+   "player_key": "sleeper:3214",
+   "name": "Hunter Henry",
+   "pos": "TE",
+   "dvs": 40.8,
+   "xvar": -1.0,
+   "projection_2y": 8.63
+  },
+  {
+   "player_key": "sleeper:7535",
+   "name": "Hunter Long",
+   "pos": "TE",
+   "dvs": 11.0,
+   "xvar": -30.8,
+   "projection_2y": 3.989
+  },
+  {
+   "player_key": "sleeper:11510",
+   "name": "Hunter Luepke",
+   "pos": "RB",
+   "dvs": 11.2,
+   "xvar": -34.0,
+   "projection_2y": 2.565
+  },
+  {
+   "player_key": "sleeper:5955",
+   "name": "Hunter Renfrow",
+   "pos": "WR",
+   "dvs": 9.7,
+   "xvar": -35.3,
+   "projection_2y": 3.633
+  },
+  {
+   "player_key": "sleeper:4995",
+   "name": "Ian Thomas",
+   "pos": "TE",
+   "dvs": 6.5,
+   "xvar": -35.3,
+   "projection_2y": 2.127
+  },
+  {
+   "player_key": "sleeper:11651",
+   "name": "Isaac Guerendo",
+   "pos": "RB",
+   "dvs": 5.1,
+   "xvar": -40.1,
+   "projection_2y": 1.995
+  },
+  {
+   "player_key": "sleeper:12535",
+   "name": "Isaac TeSlaa",
+   "pos": "WR",
+   "dvs": 29.4,
+   "xvar": -15.6,
+   "projection_2y": 6.442
+  },
+  {
+   "player_key": "sleeper:12503",
+   "name": "Isaiah Bond",
+   "pos": "WR",
+   "dvs": 27.6,
+   "xvar": -17.4,
+   "projection_2y": 5.991
+  },
+  {
+   "player_key": "sleeper:11571",
+   "name": "Isaiah Davis",
+   "pos": "RB",
+   "dvs": 24.7,
+   "xvar": -20.5,
+   "projection_2y": 5.348
+  },
+  {
+   "player_key": "sleeper:6920",
+   "name": "Isaiah Hodgins",
+   "pos": "WR",
+   "dvs": 9.4,
+   "xvar": -35.6,
+   "projection_2y": 3.449
+  },
+  {
+   "player_key": "sleeper:8131",
+   "name": "Isaiah Likely",
+   "pos": "TE",
+   "dvs": 22.8,
+   "xvar": -19.0,
+   "projection_2y": 5.443
+  },
+  {
+   "player_key": "sleeper:11608",
+   "name": "Isaiah Williams",
+   "pos": "WR",
+   "dvs": 17.8,
+   "xvar": -27.2,
+   "projection_2y": 4.041
+  },
+  {
+   "player_key": "sleeper:8205",
+   "name": "Isiah Pacheco",
+   "pos": "RB",
+   "dvs": 28.4,
+   "xvar": -16.8,
+   "projection_2y": 6.996
+  },
+  {
+   "player_key": "sleeper:11565",
+   "name": "J.J. McCarthy",
+   "pos": "QB",
+   "dvs": 56.8,
+   "xvar": -4.2,
+   "projection_2y": 12.109
+  },
+  {
+   "player_key": "sleeper:6806",
+   "name": "J.K. Dobbins",
+   "pos": "RB",
+   "dvs": 41.5,
+   "xvar": -3.7,
+   "projection_2y": 9.258
+  },
+  {
+   "player_key": "sleeper:13293",
+   "name": "Ja'Kobi Lane",
+   "pos": "WR",
+   "dvs": 37.9,
+   "xvar": -7.1,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:7564",
+   "name": "Ja'Marr Chase",
+   "pos": "WR",
+   "dvs": 87.0,
+   "xvar": 42.0,
+   "projection_2y": 17.671
+  },
+  {
+   "player_key": "sleeper:11600",
+   "name": "Ja'Tavion Sanders",
+   "pos": "TE",
+   "dvs": 23.1,
+   "xvar": -18.7,
+   "projection_2y": 5.318
+  },
+  {
+   "player_key": "sleeper:12483",
+   "name": "Jack Bech",
+   "pos": "WR",
+   "dvs": 21.9,
+   "xvar": -23.1,
+   "projection_2y": 5.007
+  },
+  {
+   "player_key": "sleeper:13282",
+   "name": "Jack Endries",
+   "pos": "TE",
+   "dvs": 17.95,
+   "xvar": -23.85,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:7946",
+   "name": "Jack Stoll",
+   "pos": "TE",
+   "dvs": 5.9,
+   "xvar": -35.9,
+   "projection_2y": 1.873
+  },
+  {
+   "player_key": "sleeper:12045",
+   "name": "Jack Westover",
+   "pos": "TE",
+   "dvs": 3.0,
+   "xvar": -38.8,
+   "projection_2y": 1.555
+  },
+  {
+   "player_key": "sleeper:12658",
+   "name": "Jackson Hawes",
+   "pos": "TE",
+   "dvs": 19.5,
+   "xvar": -22.3,
+   "projection_2y": 4.571
+  },
+  {
+   "player_key": "sleeper:11237",
+   "name": "Jacob Saylors",
+   "pos": "RB",
+   "dvs": 8.4,
+   "xvar": -36.8,
+   "projection_2y": 2.439
+  },
+  {
+   "player_key": "sleeper:3257",
+   "name": "Jacoby Brissett",
+   "pos": "QB",
+   "dvs": 59.6,
+   "xvar": -1.4,
+   "projection_2y": 13.018
+  },
+  {
+   "player_key": "sleeper:12533",
+   "name": "Jacory Croskey-Merritt",
+   "pos": "RB",
+   "dvs": 37.9,
+   "xvar": -7.3,
+   "projection_2y": 7.904
+  },
+  {
+   "player_key": "sleeper:13286",
+   "name": "Jadarian Price",
+   "pos": "RB",
+   "dvs": 66.6,
+   "xvar": 21.4,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:8119",
+   "name": "Jahan Dotson",
+   "pos": "WR",
+   "dvs": 15.4,
+   "xvar": -29.6,
+   "projection_2y": 3.554
+  },
+  {
+   "player_key": "sleeper:13079",
+   "name": "Jahdae Walker",
+   "pos": "WR",
+   "dvs": 16.8,
+   "xvar": -28.2,
+   "projection_2y": 4.735
+  },
+  {
+   "player_key": "sleeper:9221",
+   "name": "Jahmyr Gibbs",
+   "pos": "RB",
+   "dvs": 88.4,
+   "xvar": 43.2,
+   "projection_2y": 17.832
+  },
+  {
+   "player_key": "sleeper:10867",
+   "name": "Jake Bobo",
+   "pos": "WR",
+   "dvs": 2.7,
+   "xvar": -42.3,
+   "projection_2y": 0.947
+  },
+  {
+   "player_key": "sleeper:6111",
+   "name": "Jake Browning",
+   "pos": "QB",
+   "dvs": 22.7,
+   "xvar": -38.3,
+   "projection_2y": 9.241
+  },
+  {
+   "player_key": "sleeper:8110",
+   "name": "Jake Ferguson",
+   "pos": "TE",
+   "dvs": 47.2,
+   "xvar": 5.4,
+   "projection_2y": 9.91
+  },
+  {
+   "player_key": "sleeper:8698",
+   "name": "Jake Tonges",
+   "pos": "TE",
+   "dvs": 34.1,
+   "xvar": -7.7,
+   "projection_2y": 7.657
+  },
+  {
+   "player_key": "sleeper:5947",
+   "name": "Jakobi Meyers",
+   "pos": "WR",
+   "dvs": 43.3,
+   "xvar": -1.7,
+   "projection_2y": 9.405
+  },
+  {
+   "player_key": "sleeper:11439",
+   "name": "Jaleel McLaughlin",
+   "pos": "RB",
+   "dvs": 15.0,
+   "xvar": -30.2,
+   "projection_2y": 3.9
+  },
+  {
+   "player_key": "sleeper:11034",
+   "name": "Jalen Brooks",
+   "pos": "WR",
+   "dvs": 2.3,
+   "xvar": -42.7,
+   "projection_2y": 1.071
+  },
+  {
+   "player_key": "sleeper:11646",
+   "name": "Jalen Coker",
+   "pos": "WR",
+   "dvs": 40.0,
+   "xvar": -5.0,
+   "projection_2y": 8.687
+  },
+  {
+   "player_key": "sleeper:6904",
+   "name": "Jalen Hurts",
+   "pos": "QB",
+   "dvs": 86.5,
+   "xvar": 25.5,
+   "projection_2y": 17.735
+  },
+  {
+   "player_key": "sleeper:11618",
+   "name": "Jalen McMillan",
+   "pos": "WR",
+   "dvs": 21.2,
+   "xvar": -23.8,
+   "projection_2y": 6.213
+  },
+  {
+   "player_key": "sleeper:8180",
+   "name": "Jalen Nailor",
+   "pos": "WR",
+   "dvs": 27.7,
+   "xvar": -17.3,
+   "projection_2y": 6.065
+  },
+  {
+   "player_key": "sleeper:8117",
+   "name": "Jalen Tolbert",
+   "pos": "WR",
+   "dvs": 16.2,
+   "xvar": -28.8,
+   "projection_2y": 3.999
+  },
+  {
+   "player_key": "sleeper:9497",
+   "name": "Jalin Hyatt",
+   "pos": "WR",
+   "dvs": 2.1,
+   "xvar": -42.9,
+   "projection_2y": 0.772
+  },
+  {
+   "player_key": "sleeper:13403",
+   "name": "Jam Miller",
+   "pos": "RB",
+   "dvs": 6.46,
+   "xvar": -38.74,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:4198",
+   "name": "Jamal Agnew",
+   "pos": "WR",
+   "dvs": 2.3,
+   "xvar": -42.7,
+   "projection_2y": 0.823
+  },
+  {
+   "player_key": "sleeper:11633",
+   "name": "Jamari Thrash",
+   "pos": "WR",
+   "dvs": 5.3,
+   "xvar": -39.7,
+   "projection_2y": 1.811
+  },
+  {
+   "player_key": "sleeper:8138",
+   "name": "James Cook",
+   "pos": "RB",
+   "dvs": 69.2,
+   "xvar": 24.0,
+   "projection_2y": 14.034
+  },
+  {
+   "player_key": "sleeper:6957",
+   "name": "James Proche",
+   "pos": "WR",
+   "dvs": 0.0,
+   "xvar": -45.0,
+   "projection_2y": -0.159
+  },
+  {
+   "player_key": "sleeper:8148",
+   "name": "Jameson Williams",
+   "pos": "WR",
+   "dvs": 58.7,
+   "xvar": 13.7,
+   "projection_2y": 12.015
+  },
+  {
+   "player_key": "sleeper:3163",
+   "name": "Jared Goff",
+   "pos": "QB",
+   "dvs": 78.6,
+   "xvar": 17.6,
+   "projection_2y": 16.406
+  },
+  {
+   "player_key": "sleeper:13422",
+   "name": "Jaren Kanak",
+   "pos": "TE",
+   "dvs": 19.24,
+   "xvar": -22.56,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:7537",
+   "name": "Jaret Patterson",
+   "pos": "RB",
+   "dvs": 12.4,
+   "xvar": -32.8,
+   "projection_2y": 4.119
+  },
+  {
+   "player_key": "sleeper:7049",
+   "name": "Jauan Jennings",
+   "pos": "WR",
+   "dvs": 46.7,
+   "xvar": 1.7,
+   "projection_2y": 9.756
+  },
+  {
+   "player_key": "sleeper:7588",
+   "name": "Javonte Williams",
+   "pos": "RB",
+   "dvs": 58.6,
+   "xvar": 13.4,
+   "projection_2y": 12.033
+  },
+  {
+   "player_key": "sleeper:11588",
+   "name": "Jawhar Jordan",
+   "pos": "RB",
+   "dvs": 19.2,
+   "xvar": -26.0,
+   "projection_2y": 6.172
+  },
+  {
+   "player_key": "sleeper:9488",
+   "name": "Jaxon Smith-Njigba",
+   "pos": "WR",
+   "dvs": 88.6,
+   "xvar": 43.6,
+   "projection_2y": 17.847
+  },
+  {
+   "player_key": "sleeper:12508",
+   "name": "Jaxson Dart",
+   "pos": "QB",
+   "dvs": 76.4,
+   "xvar": 15.4,
+   "projection_2y": 15.555
+  },
+  {
+   "player_key": "sleeper:11566",
+   "name": "Jayden Daniels",
+   "pos": "QB",
+   "dvs": 61.0,
+   "xvar": 0.0,
+   "projection_2y": 13.036
+  },
+  {
+   "player_key": "sleeper:12484",
+   "name": "Jayden Higgins",
+   "pos": "WR",
+   "dvs": 42.7,
+   "xvar": -2.3,
+   "projection_2y": 8.814
+  },
+  {
+   "player_key": "sleeper:10222",
+   "name": "Jayden Reed",
+   "pos": "WR",
+   "dvs": 33.3,
+   "xvar": -11.7,
+   "projection_2y": 8.375
+  },
+  {
+   "player_key": "sleeper:12457",
+   "name": "Jaydon Blue",
+   "pos": "RB",
+   "dvs": 19.0,
+   "xvar": -26.2,
+   "projection_2y": 5.336
+  },
+  {
+   "player_key": "sleeper:7526",
+   "name": "Jaylen Waddle",
+   "pos": "WR",
+   "dvs": 47.9,
+   "xvar": 2.9,
+   "projection_2y": 10.178
+  },
+  {
+   "player_key": "sleeper:8228",
+   "name": "Jaylen Warren",
+   "pos": "RB",
+   "dvs": 50.7,
+   "xvar": 5.5,
+   "projection_2y": 10.527
+  },
+  {
+   "player_key": "sleeper:11643",
+   "name": "Jaylen Wright",
+   "pos": "RB",
+   "dvs": 23.4,
+   "xvar": -21.8,
+   "projection_2y": 5.655
+  },
+  {
+   "player_key": "sleeper:12641",
+   "name": "Jaylin Lane",
+   "pos": "WR",
+   "dvs": 24.3,
+   "xvar": -20.7,
+   "projection_2y": 5.397
+  },
+  {
+   "player_key": "sleeper:12536",
+   "name": "Jaylin Noel",
+   "pos": "WR",
+   "dvs": 29.4,
+   "xvar": -15.6,
+   "projection_2y": 6.174
+  },
+  {
+   "player_key": "sleeper:13287",
+   "name": "Jeremiyah Love",
+   "pos": "RB",
+   "dvs": 74.93,
+   "xvar": 29.73,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:4219",
+   "name": "Jeremy McNichols",
+   "pos": "RB",
+   "dvs": 15.8,
+   "xvar": -29.4,
+   "projection_2y": 3.902
+  },
+  {
+   "player_key": "sleeper:8145",
+   "name": "Jeremy Ruckert",
+   "pos": "TE",
+   "dvs": 16.3,
+   "xvar": -25.5,
+   "projection_2y": 3.804
+  },
+  {
+   "player_key": "sleeper:8143",
+   "name": "Jerome Ford",
+   "pos": "RB",
+   "dvs": 18.7,
+   "xvar": -26.5,
+   "projection_2y": 4.824
+  },
+  {
+   "player_key": "sleeper:6783",
+   "name": "Jerry Jeudy",
+   "pos": "WR",
+   "dvs": 36.3,
+   "xvar": -8.7,
+   "projection_2y": 7.8
+  },
+  {
+   "player_key": "sleeper:12523",
+   "name": "Jimmy Horn",
+   "pos": "WR",
+   "dvs": 17.4,
+   "xvar": -27.6,
+   "projection_2y": 4.295
+  },
+  {
+   "player_key": "sleeper:6770",
+   "name": "Joe Burrow",
+   "pos": "QB",
+   "dvs": 60.8,
+   "xvar": -0.2,
+   "projection_2y": 13.745
+  },
+  {
+   "player_key": "sleeper:19",
+   "name": "Joe Flacco",
+   "pos": "QB",
+   "dvs": 27.0,
+   "xvar": -34.0,
+   "projection_2y": 11.271
+  },
+  {
+   "player_key": "sleeper:11557",
+   "name": "Joe Milton",
+   "pos": "QB",
+   "dvs": 16.4,
+   "xvar": -44.6,
+   "projection_2y": 7.066
+  },
+  {
+   "player_key": "sleeper:13435",
+   "name": "Joe Royer",
+   "pos": "TE",
+   "dvs": 21.62,
+   "xvar": -20.18,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:7716",
+   "name": "John Bates",
+   "pos": "TE",
+   "dvs": 7.3,
+   "xvar": -34.5,
+   "projection_2y": 2.317
+  },
+  {
+   "player_key": "sleeper:8500",
+   "name": "John FitzPatrick",
+   "pos": "TE",
+   "dvs": 12.4,
+   "xvar": -29.4,
+   "projection_2y": 3.407
+  },
+  {
+   "player_key": "sleeper:8147",
+   "name": "John Metchie",
+   "pos": "WR",
+   "dvs": 21.7,
+   "xvar": -23.3,
+   "projection_2y": 4.876
+  },
+  {
+   "player_key": "sleeper:4314",
+   "name": "Johnny Mundt",
+   "pos": "TE",
+   "dvs": 5.9,
+   "xvar": -35.9,
+   "projection_2y": 2.088
+  },
+  {
+   "player_key": "sleeper:13345",
+   "name": "Jonah Coleman",
+   "pos": "RB",
+   "dvs": 41.25,
+   "xvar": -3.95,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:10225",
+   "name": "Jonathan Mingo",
+   "pos": "WR",
+   "dvs": 0.9,
+   "xvar": -44.1,
+   "projection_2y": 0.385
+  },
+  {
+   "player_key": "sleeper:6813",
+   "name": "Jonathan Taylor",
+   "pos": "RB",
+   "dvs": 81.9,
+   "xvar": 36.7,
+   "projection_2y": 16.594
+  },
+  {
+   "player_key": "sleeper:4144",
+   "name": "Jonnu Smith",
+   "pos": "TE",
+   "dvs": 25.3,
+   "xvar": -16.5,
+   "projection_2y": 5.741
+  },
+  {
+   "player_key": "sleeper:9756",
+   "name": "Jordan Addison",
+   "pos": "WR",
+   "dvs": 45.0,
+   "xvar": 0.0,
+   "projection_2y": 9.607
+  },
+  {
+   "player_key": "sleeper:6804",
+   "name": "Jordan Love",
+   "pos": "QB",
+   "dvs": 76.5,
+   "xvar": 15.5,
+   "projection_2y": 15.889
+  },
+  {
+   "player_key": "sleeper:8408",
+   "name": "Jordan Mason",
+   "pos": "RB",
+   "dvs": 30.7,
+   "xvar": -14.5,
+   "projection_2y": 6.457
+  },
+  {
+   "player_key": "sleeper:11623",
+   "name": "Jordan Whittington",
+   "pos": "WR",
+   "dvs": 15.4,
+   "xvar": -29.6,
+   "projection_2y": 3.512
+  },
+  {
+   "player_key": "sleeper:13281",
+   "name": "Jordyn Tyson",
+   "pos": "WR",
+   "dvs": 54.41,
+   "xvar": 9.41,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:4984",
+   "name": "Josh Allen",
+   "pos": "QB",
+   "dvs": 98.0,
+   "xvar": 37.0,
+   "projection_2y": 19.913
+  },
+  {
+   "player_key": "sleeper:13394",
+   "name": "Josh Cameron",
+   "pos": "WR",
+   "dvs": 14.63,
+   "xvar": -30.37,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:13273",
+   "name": "Josh Cuevas",
+   "pos": "TE",
+   "dvs": 22.21,
+   "xvar": -19.59,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:9500",
+   "name": "Josh Downs",
+   "pos": "WR",
+   "dvs": 42.6,
+   "xvar": -2.4,
+   "projection_2y": 8.938
+  },
+  {
+   "player_key": "sleeper:5850",
+   "name": "Josh Jacobs",
+   "pos": "RB",
+   "dvs": 60.3,
+   "xvar": 15.1,
+   "projection_2y": 12.422
+  },
+  {
+   "player_key": "sleeper:5973",
+   "name": "Josh Oliver",
+   "pos": "TE",
+   "dvs": 16.1,
+   "xvar": -25.7,
+   "projection_2y": 4.178
+  },
+  {
+   "player_key": "sleeper:4171",
+   "name": "Josh Reynolds",
+   "pos": "WR",
+   "dvs": 2.9,
+   "xvar": -42.1,
+   "projection_2y": 1.871
+  },
+  {
+   "player_key": "sleeper:10212",
+   "name": "Josh Whyle",
+   "pos": "TE",
+   "dvs": 6.6,
+   "xvar": -35.2,
+   "projection_2y": 2.275
+  },
+  {
+   "player_key": "sleeper:4179",
+   "name": "Joshua Dobbs",
+   "pos": "QB",
+   "dvs": 5.0,
+   "xvar": -56.0,
+   "projection_2y": 6.267
+  },
+  {
+   "player_key": "sleeper:7670",
+   "name": "Joshua Palmer",
+   "pos": "WR",
+   "dvs": 16.3,
+   "xvar": -28.7,
+   "projection_2y": 4.269
+  },
+  {
+   "player_key": "sleeper:7050",
+   "name": "Josiah Deguara",
+   "pos": "TE",
+   "dvs": 3.8,
+   "xvar": -38.0,
+   "projection_2y": 1.489
+  },
+  {
+   "player_key": "sleeper:4040",
+   "name": "JuJu Smith-Schuster",
+   "pos": "WR",
+   "dvs": 15.9,
+   "xvar": -29.1,
+   "projection_2y": 3.731
+  },
+  {
+   "player_key": "sleeper:11371",
+   "name": "Julian Hill",
+   "pos": "TE",
+   "dvs": 10.4,
+   "xvar": -31.4,
+   "projection_2y": 2.671
+  },
+  {
+   "player_key": "sleeper:8254",
+   "name": "Julius Chestnut",
+   "pos": "RB",
+   "dvs": 9.5,
+   "xvar": -35.7,
+   "projection_2y": 2.307
+  },
+  {
+   "player_key": "sleeper:5995",
+   "name": "Justice Hill",
+   "pos": "RB",
+   "dvs": 20.0,
+   "xvar": -25.2,
+   "projection_2y": 5.265
+  },
+  {
+   "player_key": "sleeper:7591",
+   "name": "Justin Fields",
+   "pos": "QB",
+   "dvs": 53.6,
+   "xvar": -7.4,
+   "projection_2y": 12.039
+  },
+  {
+   "player_key": "sleeper:6797",
+   "name": "Justin Herbert",
+   "pos": "QB",
+   "dvs": 80.1,
+   "xvar": 19.1,
+   "projection_2y": 16.463
+  },
+  {
+   "player_key": "sleeper:6794",
+   "name": "Justin Jefferson",
+   "pos": "WR",
+   "dvs": 56.0,
+   "xvar": 11.0,
+   "projection_2y": 11.877
+  },
+  {
+   "player_key": "sleeper:13400",
+   "name": "Justin Joly",
+   "pos": "TE",
+   "dvs": 26.73,
+   "xvar": -15.07,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:7002",
+   "name": "Juwan Johnson",
+   "pos": "TE",
+   "dvs": 39.8,
+   "xvar": -2.0,
+   "projection_2y": 8.502
+  },
+  {
+   "player_key": "sleeper:13298",
+   "name": "KC Concepcion",
+   "pos": "WR",
+   "dvs": 51.58,
+   "xvar": 6.58,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:8917",
+   "name": "KaVontae Turpin",
+   "pos": "WR",
+   "dvs": 20.3,
+   "xvar": -24.7,
+   "projection_2y": 4.677
+  },
+  {
+   "player_key": "sleeper:13491",
+   "name": "Kaden Wetjen",
+   "pos": "WR",
+   "dvs": 22.7,
+   "xvar": -22.3,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:13414",
+   "name": "Kaelon Black",
+   "pos": "RB",
+   "dvs": 44.71,
+   "xvar": -0.49,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:12504",
+   "name": "Kaleb Johnson",
+   "pos": "RB",
+   "dvs": 13.4,
+   "xvar": -31.8,
+   "projection_2y": 3.494
+  },
+  {
+   "player_key": "sleeper:12516",
+   "name": "Kalel Mullings",
+   "pos": "RB",
+   "dvs": 6.0,
+   "xvar": -39.2,
+   "projection_2y": 2.564
+  },
+  {
+   "player_key": "sleeper:3634",
+   "name": "Kalif Raymond",
+   "pos": "WR",
+   "dvs": 12.2,
+   "xvar": -32.8,
+   "projection_2y": 3.171
+  },
+  {
+   "player_key": "sleeper:11994",
+   "name": "Kameron Johnson",
+   "pos": "WR",
+   "dvs": 12.5,
+   "xvar": -32.5,
+   "projection_2y": 2.805
+  },
+  {
+   "player_key": "sleeper:4098",
+   "name": "Kareem Hunt",
+   "pos": "RB",
+   "dvs": 31.4,
+   "xvar": -13.8,
+   "projection_2y": 6.886
+  },
+  {
+   "player_key": "sleeper:9504",
+   "name": "Kayshon Boutte",
+   "pos": "WR",
+   "dvs": 43.1,
+   "xvar": -1.9,
+   "projection_2y": 8.92
+  },
+  {
+   "player_key": "sleeper:13405",
+   "name": "Kaytron Allen",
+   "pos": "RB",
+   "dvs": 18.06,
+   "xvar": -27.14,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:12670",
+   "name": "KeAndre Lambert-Smith",
+   "pos": "WR",
+   "dvs": 11.5,
+   "xvar": -33.5,
+   "projection_2y": 3.203
+  },
+  {
+   "player_key": "sleeper:9511",
+   "name": "Keaton Mitchell",
+   "pos": "RB",
+   "dvs": 22.5,
+   "xvar": -22.7,
+   "projection_2y": 5.199
+  },
+  {
+   "player_key": "sleeper:1479",
+   "name": "Keenan Allen",
+   "pos": "WR",
+   "dvs": 35.9,
+   "xvar": -9.1,
+   "projection_2y": 8.48
+  },
+  {
+   "player_key": "sleeper:9757",
+   "name": "Kendre Miller",
+   "pos": "RB",
+   "dvs": 18.2,
+   "xvar": -27.0,
+   "projection_2y": 4.812
+  },
+  {
+   "player_key": "sleeper:4454",
+   "name": "Kendrick Bourne",
+   "pos": "WR",
+   "dvs": 17.9,
+   "xvar": -27.1,
+   "projection_2y": 4.639
+  },
+  {
+   "player_key": "sleeper:13412",
+   "name": "Kendrick Law",
+   "pos": "WR",
+   "dvs": 22.61,
+   "xvar": -22.39,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:7720",
+   "name": "Kene Nwangwu",
+   "pos": "RB",
+   "dvs": 4.5,
+   "xvar": -40.7,
+   "projection_2y": 1.275
+  },
+  {
+   "player_key": "sleeper:7567",
+   "name": "Kenneth Gainwell",
+   "pos": "RB",
+   "dvs": 46.2,
+   "xvar": 1.0,
+   "projection_2y": 9.468
+  },
+  {
+   "player_key": "sleeper:8151",
+   "name": "Kenneth Walker III",
+   "pos": "RB",
+   "dvs": 58.7,
+   "xvar": 13.5,
+   "projection_2y": 11.934
+  },
+  {
+   "player_key": "sleeper:8160",
+   "name": "Kenny Pickett",
+   "pos": "QB",
+   "dvs": 8.5,
+   "xvar": -52.5,
+   "projection_2y": 4.492
+  },
+  {
+   "player_key": "sleeper:13330",
+   "name": "Kenyon Sadiq",
+   "pos": "TE",
+   "dvs": 38.16,
+   "xvar": -3.64,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:11637",
+   "name": "Keon Coleman",
+   "pos": "WR",
+   "dvs": 38.2,
+   "xvar": -6.8,
+   "projection_2y": 8.081
+  },
+  {
+   "player_key": "sleeper:8200",
+   "name": "Kevin Austin",
+   "pos": "WR",
+   "dvs": 13.7,
+   "xvar": -31.3,
+   "projection_2y": 4.382
+  },
+  {
+   "player_key": "sleeper:13338",
+   "name": "Kevin Coleman Jr.",
+   "pos": "WR",
+   "dvs": 18.34,
+   "xvar": -26.66,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:5773",
+   "name": "KhaDarel Hodge",
+   "pos": "WR",
+   "dvs": 0.0,
+   "xvar": -45.0,
+   "projection_2y": -0.754
+  },
+  {
+   "player_key": "sleeper:7608",
+   "name": "Khalil Herbert",
+   "pos": "RB",
+   "dvs": 3.8,
+   "xvar": -41.4,
+   "projection_2y": 2.197
+  },
+  {
+   "player_key": "sleeper:8134",
+   "name": "Khalil Shakir",
+   "pos": "WR",
+   "dvs": 51.3,
+   "xvar": 6.3,
+   "projection_2y": 10.529
+  },
+  {
+   "player_key": "sleeper:11647",
+   "name": "Kimani Vidal",
+   "pos": "RB",
+   "dvs": 36.3,
+   "xvar": -8.9,
+   "projection_2y": 7.809
+  },
+  {
+   "player_key": "sleeper:1166",
+   "name": "Kirk Cousins",
+   "pos": "QB",
+   "dvs": 20.1,
+   "xvar": -40.9,
+   "projection_2y": 9.887
+  },
+  {
+   "player_key": "sleeper:12718",
+   "name": "Konata Mumpfield",
+   "pos": "WR",
+   "dvs": 18.2,
+   "xvar": -26.8,
+   "projection_2y": 4.315
+  },
+  {
+   "player_key": "sleeper:12534",
+   "name": "Kyle Monangai",
+   "pos": "RB",
+   "dvs": 40.3,
+   "xvar": -4.9,
+   "projection_2y": 8.277
+  },
+  {
+   "player_key": "sleeper:7553",
+   "name": "Kyle Pitts",
+   "pos": "TE",
+   "dvs": 50.6,
+   "xvar": 8.8,
+   "projection_2y": 10.45
+  },
+  {
+   "player_key": "sleeper:12547",
+   "name": "Kyle Williams",
+   "pos": "WR",
+   "dvs": 25.4,
+   "xvar": -19.6,
+   "projection_2y": 5.48
+  },
+  {
+   "player_key": "sleeper:7602",
+   "name": "Kylen Granson",
+   "pos": "TE",
+   "dvs": 7.5,
+   "xvar": -34.3,
+   "projection_2y": 2.211
+  },
+  {
+   "player_key": "sleeper:5849",
+   "name": "Kyler Murray",
+   "pos": "QB",
+   "dvs": 42.9,
+   "xvar": -18.1,
+   "projection_2y": 11.43
+  },
+  {
+   "player_key": "sleeper:8150",
+   "name": "Kyren Williams",
+   "pos": "RB",
+   "dvs": 71.6,
+   "xvar": 26.4,
+   "projection_2y": 14.561
+  },
+  {
+   "player_key": "sleeper:12699",
+   "name": "LaJohntay Wester",
+   "pos": "WR",
+   "dvs": 12.1,
+   "xvar": -32.9,
+   "projection_2y": 2.916
+  },
+  {
+   "player_key": "sleeper:11635",
+   "name": "Ladd McConkey",
+   "pos": "WR",
+   "dvs": 54.9,
+   "xvar": 9.9,
+   "projection_2y": 11.286
+  },
+  {
+   "player_key": "sleeper:4881",
+   "name": "Lamar Jackson",
+   "pos": "QB",
+   "dvs": 74.8,
+   "xvar": 13.8,
+   "projection_2y": 15.975
+  },
+  {
+   "player_key": "sleeper:3155",
+   "name": "Laquon Treadwell",
+   "pos": "WR",
+   "dvs": 0.1,
+   "xvar": -44.9,
+   "projection_2y": 0.072
+  },
+  {
+   "player_key": "sleeper:12544",
+   "name": "LeQuint Allen",
+   "pos": "RB",
+   "dvs": 20.8,
+   "xvar": -24.4,
+   "projection_2y": 4.476
+  },
+  {
+   "player_key": "sleeper:13541",
+   "name": "Lewis Bond",
+   "pos": "WR",
+   "dvs": 16.37,
+   "xvar": -28.63,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:5938",
+   "name": "Lil'Jordan Humphrey",
+   "pos": "WR",
+   "dvs": 12.5,
+   "xvar": -32.5,
+   "projection_2y": 3.509
+  },
+  {
+   "player_key": "sleeper:7842",
+   "name": "Luke Farrell",
+   "pos": "TE",
+   "dvs": 11.2,
+   "xvar": -30.6,
+   "projection_2y": 2.812
+  },
+  {
+   "player_key": "sleeper:11650",
+   "name": "Luke McCaffrey",
+   "pos": "WR",
+   "dvs": 17.9,
+   "xvar": -27.1,
+   "projection_2y": 4.579
+  },
+  {
+   "player_key": "sleeper:9481",
+   "name": "Luke Musgrave",
+   "pos": "TE",
+   "dvs": 18.7,
+   "xvar": -23.1,
+   "projection_2y": 4.471
+  },
+  {
+   "player_key": "sleeper:10871",
+   "name": "Luke Schoonmaker",
+   "pos": "TE",
+   "dvs": 11.7,
+   "xvar": -30.1,
+   "projection_2y": 2.885
+  },
+  {
+   "player_key": "sleeper:12519",
+   "name": "Luther Burden",
+   "pos": "WR",
+   "dvs": 44.3,
+   "xvar": -0.7,
+   "projection_2y": 9.153
+  },
+  {
+   "player_key": "sleeper:7527",
+   "name": "Mac Jones",
+   "pos": "QB",
+   "dvs": 51.0,
+   "xvar": -10.0,
+   "projection_2y": 11.424
+  },
+  {
+   "player_key": "sleeper:4177",
+   "name": "Mack Hollins",
+   "pos": "WR",
+   "dvs": 25.6,
+   "xvar": -19.4,
+   "projection_2y": 5.851
+  },
+  {
+   "player_key": "sleeper:13294",
+   "name": "Makai Lemon",
+   "pos": "WR",
+   "dvs": 52.29,
+   "xvar": 7.29,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:11617",
+   "name": "Malachi Corley",
+   "pos": "WR",
+   "dvs": 12.2,
+   "xvar": -32.8,
+   "projection_2y": 3.003
+  },
+  {
+   "player_key": "sleeper:13285",
+   "name": "Malachi Fields",
+   "pos": "WR",
+   "dvs": 38.96,
+   "xvar": -6.04,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:13329",
+   "name": "Malik Benson",
+   "pos": "WR",
+   "dvs": 13.92,
+   "xvar": -31.08,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:8800",
+   "name": "Malik Davis",
+   "pos": "RB",
+   "dvs": 15.1,
+   "xvar": -30.1,
+   "projection_2y": 4.279
+  },
+  {
+   "player_key": "sleeper:11210",
+   "name": "Malik Heath",
+   "pos": "WR",
+   "dvs": 5.6,
+   "xvar": -39.4,
+   "projection_2y": 1.797
+  },
+  {
+   "player_key": "sleeper:11632",
+   "name": "Malik Nabers",
+   "pos": "WR",
+   "dvs": 55.4,
+   "xvar": 10.4,
+   "projection_2y": 12.226
+  },
+  {
+   "player_key": "sleeper:11610",
+   "name": "Malik Washington",
+   "pos": "WR",
+   "dvs": 29.8,
+   "xvar": -15.2,
+   "projection_2y": 6.379
+  },
+  {
+   "player_key": "sleeper:8161",
+   "name": "Malik Willis",
+   "pos": "QB",
+   "dvs": 42.5,
+   "xvar": -18.5,
+   "projection_2y": 10.639
+  },
+  {
+   "player_key": "sleeper:2307",
+   "name": "Marcus Mariota",
+   "pos": "QB",
+   "dvs": 43.4,
+   "xvar": -17.6,
+   "projection_2y": 10.975
+  },
+  {
+   "player_key": "sleeper:5012",
+   "name": "Mark Andrews",
+   "pos": "TE",
+   "dvs": 37.7,
+   "xvar": -4.1,
+   "projection_2y": 8.641
+  },
+  {
+   "player_key": "sleeper:13307",
+   "name": "Marlin Klein",
+   "pos": "TE",
+   "dvs": 30.52,
+   "xvar": -11.28,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:5086",
+   "name": "Marquez Valdes-Scantling",
+   "pos": "WR",
+   "dvs": 5.8,
+   "xvar": -39.2,
+   "projection_2y": 2.057
+  },
+  {
+   "player_key": "sleeper:5848",
+   "name": "Marquise Brown",
+   "pos": "WR",
+   "dvs": 30.9,
+   "xvar": -14.1,
+   "projection_2y": 6.844
+  },
+  {
+   "player_key": "sleeper:11628",
+   "name": "Marvin Harrison Jr.",
+   "pos": "WR",
+   "dvs": 46.3,
+   "xvar": 1.3,
+   "projection_2y": 9.837
+  },
+  {
+   "player_key": "sleeper:9494",
+   "name": "Marvin Mims",
+   "pos": "WR",
+   "dvs": 36.8,
+   "xvar": -8.2,
+   "projection_2y": 7.619
+  },
+  {
+   "player_key": "sleeper:7436",
+   "name": "Mason Kinsey",
+   "pos": "WR",
+   "dvs": 0.0,
+   "xvar": -45.0,
+   "projection_2y": -0.1
+  },
+  {
+   "player_key": "sleeper:4972",
+   "name": "Mason Rudolph",
+   "pos": "QB",
+   "dvs": 11.6,
+   "xvar": -49.4,
+   "projection_2y": 6.865
+  },
+  {
+   "player_key": "sleeper:12498",
+   "name": "Mason Taylor",
+   "pos": "TE",
+   "dvs": 29.5,
+   "xvar": -12.3,
+   "projection_2y": 6.377
+  },
+  {
+   "player_key": "sleeper:11895",
+   "name": "Mason Tipton",
+   "pos": "WR",
+   "dvs": 6.4,
+   "xvar": -38.6,
+   "projection_2y": 2.108
+  },
+  {
+   "player_key": "sleeper:12501",
+   "name": "Matthew Golden",
+   "pos": "WR",
+   "dvs": 33.9,
+   "xvar": -11.1,
+   "projection_2y": 7.253
+  },
+  {
+   "player_key": "sleeper:13324",
+   "name": "Matthew Hibner",
+   "pos": "TE",
+   "dvs": 22.76,
+   "xvar": -19.04,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:421",
+   "name": "Matthew Stafford",
+   "pos": "QB",
+   "dvs": 82.6,
+   "xvar": 21.6,
+   "projection_2y": 17.22
+  },
+  {
+   "player_key": "sleeper:13516",
+   "name": "Max Bredeson",
+   "pos": "TE",
+   "dvs": 19.34,
+   "xvar": -22.46,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:12775",
+   "name": "Max Brosmer",
+   "pos": "QB",
+   "dvs": 18.9,
+   "xvar": -42.1,
+   "projection_2y": 7.222
+  },
+  {
+   "player_key": "sleeper:13278",
+   "name": "Max Klare",
+   "pos": "TE",
+   "dvs": 33.39,
+   "xvar": -8.41,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:8076",
+   "name": "Michael Bandy",
+   "pos": "WR",
+   "dvs": 6.8,
+   "xvar": -38.2,
+   "projection_2y": 3.272
+  },
+  {
+   "player_key": "sleeper:7607",
+   "name": "Michael Carter",
+   "pos": "RB",
+   "dvs": 26.6,
+   "xvar": -18.6,
+   "projection_2y": 5.861
+  },
+  {
+   "player_key": "sleeper:9482",
+   "name": "Michael Mayer",
+   "pos": "TE",
+   "dvs": 22.6,
+   "xvar": -19.2,
+   "projection_2y": 5.136
+  },
+  {
+   "player_key": "sleeper:11559",
+   "name": "Michael Penix Jr.",
+   "pos": "QB",
+   "dvs": 49.1,
+   "xvar": -11.9,
+   "projection_2y": 10.859
+  },
+  {
+   "player_key": "sleeper:6819",
+   "name": "Michael Pittman",
+   "pos": "WR",
+   "dvs": 46.1,
+   "xvar": 1.1,
+   "projection_2y": 9.882
+  },
+  {
+   "player_key": "sleeper:10232",
+   "name": "Michael Wilson",
+   "pos": "WR",
+   "dvs": 52.1,
+   "xvar": 7.1,
+   "projection_2y": 10.735
+  },
+  {
+   "player_key": "sleeper:2216",
+   "name": "Mike Evans",
+   "pos": "WR",
+   "dvs": 24.3,
+   "xvar": -20.7,
+   "projection_2y": 8.061
+  },
+  {
+   "player_key": "sleeper:4993",
+   "name": "Mike Gesicki",
+   "pos": "TE",
+   "dvs": 19.9,
+   "xvar": -21.9,
+   "projection_2y": 5.142
+  },
+  {
+   "player_key": "sleeper:13305",
+   "name": "Mike Washington Jr.",
+   "pos": "RB",
+   "dvs": 37.46,
+   "xvar": -7.74,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:6151",
+   "name": "Miles Sanders",
+   "pos": "RB",
+   "dvs": 13.2,
+   "xvar": -32.0,
+   "projection_2y": 4.72
+  },
+  {
+   "player_key": "sleeper:12473",
+   "name": "Mitchell Evans",
+   "pos": "TE",
+   "dvs": 21.9,
+   "xvar": -19.9,
+   "projection_2y": 4.825
+  },
+  {
+   "player_key": "sleeper:11068",
+   "name": "Mitchell Tinsley",
+   "pos": "WR",
+   "dvs": 12.8,
+   "xvar": -32.2,
+   "projection_2y": 3.914
+  },
+  {
+   "player_key": "sleeper:3976",
+   "name": "Mitchell Trubisky",
+   "pos": "QB",
+   "dvs": 12.2,
+   "xvar": -48.8,
+   "projection_2y": 6.305
+  },
+  {
+   "player_key": "sleeper:4054",
+   "name": "Mo Alie-Cox",
+   "pos": "TE",
+   "dvs": 6.3,
+   "xvar": -35.5,
+   "projection_2y": 2.396
+  },
+  {
+   "player_key": "sleeper:13075",
+   "name": "Myles Price",
+   "pos": "WR",
+   "dvs": 12.9,
+   "xvar": -32.1,
+   "projection_2y": 2.986
+  },
+  {
+   "player_key": "sleeper:11433",
+   "name": "Nate Adkins",
+   "pos": "TE",
+   "dvs": 6.7,
+   "xvar": -35.1,
+   "projection_2y": 2.197
+  },
+  {
+   "player_key": "sleeper:13299",
+   "name": "Nate Boerkircher",
+   "pos": "TE",
+   "dvs": 28.16,
+   "xvar": -13.64,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:13288",
+   "name": "Nicholas Singleton",
+   "pos": "RB",
+   "dvs": 27.93,
+   "xvar": -17.27,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:4988",
+   "name": "Nick Chubb",
+   "pos": "RB",
+   "dvs": 21.0,
+   "xvar": -24.2,
+   "projection_2y": 4.855
+  },
+  {
+   "player_key": "sleeper:4464",
+   "name": "Nick Mullens",
+   "pos": "QB",
+   "dvs": 3.9,
+   "xvar": -57.1,
+   "projection_2y": 5.325
+  },
+  {
+   "player_key": "sleeper:7496",
+   "name": "Nick Westbrook-Ikhine",
+   "pos": "WR",
+   "dvs": 8.2,
+   "xvar": -36.8,
+   "projection_2y": 2.347
+  },
+  {
+   "player_key": "sleeper:7569",
+   "name": "Nico Collins",
+   "pos": "WR",
+   "dvs": 64.1,
+   "xvar": 19.1,
+   "projection_2y": 13.309
+  },
+  {
+   "player_key": "sleeper:11320",
+   "name": "Nikko Remigio",
+   "pos": "WR",
+   "dvs": 5.5,
+   "xvar": -39.5,
+   "projection_2y": 1.483
+  },
+  {
+   "player_key": "sleeper:4234",
+   "name": "Noah Brown",
+   "pos": "WR",
+   "dvs": 2.8,
+   "xvar": -42.2,
+   "projection_2y": 1.777
+  },
+  {
+   "player_key": "sleeper:5857",
+   "name": "Noah Fant",
+   "pos": "TE",
+   "dvs": 22.3,
+   "xvar": -19.5,
+   "projection_2y": 5.317
+  },
+  {
+   "player_key": "sleeper:7828",
+   "name": "Noah Gray",
+   "pos": "TE",
+   "dvs": 15.5,
+   "xvar": -26.3,
+   "projection_2y": 3.743
+  },
+  {
+   "player_key": "sleeper:5347",
+   "name": "Nyheim Hines",
+   "pos": "RB",
+   "dvs": 1.4,
+   "xvar": -43.8,
+   "projection_2y": 1.128
+  },
+  {
+   "player_key": "sleeper:6271",
+   "name": "Olamide Zaccheaus",
+   "pos": "WR",
+   "dvs": 22.9,
+   "xvar": -22.1,
+   "projection_2y": 5.087
+  },
+  {
+   "player_key": "sleeper:12495",
+   "name": "Ollie Gordon",
+   "pos": "RB",
+   "dvs": 25.6,
+   "xvar": -19.6,
+   "projection_2y": 5.412
+  },
+  {
+   "player_key": "sleeper:13276",
+   "name": "Omar Cooper Jr.",
+   "pos": "WR",
+   "dvs": 44.86,
+   "xvar": -0.14,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:12507",
+   "name": "Omarion Hampton",
+   "pos": "RB",
+   "dvs": 52.7,
+   "xvar": 7.5,
+   "projection_2y": 11.053
+  },
+  {
+   "player_key": "sleeper:12493",
+   "name": "Oronde Gadsden",
+   "pos": "TE",
+   "dvs": 37.9,
+   "xvar": -3.9,
+   "projection_2y": 7.89
+  },
+  {
+   "player_key": "sleeper:13319",
+   "name": "Oscar Delp",
+   "pos": "TE",
+   "dvs": 29.19,
+   "xvar": -12.61,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:9487",
+   "name": "Parker Washington",
+   "pos": "WR",
+   "dvs": 52.0,
+   "xvar": 7.0,
+   "projection_2y": 10.618
+  },
+  {
+   "player_key": "sleeper:12492",
+   "name": "Pat Bryant",
+   "pos": "WR",
+   "dvs": 30.8,
+   "xvar": -14.2,
+   "projection_2y": 6.671
+  },
+  {
+   "player_key": "sleeper:7600",
+   "name": "Pat Freiermuth",
+   "pos": "TE",
+   "dvs": 33.9,
+   "xvar": -7.9,
+   "projection_2y": 7.383
+  },
+  {
+   "player_key": "sleeper:4046",
+   "name": "Patrick Mahomes",
+   "pos": "QB",
+   "dvs": 78.0,
+   "xvar": 17.0,
+   "projection_2y": 16.247
+  },
+  {
+   "player_key": "sleeper:4353",
+   "name": "Patrick Ricard",
+   "pos": "RB",
+   "dvs": 0.0,
+   "xvar": -45.2,
+   "projection_2y": -0.388
+  },
+  {
+   "player_key": "sleeper:10227",
+   "name": "Payne Durham",
+   "pos": "TE",
+   "dvs": 3.8,
+   "xvar": -38.0,
+   "projection_2y": 1.269
+  },
+  {
+   "player_key": "sleeper:4443",
+   "name": "Pharaoh Brown",
+   "pos": "TE",
+   "dvs": 0.5,
+   "xvar": -41.3,
+   "projection_2y": 0.427
+  },
+  {
+   "player_key": "sleeper:9493",
+   "name": "Puka Nacua",
+   "pos": "WR",
+   "dvs": 100.0,
+   "xvar": 55.7,
+   "projection_2y": 20.302
+  },
+  {
+   "player_key": "sleeper:9754",
+   "name": "Quentin Johnston",
+   "pos": "WR",
+   "dvs": 51.9,
+   "xvar": 6.9,
+   "projection_2y": 10.736
+  },
+  {
+   "player_key": "sleeper:12500",
+   "name": "Quinn Ewers",
+   "pos": "QB",
+   "dvs": 33.4,
+   "xvar": -27.6,
+   "projection_2y": 9.108
+  },
+  {
+   "player_key": "sleeper:12512",
+   "name": "Quinshon Judkins",
+   "pos": "RB",
+   "dvs": 51.3,
+   "xvar": 6.1,
+   "projection_2y": 10.574
+  },
+  {
+   "player_key": "sleeper:7536",
+   "name": "Quintin Morris",
+   "pos": "TE",
+   "dvs": 9.4,
+   "xvar": -32.4,
+   "projection_2y": 2.876
+  },
+  {
+   "player_key": "sleeper:12489",
+   "name": "RJ Harvey",
+   "pos": "RB",
+   "dvs": 49.5,
+   "xvar": 4.3,
+   "projection_2y": 10.091
+  },
+  {
+   "player_key": "sleeper:8136",
+   "name": "Rachaad White",
+   "pos": "RB",
+   "dvs": 40.3,
+   "xvar": -4.9,
+   "projection_2y": 8.657
+  },
+  {
+   "player_key": "sleeper:2749",
+   "name": "Raheem Mostert",
+   "pos": "RB",
+   "dvs": 6.1,
+   "xvar": -39.1,
+   "projection_2y": 3.22
+  },
+  {
+   "player_key": "sleeper:12472",
+   "name": "Raheim Sanders",
+   "pos": "RB",
+   "dvs": 17.5,
+   "xvar": -27.7,
+   "projection_2y": 5.441
+  },
+  {
+   "player_key": "sleeper:10229",
+   "name": "Rashee Rice",
+   "pos": "WR",
+   "dvs": 69.4,
+   "xvar": 24.4,
+   "projection_2y": 14.618
+  },
+  {
+   "player_key": "sleeper:11570",
+   "name": "Rasheen Ali",
+   "pos": "RB",
+   "dvs": 13.7,
+   "xvar": -31.5,
+   "projection_2y": 3.244
+  },
+  {
+   "player_key": "sleeper:8676",
+   "name": "Rashid Shaheed",
+   "pos": "WR",
+   "dvs": 43.2,
+   "xvar": -1.8,
+   "projection_2y": 8.946
+  },
+  {
+   "player_key": "sleeper:7571",
+   "name": "Rashod Bateman",
+   "pos": "WR",
+   "dvs": 20.0,
+   "xvar": -25.0,
+   "projection_2y": 4.784
+  },
+  {
+   "player_key": "sleeper:11575",
+   "name": "Ray Davis",
+   "pos": "RB",
+   "dvs": 21.1,
+   "xvar": -24.1,
+   "projection_2y": 4.542
+  },
+  {
+   "player_key": "sleeper:5096",
+   "name": "Ray-Ray McCloud",
+   "pos": "WR",
+   "dvs": 2.7,
+   "xvar": -42.3,
+   "projection_2y": 1.236
+  },
+  {
+   "player_key": "sleeper:7204",
+   "name": "Reggie Gilliam",
+   "pos": "RB",
+   "dvs": 0.7,
+   "xvar": -44.5,
+   "projection_2y": 0.224
+  },
+  {
+   "player_key": "sleeper:13297",
+   "name": "Reggie Virgil",
+   "pos": "WR",
+   "dvs": 31.07,
+   "xvar": -13.93,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:7611",
+   "name": "Rhamondre Stevenson",
+   "pos": "RB",
+   "dvs": 52.3,
+   "xvar": 7.1,
+   "projection_2y": 10.815
+  },
+  {
+   "player_key": "sleeper:11638",
+   "name": "Ricky Pearsall",
+   "pos": "WR",
+   "dvs": 31.1,
+   "xvar": -13.9,
+   "projection_2y": 7.312
+  },
+  {
+   "player_key": "sleeper:7021",
+   "name": "Rico Dowdle",
+   "pos": "RB",
+   "dvs": 45.2,
+   "xvar": 0.0,
+   "projection_2y": 9.283
+  },
+  {
+   "player_key": "sleeper:12470",
+   "name": "Riley Leonard",
+   "pos": "QB",
+   "dvs": 29.6,
+   "xvar": -31.4,
+   "projection_2y": 8.367
+  },
+  {
+   "player_key": "sleeper:13433",
+   "name": "Riley Nowakowski",
+   "pos": "TE",
+   "dvs": 21.94,
+   "xvar": -19.86,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:12656",
+   "name": "Robbie Ouzts",
+   "pos": "RB",
+   "dvs": 5.9,
+   "xvar": -39.3,
+   "projection_2y": 2.511
+  },
+  {
+   "player_key": "sleeper:11630",
+   "name": "Roman Wilson",
+   "pos": "WR",
+   "dvs": 18.2,
+   "xvar": -26.8,
+   "projection_2y": 4.794
+  },
+  {
+   "player_key": "sleeper:11620",
+   "name": "Rome Odunze",
+   "pos": "WR",
+   "dvs": 47.7,
+   "xvar": 2.7,
+   "projection_2y": 9.974
+  },
+  {
+   "player_key": "sleeper:8121",
+   "name": "Romeo Doubs",
+   "pos": "WR",
+   "dvs": 48.5,
+   "xvar": 3.5,
+   "projection_2y": 10.087
+  },
+  {
+   "player_key": "sleeper:8195",
+   "name": "Ronnie Rivers",
+   "pos": "RB",
+   "dvs": 3.5,
+   "xvar": -41.7,
+   "projection_2y": 1.122
+  },
+  {
+   "player_key": "sleeper:10235",
+   "name": "Roschon Johnson",
+   "pos": "RB",
+   "dvs": 5.5,
+   "xvar": -39.7,
+   "projection_2y": 2.078
+  },
+  {
+   "player_key": "sleeper:5285",
+   "name": "Ross Dwelley",
+   "pos": "TE",
+   "dvs": 0.9,
+   "xvar": -40.9,
+   "projection_2y": 0.964
+  },
+  {
+   "player_key": "sleeper:1234",
+   "name": "Russell Wilson",
+   "pos": "QB",
+   "dvs": 10.2,
+   "xvar": -50.8,
+   "projection_2y": 8.354
+  },
+  {
+   "player_key": "sleeper:11783",
+   "name": "Ryan Flournoy",
+   "pos": "WR",
+   "dvs": 27.7,
+   "xvar": -17.3,
+   "projection_2y": 6.111
+  },
+  {
+   "player_key": "sleeper:11421",
+   "name": "Ryan Miller",
+   "pos": "WR",
+   "dvs": 5.4,
+   "xvar": -39.6,
+   "projection_2y": 1.745
+  },
+  {
+   "player_key": "sleeper:4943",
+   "name": "Sam Darnold",
+   "pos": "QB",
+   "dvs": 80.5,
+   "xvar": 19.5,
+   "projection_2y": 16.359
+  },
+  {
+   "player_key": "sleeper:10859",
+   "name": "Sam LaPorta",
+   "pos": "TE",
+   "dvs": 40.4,
+   "xvar": -1.4,
+   "projection_2y": 9.273
+  },
+  {
+   "player_key": "sleeper:13322",
+   "name": "Sam Roush",
+   "pos": "TE",
+   "dvs": 33.04,
+   "xvar": -8.76,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:4147",
+   "name": "Samaje Perine",
+   "pos": "RB",
+   "dvs": 16.3,
+   "xvar": -28.9,
+   "projection_2y": 4.056
+  },
+  {
+   "player_key": "sleeper:4866",
+   "name": "Saquon Barkley",
+   "pos": "RB",
+   "dvs": 61.2,
+   "xvar": 16.0,
+   "projection_2y": 12.68
+  },
+  {
+   "player_key": "sleeper:12482",
+   "name": "Savion Williams",
+   "pos": "WR",
+   "dvs": 16.3,
+   "xvar": -28.7,
+   "projection_2y": 4.051
+  },
+  {
+   "player_key": "sleeper:6290",
+   "name": "Scotty Miller",
+   "pos": "WR",
+   "dvs": 1.8,
+   "xvar": -43.2,
+   "projection_2y": 0.822
+  },
+  {
+   "player_key": "sleeper:9506",
+   "name": "Sean Tucker",
+   "pos": "RB",
+   "dvs": 27.0,
+   "xvar": -18.2,
+   "projection_2y": 5.756
+  },
+  {
+   "player_key": "sleeper:13424",
+   "name": "Seth McGowan",
+   "pos": "RB",
+   "dvs": 3.88,
+   "xvar": -41.32,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:13429",
+   "name": "Seydou Traore",
+   "pos": "TE",
+   "dvs": 21.92,
+   "xvar": -19.88,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:12524",
+   "name": "Shedeur Sanders",
+   "pos": "QB",
+   "dvs": 46.8,
+   "xvar": -14.2,
+   "projection_2y": 10.75
+  },
+  {
+   "player_key": "sleeper:7812",
+   "name": "Simi Fehoko",
+   "pos": "WR",
+   "dvs": 0.0,
+   "xvar": -45.0,
+   "projection_2y": -0.492
+  },
+  {
+   "player_key": "sleeper:11729",
+   "name": "Sione Vaki",
+   "pos": "RB",
+   "dvs": 5.6,
+   "xvar": -39.6,
+   "projection_2y": 1.992
+  },
+  {
+   "player_key": "sleeper:13402",
+   "name": "Skyler Bell",
+   "pos": "WR",
+   "dvs": 26.03,
+   "xvar": -18.97,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:8168",
+   "name": "Skyy Moore",
+   "pos": "WR",
+   "dvs": 16.8,
+   "xvar": -28.2,
+   "projection_2y": 3.639
+  },
+  {
+   "player_key": "sleeper:11562",
+   "name": "Spencer Rattler",
+   "pos": "QB",
+   "dvs": 46.8,
+   "xvar": -14.2,
+   "projection_2y": 10.705
+  },
+  {
+   "player_key": "sleeper:2449",
+   "name": "Stefon Diggs",
+   "pos": "WR",
+   "dvs": 48.9,
+   "xvar": 3.9,
+   "projection_2y": 10.3
+  },
+  {
+   "player_key": "sleeper:3200",
+   "name": "Sterling Shepard",
+   "pos": "WR",
+   "dvs": 14.7,
+   "xvar": -30.3,
+   "projection_2y": 3.872
+  },
+  {
+   "player_key": "sleeper:8583",
+   "name": "Stone Smartt",
+   "pos": "TE",
+   "dvs": 5.3,
+   "xvar": -36.5,
+   "projection_2y": 2.044
+  },
+  {
+   "player_key": "sleeper:5844",
+   "name": "T.J. Hockenson",
+   "pos": "TE",
+   "dvs": 30.2,
+   "xvar": -11.6,
+   "projection_2y": 7.214
+  },
+  {
+   "player_key": "sleeper:12543",
+   "name": "Tahj Brooks",
+   "pos": "RB",
+   "dvs": 12.6,
+   "xvar": -32.6,
+   "projection_2y": 3.176
+  },
+  {
+   "player_key": "sleeper:12496",
+   "name": "Tai Felton",
+   "pos": "WR",
+   "dvs": 13.7,
+   "xvar": -31.3,
+   "projection_2y": 3.352
+  },
+  {
+   "player_key": "sleeper:9225",
+   "name": "Tank Bigsby",
+   "pos": "RB",
+   "dvs": 19.1,
+   "xvar": -26.1,
+   "projection_2y": 4.049
+  },
+  {
+   "player_key": "sleeper:8849",
+   "name": "Tanner Conner",
+   "pos": "TE",
+   "dvs": 6.6,
+   "xvar": -35.2,
+   "projection_2y": 2.629
+  },
+  {
+   "player_key": "sleeper:5409",
+   "name": "Tanner Hudson",
+   "pos": "TE",
+   "dvs": 12.6,
+   "xvar": -29.2,
+   "projection_2y": 4.157
+  },
+  {
+   "player_key": "sleeper:13408",
+   "name": "Tanner Koziol",
+   "pos": "TE",
+   "dvs": 27.63,
+   "xvar": -14.17,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:9230",
+   "name": "Tanner McKee",
+   "pos": "QB",
+   "dvs": 17.8,
+   "xvar": -43.2,
+   "projection_2y": 7.322
+  },
+  {
+   "player_key": "sleeper:13306",
+   "name": "Taylen Green",
+   "pos": "QB",
+   "dvs": 15.95,
+   "xvar": -45.05,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:4381",
+   "name": "Taysom Hill",
+   "pos": "TE",
+   "dvs": 10.5,
+   "xvar": -31.3,
+   "projection_2y": 4.033
+  },
+  {
+   "player_key": "sleeper:13317",
+   "name": "Ted Hurst",
+   "pos": "WR",
+   "dvs": 41.24,
+   "xvar": -3.76,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:6801",
+   "name": "Tee Higgins",
+   "pos": "WR",
+   "dvs": 61.5,
+   "xvar": 16.5,
+   "projection_2y": 12.749
+  },
+  {
+   "player_key": "sleeper:12487",
+   "name": "Terrance Ferguson",
+   "pos": "TE",
+   "dvs": 23.1,
+   "xvar": -18.7,
+   "projection_2y": 5.171
+  },
+  {
+   "player_key": "sleeper:12412",
+   "name": "Terrell Jennings",
+   "pos": "RB",
+   "dvs": 11.6,
+   "xvar": -33.6,
+   "projection_2y": 3.833
+  },
+  {
+   "player_key": "sleeper:5927",
+   "name": "Terry McLaurin",
+   "pos": "WR",
+   "dvs": 36.4,
+   "xvar": -8.6,
+   "projection_2y": 9.025
+  },
+  {
+   "player_key": "sleeper:12526",
+   "name": "Tetairoa McMillan",
+   "pos": "WR",
+   "dvs": 58.7,
+   "xvar": 13.7,
+   "projection_2y": 11.965
+  },
+  {
+   "player_key": "sleeper:12485",
+   "name": "Tez Johnson",
+   "pos": "WR",
+   "dvs": 33.1,
+   "xvar": -11.9,
+   "projection_2y": 7.106
+  },
+  {
+   "player_key": "sleeper:11597",
+   "name": "Theo Johnson",
+   "pos": "TE",
+   "dvs": 35.3,
+   "xvar": -6.5,
+   "projection_2y": 7.585
+  },
+  {
+   "player_key": "sleeper:4351",
+   "name": "Tim Patrick",
+   "pos": "WR",
+   "dvs": 8.8,
+   "xvar": -36.2,
+   "projection_2y": 2.656
+  },
+  {
+   "player_key": "sleeper:6588",
+   "name": "Tom Kennedy",
+   "pos": "WR",
+   "dvs": 2.3,
+   "xvar": -42.7,
+   "projection_2y": 1.318
+  },
+  {
+   "player_key": "sleeper:7694",
+   "name": "Tommy Tremble",
+   "pos": "TE",
+   "dvs": 22.1,
+   "xvar": -19.7,
+   "projection_2y": 4.868
+  },
+  {
+   "player_key": "sleeper:5967",
+   "name": "Tony Pollard",
+   "pos": "RB",
+   "dvs": 44.6,
+   "xvar": -0.6,
+   "projection_2y": 9.5
+  },
+  {
+   "player_key": "sleeper:12497",
+   "name": "Tory Horton",
+   "pos": "WR",
+   "dvs": 30.8,
+   "xvar": -14.2,
+   "projection_2y": 7.29
+  },
+  {
+   "player_key": "sleeper:7543",
+   "name": "Travis Etienne",
+   "pos": "RB",
+   "dvs": 62.3,
+   "xvar": 17.1,
+   "projection_2y": 12.785
+  },
+  {
+   "player_key": "sleeper:6012",
+   "name": "Travis Homer",
+   "pos": "RB",
+   "dvs": 0.0,
+   "xvar": -45.2,
+   "projection_2y": 0.005
+  },
+  {
+   "player_key": "sleeper:1466",
+   "name": "Travis Kelce",
+   "pos": "TE",
+   "dvs": 38.9,
+   "xvar": -2.9,
+   "projection_2y": 9.765
+  },
+  {
+   "player_key": "sleeper:6144",
+   "name": "Trayveon Williams",
+   "pos": "RB",
+   "dvs": 3.7,
+   "xvar": -41.5,
+   "projection_2y": 1.47
+  },
+  {
+   "player_key": "sleeper:12509",
+   "name": "Tre Harris",
+   "pos": "WR",
+   "dvs": 29.2,
+   "xvar": -15.8,
+   "projection_2y": 6.253
+  },
+  {
+   "player_key": "sleeper:10213",
+   "name": "Tre Tucker",
+   "pos": "WR",
+   "dvs": 41.1,
+   "xvar": -3.9,
+   "projection_2y": 8.539
+  },
+  {
+   "player_key": "sleeper:12529",
+   "name": "TreVeyon Henderson",
+   "pos": "RB",
+   "dvs": 47.9,
+   "xvar": 2.7,
+   "projection_2y": 9.722
+  },
+  {
+   "player_key": "sleeper:5154",
+   "name": "Trent Sherfield",
+   "pos": "WR",
+   "dvs": 0.0,
+   "xvar": -45.0,
+   "projection_2y": -0.781
+  },
+  {
+   "player_key": "sleeper:12531",
+   "name": "Trevor Etienne",
+   "pos": "RB",
+   "dvs": 19.0,
+   "xvar": -26.2,
+   "projection_2y": 4.054
+  },
+  {
+   "player_key": "sleeper:7523",
+   "name": "Trevor Lawrence",
+   "pos": "QB",
+   "dvs": 83.9,
+   "xvar": 22.9,
+   "projection_2y": 17.04
+  },
+  {
+   "player_key": "sleeper:11589",
+   "name": "Trey Benson",
+   "pos": "RB",
+   "dvs": 27.1,
+   "xvar": -18.1,
+   "projection_2y": 7.35
+  },
+  {
+   "player_key": "sleeper:7610",
+   "name": "Trey Lance",
+   "pos": "QB",
+   "dvs": 10.4,
+   "xvar": -50.6,
+   "projection_2y": 4.598
+  },
+  {
+   "player_key": "sleeper:8130",
+   "name": "Trey McBride",
+   "pos": "TE",
+   "dvs": 74.0,
+   "xvar": 32.2,
+   "projection_2y": 15.035
+  },
+  {
+   "player_key": "sleeper:8135",
+   "name": "Treylon Burks",
+   "pos": "WR",
+   "dvs": 7.5,
+   "xvar": -37.5,
+   "projection_2y": 2.297
+  },
+  {
+   "player_key": "sleeper:11627",
+   "name": "Troy Franklin",
+   "pos": "WR",
+   "dvs": 46.1,
+   "xvar": 1.1,
+   "projection_2y": 9.474
+  },
+  {
+   "player_key": "sleeper:6768",
+   "name": "Tua Tagovailoa",
+   "pos": "QB",
+   "dvs": 60.7,
+   "xvar": -0.3,
+   "projection_2y": 13.386
+  },
+  {
+   "player_key": "sleeper:8885",
+   "name": "Tucker Fisk",
+   "pos": "TE",
+   "dvs": 3.9,
+   "xvar": -37.9,
+   "projection_2y": 2.029
+  },
+  {
+   "player_key": "sleeper:9484",
+   "name": "Tucker Kraft",
+   "pos": "TE",
+   "dvs": 46.9,
+   "xvar": 5.1,
+   "projection_2y": 10.158
+  },
+  {
+   "player_key": "sleeper:7562",
+   "name": "Tutu Atwell",
+   "pos": "WR",
+   "dvs": 10.3,
+   "xvar": -34.7,
+   "projection_2y": 3.205
+  },
+  {
+   "player_key": "sleeper:6039",
+   "name": "Ty Johnson",
+   "pos": "RB",
+   "dvs": 21.0,
+   "xvar": -24.2,
+   "projection_2y": 4.58
+  },
+  {
+   "player_key": "sleeper:13275",
+   "name": "Ty Simpson",
+   "pos": "QB",
+   "dvs": 65.63,
+   "xvar": 4.63,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:9508",
+   "name": "Tyjae Spears",
+   "pos": "RB",
+   "dvs": 36.3,
+   "xvar": -8.9,
+   "projection_2y": 7.856
+  },
+  {
+   "player_key": "sleeper:7595",
+   "name": "Tylan Wallace",
+   "pos": "WR",
+   "dvs": 4.5,
+   "xvar": -40.5,
+   "projection_2y": 1.232
+  },
+  {
+   "player_key": "sleeper:8132",
+   "name": "Tyler Allgeier",
+   "pos": "RB",
+   "dvs": 31.8,
+   "xvar": -13.4,
+   "projection_2y": 6.715
+  },
+  {
+   "player_key": "sleeper:8208",
+   "name": "Tyler Badie",
+   "pos": "RB",
+   "dvs": 14.8,
+   "xvar": -30.4,
+   "projection_2y": 3.352
+  },
+  {
+   "player_key": "sleeper:5133",
+   "name": "Tyler Conklin",
+   "pos": "TE",
+   "dvs": 5.4,
+   "xvar": -36.4,
+   "projection_2y": 2.777
+  },
+  {
+   "player_key": "sleeper:8207",
+   "name": "Tyler Goodson",
+   "pos": "RB",
+   "dvs": 5.2,
+   "xvar": -40.0,
+   "projection_2y": 1.479
+  },
+  {
+   "player_key": "sleeper:3271",
+   "name": "Tyler Higbee",
+   "pos": "TE",
+   "dvs": 21.2,
+   "xvar": -20.6,
+   "projection_2y": 5.687
+  },
+  {
+   "player_key": "sleeper:7083",
+   "name": "Tyler Huntley",
+   "pos": "QB",
+   "dvs": 30.0,
+   "xvar": -31.0,
+   "projection_2y": 8.843
+  },
+  {
+   "player_key": "sleeper:6960",
+   "name": "Tyler Johnson",
+   "pos": "WR",
+   "dvs": 10.6,
+   "xvar": -34.4,
+   "projection_2y": 3.322
+  },
+  {
+   "player_key": "sleeper:2374",
+   "name": "Tyler Lockett",
+   "pos": "WR",
+   "dvs": 10.6,
+   "xvar": -34.4,
+   "projection_2y": 3.044
+  },
+  {
+   "player_key": "sleeper:12545",
+   "name": "Tyler Shough",
+   "pos": "QB",
+   "dvs": 62.1,
+   "xvar": 1.1,
+   "projection_2y": 13.31
+  },
+  {
+   "player_key": "sleeper:12518",
+   "name": "Tyler Warren",
+   "pos": "TE",
+   "dvs": 45.1,
+   "xvar": 3.3,
+   "projection_2y": 9.289
+  },
+  {
+   "player_key": "sleeper:8188",
+   "name": "Tyquan Thornton",
+   "pos": "WR",
+   "dvs": 22.7,
+   "xvar": -22.3,
+   "projection_2y": 5.113
+  },
+  {
+   "player_key": "sleeper:3321",
+   "name": "Tyreek Hill",
+   "pos": "WR",
+   "dvs": 20.9,
+   "xvar": -24.1,
+   "projection_2y": 8.96
+  },
+  {
+   "player_key": "sleeper:11377",
+   "name": "Tyrell Shavers",
+   "pos": "WR",
+   "dvs": 18.0,
+   "xvar": -27.0,
+   "projection_2y": 4.601
+  },
+  {
+   "player_key": "sleeper:827",
+   "name": "Tyrod Taylor",
+   "pos": "QB",
+   "dvs": 16.5,
+   "xvar": -44.5,
+   "projection_2y": 8.749
+  },
+  {
+   "player_key": "sleeper:11655",
+   "name": "Tyrone Tracy",
+   "pos": "RB",
+   "dvs": 41.3,
+   "xvar": -3.9,
+   "projection_2y": 8.71
+  },
+  {
+   "player_key": "sleeper:6853",
+   "name": "Van Jefferson",
+   "pos": "WR",
+   "dvs": 14.7,
+   "xvar": -30.3,
+   "projection_2y": 3.62
+  },
+  {
+   "player_key": "sleeper:8223",
+   "name": "Velus Jones",
+   "pos": "WR",
+   "dvs": 1.5,
+   "xvar": -43.5,
+   "projection_2y": 0.643
+  },
+  {
+   "player_key": "sleeper:8126",
+   "name": "Wan'Dale Robinson",
+   "pos": "WR",
+   "dvs": 57.2,
+   "xvar": 12.2,
+   "projection_2y": 11.748
+  },
+  {
+   "player_key": "sleeper:5010",
+   "name": "Will Dissly",
+   "pos": "TE",
+   "dvs": 6.7,
+   "xvar": -35.1,
+   "projection_2y": 2.458
+  },
+  {
+   "player_key": "sleeper:13434",
+   "name": "Will Kacmarek",
+   "pos": "TE",
+   "dvs": 26.23,
+   "xvar": -15.57,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:11577",
+   "name": "Will Shipley",
+   "pos": "RB",
+   "dvs": 14.7,
+   "xvar": -30.5,
+   "projection_2y": 3.411
+  },
+  {
+   "player_key": "sleeper:12474",
+   "name": "Woody Marks",
+   "pos": "RB",
+   "dvs": 39.6,
+   "xvar": -5.6,
+   "projection_2y": 8.219
+  },
+  {
+   "player_key": "sleeper:11306",
+   "name": "Xavier Gipson",
+   "pos": "WR",
+   "dvs": 0.1,
+   "xvar": -44.9,
+   "projection_2y": 0.042
+  },
+  {
+   "player_key": "sleeper:10218",
+   "name": "Xavier Hutchinson",
+   "pos": "WR",
+   "dvs": 26.3,
+   "xvar": -18.7,
+   "projection_2y": 5.544
+  },
+  {
+   "player_key": "sleeper:11626",
+   "name": "Xavier Legette",
+   "pos": "WR",
+   "dvs": 29.2,
+   "xvar": -15.8,
+   "projection_2y": 6.334
+  },
+  {
+   "player_key": "sleeper:11168",
+   "name": "Xavier Smith",
+   "pos": "WR",
+   "dvs": 12.7,
+   "xvar": -32.3,
+   "projection_2y": 2.922
+  },
+  {
+   "player_key": "sleeper:11921",
+   "name": "Xavier Weaver",
+   "pos": "WR",
+   "dvs": 7.3,
+   "xvar": -37.7,
+   "projection_2y": 2.658
+  },
+  {
+   "player_key": "sleeper:11624",
+   "name": "Xavier Worthy",
+   "pos": "WR",
+   "dvs": 41.7,
+   "xvar": -3.3,
+   "projection_2y": 8.818
+  },
+  {
+   "player_key": "sleeper:9753",
+   "name": "Zach Charbonnet",
+   "pos": "RB",
+   "dvs": 45.1,
+   "xvar": -0.1,
+   "projection_2y": 9.248
+  },
+  {
+   "player_key": "sleeper:1339",
+   "name": "Zach Ertz",
+   "pos": "TE",
+   "dvs": 27.3,
+   "xvar": -14.5,
+   "projection_2y": 7.384
+  },
+  {
+   "player_key": "sleeper:7538",
+   "name": "Zach Wilson",
+   "pos": "QB",
+   "dvs": 8.8,
+   "xvar": -52.2,
+   "projection_2y": 5.373
+  },
+  {
+   "player_key": "sleeper:13320",
+   "name": "Zachariah Branch",
+   "pos": "WR",
+   "dvs": 38.08,
+   "xvar": -6.92,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:8139",
+   "name": "Zamir White",
+   "pos": "RB",
+   "dvs": 5.2,
+   "xvar": -40.0,
+   "projection_2y": 2.25
+  },
+  {
+   "player_key": "sleeper:11299",
+   "name": "Zavier Scott",
+   "pos": "RB",
+   "dvs": 16.3,
+   "xvar": -28.9,
+   "projection_2y": 4.256
+  },
+  {
+   "player_key": "sleeper:13411",
+   "name": "Zavion Thomas",
+   "pos": "WR",
+   "dvs": 36.31,
+   "xvar": -8.69,
+   "projection_2y": null
+  },
+  {
+   "player_key": "sleeper:9997",
+   "name": "Zay Flowers",
+   "pos": "WR",
+   "dvs": 61.3,
+   "xvar": 16.3,
+   "projection_2y": 12.602
+  },
+  {
+   "player_key": "sleeper:4080",
+   "name": "Zay Jones",
+   "pos": "WR",
+   "dvs": 4.1,
+   "xvar": -40.9,
+   "projection_2y": 2.067
+  }
+ ]
+}
