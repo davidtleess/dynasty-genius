@@ -159,32 +159,45 @@ def main(argv=None) -> int:
     print(f"cohort: {coverage}")
     cohort.to_csv(run_dir / "cohort.csv", index=False)
 
-    # ---------------------------------------------------------------- historical evaluation, both arms
+    # ---------------------------------------------------------------- historical evaluation: the trend
+    # experiment runs BOTH arms with the one procedure; the arm the pre-stated rule picks is
+    # the arm that scores, and ITS evaluation and predictions are the canonical files. The
+    # other arm is written beside them, never mixed in. (A run once wrote the plain arm's
+    # evaluation next to a trend-scored class file; a consumer graded the wrong arm.)
     forecast_years = range(args.eval_start, T)
     common = dict(qualifying=qualifying, season_stats=season_stats, horizons=horizons,
                   forecast_years=forecast_years, last_completed_season_today=last_completed, n_boot=args.eval_boot)
-    evaluation, predictions = evaluate_forecast_years(cohort, **common)
+    trend_result = None
+    trend_for_scoring: bool | str = False
+    if args.no_trend_experiment:
+        evaluation, predictions = evaluate_forecast_years(cohort, **common)
+    else:
+        trend_result = trend_experiment(cohort, **common)
+        trend_for_scoring = "auto" if trend_result["decision"] == "auto_trend" else False
+        chosen = trend_result["decision"]
+        other = "plain" if chosen == "auto_trend" else "auto_trend"
+        evaluation, predictions = trend_result["arms"][chosen], trend_result["predictions"][chosen]
+        (run_dir / f"evaluation_other_arm_{other}.json").write_text(
+            json.dumps(trend_result["arms"][other], indent=1, default=_json_default))
+        trend_result["predictions"][other].to_csv(run_dir / f"out_of_time_predictions_{other}.csv", index=False)
+        slim = {k: v for k, v in trend_result.items() if k not in ("arms", "predictions")}
+        slim["arms_written_as"] = {chosen: "evaluation.json (canonical: the arm that scores)",
+                                   other: f"evaluation_other_arm_{other}.json"}
+        (run_dir / "trend_experiment.json").write_text(json.dumps(slim, indent=1, default=_json_default))
+        print(f"trend experiment: decision={chosen} wins={trend_result['auto_trend_wins']}/{trend_result['metrics_compared']} "
+              f"auto selected trend in {trend_result['auto_selected_trend_in_forecast_years']}/{trend_result['forecast_years_evaluated']} forecast years")
+        trend_result = slim
     (run_dir / "evaluation.json").write_text(json.dumps(evaluation, indent=1, default=_json_default))
     (run_dir / "EVALUATION.md").write_text(render_evaluation_markdown(evaluation))
     predictions.to_csv(run_dir / "out_of_time_predictions.csv", index=False)
     for name, value in _headline(evaluation).items():
         print(f"  {name} = {value:.4f}")
-    sensitivity_eval, _ = evaluate_forecast_years(cohort, unresolved_as_zero=True, **{**common, "n_boot": 0})
+    sensitivity_eval, _ = evaluate_forecast_years(cohort, unresolved_as_zero=True, trend=trend_for_scoring, **{**common, "n_boot": 0})
     (run_dir / "evaluation_sensitivity_unresolved_as_zero.json").write_text(json.dumps(sensitivity_eval, indent=1, default=_json_default))
     deltas = []
     for name, value in _headline(evaluation).items():
         arm = _headline(sensitivity_eval)[name]
         deltas.append({"quantity": name, "default": value, "arm": arm, "delta": arm - value})
-
-    # ---------------------------------------------------------------- the bounded trend experiment
-    trend_result = None
-    trend_for_scoring: bool | str = False
-    if not args.no_trend_experiment:
-        trend_result = trend_experiment(cohort, **{**common, "n_boot": 0})
-        (run_dir / "trend_experiment.json").write_text(json.dumps(trend_result, indent=1, default=_json_default))
-        trend_for_scoring = "auto" if trend_result["decision"] == "auto_trend" else False
-        print(f"trend experiment: decision={trend_result['decision']} wins={trend_result['auto_trend_wins']}/{trend_result['metrics_compared']} "
-              f"auto selected trend in {trend_result['auto_selected_trend_in_forecast_years']}/{trend_result['forecast_years_evaluated']} forecast years")
 
     # ---------------------------------------------------------------- final fit and scores (THE procedure)
     fit_kwargs = dict(qualifying=qualifying, season_stats=season_stats, horizons=horizons, forecast_year=T)
@@ -293,6 +306,7 @@ def main(argv=None) -> int:
             "forecast_years_evaluated": trend_result["forecast_years_evaluated"],
             "comparison": trend_result["comparison"],
             "final_scoring_uses": "auto-selected class-year trend" if trend_for_scoring == "auto" else "plain model (no trend term)",
+            "canonical_evaluation_is": "the arm that scores; evaluation.json and out_of_time_predictions.csv describe the same model as rookie_scores",
         },
         "score_intervals": {"method": "refit on player-resampled training sets, 5th/95th percentile; fit uncertainty conditional on this model form",
                             "n_boot_requested": args.bootstrap, "n_boot_effective": intervals.attrs.get("n_boot_effective")},

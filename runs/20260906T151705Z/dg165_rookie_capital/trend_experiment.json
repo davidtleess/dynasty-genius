@@ -1,0 +1,42 @@
+{
+ "comparison": {
+  "p_qual_year1": {
+   "plain_brier": 0.12132400502761988,
+   "auto_trend_brier": 0.11970758394603483,
+   "improvement_brier": 0.001616421081585051,
+   "plain_log_loss": 0.38636278179346034,
+   "auto_trend_log_loss": 0.3822393393795243,
+   "improvement_log_loss": 0.004123442413936029
+  },
+  "p_appear_year1": {
+   "plain_brier": 0.14109440772893922,
+   "auto_trend_brier": 0.13984355101124038,
+   "improvement_brier": 0.0012508567176988394
+  },
+  "e_points_year1": {
+   "plain_rmse": 55.20876236128792,
+   "auto_trend_rmse": 53.91311045901866,
+   "improvement_rmse": 1.295651902269256
+  },
+  "p_qual_year3": {
+   "plain_brier": 0.1435667431705965,
+   "auto_trend_brier": 0.14365557983931243,
+   "improvement_brier": -8.883666871592477e-05
+  },
+  "e_points_year3": {
+   "plain_rmse": 72.71760802981942,
+   "auto_trend_rmse": 72.48321192053436,
+   "improvement_rmse": 0.23439610928505772
+  }
+ },
+ "metrics_compared": 6,
+ "auto_trend_wins": 5,
+ "auto_selected_trend_in_forecast_years": 13,
+ "forecast_years_evaluated": 21,
+ "decision": "auto_trend",
+ "rule": "auto_trend replaces plain only if it improves a majority of the compared out-of-time metrics",
+ "arms_written_as": {
+  "auto_trend": "evaluation.json (canonical: the arm that scores)",
+  "plain": "evaluation_other_arm_plain.json"
+ }
+}

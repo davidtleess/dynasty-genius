@@ -448,6 +448,11 @@ def test_trend_experiment_reports_both_arms_out_of_time_and_names_the_winner():
     assert set(result["arms"]) == {"plain", "auto_trend"}
     for arm in result["arms"].values():
         assert "annual" in arm and 1 in arm["annual"]
+    # both arms' graded rows come back too, so the canonical predictions file can be the
+    # arm that scores and the other arm is saved beside it — never a mismatch between the
+    # evaluation a consumer grades and the model that produced the scored file
+    assert set(result["predictions"]) == {"plain", "auto_trend"}
+    assert "p_qual_year1" in result["predictions"]["auto_trend"].columns
     cmp = result["comparison"]["p_qual_year1"]
     assert {"plain_brier", "auto_trend_brier", "improvement_brier", "plain_log_loss", "auto_trend_log_loss"} <= set(cmp)
     assert cmp["improvement_brier"] == pytest.approx(cmp["plain_brier"] - cmp["auto_trend_brier"])

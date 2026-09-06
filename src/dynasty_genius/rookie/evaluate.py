@@ -383,10 +383,11 @@ def trend_experiment(cohort: pd.DataFrame, **kwargs) -> dict:
     out of time with the same procedure. Decision rule: the trend arm replaces the plain
     model only if it improves a majority of the compared out-of-time metrics; otherwise the
     simpler model stays. Both arms are reported whatever the decision."""
-    arms = {}
+    arms, predictions = {}, {}
     for name, flag in (("plain", False), ("auto_trend", "auto")):
-        report, _ = evaluate_forecast_years(cohort, trend=flag, **kwargs)
+        report, rows = evaluate_forecast_years(cohort, trend=flag, **kwargs)
         arms[name] = report
+        predictions[name] = rows
     comparison = {}
     wins = 0
     for block, key, quantity, metric in TREND_COMPARISON:
@@ -401,7 +402,8 @@ def trend_experiment(cohort: pd.DataFrame, **kwargs) -> dict:
             wins += 1
     selections = [y.get("trend_selection", {}).get("selected") for y in arms["auto_trend"]["per_forecast_year"]]
     decision = "auto_trend" if wins > len(TREND_COMPARISON) / 2 else "plain"
-    return {"arms": arms, "comparison": comparison, "metrics_compared": len(TREND_COMPARISON), "auto_trend_wins": wins,
+    return {"arms": arms, "predictions": predictions, "comparison": comparison,
+            "metrics_compared": len(TREND_COMPARISON), "auto_trend_wins": wins,
             "auto_selected_trend_in_forecast_years": int(sum(1 for s in selections if s)),
             "forecast_years_evaluated": len(selections), "decision": decision,
             "rule": "auto_trend replaces plain only if it improves a majority of the compared out-of-time metrics"}
