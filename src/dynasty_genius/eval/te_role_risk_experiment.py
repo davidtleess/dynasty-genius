@@ -13,6 +13,10 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.preprocessing import StandardScaler
 
 from src.dynasty_genius.eval.te_archetype_bakeoff import BASELINE_TE_FEATURES
+from src.dynasty_genius.models.label_closure import (
+    LABEL_WINDOW_SEASONS,
+    closed_train_mask,
+)
 
 OUTCOME_COLUMN = "avg_ppg_t1_t2"
 PRIMARY_ALPHA = 1.0
@@ -34,7 +38,7 @@ def _prepare_matrix(
     test: pd.DataFrame,
     columns: list[str],
 ) -> tuple[np.ndarray, np.ndarray]:
-    imputer = SimpleImputer(strategy="median")
+    imputer = SimpleImputer(strategy="median", keep_empty_features=True)  # a column unobserved in a closed window is kept (as 0), not silently dropped
     scaler = StandardScaler()
     x_train = imputer.fit_transform(train[columns])
     x_test = imputer.transform(test[columns])
@@ -79,7 +83,9 @@ def _evaluate_fold(
     alpha: float,
 ) -> dict[str, Any]:
     train = frame[
-        (frame["feature_season"] < test_year) & (frame["training_eligible"] == True)  # noqa: E712
+        # DG-177 round 2: the label spans t+1..t+2, so a training row's window must be CLOSED
+        # at the test year (feature_season + 2 <= test_year), by the shared rule.
+        closed_train_mask(frame["feature_season"], test_year, window=LABEL_WINDOW_SEASONS) & (frame["training_eligible"] == True)  # noqa: E712
     ]
     test = frame[
         (frame["feature_season"] == test_year) & (frame["training_eligible"] == True)  # noqa: E712
@@ -94,10 +100,15 @@ def _evaluate_fold(
     )
     baseline_rank = _rank_metrics(y_test, baseline_pred)
     candidate_rank = _rank_metrics(y_test, candidate_pred)
+    unobserved = [c for c in candidate_columns if train[c].isna().all()] if len(train) else list(candidate_columns)
     return {
         "test_year": test_year,
         "n_train": int(len(train)),
         "n_test": int(len(test)),
+        # DG-177 round 2: with the closed window a candidate column can have NO observed
+        # value in a fold's training rows; it is kept as a zero column and named here so
+        # the fold's candidate result is read as "not testable", not as "no effect".
+        "candidate_columns_unobserved_in_train": unobserved,
         "baseline_rmse": round(_rmse(y_test, baseline_pred), 4),
         "candidate_rmse": round(_rmse(y_test, candidate_pred), 4),
         "baseline_mae": round(float(mean_absolute_error(y_test, baseline_pred)), 4),

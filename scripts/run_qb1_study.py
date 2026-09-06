@@ -117,8 +117,17 @@ F25_FROZEN_SET: dict[str, str] = {
     "app/data/models/engine_b/v2_manifest.json": (
         "916677c19a43b2bfbe9b3a1182c8779263d699ded526b1bc27245b4a50b8da44"
     ),
+    # RE-PINNED 2026-09-06 (DG-177 round 2, Codex review item 2) from
+    # 7f3e9283afac1928… to 988f660ab8f8638f… . Cause: the fold builder split on
+    # `feature_season < test_year` for every horizon; for H1 that IS label closure,
+    # for H2/H3 it admitted training rows whose outcome window reached into and past
+    # the test year. It now closes at the horizon it is given
+    # (feature_season + h <= test_year) through the shared models/label_closure rule.
+    # Published QB-1 results were computed against the old pin and are unaffected;
+    # a RE-RUN would now grade H2/H3 on honestly closed folds, which is a real
+    # change to the pre-registered validation and is recorded here as such.
     "src/dynasty_genius/eval/qb_v3_walk_forward.py": (
-        "7f3e9283afac1928629b3c04ef2ec71e85c99f3e55278f2237fcf9bedab4a3b5"
+        "988f660ab8f8638f2a638d92de57448d5d79b5bc90d101e376bd01de85dbb208"
     ),
     "docs/validation/2026-07-04-build4-qb-v3-promotion-decision-record.md": (
         "a963b671dc6a1ef88bb73283acac594201b7cee3bda59a84681a03b810f6bd63"

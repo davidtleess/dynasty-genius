@@ -61,7 +61,7 @@ def test_manifest_types_every_term_the_contract_names():
     m = build_manifest(
         horizons=(1, 2), inference_season=2025, last_complete_season=2024, scope="REG",
         source={"weekly_stats_sha256": "abc", "nflreadpy": "0.1.5"}, git_head="deadbeef",
-        features_by_position={"WR": FEATURES}, population="2025 feature rows",
+        features_by_arm={"recent_production_3col": {"WR": FEATURES}}, population="2025 feature rows",
         candidate_arm="recent_production_3col", candidate_rationale="why",
         comparator_export="annual_forecasts_served_features.csv",
     )
@@ -79,3 +79,99 @@ def test_manifest_types_every_term_the_contract_names():
     assert m["source"]["weekly_stats_sha256"] == "abc" and m["git_head"] == "deadbeef"
     assert m["horizons_supported"] == [1, 2] and m["longer_horizons"] == "unsupported: not measured"
     assert m["no_forecast_reason_for_absent_players"] == "no_feature_row"
+
+
+# ── round 2, item 1: the manifest's shape is asserted, not assumed ──
+
+from scripts.experiments.dg177_annual_forecasts import (  # noqa: E402
+    ManifestShapeError,
+    validate_manifest,
+)
+
+
+def _good_manifest():
+    return build_manifest(
+        horizons=(1, 2), inference_season=2025, last_complete_season=2024, scope="REG",
+        source={"weekly_stats_sha256": "a" * 64, "nflreadpy": "0.1.5"}, git_head="deadbeef",
+        features_by_arm={"served_features": {"WR": ["age", "ppg_t"]}, "recent_production_3col": {"WR": FEATURES}},
+        population="2025 feature rows",
+        candidate_arm="recent_production_3col", candidate_rationale="why",
+        comparator_export="annual_forecasts_served_features.csv",
+        inputs={"training_csv_sha256": "b" * 64, "served_wr_pickle_sha256": "c" * 64},
+        outputs={"annual_forecasts.csv": "d" * 64},
+    )
+
+
+def test_manifest_keeps_arms_and_positions_at_their_own_levels():
+    m = _good_manifest()
+    assert m["features_by_position"] == {"WR": FEATURES}                        # the candidate's, by POSITION
+    assert m["features_by_arm"]["served_features"]["WR"] == ["age", "ppg_t"]   # every arm, by arm then position
+    assert m["inputs"]["training_csv_sha256"] == "b" * 64 and m["outputs"]["annual_forecasts.csv"] == "d" * 64
+    validate_manifest(m)   # no raise
+
+
+def test_manifest_with_arm_names_at_the_position_level_is_refused():
+    m = _good_manifest()
+    m["features_by_position"] = m["features_by_arm"]        # the round-1 defect, reproduced
+    with pytest.raises(ManifestShapeError, match="position"):
+        validate_manifest(m)
+
+
+def test_manifest_with_a_non_feature_leaf_or_unknown_arm_is_refused():
+    m = _good_manifest()
+    m["features_by_arm"]["served_features"]["WR"] = ["QB", "RB"]
+    with pytest.raises(ManifestShapeError, match="feature"):
+        validate_manifest(m)
+    m = _good_manifest()
+    m["features_by_arm"]["mystery_arm"] = {"WR": FEATURES}
+    with pytest.raises(ManifestShapeError, match="arm"):
+        validate_manifest(m)
+
+
+def test_manifest_without_input_or_output_hashes_is_refused():
+    m = _good_manifest()
+    m["inputs"] = {}
+    with pytest.raises(ManifestShapeError, match="input"):
+        validate_manifest(m)
+    m = _good_manifest()
+    del m["outputs"]["annual_forecasts.csv"]
+    with pytest.raises(ManifestShapeError, match="output"):
+        validate_manifest(m)
+
+
+# ── round 2, item 4: the exported candidate is the policy, and the manifest says so ──
+
+from src.dynasty_genius.eval.annual_forecasts import (  # noqa: E402
+    POLICY_SPACE,
+    fit_policy,
+)
+
+
+def test_final_forecasts_can_use_the_policy_and_record_the_choice():
+    df = _with_inference_rows(_panel(last_complete=2024))
+    forecasts, fits = final_forecasts(
+        df, {"WR": FEATURES}, horizons=(1,), inference_season=2025, last_complete_season=2024,
+        fitter=fit_policy,
+    )
+    assert len(forecasts) == int((df.feature_season == 2025).sum())
+    chosen = fits["WR"]["year1"]["policy_by_quantity"]
+    assert set(chosen) == {"p_appear", "points_given_appear", "games_given_appear"}
+    assert all(v in POLICY_SPACE for v in chosen.values())
+    assert fits["WR"]["year1"]["final_fit_parity"] == "fit_policy is the function final scoring calls"
+
+
+def test_manifest_carries_the_selection_policy_and_the_names_the_consumer_reads():
+    m = build_manifest(
+        horizons=(1,), inference_season=2025, last_complete_season=2024, scope="REG",
+        source={"weekly_stats_sha256": "a" * 64}, git_head="deadbeef",
+        features_by_arm={"recent_production_3col": {"WR": FEATURES}}, population="p",
+        candidate_arm="recent_production_3col", candidate_rationale="why",
+        comparator_export="annual_forecasts_served_features.csv",
+        inputs={"training_csv_sha256": "b" * 64}, outputs={"annual_forecasts.csv": "d" * 64},
+        selection_policy={"space": list(POLICY_SPACE), "chosen": {"WR": {"year1": {"p_appear": "candidate"}}}},
+    )
+    assert m["selection_policy"]["space"] == list(POLICY_SPACE)
+    assert m["selection_policy"]["chosen"]["WR"]["year1"]["p_appear"] == "candidate"
+    assert m["scoring_arm"] == "recent_production_3col"                 # alias the consumer reads
+    assert m["outputs_sha256"] == m["outputs"]                          # alias the consumer reads
+    validate_manifest(m)

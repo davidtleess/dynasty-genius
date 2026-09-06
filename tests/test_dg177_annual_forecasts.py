@@ -153,3 +153,100 @@ class TestEvaluateHorizon:
         assert set(preds.columns) >= {"player_id", "feature_season", "forecast_season", *QUANTITIES(1),
                                       "appeared_year1", "points_year1", "games_year1"}
         assert (preds["forecast_season"] == preds["feature_season"] + 1).all()
+
+
+# ── round 2, item 4: one explicit selection policy, chosen on closed inner folds ──
+
+from src.dynasty_genius.eval.annual_forecasts import (  # noqa: E402
+    POLICY_SPACE,
+    compose_policy,
+    evaluate_horizon_policy,
+    fit_policy,
+)
+
+
+def test_policy_space_is_baseline_candidate_and_a_bounded_blend():
+    assert POLICY_SPACE == ("baseline", "candidate", "blend_0.25", "blend_0.5", "blend_0.75")
+
+
+def test_compose_policy_is_the_named_convex_combination():
+    c = np.array([10.0, 20.0])
+    b = np.array([0.0, 40.0])
+    np.testing.assert_allclose(compose_policy(c, b, "baseline"), b)
+    np.testing.assert_allclose(compose_policy(c, b, "candidate"), c)
+    np.testing.assert_allclose(compose_policy(c, b, "blend_0.25"), 0.25 * c + 0.75 * b)
+    np.testing.assert_allclose(compose_policy(c, b, "blend_0.75"), 0.75 * c + 0.25 * b)
+    with pytest.raises(ValueError):
+        compose_policy(c, b, "blend_0.9")
+
+
+class TestFitPolicy:
+    def test_selection_happens_on_closed_inner_folds_and_names_a_policy_per_quantity(self):
+        df = _panel()
+        train = df[df.feature_season <= 2021]
+        test = df[df.feature_season == 2023].reset_index(drop=True)
+        pred, meta = fit_policy(train, test, FEATURES, horizon=1, test_season=2023)
+        assert set(meta["policy_by_quantity"]) == {"p_appear", "points_given_appear", "games_given_appear"}
+        assert all(v in POLICY_SPACE for v in meta["policy_by_quantity"].values())
+        assert meta["inner_folds"], "no inner fold means no selection happened"
+        for fold in meta["inner_folds"]:
+            assert max(fold["train_seasons"]) + 1 <= fold["validation_season"]
+        assert meta["selection_criterion"] == {"p_appear": "brier", "points_given_appear": "mse",
+                                               "games_given_appear": "mse"}
+        for q in QUANTITIES(1):
+            assert np.isfinite(pred[q]).all()
+        np.testing.assert_allclose(pred["e_points_year1"], pred["p_appear_year1"] * pred["e_points_year1_given_appear"])
+        assert meta["final_fit_parity"] == "fit_policy is the function final scoring calls"
+
+    def test_the_selected_policy_reproduces_its_composition_on_the_test_rows(self):
+        df = _panel()
+        train = df[df.feature_season <= 2021]
+        test = df[df.feature_season == 2023].reset_index(drop=True)
+        pred, meta = fit_policy(train, test, FEATURES, horizon=1)
+        cand, _ = fit_horizon(train, test, FEATURES, horizon=1)
+        base = persistence_baselines(train, test, horizon=1)
+        chosen = meta["policy_by_quantity"]["points_given_appear"]
+        np.testing.assert_allclose(
+            pred["e_points_year1_given_appear"],
+            compose_policy(cand["e_points_year1_given_appear"], base["e_points_year1_given_appear"], chosen),
+        )
+
+    def test_test_labels_cannot_influence_the_selection(self):
+        df = _panel()
+        train = df[df.feature_season <= 2021]
+        test = df[df.feature_season == 2023].reset_index(drop=True)
+        _, meta = fit_policy(train, test, FEATURES, horizon=1)
+        poisoned = test.copy()
+        poisoned["points_year1"] = 1e6
+        poisoned["appeared_year1"] = True
+        _, meta2 = fit_policy(train, poisoned, FEATURES, horizon=1)
+        assert meta["policy_by_quantity"] == meta2["policy_by_quantity"]
+        assert meta["inner_scores"] == meta2["inner_scores"]
+
+    def test_it_refuses_when_no_inner_fold_can_be_built(self):
+        df = _panel()
+        train = df[df.feature_season <= 2019]           # 2018-2019: no closed inner fold with a fittable candidate
+        test = df[df.feature_season == 2021].reset_index(drop=True)
+        from src.dynasty_genius.eval.veteran_candidate import RecipeCannotFit
+        with pytest.raises(RecipeCannotFit):
+            fit_policy(train, test, FEATURES, horizon=1)
+
+
+class TestEvaluateHorizonPolicy:
+    def test_policy_evidence_is_separate_from_exploratory_arm_comparisons(self):
+        df = _panel()
+        out, preds = evaluate_horizon_policy(
+            df, FEATURES, horizon=1, test_seasons=[2020, 2021, 2022, 2023], k=10, draws=20, seed=0,
+            min_train_rows=10,
+        )
+        assert [f["test_season"] for f in out["folds"]] == [2020, 2021, 2022, 2023]
+        evaluated = [f for f in out["folds"] if f["skipped_reason"] is None]
+        assert evaluated
+        f = evaluated[0]
+        assert set(f["policy"]["policy_by_quantity"]) == {"p_appear", "points_given_appear", "games_given_appear"}
+        assert set(f["policy"]) >= {"probability", "points_given_appear", "games_given_appear", "points_unconditional"}
+        assert set(f["exploratory_candidate"]) >= {"probability", "points_given_appear", "points_unconditional"}
+        assert out["pooled"]["policy"]["points_unconditional"]["delta_vs_baseline"]["topk_aggregation"] == "mean_over_forecast_seasons"
+        assert out["evidence"] == "policy"      # the policy's outer score is the evidence; arms are exploratory
+        assert set(preds.columns) >= {"player_id", "forecast_season", "policy_e_points_year1", "candidate_e_points_year1",
+                                      "baseline_e_points_year1"}

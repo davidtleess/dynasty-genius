@@ -55,6 +55,18 @@ PROBABILITY_MODEL = (
 )
 CALIBRATION_BINS = 10
 
+# ── the selection policy (round 2, item 4) ────────────────────────────────────
+#: One explicit space: the training-only baseline, the candidate, or a bounded convex
+#: blend of the two. Chosen PER QUANTITY on closed inner folds inside the training
+#: window (the candidate refit leak-free inside each inner fold), then applied by the
+#: same function final scoring calls. The outer score of the chosen policy is the
+#: evidence; per-arm outer scores are exploratory comparisons.
+POLICY_SPACE: tuple[str, ...] = ("baseline", "candidate", "blend_0.25", "blend_0.5", "blend_0.75")
+POLICY_QUANTITIES: tuple[str, ...] = ("p_appear", "points_given_appear", "games_given_appear")
+SELECTION_CRITERION = {"p_appear": "brier", "points_given_appear": "mse", "games_given_appear": "mse"}
+FINAL_FIT_PARITY = "fit_policy is the function final scoring calls"
+MIN_INNER_ROWS = 10
+
 
 def QUANTITIES(horizon: int) -> list[str]:  # noqa: N802  (reads as the contract's noun)
     j = int(horizon)
@@ -351,5 +363,258 @@ def evaluate_horizon(
     }
     predictions = pd.concat(rows_out, ignore_index=True) if rows_out else pd.DataFrame(
         columns=["player_id", "position", "feature_season", "forecast_season", *QUANTITIES(j)]
+    )
+    return out, predictions
+
+
+def compose_policy(candidate: np.ndarray, baseline: np.ndarray, policy: str) -> np.ndarray:
+    """The named combination: baseline, candidate, or w·candidate + (1−w)·baseline."""
+    candidate = np.asarray(candidate, dtype=float)
+    baseline = np.asarray(baseline, dtype=float)
+    if policy == "baseline":
+        return baseline.copy()
+    if policy == "candidate":
+        return candidate.copy()
+    if policy.startswith("blend_") and policy in POLICY_SPACE:
+        w = float(policy.split("_", 1)[1])
+        return w * candidate + (1.0 - w) * baseline
+    raise ValueError(f"unknown policy {policy!r}; expected one of {POLICY_SPACE}")
+
+
+def _quantity_columns(j: int) -> dict[str, str]:
+    return {
+        "p_appear": f"p_appear_year{j}",
+        "points_given_appear": f"e_points_year{j}_given_appear",
+        "games_given_appear": f"e_games_year{j}_given_appear",
+    }
+
+
+def _inner_score(quantity: str, truth_rows: pd.DataFrame, values: np.ndarray, j: int) -> float:
+    appeared = truth_rows[f"appeared_year{j}"].astype(bool).to_numpy()
+    if quantity == "p_appear":
+        return brier(appeared.astype(int), np.clip(values, 0.0, 1.0))
+    target = f"points_year{j}" if quantity == "points_given_appear" else f"games_year{j}"
+    y = truth_rows[target].to_numpy(dtype=float)[appeared]
+    return float(np.mean((y - values[appeared]) ** 2)) if appeared.any() else float("nan")
+
+
+def fit_policy(
+    train: pd.DataFrame,
+    test: pd.DataFrame,
+    features: list[str],
+    *,
+    horizon: int,
+    test_season: int | None = None,
+    alphas: Iterable[float] = ALPHA_GRID,
+) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
+    """Select a policy per quantity on closed inner folds, then apply it to ``test``.
+
+    Inner fold for validation season v: training rows with feature_season + j <= v
+    (observed labels), validation rows with feature_season == v. The candidate is
+    refit inside each inner fold with ``fit_horizon`` (its own leak-free alpha inside),
+    the baseline is recomputed on the inner training rows, and every policy in
+    POLICY_SPACE is scored on the validation rows. The mean inner score picks the
+    policy. The final fit uses the whole training window through the same functions.
+    """
+    j = int(horizon)
+    if test_season is not None:
+        assert_labels_known(train, test_season, window=j)
+    cols = _quantity_columns(j)
+    seasons = sorted(int(s) for s in train["feature_season"].unique())
+    inner_folds: list[dict[str, Any]] = []
+    inner_scores: dict[str, dict[str, list[float]]] = {q: {p: [] for p in POLICY_SPACE} for q in POLICY_QUANTITIES}
+    for v in seasons:
+        inner_train = train[(train["feature_season"].astype(int) + j <= v)]
+        inner_train = inner_train[observed_mask(inner_train, j)]
+        inner_val = train[train["feature_season"].astype(int) == v]
+        inner_val = inner_val[observed_mask(inner_val, j)]
+        if len(inner_train) < MIN_INNER_ROWS or len(inner_val) < MIN_INNER_ROWS:
+            continue
+        try:
+            cand, _ = fit_horizon(inner_train, inner_val, features, horizon=j, alphas=alphas)
+        except RecipeCannotFit:
+            continue
+        base = persistence_baselines(inner_train, inner_val, horizon=j)
+        fold_scores: dict[str, dict[str, float]] = {}
+        for q, col in cols.items():
+            fold_scores[q] = {}
+            for policy in POLICY_SPACE:
+                score = _inner_score(q, inner_val, compose_policy(cand[col], base[col], policy), j)
+                inner_scores[q][policy].append(score)
+                fold_scores[q][policy] = score
+        inner_folds.append({
+            "validation_season": int(v),
+            "train_seasons": sorted(int(s) for s in inner_train["feature_season"].unique()),
+            "n_train": int(len(inner_train)), "n_validation": int(len(inner_val)),
+            "scores": fold_scores,
+        })
+    if not inner_folds:
+        raise RecipeCannotFit(
+            f"policy selection for year {j}: no inner validation season with closed training rows "
+            f"and a fittable candidate (seasons present: {seasons})"
+        )
+    mean_scores = {q: {p: float(np.nanmean(v)) if len(v) else float("nan") for p, v in per.items()}
+                   for q, per in inner_scores.items()}
+    policy_by_quantity = {
+        q: min(POLICY_SPACE, key=lambda p: (np.isnan(mean_scores[q][p]), mean_scores[q][p]))
+        for q in POLICY_QUANTITIES
+    }
+
+    cand, cand_meta = fit_horizon(train, test, features, horizon=j, alphas=alphas)
+    base = persistence_baselines(train, test, horizon=j)
+    p = np.clip(compose_policy(cand[cols["p_appear"]], base[cols["p_appear"]], policy_by_quantity["p_appear"]), 0.0, 1.0)
+    e_points = compose_policy(cand[cols["points_given_appear"]], base[cols["points_given_appear"]],
+                              policy_by_quantity["points_given_appear"])
+    e_games = compose_policy(cand[cols["games_given_appear"]], base[cols["games_given_appear"]],
+                             policy_by_quantity["games_given_appear"])
+    pred = {
+        f"p_appear_year{j}": p,
+        f"e_points_year{j}_given_appear": e_points,
+        f"e_games_year{j}_given_appear": e_games,
+        f"e_points_year{j}": p * e_points,
+        f"e_games_year{j}": p * e_games,
+    }
+    meta = {
+        "horizon": j,
+        "policy_space": list(POLICY_SPACE),
+        "selection_criterion": dict(SELECTION_CRITERION),
+        "policy_by_quantity": policy_by_quantity,
+        "inner_folds": inner_folds,
+        "inner_scores": mean_scores,
+        "candidate_fit": cand_meta,
+        "baseline_definition": base["_definition"],
+        "final_fit_parity": FINAL_FIT_PARITY,
+    }
+    return pred, meta
+
+
+def evaluate_horizon_policy(
+    df: pd.DataFrame,
+    features: list[str],
+    *,
+    horizon: int,
+    test_seasons: Iterable[int],
+    k: int,
+    draws: int = 2000,
+    seed: int = 20260906,
+    min_train_rows: int = 60,
+    min_test_rows: int = 10,
+    alphas: Iterable[float] = ALPHA_GRID,
+) -> tuple[dict[str, Any], pd.DataFrame]:
+    """Walk forward; on each fold the POLICY (selected inside the training window) is the
+    evidence, and the plain candidate arm is reported beside it as an exploratory comparison."""
+    j = int(horizon)
+    seasons = sorted(int(s) for s in df["feature_season"].unique())
+    q = QUANTITIES(j)
+    folds: list[dict[str, Any]] = []
+    keys = ("truth_app", "groups", "fold", "y_points", "y_games")
+    pooled: dict[str, list[np.ndarray]] = {key: [] for key in keys}
+    for arm in ("policy", "candidate", "baseline"):
+        for name in q:
+            pooled[f"{arm}:{name}"] = []
+    rows_out: list[pd.DataFrame] = []
+
+    for s in sorted(int(t) for t in test_seasons):
+        train_seasons = admissible_train_seasons(seasons, s, window=j)
+        train = df[df["feature_season"].isin(train_seasons)]
+        test_all = df[df["feature_season"] == s]
+        test = test_all[observed_mask(test_all, j)].reset_index(drop=True)
+        n_train_obs = int(observed_mask(train, j).sum()) if len(train) else 0
+        record: dict[str, Any] = {
+            "test_season": s, "forecast_season": s + j, "train_seasons": train_seasons,
+            "n_train_observed": n_train_obs, "n_test_rows": int(len(test_all)),
+            "n_test_observed": int(len(test)),
+            "n_test_appeared": int(test[f"appeared_year{j}"].astype(bool).sum()) if len(test) else 0,
+            "skipped_reason": None,
+        }
+        if n_train_obs < min_train_rows:
+            record["skipped_reason"] = f"observed train rows {n_train_obs} < minimum {min_train_rows}"
+        elif len(test) < min_test_rows:
+            record["skipped_reason"] = f"observed test rows {len(test)} < minimum {min_test_rows}"
+        if record["skipped_reason"] is None:
+            try:
+                pol, pol_meta = fit_policy(train, test, features, horizon=j, test_season=s, alphas=alphas)
+            except RecipeCannotFit as err:
+                record["skipped_reason"] = str(err)
+        if record["skipped_reason"] is not None:
+            folds.append(record)
+            continue
+        cand_pred, _ = fit_horizon(train, test, features, horizon=j, alphas=alphas)
+        base = persistence_baselines(train, test, horizon=j)
+        truth_app = test[f"appeared_year{j}"].astype(int).to_numpy()
+        y_points = test[f"points_year{j}"].to_numpy(dtype=float)
+        y_games = test[f"games_year{j}"].to_numpy(dtype=float)
+        groups = test["player_id"].to_numpy()
+        app = truth_app.astype(bool)
+
+        def blocks(pred: dict[str, np.ndarray]) -> dict[str, Any]:
+            return {
+                "probability": _probability_block(truth_app, pred[q[0]], base[q[0]]),
+                "points_given_appear": _paired_block(y_points[app], base[q[1]][app], pred[q[1]][app], groups[app],
+                                                     k=k, draws=draws, seed=seed),
+                "games_given_appear": _paired_block(y_games[app], base[q[2]][app], pred[q[2]][app], groups[app],
+                                                    k=k, draws=draws, seed=seed),
+                "points_unconditional": _paired_block(y_points, base[q[3]], pred[q[3]], groups,
+                                                      k=k, draws=draws, seed=seed),
+            }
+
+        record["policy"] = {**blocks(pol), "policy_by_quantity": pol_meta["policy_by_quantity"],
+                            "inner_folds": pol_meta["inner_folds"], "inner_scores": pol_meta["inner_scores"]}
+        record["exploratory_candidate"] = blocks(cand_pred)
+        record["fit"] = pol_meta["candidate_fit"]
+        record["baseline_definition"] = base["_definition"]
+        folds.append(record)
+
+        fold_ids = np.full(len(test), s)
+        for key, value in (("truth_app", truth_app), ("groups", groups), ("fold", fold_ids),
+                           ("y_points", y_points), ("y_games", y_games)):
+            pooled[key].append(value)
+        for arm, pred in (("policy", pol), ("candidate", cand_pred), ("baseline", base)):
+            for name in q:
+                pooled[f"{arm}:{name}"].append(np.asarray(pred[name], dtype=float))
+        frame = test[["player_id", "position", "feature_season"]].copy()
+        frame["forecast_season"] = s + j
+        for arm, pred in (("policy", pol), ("candidate", cand_pred), ("baseline", base)):
+            for name in q:
+                frame[f"{arm}_{name}"] = np.asarray(pred[name], dtype=float)
+        for col in (f"appeared_year{j}", f"games_year{j}", f"points_year{j}"):
+            frame[col] = test[col].to_numpy()
+        rows_out.append(frame)
+
+    evaluated = [f["test_season"] for f in folds if f["skipped_reason"] is None]
+    pooled_out: dict[str, Any] = {}
+    if evaluated:
+        c = {key: np.concatenate(v) for key, v in pooled.items() if v}
+        app = c["truth_app"].astype(bool)
+
+        def pooled_blocks(arm: str) -> dict[str, Any]:
+            g = lambda name: c[f"{arm}:{name}"]  # noqa: E731
+            b = lambda name: c[f"baseline:{name}"]  # noqa: E731
+            return {
+                "probability": _probability_block(c["truth_app"], g(q[0]), b(q[0])),
+                "points_given_appear": _paired_block(c["y_points"][app], b(q[1])[app], g(q[1])[app], c["groups"][app],
+                                                     k=k, draws=draws, seed=seed, fold_ids=c["fold"][app]),
+                "games_given_appear": _paired_block(c["y_games"][app], b(q[2])[app], g(q[2])[app], c["groups"][app],
+                                                    k=k, draws=draws, seed=seed, fold_ids=c["fold"][app]),
+                "points_unconditional": _paired_block(c["y_points"], b(q[3]), g(q[3]), c["groups"],
+                                                      k=k, draws=draws, seed=seed, fold_ids=c["fold"]),
+            }
+
+        pooled_out = {
+            "n_observed": int(len(c["truth_app"])), "n_appeared": int(app.sum()),
+            "policy": pooled_blocks("policy"),
+            "exploratory_candidate": pooled_blocks("candidate"),
+            "policies_chosen_by_fold": {str(f["test_season"]): f["policy"]["policy_by_quantity"]
+                                        for f in folds if f["skipped_reason"] is None},
+        }
+    out = {
+        "horizon": j, "event": EVENT, "exposure": EXPOSURE, "features": list(features),
+        "quantities": q, "label_window_seasons": j, "evaluated_test_seasons": evaluated,
+        "evidence": "policy",
+        "policy_space": list(POLICY_SPACE), "selection_criterion": dict(SELECTION_CRITERION),
+        "folds": folds, "pooled": pooled_out, "k": int(k),
+    }
+    predictions = pd.concat(rows_out, ignore_index=True) if rows_out else pd.DataFrame(
+        columns=["player_id", "position", "feature_season", "forecast_season"]
     )
     return out, predictions

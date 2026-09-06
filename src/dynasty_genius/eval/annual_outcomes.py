@@ -32,12 +32,84 @@ SCORING_COLUMN = "fantasy_points_ppr"
 SCOPES: dict[str, tuple[str, ...]] = {"REG": ("REG",), "ALL": ("REG", "POST")}
 EVENT = "appeared: >= 1 stat-row game in the season"
 EXPOSURE = "games: weeks with a weekly stat row in scope"
+#: Regular-season weeks the NFL played; a source season with fewer REG weeks is incomplete.
+REG_WEEKS_EXPECTED = {season: (18 if season >= 2021 else 17) for season in range(1999, 2101)}
+MIN_PLAYERS_PER_SEASON = 1000
 
 
-def season_outcomes(weekly: pd.DataFrame, scope: str = "REG") -> pd.DataFrame:
-    """One row per (player_id, season): stat-row games and PPR points in ``scope``."""
+class SourceIncompleteError(ValueError):
+    """The weekly source cannot support "no row means no game": a season, week, scoring
+    value or identity is missing, or rows are duplicated. Refuse; never treat as zero."""
+
+
+def validate_weekly_source(
+    weekly: pd.DataFrame,
+    *,
+    seasons: Iterable[int],
+    min_players_per_season: int = MIN_PLAYERS_PER_SEASON,
+) -> dict:
+    """Prove the properties that make a MISSING player-season an OBSERVED absence.
+
+    1. every requested season is present with its full regular-season week range and a
+       credible number of players (a partial pull is not a season);
+    2. (player_id, season, week, season_type) is unique (a duplicated week would double a
+       season's games and points);
+    3. no scoring value and no identity is missing (a missing value is unknown, not 0).
+    Returns the facts that were checked, for the manifest.
+    """
+    seasons = sorted(int(s) for s in seasons)
+    required = ["player_id", "season", "week", "season_type", SCORING_COLUMN]
+    missing_cols = [c for c in required if c not in weekly.columns]
+    if missing_cols:
+        raise SourceIncompleteError(f"weekly source lacks columns {missing_cols}")
+    problems: list[str] = []
+    facts: dict = {"seasons": {}, "scope_checked": "REG"}
+    missing_id = int(weekly["player_id"].isna().sum() + (weekly["player_id"].astype(str).str.strip() == "").sum())
+    if missing_id:
+        problems.append(f"{missing_id} rows have a missing player_id")
+    points = pd.to_numeric(weekly[SCORING_COLUMN], errors="coerce")
+    missing_points = int(points.isna().sum())
+    if missing_points:
+        problems.append(f"{missing_points} rows have a missing {SCORING_COLUMN} value")
+    dup = int(weekly.duplicated(subset=["player_id", "season", "week", "season_type"]).sum())
+    if dup:
+        problems.append(f"{dup} duplicate (player, season, week, season_type) rows")
+    reg = weekly[weekly["season_type"] == "REG"]
+    for season in seasons:
+        rows = reg[reg["season"].astype(int) == season]
+        expected_weeks = REG_WEEKS_EXPECTED.get(season, 18)
+        weeks = int(rows["week"].nunique()) if len(rows) else 0
+        players = int(rows["player_id"].nunique()) if len(rows) else 0
+        facts["seasons"][str(season)] = {"rows": int(len(rows)), "reg_weeks": weeks,
+                                         "reg_weeks_expected": expected_weeks, "players": players}
+        if len(rows) == 0:
+            problems.append(f"season {season} is absent from the source")
+            continue
+        if weeks < expected_weeks:
+            problems.append(f"season {season} has {weeks} regular-season weeks, expected {expected_weeks}")
+        if players < min_players_per_season:
+            problems.append(f"season {season} has {players} players, below the floor of {min_players_per_season}")
+    facts.update({"duplicate_rows": dup, "missing_points": missing_points, "missing_player_id": missing_id,
+                  "min_players_per_season": int(min_players_per_season), "validated": not problems})
+    if problems:
+        raise SourceIncompleteError("weekly source cannot support observed absence: " + "; ".join(problems))
+    return facts
+
+
+def season_outcomes(
+    weekly: pd.DataFrame, scope: str = "REG", *, validation: dict | None = None
+) -> pd.DataFrame:
+    """One row per (player_id, season): stat-row games and PPR points in ``scope``.
+
+    Requires the facts from ``validate_weekly_source``: without them a missing
+    player-season cannot be read as an observed absence, so this refuses to proceed.
+    """
     if scope not in SCOPES:
         raise ValueError(f"unknown scope {scope!r}; expected one of {sorted(SCOPES)}")
+    if not validation or not validation.get("validated"):
+        raise SourceIncompleteError(
+            "season_outcomes needs a validated source: call validate_weekly_source first"
+        )
     rows = weekly[weekly["season_type"].isin(SCOPES[scope])]
     if rows.empty:
         out = pd.DataFrame(columns=["player_id", "season", "games", "points"])
@@ -52,7 +124,7 @@ def season_outcomes(weekly: pd.DataFrame, scope: str = "REG") -> pd.DataFrame:
         out["games"] = out["games"].astype(int)
         out["points"] = out["points"].astype(float)
     out.attrs.update({"scope": scope, "season_types": list(SCOPES[scope]), "scoring": SCORING_COLUMN,
-                      "exposure": EXPOSURE})
+                      "exposure": EXPOSURE, "source_validation": dict(validation)})
     return out
 
 
@@ -64,6 +136,12 @@ def annual_targets(
     last_complete_season: int,
 ) -> pd.DataFrame:
     """Attach per-season labels for each horizon to every training row (none dropped)."""
+    validation = outcomes.attrs.get("source_validation")
+    if not validation or not validation.get("validated"):
+        raise SourceIncompleteError(
+            "annual_targets needs outcomes built from a validated source; a missing row is "
+            "an observed absence only when the source is known to be complete"
+        )
     horizons = [int(h) for h in horizons]
     out = training[["player_id", "position", "feature_season"]].copy().reset_index(drop=True)
     seen = set(outcomes["player_id"].unique())
@@ -102,5 +180,6 @@ def annual_targets(
         "scoring": outcomes.attrs.get("scoring", SCORING_COLUMN),
         "label_window_seasons": {f"year{j}": j for j in horizons},
         "last_complete_season": int(last_complete_season),
+        "source_validation": dict(validation),
     })
     return out

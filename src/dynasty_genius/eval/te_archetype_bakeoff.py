@@ -12,6 +12,10 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.preprocessing import StandardScaler
 
 from src.dynasty_genius.audit.te_archetype_taxonomy import derive_te_taxonomy_features
+from src.dynasty_genius.models.label_closure import (
+    LABEL_WINDOW_SEASONS,
+    closed_train_mask,
+)
 
 ALIGNMENT_VALUES = ("detached", "balanced", "inline", "taxonomy_missing")
 ROLE_VALUES = (
@@ -85,7 +89,7 @@ def build_te_bakeoff_frame(
 
 
 def _prepare_matrix(train: pd.DataFrame, test: pd.DataFrame, columns: list[str]) -> tuple[np.ndarray, np.ndarray]:
-    imputer = SimpleImputer(strategy="median")
+    imputer = SimpleImputer(strategy="median", keep_empty_features=True)  # a column unobserved in a closed window is kept (as 0), not silently dropped
     scaler = StandardScaler()
     x_train = imputer.fit_transform(train[columns])
     x_test = imputer.transform(test[columns])
@@ -97,7 +101,8 @@ def _rmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
 
 def _evaluate_columns(frame: pd.DataFrame, columns: list[str], test_year: int) -> dict[str, Any]:
-    train = frame[(frame["feature_season"] < test_year) & (frame["training_eligible"] == True)]  # noqa: E712 - preserve pandas mask semantics (CSV bool/int/object dtype)
+    # DG-177 round 2: closed label window (feature_season + 2 <= test_year), shared rule.
+    train = frame[closed_train_mask(frame["feature_season"], test_year, window=LABEL_WINDOW_SEASONS) & (frame["training_eligible"] == True)]  # noqa: E712 - preserve pandas mask semantics (CSV bool/int/object dtype)
     test = frame[(frame["feature_season"] == test_year) & (frame["training_eligible"] == True)]  # noqa: E712 - preserve pandas mask semantics (CSV bool/int/object dtype)
     x_train, x_test = _prepare_matrix(train, test, columns)
     y_train = train[OUTCOME_COLUMN].to_numpy(dtype=float)

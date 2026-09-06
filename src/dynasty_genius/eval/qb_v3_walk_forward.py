@@ -39,6 +39,7 @@ from src.dynasty_genius.features.qb_role_occupancy_labels import (
 from src.dynasty_genius.features.qb_v3_candidate_matrix import (
     validate_qb_v3_candidate_feature_contract,
 )
+from src.dynasty_genius.models.label_closure import closed_train_mask
 
 QB_V3_MODEL_FAMILY = "regularized_logistic_regression"
 QB_V3_TOP_K = 12
@@ -128,7 +129,10 @@ def build_qb_v3_classification_fold_data(
         ]
     ]
 
-    train = frame[frame["feature_season"] < test_year]
+    # DG-177 round 2: a horizon-h label is closed only when feature_season + h <= test_year.
+    # For H1 that equals the old 'feature_season < test_year'; for H2/H3 the old split
+    # admitted rows whose outcome window reached into and past the test year.
+    train = frame[closed_train_mask(frame["feature_season"].astype(int), test_year, window=int(horizon))]
     test = frame[frame["feature_season"] == test_year]
 
     train_raw = train[feature_cols].astype(float)

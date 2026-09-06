@@ -1424,8 +1424,15 @@ def test_r3g4_f25_set_is_runner_owned_and_exactly_the_registered_five() -> None:
         "app/data/models/engine_b/v2_manifest.json": (
             "916677c19a43b2bfbe9b3a1182c8779263d699ded526b1bc27245b4a50b8da44"
         ),
+        # RE-PINNED 2026-09-06 (DG-177 round 2, Codex review item 2) in BOTH places:
+        # the fold builder now closes the label at its horizon (feature_season + h
+        # <= test_year) through the shared models/label_closure rule. H1 is unchanged
+        # by that rule; H2/H3 no longer admit rows whose outcome window reached into
+        # the test year. Published QB-1 results were computed against the old pin and
+        # are unaffected; a re-run would grade H2/H3 on closed folds. See
+        # run_qb1_study.py for the full record.
         "src/dynasty_genius/eval/qb_v3_walk_forward.py": (
-            "7f3e9283afac1928629b3c04ef2ec71e85c99f3e55278f2237fcf9bedab4a3b5"
+            "988f660ab8f8638f2a638d92de57448d5d79b5bc90d101e376bd01de85dbb208"
         ),
         "docs/validation/2026-07-04-build4-qb-v3-promotion-decision-record.md": (
             "a963b671dc6a1ef88bb73283acac594201b7cee3bda59a84681a03b810f6bd63"
