@@ -344,3 +344,60 @@ def test_join_experience_two_uses_the_next_feature_season(runs):
     assert sorted(j["player_id"]) == ["00-A", "00-B"]  # C's season-3 label is unknown (NaN) -> not a joined row
     a = j.set_index("player_id").loc["00-A"]
     assert a["veteran_feature_season"] == 2016 and a["target_season"] == 2017 and a["rookie_e_points"] == 225.0
+
+
+# ---------------------------------------------------------------- Task 4: ledgers
+
+def test_coverage_ledger_keeps_every_cohort_player_in_the_denominator(runs):
+    from src.dynasty_genius.rookie.transition_audit import (
+        coverage_ledger,
+        load_rookie_run,
+        load_veteran_run,
+    )
+    rookie_dir, vet_dir = runs
+    led = coverage_ledger(load_rookie_run(rookie_dir), load_veteran_run(vet_dir), experience=1)
+    assert len(led) == 5  # every cohort row, unresolved included
+    cat = led.set_index("player_id")["category"]
+    assert cat["00-A"] == "paired" and cat["00-B"] == "paired" and cat["00-C"] == "paired"
+    assert cat["00-D"] == "no_veteran_row_no_window_appearance"  # missed his rookie season: counted, not dropped, not forecast
+    assert cat["unresolved:2015:250"] == "identity_unresolved"
+    assert led["category"].value_counts().sum() == 5
+
+
+def test_coverage_ledger_marks_unknown_labels_and_appearance_without_veteran_row(tmp_path):
+    from src.dynasty_genius.rookie.transition_audit import (
+        coverage_ledger,
+        load_rookie_run,
+        load_veteran_run,
+    )
+    rookie_dir = make_rookie_run(tmp_path)
+    hist = pd.read_csv(make_veteran_run(tmp_path) / "historical_predictions.csv")
+    hist = hist[hist.player_id != "00-C"]  # C appeared in his rookie season but the veteran side has no row (role abstain)
+    vet_dir = _rebuild_veteran(tmp_path, hist=hist, cohort=pd.read_csv(vet_dir_cohort(tmp_path)))
+    led = coverage_ledger(load_rookie_run(rookie_dir), load_veteran_run(vet_dir), experience=2)
+    cat = led.set_index("player_id")["category"]
+    assert cat["00-C"] == "label_unknown"  # season-3 label is NaN at k=2: unknown, never zero
+    led1 = coverage_ledger(load_rookie_run(rookie_dir), load_veteran_run(vet_dir), experience=1)
+    assert led1.set_index("player_id")["category"]["00-C"] == "no_veteran_row_despite_window_appearance"
+
+
+def vet_dir_cohort(tmp_path):
+    return tmp_path / "veteran" / "basic_cohort.csv.gz"
+
+
+def test_veteran_population_ledger_separates_drafted_no_record_unknown(runs):
+    from src.dynasty_genius.rookie.transition_audit import (
+        join_transition,
+        load_rookie_run,
+        load_veteran_run,
+        veteran_population_ledger,
+    )
+    rookie_dir, vet_dir = runs
+    r, v = load_rookie_run(rookie_dir), load_veteran_run(vet_dir)
+    j = join_transition(r, v, experience=1)
+    pop = veteran_population_ledger(r, v, j, experience=1)
+    row = pop.set_index(["veteran_feature_season", "draft_status"])["rows"]
+    assert row[(2015, "drafted_skill_paired")] == 3
+    assert row[(2015, "drafted_other_position")] == 1  # the linebacker
+    assert row[(2015, "no_draft_record")] == 1  # 00-U: absent from the draft table = unknown draft status
+    assert (2015, "undrafted") not in row.index

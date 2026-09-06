@@ -23,17 +23,21 @@ import pandas as pd
 __all__ = [
     "DRAFT_STATUS",
     "JOINED_COLUMNS",
+    "LEDGER_CATEGORIES",
     "LABEL_ATOL",
     "THIN_HISTORY_MAX_GAMES",
     "RookieRun",
     "VeteranRun",
     "classify_draft_status",
+    "coverage_ledger",
     "join_transition",
     "load_rookie_run",
     "load_veteran_run",
+    "overlap_classes",
     "rookie_draft_time_frame",
     "verify_same_target",
     "veteran_horizon1_frame",
+    "veteran_population_ledger",
 ]
 
 ROOKIE_FILES = ("cohort.csv", "out_of_time_predictions.csv")
@@ -306,3 +310,79 @@ def join_transition(rookie: RookieRun, veteran: VeteranRun, *, experience: int) 
     j["veteran_closer"] = j["abs_err_veteran"] < j["abs_err_rookie"]
     j = j.sort_values(["experience", "draft_season", "pick", "player_id"]).reset_index(drop=True)
     return j[JOINED_COLUMNS]
+
+
+# ----------------------------------------------------------------------------- ledgers
+
+LEDGER_CATEGORIES = (
+    "paired",
+    "no_veteran_row_no_window_appearance",
+    "no_veteran_row_despite_window_appearance",
+    "veteran_row_without_rookie_forecast",
+    "label_unknown",
+    "outside_overlap_classes",
+    "identity_unresolved",
+)
+
+
+def overlap_classes(rookie: RookieRun, veteran: VeteranRun, *, experience: int) -> list[int]:
+    """Draft classes whose draft-time forecast exists AND whose veteran feature season is evaluated."""
+    oot = rookie.out_of_time
+    rookie_years = set(oot.loc[oot["forecast_year"] == oot["draft_season"], "draft_season"].astype(int))
+    vet_years = set(veteran.historical.loc[veteran.historical["horizon"] == 1, "feature_season"].astype(int))
+    return sorted(c for c in rookie_years if c + experience - 1 in vet_years)
+
+
+def coverage_ledger(rookie: RookieRun, veteran: VeteranRun, *, experience: int) -> pd.DataFrame:
+    """One row per cohort player; the denominator is the modelling cohort, never the paired set."""
+    classes = set(overlap_classes(rookie, veteran, experience=experience))
+    r = rookie_draft_time_frame(rookie, experience=experience).set_index("player_id")
+    v = veteran_horizon1_frame(veteran).set_index(["player_id", "veteran_feature_season"])
+    joined_ids = set(join_transition(rookie, veteran, experience=experience)["player_id"])
+    rows = []
+    for row in rookie.cohort.itertuples(index=False):
+        pid = str(row.gsis_id)
+        cls = int(row.draft_season)
+        fs = cls + experience - 1
+        appear_k = float(r.loc[pid, "feature_season_window_appearance"]) if pid in r.index else np.nan
+        games_t = float(v.loc[(pid, fs), "veteran_games_t"]) if (pid, fs) in v.index else np.nan
+        if str(row.label_basis) == LABEL_BASIS_UNRESOLVED:
+            cat = "identity_unresolved"
+        elif cls not in classes:
+            cat = "outside_overlap_classes"
+        elif pid in joined_ids:
+            cat = "paired"
+        elif pid in r.index and pd.isna(r.loc[pid, "rookie_label_points"]):
+            cat = "label_unknown"
+        elif (pid, fs) not in v.index:
+            cat = "no_veteran_row_despite_window_appearance" if appear_k == 1 else "no_veteran_row_no_window_appearance"
+        else:
+            cat = "veteran_row_without_rookie_forecast"
+        rows.append({"player_id": pid, "name": row.name, "draft_season": cls, "pick": int(row.pick),
+                     "draft_position": row.position, "experience": experience, "category": cat,
+                     "feature_season_window_appearance": appear_k, "veteran_games_t": games_t})
+    out = pd.DataFrame(rows)
+    if len(out) != len(rookie.cohort):
+        raise AssertionError("ledger rows must equal cohort rows")
+    return out
+
+
+def veteran_population_ledger(rookie: RookieRun, veteran: VeteranRun, joined: pd.DataFrame, *, experience: int) -> pd.DataFrame:
+    """Veteran horizon-1 rows at the overlap feature seasons, by draft status; drafted skill split paired/unpaired."""
+    seasons = {c + experience - 1 for c in overlap_classes(rookie, veteran, experience=experience)}
+    v = veteran_horizon1_frame(veteran)
+    v = v.loc[v["veteran_feature_season"].isin(seasons)].copy()
+    if "identity_status" in veteran.cohort.columns:
+        ident = veteran.cohort.set_index([veteran.cohort["player_id"].astype(str), veteran.cohort["feature_season"].astype(int)])["identity_status"]
+        status = pd.Series([ident.get((p, s), "unknown") for p, s in zip(v["player_id"], v["veteran_feature_season"])], index=v.index)
+    else:
+        status = pd.Series(["resolved"] * len(v), index=v.index)
+    v["draft_status"] = classify_draft_status(v["player_id"], status, rookie)
+    paired_keys = set(zip(joined["player_id"], joined["veteran_feature_season"]))
+    is_paired = pd.Series([(p, s) in paired_keys for p, s in zip(v["player_id"], v["veteran_feature_season"])], index=v.index)
+    v.loc[(v["draft_status"] == "drafted_skill") & is_paired, "draft_status"] = "drafted_skill_paired"
+    v.loc[(v["draft_status"] == "drafted_skill") & ~is_paired, "draft_status"] = "drafted_skill_unpaired"
+    out = v.groupby(["veteran_feature_season", "draft_status"]).size().rename("rows").reset_index()
+    out["experience_note"] = ("experience is computed from the draft table for drafted players only; rows without a draft "
+                              "record carry no experience (DG-177 seasons_played is left-censored at 2005)")
+    return out
