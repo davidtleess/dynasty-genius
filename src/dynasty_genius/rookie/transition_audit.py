@@ -399,7 +399,7 @@ def join_transition(rookie: RookieRun, veteran: VeteranRun, *, experience: int) 
     j["appeared"] = j["rookie_label_appeared"]
     j["points"] = j["rookie_label_points"]
     j["games"] = j["rookie_label_games"]
-    in_artifact = np.array([(p, int(s)) in rookie.artifact_keys for p, s in zip(j["player_id"], j["target_season"])])
+    in_artifact = np.array([(p, int(s)) in rookie.artifact_keys for p, s in zip(j["player_id"], j["target_season"])], dtype=bool)
     zero_label = (j["points"].to_numpy(float) == 0.0) & (j["games"].to_numpy(float) == 0.0) & (j["appeared"].to_numpy(float) == 0.0)
     contradiction = ~in_artifact & ~zero_label
     if contradiction.any():

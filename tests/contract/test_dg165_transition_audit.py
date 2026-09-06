@@ -821,3 +821,21 @@ def test_veteran_corrected_companion_is_recorded_and_must_agree(tmp_path):
     companion.write_text(json.dumps(m))
     with pytest.raises(ValueError, match="corrected"):
         load_veteran_run(vet_dir)
+
+
+# ---------------------------------------------------------------- root final review 2026-09-06: empty join must not raise
+
+def test_empty_join_returns_an_empty_frame_with_the_full_column_contract(runs):
+    from dataclasses import replace
+
+    from src.dynasty_genius.rookie.transition_audit import (
+        JOINED_COLUMNS,
+        join_transition,
+        load_rookie_run,
+        load_veteran_run,
+    )
+    rookie_dir, vet_dir = runs
+    r, v = load_rookie_run(rookie_dir), load_veteran_run(vet_dir)
+    empty = replace(v, historical=v.historical.iloc[:0])
+    j = join_transition(r, empty, experience=1)
+    assert len(j) == 0 and list(j.columns) == JOINED_COLUMNS
