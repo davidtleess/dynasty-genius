@@ -90,6 +90,7 @@ class RookieRun:
     draft_picks: pd.DataFrame
     verified: dict[str, str]
     manifest_sha256: str
+    artifact_keys: frozenset  # (player_id, season) pairs the bound outcome artifact actually contains
 
 
 @dataclass(frozen=True)
@@ -100,9 +101,13 @@ class VeteranRun:
     cohort: pd.DataFrame
     verified: dict[str, str]
     manifest_sha256: str
+    corrected_manifest_sha256: str | None  # the companion that is the target of record when present
+    outcome_binding: dict  # from the companion's outcome block when present, else manifest label_source
 
 
-def load_rookie_run(run_dir: Path | str) -> RookieRun:
+def load_rookie_run(run_dir: Path | str, *, outcomes_csv: Path | str | None = None) -> RookieRun:
+    """``outcomes_csv`` overrides the artifact path recorded in the manifest; its BYTES must still hash to the
+    manifest's bound csv_sha256, so an override can only relocate the same artifact, never substitute one."""
     run_dir = Path(run_dir)
     manifest_bytes = (run_dir / "manifest.json").read_bytes()
     manifest = json.loads(manifest_bytes)
@@ -119,7 +124,20 @@ def load_rookie_run(run_dir: Path | str) -> RookieRun:
     cohort = pd.read_csv(io.BytesIO(raw["cohort.csv"]))
     oot = pd.read_csv(io.BytesIO(raw["out_of_time_predictions.csv"]))
     picks = pd.read_parquet(io.BytesIO(raw["inputs/nflverse_draft_picks.parquet"]))
-    return RookieRun(run_dir, manifest, cohort, oot, picks, verified, _sha(manifest_bytes))
+    outcomes_block = manifest.get("outcomes") or {}
+    art_path = Path(outcomes_csv) if outcomes_csv is not None else Path(str(outcomes_block.get("csv_path") or ""))
+    art_sha = outcomes_block.get("csv_sha256")
+    if not art_sha or not str(art_path):
+        raise ValueError(f"{run_dir}: manifest binds no outcome artifact (outcomes.csv_path / csv_sha256)")
+    if not art_path.exists():
+        raise ValueError(f"{run_dir}: bound outcome artifact missing at {art_path} (outcomes.csv)")
+    art_bytes = art_path.read_bytes()
+    if _sha(art_bytes) != art_sha:
+        raise ValueError(f"{run_dir}: outcomes.csv sha256 mismatch at {art_path}: bound {art_sha[:12]}…, actual {_sha(art_bytes)[:12]}…")
+    verified["outcomes.csv"] = art_sha
+    art = pd.read_csv(io.BytesIO(art_bytes), usecols=["player_id", "season"])
+    keys = frozenset(zip(art["player_id"].astype(str), _strict_int(art["season"], "outcome artifact season").tolist()))
+    return RookieRun(run_dir, manifest, cohort, oot, picks, verified, _sha(manifest_bytes), keys)
 
 
 def load_veteran_run(run_dir: Path | str) -> VeteranRun:
@@ -134,13 +152,28 @@ def load_veteran_run(run_dir: Path | str) -> VeteranRun:
         verified[name] = declared[name]
     historical = pd.read_csv(io.BytesIO(raw["historical_predictions.csv"]))
     cohort = pd.read_csv(io.BytesIO(gzip.decompress(raw["basic_cohort.csv.gz"])))
-    return VeteranRun(run_dir, manifest, historical, cohort, verified, _sha(manifest_bytes))
+    companion = run_dir.parent / f"{run_dir.name}.manifest.corrected.json"
+    corrected_sha: str | None = None
+    binding = dict(manifest.get("label_source") or {})
+    if companion.exists():
+        companion_bytes = companion.read_bytes()
+        corrected = json.loads(companion_bytes)
+        if (corrected.get("outputs_sha256") or {}) != declared:
+            raise ValueError(f"{companion.name}: corrected companion declares different outputs_sha256 than manifest.json; refusing")
+        corrected_sha = _sha(companion_bytes)
+        outcome = corrected.get("outcome") or {}
+        if outcome:
+            binding = {"target_identity": outcome.get("target_identity"), "csv_sha256": outcome.get("outcomes_csv_sha256"),
+                       "manifest_sha256": outcome.get("manifest_sha256"), "scoring_preset": outcome.get("scoring_preset"),
+                       "source": companion.name}
+    binding.setdefault("source", "manifest.json#label_source")
+    return VeteranRun(run_dir, manifest, historical, cohort, verified, _sha(manifest_bytes), corrected_sha, binding)
 
 
 def verify_same_target(rookie: RookieRun, veteran: VeteranRun) -> dict:
     """Both producers must label from the SAME outcome artifact; asserted from identities, never assumed."""
     r = rookie.manifest.get("outcomes") or {}
-    v = veteran.manifest.get("label_source") or {}
+    v = veteran.outcome_binding
     pairs = {
         "target_identity": (r.get("target_identity"), v.get("target_identity")),
         "outcomes_csv_sha256": (r.get("csv_sha256"), v.get("csv_sha256")),
@@ -152,7 +185,7 @@ def verify_same_target(rookie: RookieRun, veteran: VeteranRun) -> dict:
             raise ValueError(f"{key}: missing on one side (rookie={a!r}, veteran={b!r})")
         if a != b:
             raise ValueError(f"{key}: rookie {str(a)[:16]}… != veteran {str(b)[:16]}…")
-    return {"status": "same_target", **{k: a for k, (a, _) in pairs.items()}}
+    return {"status": "same_target", **{k: a for k, (a, _) in pairs.items()}, "veteran_binding_source": v.get("source")}
 
 
 def classify_draft_status(player_ids: pd.Series, identity_status: pd.Series, rookie: RookieRun) -> pd.Series:
@@ -186,7 +219,7 @@ JOINED_COLUMNS = [
     "player_id", "name", "draft_season", "pick", "round", "draft_position", "veteran_position", "experience",
     "target_season", "rookie_forecast_year", "rookie_information_through_season",
     "veteran_feature_season", "veteran_information_through_season", "information_gap_seasons",
-    "appeared", "points", "games",
+    "appeared", "points", "games", "label_source",
     "rookie_p_appear", "rookie_e_points", "rookie_e_points_given_appear", "rookie_e_games",
     "veteran_p_appear", "veteran_e_points", "veteran_e_points_given_appear", "veteran_e_games",
     "veteran_games_t", "thin_history", "veteran_row_without_window_appearance",
@@ -366,6 +399,14 @@ def join_transition(rookie: RookieRun, veteran: VeteranRun, *, experience: int) 
     j["appeared"] = j["rookie_label_appeared"]
     j["points"] = j["rookie_label_points"]
     j["games"] = j["rookie_label_games"]
+    in_artifact = np.array([(p, int(s)) in rookie.artifact_keys for p, s in zip(j["player_id"], j["target_season"])])
+    zero_label = (j["points"].to_numpy(float) == 0.0) & (j["games"].to_numpy(float) == 0.0) & (j["appeared"].to_numpy(float) == 0.0)
+    contradiction = ~in_artifact & ~zero_label
+    if contradiction.any():
+        sample = j.loc[contradiction, ["player_id", "target_season", "points", "games", "appeared"]].head(5).to_dict("records")
+        raise ValueError(f"{int(contradiction.sum())} paired rows carry a non-zero label for a (player, season) the outcome "
+                         f"artifact does not contain; a label without an artifact row can only be the zero convention, e.g. {sample}")
+    j["label_source"] = np.where(in_artifact, "artifact", "convention_zero")
     j["thin_history"] = j["veteran_games_t"] <= THIN_HISTORY_MAX_GAMES
     j["veteran_row_without_window_appearance"] = (j["veteran_games_t"] >= 1) & (j["feature_season_window_appearance"] == 0)
     for side in ("rookie", "veteran"):
@@ -405,7 +446,9 @@ def coverage_ledger(rookie: RookieRun, veteran: VeteranRun, *, experience: int) 
     classes = set(overlap_classes(rookie, veteran, experience=experience))
     r = rookie_draft_time_frame(rookie, experience=experience).set_index("player_id")
     v = veteran_horizon1_frame(veteran).set_index(["player_id", "veteran_feature_season"])
-    joined_ids = set(join_transition(rookie, veteran, experience=experience)["player_id"])
+    joined = join_transition(rookie, veteran, experience=experience)
+    joined_ids = set(joined["player_id"])
+    joined_source = dict(zip(joined["player_id"], joined["label_source"]))
     rows = []
     for row in rookie.cohort.itertuples(index=False):
         pid = str(row.gsis_id)
@@ -434,6 +477,7 @@ def coverage_ledger(rookie: RookieRun, veteran: VeteranRun, *, experience: int) 
             cat = "veteran_row_without_rookie_forecast"
         rows.append({"player_id": pid, "name": row.name, "draft_season": cls, "pick": int(row.pick),
                      "draft_position": row.position, "experience": experience, "category": cat,
+                     "label_source": joined_source.get(pid, "not_paired"),
                      "feature_season_window_appearance": appear_k, "veteran_games_t": games_t})
     out = pd.DataFrame(rows)
     if len(out) != len(rookie.cohort):
@@ -600,6 +644,13 @@ def _jsonable(value):
     return value
 
 
+LABEL_CONVENTION_CAVEAT = ("a paired row whose (player, target season) the outcome artifact does not contain carries a "
+                           "0 points / 0 games / not-appeared label by the convention BOTH frozen producers share (no stat "
+                           "record in a covered season is a measured zero, per each producer's definitions); the artifact's "
+                           "own zero_definition calls an absent pair unknown. Such rows are tagged label_source = "
+                           "convention_zero in joined_rows.csv and coverage_ledger.csv and counted per experience; they are "
+                           "internally consistent between the two producers but are NOT artifact-backed rows, and a board "
+                           "consumer must not read them as such. An absent pair with a non-zero label refuses.")
 EXPERIENCE_COMPARISON_CAVEAT = ("the experience strata are separate paired samples (different players and class ranges "
                                 "at each experience), so a comparison across experiences is between samples, not a "
                                 "within-person trend; a larger veteran advantage at higher experience is not an automatic "
@@ -643,6 +694,7 @@ def run_audit(rookie: RookieRun, veteran: VeteranRun, *, experiences: tuple[int,
             "folds": fold_sign_summary(j) if len(j) else {"by_draft_class": {}, "classes_veteran_better": 0, "classes_total": 0},
             "bootstrap": paired_bootstrap(j, seed=seed, draws=draws) if len(j) else {"n_rows": 0},
             "coverage_counts": {c: int((cov["category"] == c).sum()) for c in LEDGER_CATEGORIES},
+            "label_source_counts": {s: int((j["label_source"] == s).sum()) for s in ("artifact", "convention_zero")},
             "cohort_rows": int(len(cov)),
             "raw_source_population_excluded": raw_excluded,
             "overlap_classes": overlap_classes(rookie, veteran, experience=k),
@@ -664,6 +716,7 @@ def run_audit(rookie: RookieRun, veteran: VeteranRun, *, experiences: tuple[int,
             "caveats": {
                 "rookie_policy_menu": ROOKIE_MENU_CAVEAT,
                 "experience_comparison": EXPERIENCE_COMPARISON_CAVEAT,
+                "label_convention": LABEL_CONVENTION_CAVEAT,
                 "rookie_evidence_status_verbatim": rookie.manifest.get("evidence_status"),
                 "bootstrap": BOOTSTRAP_CONDITIONAL_ON,
                 "role": ROLE_CAVEAT,
@@ -723,6 +776,10 @@ def render_report(metrics: dict, coverage: pd.DataFrame, population: pd.DataFram
             lines += ["", f"| thin history ({d['thin_history']}) | n | rookie RMSE | veteran RMSE |", "|---|---|---|---|"]
             for flag, m in block["by_thin_history"].items():
                 lines.append(f"| {flag} | {m['n']} | {_fmt(m['rookie']['rmse'])} | {_fmt(m['veteran']['rmse'])} |")
+        lsc = block.get("label_source_counts", {})
+        lines += ["", f"Label provenance on the paired rows: {lsc.get('artifact', 0)} artifact-backed, "
+                  f"{lsc.get('convention_zero', 0)} convention_zero (0 / 0 / not appeared for a player-season the artifact does "
+                  "not contain — both producers' shared convention, not artifact rows).", ""]
         lines += ["", f"Coverage of the WHOLE modelling cohort ({block['cohort_rows']} players) at this experience — paired rows are "
                   "not all drafted players:", ""]
         for cat, n in block["coverage_counts"].items():
@@ -766,6 +823,8 @@ def write_audit(run_dir: Path, result: dict, *, rookie: RookieRun, veteran: Vete
                        "model_version": rookie.manifest.get("model_version"), "scoring_arm_id": rookie.manifest.get("scoring_arm_id"),
                        "git_sha": rookie.manifest.get("git_sha"), "verified": rookie.verified},
             "veteran": {"run_dir": str(veteran.run_dir), "manifest_sha256": veteran.manifest_sha256,
+                        "corrected_manifest_sha256": veteran.corrected_manifest_sha256,
+                        "binding_of_record": veteran.outcome_binding.get("source"),
                         "producer": veteran.manifest.get("producer"), "candidate_arm": veteran.manifest.get("candidate_arm"),
                         "git_head": veteran.manifest.get("git_head"), "verified": veteran.verified,
                         "forecast_columns": "policy_* (what the board consumes); candidate_* and baseline_* are not audited here"},

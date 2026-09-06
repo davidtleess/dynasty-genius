@@ -45,9 +45,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--seed", type=int, default=20260906)
     ap.add_argument("--draws", type=int, default=2000)
     ap.add_argument("--runs-root", default="runs")
+    ap.add_argument("--outcomes-csv", default=None, help="relocated copy of the bound outcome artifact (bytes must hash to the manifest's csv_sha256)")
     args = ap.parse_args(argv)
     try:
-        rookie = load_rookie_run(args.rookie_run)
+        rookie = load_rookie_run(args.rookie_run, outcomes_csv=args.outcomes_csv)
         veteran = load_veteran_run(args.veteran_run)
         result = run_audit(rookie, veteran, experiences=tuple(args.experience), seed=args.seed, draws=args.draws)
     except ValueError as exc:  # a refusal: say why, write nothing

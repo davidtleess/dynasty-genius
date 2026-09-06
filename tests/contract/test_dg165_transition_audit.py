@@ -30,10 +30,27 @@ def _write(path: Path, data: bytes) -> str:
     return _sha(data)
 
 
+def make_artifact(root: Path, rows: pd.DataFrame | None = None) -> tuple[Path, str]:
+    """The common outcome artifact both producers label from; written once per root unless already present."""
+    path = root / "artifact" / "outcomes.csv"
+    if not path.exists():
+        if rows is None:
+            rows = pd.DataFrame({
+                "player_id": ["00-A", "00-B", "00-C", "00-U", "00-A", "00-B", "00-A", "00-B", "00-C"],
+                "season": [2016, 2016, 2016, 2016, 2017, 2017, 2015, 2015, 2015],
+                "points": [250.0, 90.0, 40.0, 30.0, 240.0, 80.0, 200.0, 100.0, 50.0],
+                "games": [17, 10, 6, 5, 16, 9, 16, 12, 8],
+                "appeared": [True, True, True, True, True, True, True, True, True],
+            })
+        _write(path, rows.to_csv(index=False).encode())
+    return path, _sha(path.read_bytes())
+
+
 def make_rookie_run(root: Path, *, oot: pd.DataFrame | None = None, cohort: pd.DataFrame | None = None,
                     target: str = TARGET) -> Path:
     run = root / "rookie"
     run.mkdir(parents=True)
+    artifact_path, artifact_sha = make_artifact(root)
     if cohort is None:
         cohort = pd.DataFrame({
             # 4 drafted skill players in class 2015 + one unresolved identity
@@ -87,7 +104,8 @@ def make_rookie_run(root: Path, *, oot: pd.DataFrame | None = None, cohort: pd.D
         "model_version": "dg165_rookie_capital_v3_chain", "git_sha": "deadbeef",
         "scoring_arm_id": "dg165_rookie_capital_v3_chain:inner_menu:trend",
         "forecast_date": {"forecast_year": 2026, "labels_through": 2025, "last_completed_season": 2025},
-        "outcomes": {"target_identity": target, "csv_sha256": CSV_SHA, "manifest_sha256": MAN_SHA, "scoring_preset": PRESET},
+        "outcomes": {"target_identity": target, "csv_sha256": artifact_sha, "csv_path": str(artifact_path),
+                     "manifest_sha256": MAN_SHA, "scoring_preset": PRESET},
         "inputs": {"nflverse_draft_picks": {"path": "inputs/nflverse_draft_picks.parquet", "sha256": picks_sha, "rows": len(picks)}},
         "outputs_sha256": hashes,
     }
@@ -99,6 +117,7 @@ def make_veteran_run(root: Path, *, hist: pd.DataFrame | None = None, cohort: pd
                      target: str = TARGET) -> Path:
     run = root / "veteran"
     run.mkdir(parents=True)
+    _, artifact_sha = make_artifact(root)
     if hist is None:
         # horizon-1 rows at feature season 2015 (= rookie season of class 2015) for A, B, C;
         # D has no row (never appeared); an undrafted player U and a drafted linebacker LB also have rows.
@@ -133,7 +152,7 @@ def make_veteran_run(root: Path, *, hist: pd.DataFrame | None = None, cohort: pd
     manifest = {
         "producer": "DG-177 veteran annual forecast candidate (report-only)", "candidate_arm": "basic_cohort_3col_plus_lags",
         "git_head": "cafebabe", "last_complete_season": 2025,
-        "label_source": {"kind": "common_outcome_artifact", "target_identity": target, "csv_sha256": CSV_SHA,
+        "label_source": {"kind": "common_outcome_artifact", "target_identity": target, "csv_sha256": artifact_sha,
                          "manifest_sha256": MAN_SHA, "scoring_preset": PRESET},
         "forecast_cutoff": {"rule": "features observed through the feature season; a year-j label trains only when "
                                     "feature_season + j <= last complete season"},
@@ -710,3 +729,95 @@ def test_metrics_carry_the_separate_samples_caveat(runs):
     res = run_audit(load_rookie_run(rookie_dir), load_veteran_run(vet_dir), experiences=(1, 2), seed=1, draws=5)
     text = res["metrics"]["definitions"]["caveats"]["experience_comparison"]
     assert "separate" in text and "within" in text
+
+
+# ---------------------------------------------------------------- lane 25057 cross-check 2026-09-06: label provenance
+
+def test_every_paired_label_is_tagged_artifact_or_convention_zero(runs):
+    from src.dynasty_genius.rookie.transition_audit import (
+        join_transition,
+        load_rookie_run,
+        load_veteran_run,
+    )
+    rookie_dir, vet_dir = runs
+    r = load_rookie_run(rookie_dir)
+    assert "outcomes.csv" in r.verified  # the bound artifact's bytes were hashed against the manifest's csv_sha256
+    j = join_transition(r, load_veteran_run(vet_dir), experience=1)
+    assert j["label_source"].tolist() == ["artifact"] * 3
+
+
+def test_convention_zero_rows_are_disclosed_not_presented_as_artifact_rows(tmp_path):
+    from src.dynasty_genius.rookie.transition_audit import (
+        coverage_ledger,
+        join_transition,
+        load_rookie_run,
+        load_veteran_run,
+        render_report,
+        run_audit,
+    )
+    # the artifact holds no (00-C, 2016) row; both producers label C's season 2 as 0 / 0 / not appeared by convention
+    rows = pd.DataFrame({"player_id": ["00-A", "00-B", "00-U", "00-A", "00-B"], "season": [2016, 2016, 2016, 2017, 2017],
+                         "points": [250.0, 90.0, 30.0, 240.0, 80.0], "games": [17, 10, 5, 16, 9], "appeared": [True] * 5})
+    make_artifact(tmp_path, rows)
+    rookie_dir = make_rookie_run(tmp_path)
+    oot = pd.read_csv(rookie_dir / "out_of_time_predictions.csv")
+    oot.loc[oot.gsis_id == "00-C", ["appear_2", "points_2", "games_2"]] = [0.0, 0.0, 0.0]
+    import shutil
+    shutil.rmtree(rookie_dir)
+    rookie_dir = make_rookie_run(tmp_path, oot=oot)
+    hist = pd.read_csv(make_veteran_run(tmp_path) / "historical_predictions.csv")
+    hist.loc[(hist.player_id == "00-C") & (hist.feature_season == 2015), ["appeared_year1", "games_year1", "points_year1"]] = [0.0, 0.0, 0.0]
+    vet_dir = _rebuild_veteran(tmp_path, hist=hist)
+    r, v = load_rookie_run(rookie_dir), load_veteran_run(vet_dir)
+    j = join_transition(r, v, experience=1)
+    src = j.set_index("player_id")["label_source"]
+    assert src["00-C"] == "convention_zero" and src["00-A"] == "artifact"
+    led = coverage_ledger(r, v, experience=1).set_index("player_id")
+    assert led.loc["00-C", "label_source"] == "convention_zero" and led.loc["00-D", "label_source"] == "not_paired"
+    res = run_audit(r, v, experiences=(1,), seed=1, draws=5)
+    counts = res["metrics"]["experiences"]["1"]["label_source_counts"]
+    assert counts == {"artifact": 2, "convention_zero": 1}
+    text = render_report(res["metrics"], res["coverage"], res["population"], res["binding"])
+    assert "convention_zero" in text and "convention" in res["metrics"]["definitions"]["caveats"]["label_convention"]
+
+
+def test_absent_artifact_row_with_a_nonzero_label_refuses(tmp_path):
+    from src.dynasty_genius.rookie.transition_audit import (
+        join_transition,
+        load_rookie_run,
+        load_veteran_run,
+    )
+    rows = pd.DataFrame({"player_id": ["00-B", "00-C", "00-U"], "season": [2016, 2016, 2016],
+                         "points": [90.0, 40.0, 30.0], "games": [10, 6, 5], "appeared": [True] * 3})  # A 2016 missing, yet labelled 250
+    make_artifact(tmp_path, rows)
+    rookie_dir = make_rookie_run(tmp_path)
+    with pytest.raises(ValueError, match="artifact"):
+        join_transition(load_rookie_run(rookie_dir), load_veteran_run(make_veteran_run(tmp_path)), experience=1)
+
+
+def test_artifact_bytes_must_match_the_bound_hash(runs):
+    from src.dynasty_genius.rookie.transition_audit import load_rookie_run
+    rookie_dir, _ = runs
+    art = rookie_dir.parent / "artifact" / "outcomes.csv"
+    art.write_text(art.read_text().replace("250.0", "251.0", 1))
+    with pytest.raises(ValueError, match="outcomes.csv"):
+        load_rookie_run(rookie_dir)
+
+
+def test_veteran_corrected_companion_is_recorded_and_must_agree(tmp_path):
+    from src.dynasty_genius.rookie.transition_audit import load_veteran_run
+    make_rookie_run(tmp_path)
+    vet_dir = make_veteran_run(tmp_path)
+    assert load_veteran_run(vet_dir).corrected_manifest_sha256 is None
+    companion = vet_dir.parent / f"{vet_dir.name}.manifest.corrected.json"
+    m = json.loads((vet_dir / "manifest.json").read_text())
+    outcome = {"target_identity": TARGET, "outcomes_csv_sha256": m["label_source"]["csv_sha256"], "manifest_sha256": MAN_SHA,
+               "scoring_preset": PRESET, "coverage_status": "qualified_research_game_complete_identified_rows"}
+    companion.write_text(json.dumps({**m, "corrects": {"of": "manifest.json"}, "outcome": outcome}))
+    loaded = load_veteran_run(vet_dir)
+    assert loaded.corrected_manifest_sha256 == hashlib.sha256(companion.read_bytes()).hexdigest()
+    assert loaded.outcome_binding["source"] == companion.name and loaded.outcome_binding["target_identity"] == TARGET
+    m["outputs_sha256"]["historical_predictions.csv"] = "9" * 64
+    companion.write_text(json.dumps(m))
+    with pytest.raises(ValueError, match="corrected"):
+        load_veteran_run(vet_dir)
