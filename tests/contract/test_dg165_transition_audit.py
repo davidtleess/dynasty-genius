@@ -601,6 +601,10 @@ def test_negative_fantasy_points_remain_valid_labels_and_forecasts(tmp_path):
         load_veteran_run,
         paired_metrics,
     )
+    # the artifact itself records C's 2016 season as -3.0 points; both producers must then say -3.0 too
+    rows = pd.DataFrame({"player_id": ["00-A", "00-B", "00-C", "00-U", "00-A", "00-B"], "season": [2016, 2016, 2016, 2016, 2017, 2017],
+                         "points": [250.0, 90.0, -3.0, 30.0, 240.0, 80.0], "games": [17, 10, 6, 5, 16, 9], "appeared": [True] * 6})
+    make_artifact(tmp_path, rows)
     rookie_dir = make_rookie_run(tmp_path)
     oot = pd.read_csv(rookie_dir / "out_of_time_predictions.csv")
     oot.loc[oot.gsis_id == "00-C", ["points_2", "e_points_year2"]] = [-3.0, -1.5]
