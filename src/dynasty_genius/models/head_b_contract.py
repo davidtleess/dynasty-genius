@@ -83,6 +83,13 @@ MARKET_PROHIBITED_COLUMNS: frozenset[str] = frozenset({
 
 # ── Subjective PFF Grade Prohibition ─────────────────────────────────────────
 
+# DG-173 (David's ruling 2026-09-06): a third-party PROJECTION or RANKING is a market
+# price. The exact-name set above cannot express a class; this shared test can, and it
+# lives in the Engine B contract so all three contracts move together.
+from src.dynasty_genius.models.engine_b_contract import (  # noqa: E402
+    is_market_derived_column as is_market_derived_column,
+)
+
 PFF_GRADE_PROHIBITED_COLUMNS: frozenset[str] = frozenset({
     "pff_grade",
     "pff_route_grade",

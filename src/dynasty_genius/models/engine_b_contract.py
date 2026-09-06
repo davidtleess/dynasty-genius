@@ -481,6 +481,54 @@ MARKET_PROHIBITED = frozenset({
 
 ENGINE_B_PROHIBITED_FEATURES = ENGINE_A_PROHIBITED_IN_B | MARKET_PROHIBITED
 
+# ── DG-173: a third-party PROJECTION or RANKING **is** a market price ─────────
+# David's ruling 2026-09-06, typed: "projection and price are very similar its a main
+# variable in price. you have to replace those points and or value."
+#
+# The sets above ban market columns BY EXACT NAME. Measured 2026-09-06 before this
+# landed: of fourteen plausible projection/ranking column names, **Engine B admitted
+# fourteen and Engine A admitted eleven**. `sleeper_projection` passed every contract.
+# A name list cannot ban a class; only a pattern can.
+#
+# WHY THESE PATTERNS ARE SAFE. The whole live feature namespace was scanned for the
+# substrings below: exactly ONE of our own columns collides — `aging_curve_value` —
+# and it is exempted by name. A ban that false-positives on real features gets
+# disabled, and a disabled ban bans nothing.
+MARKET_CLASS_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"proj", re.I),                    # sleeper_projection, projected_points
+    re.compile(r"rank", re.I),                    # consensus_rank, overall_ranking
+    re.compile(r"(^|_)ecr($|_)", re.I),           # expert consensus ranking
+    re.compile(r"consensus", re.I),
+    re.compile(r"expert", re.I),
+    re.compile(r"(^|_)adp($|_)", re.I),           # underdog_adp, startup_adp
+    re.compile(r"(^|_)tier($|_)", re.I),          # boris_chen_tier, positional_tier
+    re.compile(r"value", re.I),                   # trade_value, auction_value, ktc_*_value
+    re.compile(r"(^|_)(ktc|keeptradecut|fantasycalc|fantasypros|dynastynerds"
+               r"|dynastydatalab|dynastyprocess|rotowire|numberfire|underdog)($|_)", re.I),
+)
+
+#: Our own columns that the patterns above would otherwise sweep up. Add to this ONLY
+#: for a column this repo produces, never for an ingested third-party field.
+MARKET_CLASS_EXEMPT: frozenset[str] = frozenset({
+    "aging_curve_value",   # the fitted aging curve — ours, and DG-162 measured it inert
+})
+
+
+def is_market_derived_column(name: str) -> bool:
+    """True if `name` is a third-party projection, ranking or price.
+
+    Fail-closed by CLASS rather than by name list, so a column nobody has invented yet
+    is already banned. That is the whole point: on 2026-09-05 a check that perturbed
+    keys present in zero of 168 cells passed on the defect it was named for, and a ban
+    written only against today's columns is the same shape.
+    """
+    lowered = str(name).strip().lower()
+    if lowered in MARKET_CLASS_EXEMPT:
+        return False
+    if lowered in ENGINE_B_PROHIBITED_FEATURES:
+        return True
+    return any(p.search(lowered) for p in MARKET_CLASS_PATTERNS)
+
 # Patterns that indicate a column contains future-season data
 _LEAKAGE_PATTERNS: list[re.Pattern] = [
     re.compile(r"_t\+?\d"),    # _t1, _t+1, _t2, _t+2
@@ -553,11 +601,19 @@ def validate_no_temporal_leakage(feature_columns: list[str]) -> None:
 
 
 def validate_no_prohibited_features(feature_columns: list[str]) -> None:
-    """Raise ValueError if any prohibited column appears in the feature set."""
-    prohibited_found = set(feature_columns) & ENGINE_B_PROHIBITED_FEATURES
+    """Raise ValueError if any prohibited column appears in the feature set.
+
+    Checks the exact-name sets AND the DG-173 market CLASS patterns, so a third-party
+    projection or ranking is refused even under a name nobody has used yet.
+    """
+    prohibited_found = {c for c in feature_columns if is_market_derived_column(c)}
     if prohibited_found:
         raise ValueError(
-            f"Prohibited Engine B feature columns detected: {sorted(prohibited_found)}"
+            "Prohibited Engine B feature columns detected: "
+            f"{sorted(prohibited_found)} — a third-party projection or ranking IS a "
+            "market price (David's ruling 2026-09-06). If one of these is genuinely "
+            "ours, add it to MARKET_CLASS_EXEMPT by name rather than weakening the "
+            "pattern."
         )
 
 
