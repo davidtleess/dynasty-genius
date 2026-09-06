@@ -12,10 +12,12 @@ What it produces, per the annual target contract agreed with DG-178 on 2026-09-0
   e_games|appear, e_points = p x e, e_games = p x e · horizons j = 1, 2 only.
 
 Two feature arms are evaluated historically on every horizon: the served position
-feature list (the candidate) and the three-column recent-production set (comparator).
-Both are graded against training-only baselines. The final forecasts exported for the
-ranking lane use the served feature list, fitted on every row whose year-j label was
-closed at the end of the last complete season, and score the inference partition.
+feature list and the three-column recent-production set. Both are graded against
+training-only baselines, and BOTH are exported as final forecasts (fitted on every row
+whose year-j label was closed at the end of the last complete season, scoring the
+inference partition). The file named ``annual_forecasts.csv`` carries the CANDIDATE
+arm; which arm that is, and why, is written in the manifest. The choice was made on the
+same historical folds the evaluation reports, and the manifest says so.
 
 Usage (from the worktree root):
     .venv/bin/python scripts/experiments/dg177_annual_forecasts.py [--draws 2000]
@@ -70,8 +72,22 @@ INFERENCE_SEASON = 2025
 LAST_COMPLETE_SEASON = 2025
 PULL_SEASONS = list(range(2018, 2026))
 FORECAST_CUTOFF_RULE = "features observed through the feature season; a year-j label trains only when feature_season + j <= last complete season"
-ARM_CANDIDATE = "served_features"
-ARM_COMPARATOR = "recent_production_3col"
+ARM_SERVED = "served_features"
+ARM_RECENT = "recent_production_3col"
+#: The exported candidate. Chosen after the historical evaluation on the same folds it
+#: reports (a selection effect, stated): the three-column set matched or beat the served
+#: list on unconditional points in six of eight position-horizon cells and never lost
+#: detectably, while at QB year-2 the served list's appearance model scored below the
+#: base rate. Fewer columns on a few hundred rows; nothing subtler than that.
+ARM_CANDIDATE = ARM_RECENT
+ARM_COMPARATOR = ARM_SERVED
+CANDIDATE_RATIONALE = (
+    "recent_production_3col matched or beat served_features on unconditional points in six of "
+    "eight position-horizon cells on the historical folds and never lost detectably; at QB year-2 "
+    "served_features' appearance model scored below the training base rate. Chosen on the same "
+    "folds the evaluation reports: a selection between two arms, not an independent validation."
+)
+EXPORTS = {ARM_CANDIDATE: "annual_forecasts.csv", ARM_COMPARATOR: "annual_forecasts_served_features.csv"}
 TEST_SEASONS_BY_HORIZON = {1: [2019, 2020, 2021, 2022, 2023], 2: [2020, 2021, 2022, 2023]}
 WEEKLY_COLUMNS = ["player_id", "season", "week", "season_type", "position", "team", SCORING_COLUMN]
 
@@ -135,10 +151,15 @@ def final_forecasts(
 def build_manifest(
     *, horizons: Iterable[int], inference_season: int, last_complete_season: int, scope: str,
     source: dict[str, Any], git_head: str, features_by_position: dict[str, list[str]], population: str,
+    candidate_arm: str = ARM_CANDIDATE, candidate_rationale: str = CANDIDATE_RATIONALE,
+    comparator_export: str = EXPORTS[ARM_COMPARATOR],
 ) -> dict[str, Any]:
     horizons = [int(h) for h in horizons]
     return {
         "producer": "DG-177 veteran annual forecast candidate (report-only)",
+        "candidate_arm": candidate_arm,
+        "candidate_rationale": candidate_rationale,
+        "exports": {"candidate": "annual_forecasts.csv", "comparator": comparator_export},
         "forecast_cutoff": {
             "rule": FORECAST_CUTOFF_RULE,
             "feature_season": int(inference_season),
@@ -215,6 +236,7 @@ def render_report(results: dict[str, Any]) -> str:
     fc = results.get("final_forecast_coverage", {})
     if fc:
         lines.append("\n## Final forecasts exported (inference partition)\n")
+        lines.append(f"Candidate arm `{m['candidate_arm']}` — {m['candidate_rationale']}\n")
         lines.append(f"Feature season {fc['feature_season']}; rows {fc['rows']} ({fc['by_position']}); "
                      f"identity {fc['identity_status']}; players with no {fc['feature_season']} feature row receive no forecast "
                      f"(reason `no_feature_row`), never 0.\n")
@@ -237,7 +259,11 @@ def main(argv: list[str] | None = None) -> int:
 
     df = pd.read_csv(DATASET_PATH, low_memory=False)
     served = served_feature_lists(MANIFEST_PATH, ROOT)
-    features_by_position = {p: info["features"] for p, info in served.items()}
+    features_by_arm = {
+        ARM_SERVED: {p: info["features"] for p, info in served.items()},
+        ARM_RECENT: {p: list(RECENT_PRODUCTION_FEATURES) for p in served},
+    }
+    features_by_position = features_by_arm[ARM_CANDIDATE]
 
     pulled_at = datetime.now(timezone.utc)
     weekly = pull_weekly_stats(PULL_SEASONS)
@@ -268,13 +294,14 @@ def main(argv: list[str] | None = None) -> int:
 
     historical: dict[str, Any] = {}
     prediction_frames: list[pd.DataFrame] = []
-    for position, features in features_by_position.items():
+    for position in features_by_position:
         k = int(PRIMARY_NDCG_K.get(position, 12))
         pos_df = df[df["position"] == position]
         historical[position] = {}
         for j in HORIZONS:
             historical[position][f"year{j}"] = {}
-            for arm, feats in ((ARM_CANDIDATE, features), (ARM_COMPARATOR, RECENT_PRODUCTION_FEATURES)):
+            for arm in (ARM_SERVED, ARM_RECENT):
+                feats = features_by_arm[arm][position]
                 ev, preds = evaluate_horizon(
                     pos_df, feats, horizon=j, test_seasons=TEST_SEASONS_BY_HORIZON[j], k=k,
                     draws=args.draws, seed=args.seed, min_train_rows=args.min_train_rows,
@@ -285,11 +312,18 @@ def main(argv: list[str] | None = None) -> int:
                 prediction_frames.append(preds)
                 print(f"  {position} year{j} {arm}: evaluated {ev['evaluated_test_seasons']}")
 
-    forecasts, fits = final_forecasts(
-        df, features_by_position, horizons=HORIZONS, inference_season=INFERENCE_SEASON,
-        last_complete_season=LAST_COMPLETE_SEASON,
-    )
-    forecasts.insert(3, "forecast_cutoff", f"post-{INFERENCE_SEASON}-season")
+    exported: dict[str, pd.DataFrame] = {}
+    fits: dict[str, Any] = {}
+    for arm, per_position in features_by_arm.items():
+        frame, arm_fits = final_forecasts(
+            df, per_position, horizons=HORIZONS, inference_season=INFERENCE_SEASON,
+            last_complete_season=LAST_COMPLETE_SEASON,
+        )
+        frame.insert(3, "forecast_cutoff", f"post-{INFERENCE_SEASON}-season")
+        frame.insert(4, "arm", arm)
+        exported[arm] = frame
+        fits[arm] = arm_fits
+    forecasts = exported[ARM_CANDIDATE]
     coverage = {
         "feature_season": INFERENCE_SEASON,
         "rows": int(len(forecasts)),
@@ -311,7 +345,7 @@ def main(argv: list[str] | None = None) -> int:
     manifest = build_manifest(
         horizons=HORIZONS, inference_season=INFERENCE_SEASON, last_complete_season=LAST_COMPLETE_SEASON,
         scope=SCOPE, source=source, git_head=_git("rev-parse", "HEAD"),
-        features_by_position=features_by_position,
+        features_by_position={arm: fb for arm, fb in features_by_arm.items()},
         population=f"every row of the {INFERENCE_SEASON} feature partition of the training file "
                    f"(players with >= 4 stat-row games in {INFERENCE_SEASON}, rostered or not)",
     )
@@ -325,16 +359,18 @@ def main(argv: list[str] | None = None) -> int:
         "alignment_check": alignment, "historical": historical, "final_fits": fits,
         "final_forecast_coverage": coverage,
         "config": {"draws": args.draws, "seed": args.seed, "min_train_rows": args.min_train_rows,
-                   "test_seasons_by_horizon": TEST_SEASONS_BY_HORIZON, "arms": [ARM_CANDIDATE, ARM_COMPARATOR]},
+                   "test_seasons_by_horizon": TEST_SEASONS_BY_HORIZON, "arms": [ARM_SERVED, ARM_RECENT],
+                   "candidate_arm": ARM_CANDIDATE, "features_by_arm": features_by_arm},
     }
     historical_predictions = pd.concat(prediction_frames, ignore_index=True)
     report = render_report(results)
     written = write_run_artifact(out_dir, results, historical_predictions, provenance=provenance, report_md=report)
-    (out_dir / "annual_forecasts.csv").write_text(forecasts.to_csv(index=False))
+    for arm, frame in exported.items():
+        (out_dir / EXPORTS[arm]).write_text(frame.to_csv(index=False))
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     (out_dir / "weekly_stats_snapshot.csv.gz").write_bytes(snapshot_bytes)
     (out_dir / "predictions.csv").rename(out_dir / "historical_predictions.csv")
-    print(f"wrote {written + ['annual_forecasts.csv', 'manifest.json', 'weekly_stats_snapshot.csv.gz']} to {out_dir}")
+    print(f"wrote {written + list(EXPORTS.values()) + ['manifest.json', 'weekly_stats_snapshot.csv.gz']} to {out_dir}")
     print(report)
     return 0
 

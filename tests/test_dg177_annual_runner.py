@@ -62,7 +62,12 @@ def test_manifest_types_every_term_the_contract_names():
         horizons=(1, 2), inference_season=2025, last_complete_season=2024, scope="REG",
         source={"weekly_stats_sha256": "abc", "nflreadpy": "0.1.5"}, git_head="deadbeef",
         features_by_position={"WR": FEATURES}, population="2025 feature rows",
+        candidate_arm="recent_production_3col", candidate_rationale="why",
+        comparator_export="annual_forecasts_served_features.csv",
     )
+    assert m["candidate_arm"] == "recent_production_3col" and m["candidate_rationale"] == "why"
+    assert m["exports"] == {"candidate": "annual_forecasts.csv",
+                            "comparator": "annual_forecasts_served_features.csv"}
     assert m["forecast_cutoff"] == {"rule": FORECAST_CUTOFF_RULE, "feature_season": 2025,
                                     "information_through": "end of the 2025 NFL season including postseason"}
     assert m["label_window"] == {"year1": 1, "year2": 2}
