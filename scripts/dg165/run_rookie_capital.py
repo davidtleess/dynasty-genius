@@ -204,12 +204,13 @@ def main(argv=None) -> int:
         panel_path = inputs / "common_outcomes.csv"
         shutil.copy2(args.outcomes_csv, panel_path)
         shutil.copy2(args.outcomes_manifest, inputs / "common_outcomes_manifest.json")
-        panel_source = f"common outcome artifact {oi.binding['artifact']} (sha256 {oi.csv_sha256 if hasattr(oi, 'csv_sha256') else oi.binding['csv_sha256'][:12]})"
+        panel_source = f"common outcome artifact {oi.binding['schema_version']} (outcomes.csv sha256 {oi.binding['csv_sha256'][:12]}…)"
         outcome_block = {**oi.binding, "panel_report": oi.panel_report,
                          "cohort_restriction": {"first_class": first_covered, "dropped_classes": dropped_classes,
                                                 "reason": "the artifact does not cover those rookie seasons; unknown, never zero"},
                          "weekly_capture": {"path": str(args.weekly_capture), "manifest_sha256": sha256_file(args.weekly_capture / "manifest.json")}}
-        print(f"outcomes: {oi.binding['artifact']} rows {oi.binding['rows']} seasons {oi.binding['seasons']} labels_through {oi.labels_through} | panel {oi.panel_report}")
+        print(f"outcomes: {oi.binding['schema_version']} rows {oi.binding['outcome_rows']} covered {oi.binding['covered_seasons'][0]}-{oi.binding['covered_seasons'][-1]} "
+              f"labels_through {oi.labels_through} target {oi.binding['target_identity'][:12]} | panel {oi.panel_report}")
     else:
         covered_seasons = None
         if args.panel:
