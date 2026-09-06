@@ -83,6 +83,24 @@ ARM = "basic_cohort_3col_plus_lags"
 WINDOW_IDS = {"this_lane_REG_aggregation": "all_reg_weeks", "common_outcome_artifact": "championship_week17"}
 
 
+def outcome_binding(outcome_attrs: dict) -> dict:
+    """The outcome-binding block in the ranking lane's exact vocabulary: their adapter refuses
+    a producer whose binding differs from the common artifact, so the keys are theirs."""
+    return {
+        "outcome": {
+            "target_identity": outcome_attrs["target_identity"],
+            "outcomes_csv_sha256": outcome_attrs["csv_sha256"],
+            "manifest_sha256": outcome_attrs["manifest_sha256"],
+            "scoring_preset": outcome_attrs["scoring"],
+            "coverage_status": outcome_attrs["source_validation"]["coverage_status"],
+            "last_complete_season": int(outcome_attrs["last_complete_season"]),
+        },
+        "window_id": outcome_attrs["window_id"],
+        "scoring": outcome_attrs["scoring"],
+        "exposure_definition": outcome_attrs["exposure"],
+    }
+
+
 def window_id_for(label_source_kind: str) -> str:
     if label_source_kind not in WINDOW_IDS:
         raise ValueError(f"unknown label source {label_source_kind!r}; expected one of {sorted(WINDOW_IDS)}")
@@ -412,6 +430,7 @@ def main(argv: list[str] | None = None) -> int:
                                      "target_identity": label_source["target_identity"]}
         manifest["inputs"]["common_outcomes_sha256"] = label_source["csv_sha256"]
         manifest["inputs"]["common_outcomes_manifest_sha256"] = label_source["manifest_sha256"]
+        manifest.update(outcome_binding(outcomes.attrs))
     validate_manifest(manifest, known_arms={ARM},
                       required_inputs=("weekly_stats_sha256", "players_sha256") + (("roster_roles_sha256",) if roster_facts.get("supplied") else ()),
                       run_dir=out_dir)

@@ -38,3 +38,20 @@ def test_the_manifest_window_id_follows_the_label_source():
     assert window_id_for("common_outcome_artifact") == "championship_week17"
     with pytest.raises(ValueError):
         window_id_for("something_else")
+
+
+def test_outcome_binding_block_uses_the_ranking_lanes_exact_keys():
+    from scripts.experiments.dg177_basic_horizons import outcome_binding
+
+    attrs = {"target_identity": "t" * 64, "csv_sha256": "c" * 64, "manifest_sha256": "m" * 64,
+             "scoring": "nflverse_default_ppr_championship_window_v1", "last_complete_season": 2025,
+             "exposure": "unique stat_record weeks within the outcome window", "window_id": "championship_week17",
+             "source_validation": {"coverage_status": "qualified_research_game_complete_identified_rows"}}
+    block = outcome_binding(attrs)
+    assert block["outcome"] == {"target_identity": "t" * 64, "outcomes_csv_sha256": "c" * 64, "manifest_sha256": "m" * 64,
+                                "scoring_preset": "nflverse_default_ppr_championship_window_v1",
+                                "coverage_status": "qualified_research_game_complete_identified_rows",
+                                "last_complete_season": 2025}
+    assert block["window_id"] == "championship_week17"
+    assert block["scoring"] == "nflverse_default_ppr_championship_window_v1"
+    assert block["exposure_definition"] == "unique stat_record weeks within the outcome window"
