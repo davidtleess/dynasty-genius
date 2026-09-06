@@ -65,6 +65,7 @@ from src.dynasty_genius.eval.annual_outcomes import (  # noqa: E402
     SCOPES,
     SCORING_COLUMN,
     annual_targets,
+    drop_unattributed_zero_rows,
     season_outcomes,
     validate_weekly_source,
 )
@@ -369,7 +370,8 @@ def main(argv: list[str] | None = None) -> int:
 
     # A missing player-season is an OBSERVED absence only if the source is complete,
     # unique and fully scored. Refuses otherwise; the facts go into the manifest.
-    source_validation = validate_weekly_source(weekly, seasons=PULL_SEASONS)
+    weekly, dropped = drop_unattributed_zero_rows(weekly)
+    source_validation = {**validate_weekly_source(weekly, seasons=PULL_SEASONS), **dropped}
     outcomes = season_outcomes(weekly, scope=SCOPE, validation=source_validation)
     outcomes_all = season_outcomes(weekly, scope="ALL", validation=source_validation)
     labelled = annual_targets(df, outcomes, horizons=HORIZONS, last_complete_season=LAST_COMPLETE_SEASON)

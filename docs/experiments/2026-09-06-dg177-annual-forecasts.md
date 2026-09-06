@@ -1,7 +1,7 @@
 # DG-177 — Year-1 and year-2 veteran forecasts on the appearance event
 
 **Date:** 2026-09-06 · **Lane:** Davids-MacBook-Pro-23481 · **Branch:** `ticket/DG-177` · **Run:**
-`runs/20260906T145606Z/dg177_annual_forecasts/` · **Report-only.** Labels come from a fresh pull of public nflverse
+`runs/20260906T154635Z/dg177_annual_forecasts/` (round 2, corrected; round-1 run `20260906T145606Z` kept) · **Report-only.** Labels come from a fresh pull of public nflverse
 weekly player stats saved in the run directory with its sha; nothing served changed; nothing shared was written.
 Review round 1, item 3, and the contract agreed with DG-178 the same morning.
 
@@ -65,6 +65,39 @@ quantity is graded against its own label; top-k is averaged within forecast seas
 
 Per fold, calibration bins and every other metric are in the run's `results.json` and `report.md`;
 `historical_predictions.csv` holds one row per graded test row per arm and horizon.
+
+## 3b. Round-2 corrections and the selection policy (run `20260906T154635Z`)
+
+The round-1 artifact chose its exported arm on the same outer folds it reported, nested arm names where
+positions belong in its manifest, and filled missing weekly points with zero on the pull. Round 2 replaces all three:
+
+- **Source completeness before "no row means no game".** `validate_weekly_source` proves every pulled season is
+  present with its full regular-season week range and a credible player count, that (player, season, week, type)
+  is unique, and that no scoring value or identity is missing; the pull no longer fills anything. The one shape it
+  admits is nflverse's per-week placeholder row (no id, no position, zero points): 173 such rows over 2018–2025,
+  dropped and counted in the manifest. An unattributed row that carries points is refused.
+- **One explicit selection policy.** For each position, horizon and quantity (appearance probability, points given
+  appearance, games given appearance) the policy is chosen from {training-only baseline, three-column ridge,
+  blend at 0.25/0.5/0.75} on closed inner folds inside the training window — the ridge refit leak-free inside each
+  inner fold, the baseline recomputed on inner training rows — and applied by the same function final scoring calls.
+  Its outer-fold score is the evidence; the plain candidate and the served-feature arm remain exploratory.
+- **The manifest** keeps arms and positions at their own levels, carries input and output hashes, the scoring arm,
+  the source facts and the chosen policies, and is validated structurally before it is written.
+
+**Policy evidence, year 1 (folds 2021–2023; Δ = policy − training-only baseline, 90% player-resampled):**
+
+| pos | P(appear) Brier / base · AUC | unconditional points Δr² | ΔRMSE | policies chosen (2021 / 2022 / 2023, P · points · games) |
+|---|---|---|---|---|
+| QB | 0.091 / 0.099 · 0.77 | +0.015 [−0.009, +0.041] | −1.2 [−3.1, +0.8] | blend .5 · blend .5 · cand / blend .5 · blend .75 · cand / blend .5 · blend .75 · cand |
+| RB | 0.116 / 0.145 · 0.81 | +0.053 [+0.028, +0.079] | −3.5 [−5.2, −1.8] | cand · cand · cand / cand · blend .75 · cand / cand · blend .75 · cand |
+| WR | 0.119 / 0.150 · 0.83 | +0.030 [+0.013, +0.048] | −2.1 [−3.3, −0.9] | blend .5 · blend .75 · blend .75 / blend .75 · blend .75 · cand / blend .75 · blend .75 · cand |
+| TE | 0.125 / 0.145 · 0.80 | +0.014 [−0.012, +0.043] | −0.7 [−1.9, +0.6] | blend .75 · cand · cand / cand · blend .75 · cand / cand · blend .75 · cand |
+
+The 2020 fold is lost to nested selection (its training window holds no closed inner fold with a fittable
+candidate). **Year 2 has no evaluable fold at any position on this file** for the same reason one season deeper;
+the year-2 quantities are exported with their policy chosen on the full closed window (recorded in the manifest)
+and are ungraded here. That is not a claim of beating or failing the baseline. The longer basic cohort (§ the
+companion report) is where year 2 and beyond are graded.
 
 ## 4. The reading
 

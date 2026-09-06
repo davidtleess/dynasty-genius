@@ -156,6 +156,8 @@ AUTHORIZED_EVAL_FILES = {
     "opportunity_features.py",
     "annual_outcomes.py",
     "annual_forecasts.py",
+    "basic_cohort.py",
+    "universe_reconciliation.py",
     "__init__.py",
     "backtest_artifact.py",
     "backtest_harness.py",

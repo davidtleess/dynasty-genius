@@ -42,6 +42,50 @@ class SourceIncompleteError(ValueError):
     value or identity is missing, or rows are duplicated. Refuse; never treat as zero."""
 
 
+def drop_unattributed_zero_rows(
+    weekly: pd.DataFrame, *, tolerated_points_per_season: float = 10.0
+) -> tuple[pd.DataFrame, dict]:
+    """Remove rows with no player id, and say exactly what was removed.
+
+    Two shapes exist in nflverse weekly stats. The common one is a per-week placeholder
+    (no id, no position, zero points; 173 over 2018-2025), harmless by construction. The
+    rare one is a stat line nobody could attribute (measured 2026-09-06 over 2005-2025:
+    a 2005 team-level row worth 6.0 and a 2012 "D.Bryant" line worth 3.1). Those cannot
+    be given to a player, so they are dropped too — but only under a small, stated
+    per-season tolerance, and every one is LISTED in the facts so a reader can see
+    which season may undercount which team by how much. Above the tolerance the source
+    is refused: that much unattributed scoring could turn an appearance into an absence.
+    """
+    ids = weekly["player_id"]
+    unattributed = ids.isna() | (ids.astype(str).str.strip() == "")
+    points = pd.to_numeric(weekly[SCORING_COLUMN], errors="coerce")
+    position = weekly["position"] if "position" in weekly.columns else pd.Series([None] * len(weekly), index=weekly.index)
+    harmless = unattributed & position.isna() & (points == 0.0)
+    stat_lines = unattributed & ~harmless
+    listed = [
+        {"season": int(r["season"]), "week": int(r["week"]), "season_type": r["season_type"],
+         "position": (None if pd.isna(r["position"]) else r["position"]) if "position" in weekly.columns else None,
+         "points": float(r[SCORING_COLUMN])}
+        for _, r in weekly[stat_lines].iterrows()
+    ]
+    by_season: dict[str, float] = {}
+    for row in listed:
+        by_season[str(row["season"])] = round(by_season.get(str(row["season"]), 0.0) + (row["points"] or 0.0), 3)
+    over = {s: v for s, v in by_season.items() if abs(v) > float(tolerated_points_per_season)}
+    if over:
+        raise SourceIncompleteError(
+            f"unattributed stat lines exceed the tolerance of {tolerated_points_per_season} points per season: "
+            f"{over}; that much unattributed scoring could turn an appearance into an absence"
+        )
+    facts = {
+        "unattributed_zero_rows_dropped": int(harmless.sum()),
+        "unattributed_stat_lines_dropped": listed,
+        "unattributed_points_dropped_by_season": by_season,
+        "tolerated_points_per_season": float(tolerated_points_per_season),
+    }
+    return weekly[~(harmless | stat_lines)].reset_index(drop=True), facts
+
+
 def validate_weekly_source(
     weekly: pd.DataFrame,
     *,

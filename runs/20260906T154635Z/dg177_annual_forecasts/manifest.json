@@ -1,0 +1,328 @@
+{
+  "producer": "DG-177 veteran annual forecast candidate (report-only)",
+  "candidate_arm": "recent_production_3col",
+  "scoring_arm": "recent_production_3col",
+  "candidate_rationale": "The exported candidate is the SELECTION POLICY over {baseline, recent_production_3col ridge, bounded blend}, chosen per position, horizon and quantity on closed inner folds inside the training window and applied by the same function final scoring calls; its outer-fold score is the evidence. recent_production_3col is the candidate arm because it matched or beat served_features on unconditional points in six of eight cells in round 1 and never lost detectably (that was a comparison on outer folds, so served_features stays an exploratory comparison, exported beside the candidate, not part of the policy space).",
+  "selection_policy": {
+    "space": [
+      "baseline",
+      "candidate",
+      "blend_0.25",
+      "blend_0.5",
+      "blend_0.75"
+    ],
+    "criterion": {
+      "p_appear": "brier",
+      "points_given_appear": "mse",
+      "games_given_appear": "mse"
+    },
+    "where": "per position, horizon and quantity on closed inner folds inside the training window; applied by the same function final scoring calls",
+    "chosen": {
+      "QB": {
+        "year1": {
+          "p_appear": "blend_0.75",
+          "points_given_appear": "blend_0.75",
+          "games_given_appear": "candidate"
+        },
+        "year2": {
+          "p_appear": "candidate",
+          "points_given_appear": "blend_0.25",
+          "games_given_appear": "candidate"
+        }
+      },
+      "RB": {
+        "year1": {
+          "p_appear": "candidate",
+          "points_given_appear": "candidate",
+          "games_given_appear": "candidate"
+        },
+        "year2": {
+          "p_appear": "candidate",
+          "points_given_appear": "blend_0.75",
+          "games_given_appear": "candidate"
+        }
+      },
+      "WR": {
+        "year1": {
+          "p_appear": "blend_0.75",
+          "points_given_appear": "blend_0.75",
+          "games_given_appear": "candidate"
+        },
+        "year2": {
+          "p_appear": "candidate",
+          "points_given_appear": "candidate",
+          "games_given_appear": "candidate"
+        }
+      },
+      "TE": {
+        "year1": {
+          "p_appear": "candidate",
+          "points_given_appear": "blend_0.75",
+          "games_given_appear": "candidate"
+        },
+        "year2": {
+          "p_appear": "candidate",
+          "points_given_appear": "blend_0.75",
+          "games_given_appear": "candidate"
+        }
+      }
+    }
+  },
+  "exports": {
+    "candidate": "annual_forecasts.csv",
+    "comparator": "annual_forecasts_served_features.csv"
+  },
+  "forecast_cutoff": {
+    "rule": "features observed through the feature season; a year-j label trains only when feature_season + j <= last complete season",
+    "feature_season": 2025,
+    "information_through": "end of the 2025 NFL season including postseason"
+  },
+  "last_complete_season": 2025,
+  "label_window": {
+    "year1": 1,
+    "year2": 2
+  },
+  "scoring_scope": {
+    "scope": "REG",
+    "scoring": "fantasy_points_ppr",
+    "season_types": [
+      "REG"
+    ]
+  },
+  "exposure_definition": "games: weeks with a weekly stat row in scope",
+  "event": "appeared: >= 1 stat-row game in the season",
+  "quantities": {
+    "year1": [
+      "p_appear_year1",
+      "e_points_year1_given_appear",
+      "e_games_year1_given_appear",
+      "e_points_year1",
+      "e_games_year1"
+    ],
+    "year2": [
+      "p_appear_year2",
+      "e_points_year2_given_appear",
+      "e_games_year2_given_appear",
+      "e_points_year2",
+      "e_games_year2"
+    ]
+  },
+  "composition": "e_points_year{j} = p_appear_year{j} x e_points_year{j}_given_appear on the same event and rows; points and games are exactly 0 when absent",
+  "horizons_supported": [
+    1,
+    2
+  ],
+  "longer_horizons": "unsupported: not measured",
+  "population": "every row of the 2025 feature partition of the training file (players with >= 4 stat-row games in 2025, rostered or not)",
+  "no_forecast_reason_for_absent_players": "no_feature_row",
+  "features_by_position": {
+    "QB": [
+      "ppg_t",
+      "games_t",
+      "age"
+    ],
+    "RB": [
+      "ppg_t",
+      "games_t",
+      "age"
+    ],
+    "WR": [
+      "ppg_t",
+      "games_t",
+      "age"
+    ],
+    "TE": [
+      "ppg_t",
+      "games_t",
+      "age"
+    ]
+  },
+  "features_by_arm": {
+    "served_features": {
+      "QB": [
+        "age",
+        "aging_curve_value",
+        "cpoe",
+        "dakota",
+        "epa_per_dropback",
+        "games_t",
+        "is_dual_threat",
+        "ngs_avg_time_to_throw",
+        "ngs_completion_percentage_above_expectation",
+        "ppg_t",
+        "ppg_t_minus_1",
+        "ppg_t_minus_1_available",
+        "ppg_t_minus_2",
+        "ppg_t_minus_2_available",
+        "snap_share",
+        "snap_share_t_minus_1",
+        "snap_share_t_minus_1_available"
+      ],
+      "RB": [
+        "age",
+        "aging_curve_value",
+        "games_t",
+        "ngs_percent_attempts_gte_eight_defenders",
+        "ngs_rush_yards_over_expected_per_att",
+        "ppg_t",
+        "ppg_t_minus_1",
+        "ppg_t_minus_1_available",
+        "ppg_t_minus_2",
+        "ppg_t_minus_2_available",
+        "snap_share",
+        "snap_share_t_minus_1",
+        "snap_share_t_minus_1_available"
+      ],
+      "WR": [
+        "age",
+        "aging_curve_value",
+        "games_t",
+        "ngs_avg_cushion",
+        "ngs_avg_separation",
+        "ppg_t",
+        "ppg_t_minus_1",
+        "ppg_t_minus_1_available",
+        "ppg_t_minus_2",
+        "ppg_t_minus_2_available",
+        "snap_share",
+        "snap_share_t_minus_1",
+        "snap_share_t_minus_1_available",
+        "tprr",
+        "weighted_opportunity",
+        "yprr"
+      ],
+      "TE": [
+        "age",
+        "aging_curve_value",
+        "games_t",
+        "ngs_avg_cushion",
+        "ngs_avg_separation",
+        "ppg_t",
+        "ppg_t_minus_1",
+        "ppg_t_minus_1_available",
+        "ppg_t_minus_2",
+        "ppg_t_minus_2_available",
+        "snap_share",
+        "snap_share_t_minus_1",
+        "snap_share_t_minus_1_available",
+        "tprr",
+        "weighted_opportunity",
+        "yprr"
+      ]
+    },
+    "recent_production_3col": {
+      "QB": [
+        "ppg_t",
+        "games_t",
+        "age"
+      ],
+      "RB": [
+        "ppg_t",
+        "games_t",
+        "age"
+      ],
+      "WR": [
+        "ppg_t",
+        "games_t",
+        "age"
+      ],
+      "TE": [
+        "ppg_t",
+        "games_t",
+        "age"
+      ]
+    }
+  },
+  "inputs": {
+    "training_csv_sha256": "64a106f2f15d1752fa6dc542f3c79f934a01a88ce51085d0318d1d6cfa9648ec",
+    "engine_b_manifest_sha256": "916677c19a43b2bfbe9b3a1182c8779263d699ded526b1bc27245b4a50b8da44",
+    "served_qb_pickle_sha256": "fbb3617be59bc11243e0727e64ec6741e1c33c6dea65339a76fc37797dfaf0ab",
+    "served_rb_pickle_sha256": "03f67f7c8417e16e814b01de6d1629b195848f32983aef8c11626ade74e420a5",
+    "served_wr_pickle_sha256": "e1cbb125d5dd66bb11422738341953ef2f211c560777be27ed9c05c2d0bf66f2",
+    "served_te_pickle_sha256": "84f05d61e83ba0190365047ecd8296757193f5b6a4b261407e6b9225d294040b",
+    "weekly_stats_sha256": "dc0109391090e24ad747733441d35ea8ecc9c1f1b92cfae0505f0fe8e28a3088"
+  },
+  "outputs": {
+    "annual_forecasts.csv": "b59e9792a4126d09cd95769a193bbbb895544e905e778071fbab3a317ef62b0b",
+    "annual_forecasts_served_features.csv": "5702d0f945d5f9c18c009878d5f45aa2ed708bae0ee85f004308a8d9176ba69b",
+    "results.json": "d8cbce5aef4e2417f1a6d3a905ac150b0ea0b34fb3b824369738971b39b0970f",
+    "historical_predictions.csv": "c8c899b29eb29cffed62b839ebae42603d57b0caecf5b06f233b3fcb26688ede",
+    "weekly_stats_snapshot.csv.gz": "dc0109391090e24ad747733441d35ea8ecc9c1f1b92cfae0505f0fe8e28a3088"
+  },
+  "outputs_sha256": {
+    "annual_forecasts.csv": "b59e9792a4126d09cd95769a193bbbb895544e905e778071fbab3a317ef62b0b",
+    "annual_forecasts_served_features.csv": "5702d0f945d5f9c18c009878d5f45aa2ed708bae0ee85f004308a8d9176ba69b",
+    "results.json": "d8cbce5aef4e2417f1a6d3a905ac150b0ea0b34fb3b824369738971b39b0970f",
+    "historical_predictions.csv": "c8c899b29eb29cffed62b839ebae42603d57b0caecf5b06f233b3fcb26688ede",
+    "weekly_stats_snapshot.csv.gz": "dc0109391090e24ad747733441d35ea8ecc9c1f1b92cfae0505f0fe8e28a3088"
+  },
+  "source_validation": {
+    "seasons": {
+      "2018": {
+        "rows": 16711,
+        "reg_weeks": 17,
+        "reg_weeks_expected": 17,
+        "players": 1883
+      },
+      "2019": {
+        "rows": 16646,
+        "reg_weeks": 17,
+        "reg_weeks_expected": 17,
+        "players": 1888
+      },
+      "2020": {
+        "rows": 16757,
+        "reg_weeks": 17,
+        "reg_weeks_expected": 17,
+        "players": 1983
+      },
+      "2021": {
+        "rows": 18110,
+        "reg_weeks": 18,
+        "reg_weeks_expected": 18,
+        "players": 2081
+      },
+      "2022": {
+        "rows": 17963,
+        "reg_weeks": 18,
+        "reg_weeks_expected": 18,
+        "players": 2006
+      },
+      "2023": {
+        "rows": 17788,
+        "reg_weeks": 18,
+        "reg_weeks_expected": 18,
+        "players": 1942
+      },
+      "2024": {
+        "rows": 18112,
+        "reg_weeks": 18,
+        "reg_weeks_expected": 18,
+        "players": 1996
+      },
+      "2025": {
+        "rows": 18522,
+        "reg_weeks": 18,
+        "reg_weeks_expected": 18,
+        "players": 2019
+      }
+    },
+    "scope_checked": "REG",
+    "duplicate_rows": 0,
+    "missing_points": 0,
+    "missing_player_id": 0,
+    "min_players_per_season": 1000,
+    "validated": true,
+    "unattributed_zero_rows_dropped": 173
+  },
+  "intervals": "none exported; historical bootstrap intervals are conditional on the fitted models (fit uncertainty), not model or season uncertainty",
+  "source": {
+    "weekly_stats": "nflreadpy.load_player_stats(seasons=2018..2025, summary_level='week')",
+    "weekly_stats_pulled_at_utc": "2026-09-06T15:46:35.492940+00:00",
+    "weekly_stats_rows": 147053,
+    "weekly_stats_sha256": "dc0109391090e24ad747733441d35ea8ecc9c1f1b92cfae0505f0fe8e28a3088",
+    "weekly_stats_snapshot": "weekly_stats_snapshot.csv.gz (in this run directory)",
+    "nflreadpy": "0.1.5"
+  },
+  "git_head": "e8fc30713985d77398bd4e797da3835acebb2d65"
+}

@@ -202,3 +202,34 @@ def test_outcomes_and_targets_refuse_an_unvalidated_source():
     unvalidated.attrs = {}
     with pytest.raises(SourceIncompleteError, match="validated"):
         annual_targets(training, unvalidated, horizons=(1,), last_complete_season=2023)
+
+
+def test_unattributed_zero_rows_are_dropped_and_counted_but_an_unattributed_stat_line_is_refused():
+    from src.dynasty_genius.eval.annual_outcomes import drop_unattributed_zero_rows
+
+    weekly = _full_weekly()
+    filler = pd.DataFrame([(None, 2022, w, "REG", None, 0.0) for w in range(1, 19)], columns=WEEKLY_COLUMNS)
+    kept, facts = drop_unattributed_zero_rows(pd.concat([weekly, filler], ignore_index=True))
+    assert len(kept) == len(weekly) and facts["unattributed_zero_rows_dropped"] == 18
+    validated = validate_weekly_source(kept, seasons=[2022, 2023], min_players_per_season=3)
+    assert validated["validated"] is True
+    with_points = pd.concat([weekly, pd.DataFrame([(None, 2022, 1, "REG", "WR", 12.0)], columns=WEEKLY_COLUMNS)],
+                            ignore_index=True)
+    with pytest.raises(SourceIncompleteError, match="unattributed"):
+        drop_unattributed_zero_rows(with_points)
+
+
+def test_an_unattributed_stat_line_within_the_stated_tolerance_is_dropped_and_listed_above_it_refused():
+    from src.dynasty_genius.eval.annual_outcomes import drop_unattributed_zero_rows
+
+    weekly = _full_weekly()
+    stray = pd.DataFrame([(None, 2022, 6, "REG", None, 3.1)], columns=WEEKLY_COLUMNS)
+    kept, facts = drop_unattributed_zero_rows(pd.concat([weekly, stray], ignore_index=True), tolerated_points_per_season=10.0)
+    assert len(kept) == len(weekly)
+    assert facts["unattributed_stat_lines_dropped"] == [
+        {"season": 2022, "week": 6, "season_type": "REG", "position": None, "points": 3.1}
+    ]
+    assert facts["unattributed_points_dropped_by_season"] == {"2022": 3.1}
+    big = pd.DataFrame([(None, 2022, 6, "REG", None, 30.0)], columns=WEEKLY_COLUMNS)
+    with pytest.raises(SourceIncompleteError, match="tolerance"):
+        drop_unattributed_zero_rows(pd.concat([weekly, big], ignore_index=True), tolerated_points_per_season=10.0)
