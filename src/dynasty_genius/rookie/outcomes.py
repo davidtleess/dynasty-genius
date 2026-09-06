@@ -28,7 +28,8 @@ from pathlib import Path
 
 import pandas as pd
 
-__all__ = ["CommonOutcomes", "load_common_outcomes", "outcome_binding", "qualification_panel", "season_stats_from_outcomes"]
+__all__ = ["CommonOutcomes", "OutcomeInputs", "load_common_outcomes", "outcome_binding", "outcome_inputs",
+           "qualification_panel", "season_stats_from_outcomes", "weekly_positions_by_player_season"]
 
 REQUIRED = ("player_id", "season", "points", "games", "appeared")
 SCORING_CAVEAT = ("nflverse default-PPR league-window research outcomes; exact-league scoring is unsupported pending complete "
@@ -145,3 +146,56 @@ def outcome_binding(outcomes: CommonOutcomes) -> dict:
         "seasons": [int(outcomes.frame["season"].min()), int(outcomes.frame["season"].max())],
         "scoring_caveat": SCORING_CAVEAT,
     }
+
+
+def weekly_positions_by_player_season(weekly: pd.DataFrame) -> dict[tuple[str, int], str]:
+    """(player_id, season) -> the modal REG-season position string; ties resolve alphabetically
+    so the map is deterministic; rows without a position or a player id contribute nothing."""
+    rows = weekly.loc[(weekly["season_type"] == "REG") & weekly["position"].notna() & weekly["player_id"].notna()]
+    out: dict[tuple[str, int], str] = {}
+    for (pid, season), g in rows.groupby(["player_id", "season"]):
+        counts = g["position"].astype(str).value_counts()
+        best = counts[counts == counts.max()].index
+        out[(str(pid), int(season))] = sorted(best)[0]
+    return out
+
+
+@dataclass(frozen=True)
+class OutcomeInputs:
+    """Everything the labels need, built from the common artifact and bound to it."""
+    outcomes: CommonOutcomes
+    season_stats: dict
+    qualifying: set
+    panel: pd.DataFrame
+    panel_report: dict
+    binding: dict
+
+    @property
+    def labels_through(self) -> int:
+        return self.outcomes.labels_through
+
+
+def outcome_inputs(
+    csv_path: Path | str,
+    manifest_path: Path | str,
+    *,
+    cohort: pd.DataFrame,
+    weekly_positions: Mapping[tuple[str, int], str],
+    bar: Mapping[str, int],
+    require_positions: tuple[str, ...] = ("QB", "RB", "WR", "TE"),
+) -> OutcomeInputs:
+    """Load, verify and bind the common artifact; cut the qualification bar on it.
+
+    ``cohort`` supplies the draft roles (gsis_id -> draft-table position) so every cohort
+    player is ranked at his draft role in every season. The bar is cut only on positions the
+    bar names; a (season, position) group smaller than its bar rank raises, as before.
+    """
+    from src.dynasty_genius.rookie.labels import qualifying_season_keys
+
+    outcomes = load_common_outcomes(csv_path, manifest_path)
+    draft_roles = {str(g): str(p) for g, p in zip(cohort["gsis_id"], cohort["position"]) if pd.notna(g)}
+    panel, report = qualification_panel(outcomes, weekly_positions=weekly_positions, draft_roles=draft_roles)
+    ranked = panel.loc[panel["position"].isin(require_positions)]
+    qualifying = qualifying_season_keys(ranked, {p: bar[p] for p in require_positions if p in bar})
+    return OutcomeInputs(outcomes=outcomes, season_stats=season_stats_from_outcomes(outcomes), qualifying=qualifying,
+                         panel=panel, panel_report=report, binding=outcome_binding(outcomes))

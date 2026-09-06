@@ -86,3 +86,34 @@ def test_outcome_binding_records_hashes_scoring_window_and_closure(tmp_path):
     assert b["labels_through"] == 2025 and "weeks 1-16 through 2020" in b["window_rule"]
     assert len(b["csv_sha256"]) == 64 and len(b["manifest_sha256"]) == 64
     assert b["scoring_caveat"].startswith("nflverse")
+
+
+def test_weekly_positions_are_the_reg_season_mode_per_player_season_and_missing_stays_missing():
+    from src.dynasty_genius.rookie.outcomes import weekly_positions_by_player_season
+
+    weekly = pd.DataFrame({
+        "player_id": ["a", "a", "a", "b", "c", None], "season": [2021, 2021, 2021, 2021, 2021, 2021],
+        "week": [1, 2, 3, 1, 1, 4], "season_type": ["REG", "REG", "POST", "REG", "REG", "REG"],
+        "position": ["TE", "FB", "FB", "WR", None, None],
+    })
+    got = weekly_positions_by_player_season(weekly)
+    assert got[("a", 2021)] == "TE" or got[("a", 2021)] == "FB"   # a tie over REG weeks resolves deterministically
+    assert got[("a", 2021)] == weekly_positions_by_player_season(weekly)[("a", 2021)]
+    assert got[("b", 2021)] == "WR" and ("c", 2021) not in got     # no position → absent, never guessed
+    assert all(k[0] is not None for k in got)
+
+
+def test_outcome_inputs_bind_the_artifact_and_cut_the_bar_on_the_common_outcomes(tmp_path):
+    from src.dynasty_genius.rookie.outcomes import outcome_inputs
+
+    rows = [("r1", 2021, 300.0, 16, 1), ("v1", 2021, 250.0, 16, 1), ("v2", 2021, 100.0, 10, 1), ("v3", 2021, 40.0, 4, 1),
+            ("gone", 2021, 0.0, 0, 0)]
+    csv, man = _write(tmp_path, rows)
+    cohort = pd.DataFrame({"gsis_id": ["r1", "gone"], "draft_season": [2021, 2021], "position": ["WR", "RB"]})
+    weekly_positions = {("v1", 2021): "WR", ("v2", 2021): "WR", ("v3", 2021): "WR", ("r1", 2021): "CB"}  # r1 listed CB now
+    inputs = outcome_inputs(csv, man, cohort=cohort, weekly_positions=weekly_positions, bar={"WR": 2, "RB": 1, "QB": 1, "TE": 1},
+                            require_positions=("WR",))
+    assert inputs.labels_through == 2025 and inputs.binding["scoring_id"] == "nflverse_default_ppr_league_window_v1"
+    assert ("r1", 2021) in inputs.qualifying and ("v1", 2021) in inputs.qualifying and ("v2", 2021) not in inputs.qualifying
+    assert inputs.season_stats[("r1", 2021)] == (300.0, 16) and ("gone", 2021) not in inputs.season_stats
+    assert inputs.panel_report["ranked_at_draft_role"] == 1

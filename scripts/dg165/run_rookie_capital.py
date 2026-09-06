@@ -68,6 +68,10 @@ from src.dynasty_genius.rookie.labels import (  # noqa: E402
     season_stats_map,
 )
 from src.dynasty_genius.rookie.model import MODEL_VERSION  # noqa: E402
+from src.dynasty_genius.rookie.outcomes import (  # noqa: E402
+    outcome_inputs,
+    weekly_positions_by_player_season,
+)
 from src.dynasty_genius.rookie.panel import build_panel, load_panel  # noqa: E402
 from src.dynasty_genius.rookie.report import (  # noqa: E402
     render_evaluation_markdown,
@@ -109,7 +113,21 @@ def parse_args(argv=None):
     p.add_argument("--eval-boot", type=int, default=1000, help="resamples for pooled metric intervals and paired comparisons")
     p.add_argument("--runs-root", type=Path, default=REPO / "runs")
     p.add_argument("--prospects-csv", type=Path, default=None, help="optional prospects CSV to cross-check age at draft")
+    p.add_argument("--outcomes-csv", type=Path, default=None,
+                   help="Codex's common player-season outcome artifact (DG-179); when given, labels come from it, not from --panel")
+    p.add_argument("--outcomes-manifest", type=Path, default=None)
+    p.add_argument("--weekly-capture", type=Path, default=None,
+                   help="a weekly_source_capture run directory; its raw files supply the weekly position per player-season")
     return p.parse_args(argv)
+
+
+def _weekly_positions_from_capture(capture_dir: Path) -> dict:
+    frames = []
+    for path in sorted((capture_dir / "raw").glob("stats_player_week_*.parquet")):
+        frames.append(pd.read_parquet(path, columns=["player_id", "season", "week", "season_type", "position"]))
+    if not frames:
+        raise SystemExit(f"no raw weekly files under {capture_dir / 'raw'}")
+    return weekly_positions_by_player_season(pd.concat(frames, ignore_index=True))
 
 
 def _headline(evaluation: dict) -> dict[str, float]:
@@ -163,24 +181,44 @@ def main(argv=None) -> int:
     rosters = load_rosters(range(args.first_class, last_completed + 1))
     rosters_path = inputs / "nflverse_rosters.parquet"
     rosters.to_parquet(rosters_path)
-    if args.panel:
-        panel_path = inputs / "panel.parquet"
-        shutil.copy2(args.panel, panel_path)
-        panel = load_panel(panel_path)
-        panel_source = f"copied from {args.panel}"
+    cohort, coverage = draft_cohort_from_picks(picks, seasons=range(args.first_class, T + 1), players=players, rosters=rosters)
+    outcome_block = None
+    if args.outcomes_csv is not None:
+        # The COMMON outcome artifact (DG-179): both producers label from identical outcomes.
+        if args.outcomes_manifest is None or args.weekly_capture is None:
+            raise SystemExit("--outcomes-csv needs --outcomes-manifest and --weekly-capture")
+        weekly_positions = _weekly_positions_from_capture(args.weekly_capture)
+        oi = outcome_inputs(args.outcomes_csv, args.outcomes_manifest, cohort=cohort, weekly_positions=weekly_positions, bar=bar)
+        if oi.labels_through < last_completed:
+            raise SystemExit(f"outcome artifact labels through {oi.labels_through}; the run needs {last_completed}")
+        last_completed = oi.labels_through
+        qualifying, season_stats = oi.qualifying, oi.season_stats
+        panel = oi.panel
+        panel_path = inputs / "common_outcomes.csv"
+        shutil.copy2(args.outcomes_csv, panel_path)
+        shutil.copy2(args.outcomes_manifest, inputs / "common_outcomes_manifest.json")
+        panel_source = f"common outcome artifact {oi.binding['artifact']} (sha256 {oi.csv_sha256 if hasattr(oi, 'csv_sha256') else oi.binding['csv_sha256'][:12]})"
+        outcome_block = {**oi.binding, "panel_report": oi.panel_report,
+                         "weekly_capture": {"path": str(args.weekly_capture), "manifest_sha256": sha256_file(args.weekly_capture / "manifest.json")}}
+        print(f"outcomes: {oi.binding['artifact']} rows {oi.binding['rows']} seasons {oi.binding['seasons']} labels_through {oi.labels_through} | panel {oi.panel_report}")
     else:
-        panel = build_panel(range(args.first_class, last_completed + 1))
-        panel_path = inputs / "panel.parquet"
-        panel.to_parquet(panel_path)
-        panel_source = "built from nflreadpy.load_player_stats (REG, PPR)"
-    if int(panel["season"].max()) < last_completed or int(panel["season"].min()) > args.first_class:
-        raise SystemExit(f"panel covers {panel['season'].min()}-{panel['season'].max()}, need {args.first_class}-{last_completed}")
+        if args.panel:
+            panel_path = inputs / "panel.parquet"
+            shutil.copy2(args.panel, panel_path)
+            panel = load_panel(panel_path)
+            panel_source = f"copied from {args.panel}"
+        else:
+            panel = build_panel(range(args.first_class, last_completed + 1))
+            panel_path = inputs / "panel.parquet"
+            panel.to_parquet(panel_path)
+            panel_source = "built from nflreadpy.load_player_stats (REG, PPR)"
+        if int(panel["season"].max()) < last_completed or int(panel["season"].min()) > args.first_class:
+            raise SystemExit(f"panel covers {panel['season'].min()}-{panel['season'].max()}, need {args.first_class}-{last_completed}")
+        qualifying = qualifying_season_keys(panel, bar)
+        season_stats = season_stats_map(panel)
     print(f"panel: {len(panel)} player-seasons {panel['season'].min()}-{panel['season'].max()} ({panel_source})")
 
     # ---------------------------------------------------------------- events and cohort
-    qualifying = qualifying_season_keys(panel, bar)
-    season_stats = season_stats_map(panel)
-    cohort, coverage = draft_cohort_from_picks(picks, seasons=range(args.first_class, T + 1), players=players, rosters=rosters)
     leaking = find_leaking_columns(cohort)
     if leaking:
         raise SystemExit(f"cohort frame carries market-derived columns: {leaking}")
@@ -315,8 +353,10 @@ def main(argv=None) -> int:
             "last_completed_season": last_completed,
         },
         "definitions": {
-            "qualifying_season": f"finished at or above the bar rank for the position by regular-season PPR total; bar = {bar}; "
-                                 "tie-robust N-th largest (canonical DG-164 cells); a qualifying season is by construction an appearance",
+            "qualifying_season": (f"finished at or above the bar rank for the position by league-window points ({outcome_block['window_rule']}); "
+                                  if outcome_block else "finished at or above the bar rank for the position by regular-season PPR total; ")
+                                 + f"bar = {bar}; tie-robust N-th largest (canonical DG-164 cells); a qualifying season is by construction an appearance; "
+                                   "cohort players are ranked at their DRAFT role every season, others at their weekly-stats position",
             "appearance": "at least one weekly stat row in nflverse regular-season player stats (not 'dressed', not 'took a snap'); "
                           "a player without a stat row scored zero fantasy points that season",
             "season_points": "regular-season PPR points (nflverse weekly fantasy_points_ppr), exactly 0 without an appearance",
@@ -324,12 +364,18 @@ def main(argv=None) -> int:
             "identity_unresolved": "no gsis_id in nflverse draft picks and no match in the players table or 1999-%d rosters by draft key or name+year; "
                                    "labels NaN, never zero, except in the named sensitivity arm" % last_completed,
         },
-        "units": {
+        "units": ({
+            "scoring_scope": f"league window: {outcome_block['window_rule']}; scoring id {outcome_block['scoring_id']} — {outcome_block['scoring_caveat']}",
+            "exposure_definition": "games within the league window with a weekly stat row (the common artifact's one mask)",
+            "ppg_denominator": "league-window points / league-window stat-row games — NOT the served all-games denominator (DG-024); reconcile, do not absorb",
+            "seasons": "NFL season j = 1 is the rookie season = forecast_year; E[N_h] counts qualifying seasons in 1..h",
+        } if outcome_block else {
             "scoring_scope": "regular season only; PPR as in nflverse weekly player stats",
             "exposure_definition": "stat-row games (weeks with a weekly stat row)",
             "ppg_denominator": "REG-season PPR points / stat-row games — NOT the served all-games denominator (DG-024); reconcile, do not absorb",
             "seasons": "NFL season j = 1 is the rookie season = forecast_year; E[N_h] counts qualifying seasons in 1..h",
-        },
+        }),
+        "outcomes": outcome_block,
         "construction": model.describe()["construction"],
         "no_composition_claims": "nothing here states how these quantities compose with Engine A, Engine B or the DG-164 cells; "
                                  "that comparability is the ranking lane's typed contract (DG-178)",
