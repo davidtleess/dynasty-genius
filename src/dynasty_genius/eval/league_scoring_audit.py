@@ -85,7 +85,7 @@ def research_ppr_from_components(weekly: pd.DataFrame) -> pd.Series:
 
 EVENT_GRAIN = ["game_id", "play_id", "event_slot", "player_id"]
 EVENT_COLUMNS = ["game_id", "play_id", "event_slot", "event_type", "player_id", "team", "week", "season_type",
-                 "special_teams", "own_team", "lost", "status", "ambiguity_reason", "desc"]
+                 "special_teams", "own_team", "lost", "status", "ambiguity_reason", "missing_player_id", "desc"]
 ST_PLAY_TYPES = frozenset({"punt", "kickoff", "field_goal", "extra_point"})
 AMBIGUITY_CAPACITY = "slot_capacity"
 AMBIGUITY_ST_CONFLICT = "st_classifier_conflict"
@@ -167,6 +167,7 @@ def _play_events(p: pd.Series) -> list[dict]:
     capacity = tokens > n_fumbled or n_rec_unpaired > 0 or flag_disagrees
     conflict = st_flag != st_type
     for r in rows:
+        r["missing_player_id"] = _isna(r["player_id"])      # its own dimension: a later status never hides it
         if nullified:
             r["status"], r["ambiguity_reason"] = "nullified", ""
         elif capacity:
@@ -269,7 +270,9 @@ def player_week_components(weekly: pd.DataFrame, events: pd.DataFrame) -> pd.Dat
     # every weekly count that the special-teams / side split relies on must be matched by attributed events;
     # no events is not proof of zero special teams when the weekly count is positive
     forced_ok = w["def_fumbles_forced"] == (w["st_forced_fumbles"] + w["non_st_forced_fumbles"])
-    recov_ok = (w["fumble_recovery_own"] + w["fumble_recovery_opp"]) == (w["st_opp_recoveries"] + w["non_st_opp_recoveries"] + w["own_recoveries"])
+    # own and opponent sides are compared SEPARATELY: equal sums with swapped sides are a disagreement
+    recov_ok = ((w["fumble_recovery_own"] == w["own_recoveries"])
+                & (w["fumble_recovery_opp"] == (w["st_opp_recoveries"] + w["non_st_opp_recoveries"])))
     split_needed = (w["def_fumbles_forced"] + w["fumble_recovery_own"] + w["fumble_recovery_opp"]) > 0
     reason = pd.Series("", index=w.index, dtype=object)
     reason[(w["extra_fumbles_lost"] < 0) & (reason == "")] = UNRESOLVED_CONTRADICTION
@@ -280,6 +283,7 @@ def player_week_components(weekly: pd.DataFrame, events: pd.DataFrame) -> pd.Dat
     reason[(w["st_recovery_tds"] > 0) & (reason == "")] = UNRESOLVED_ST_TD
     w["unresolved_reason"] = reason
     w["attribution_status"] = np.where(reason == "", "attributed", "unresolved")
+    w["st_credit_applicable"] = reason == ""           # play-by-play split credits need a verified week; counts stay visible
     return w.reset_index(drop=True)
 
 
@@ -295,6 +299,7 @@ def league_points(components: pd.DataFrame, settings: dict) -> pd.Series:
         return s.get(key, 0.0)
 
     lost = _num(c, "fumbles_lost_total")            # the stated all-play total; a contradiction with the splits is flagged upstream
+    applicable = c["st_credit_applicable"].astype(bool).astype(float) if "st_credit_applicable" in c else 1.0
     return (g("pass_yd") * _num(c, "passing_yards") + g("pass_td") * _num(c, "passing_tds")
             + g("pass_int") * _num(c, "passing_interceptions") + g("pass_2pt") * _num(c, "passing_2pt_conversions")
             + g("rush_yd") * _num(c, "rushing_yards") + g("rush_td") * _num(c, "rushing_tds")
@@ -303,7 +308,7 @@ def league_points(components: pd.DataFrame, settings: dict) -> pd.Series:
             + g("rec_2pt") * _num(c, "receiving_2pt_conversions")
             + g("fum") * _num(c, "fumbles_total") + g("fum_lost") * lost
             + g("fum_rec_td") * _num(c, "fumble_recovery_tds") + g("st_td") * _num(c, "special_teams_tds")
-            + g("st_ff") * _num(c, "st_forced_fumbles") + g("st_fum_rec") * _num(c, "st_opp_recoveries"))
+            + (g("st_ff") * _num(c, "st_forced_fumbles") + g("st_fum_rec") * _num(c, "st_opp_recoveries")) * applicable)
 
 
 # ── Sleeper ground truth, identity mapping, settings check, reconciliation ────────────────────
@@ -446,28 +451,35 @@ def _window_last_week(season: pd.Series) -> pd.Series:
 
 def audit_quarantine(quarantine: pd.DataFrame, settings: dict, audit_season: int | None = None) -> pd.DataFrame:
     """Re-score the WHOLE PPR quarantine (every row, every season) under the league's individual
-    keys. Every original column, reason and exception is kept. No play-by-play split is attempted
-    for unidentified rows, so a row whose weekly counts need the special-teams / side split is
-    `st_split_unknown` and cannot be certified inert; a missing or non-numeric required value is
-    `unknown_component_value`, never zero."""
+    keys. Every original column, value, reason and exception is kept untouched; the arithmetic
+    runs on a separate numeric working frame. No play-by-play split is attempted for unidentified
+    rows, so a row whose weekly counts need the special-teams / side split is `st_split_unknown`;
+    a missing or non-numeric required value is `unknown_component_value`. Unknown is reported as
+    unknown — never as zero and never as nonzero."""
     q = quarantine.copy()
+    num = pd.DataFrame(index=q.index)
     unknown = pd.Series(False, index=q.index)
     for c in WEEKLY_COMPONENT_COLUMNS:
         if c not in q:
             unknown[:] = True                      # an absent column is unknown, not zero
-            q[c] = np.nan
-        vals = pd.to_numeric(q[c], errors="coerce")
+            vals = pd.Series(np.nan, index=q.index)
+        else:
+            vals = pd.to_numeric(q[c], errors="coerce")
         unknown |= ~np.isfinite(vals.to_numpy(dtype=float))
-        q[c] = vals.fillna(0.0)
-    q["extra_fumbles_lost"] = q["fumbles_lost_total"] - q["sack_fumbles_lost"] - q["rushing_fumbles_lost"] - q["receiving_fumbles_lost"]
+        num[c] = vals.fillna(0.0)
+    num["extra_fumbles_lost"] = num["fumbles_lost_total"] - num["sack_fumbles_lost"] - num["rushing_fumbles_lost"] - num["receiving_fumbles_lost"]
     for c in SPLIT_COLUMNS:
-        q[c] = 0
-    needs_split = (q["def_fumbles_forced"] + q["fumble_recovery_own"] + q["fumble_recovery_opp"]) > 0
-    pts = league_points(q, settings)
-    q["rescoring_status"] = np.select([unknown, needs_split], ["unknown_component_value", "st_split_unknown"], default="scored")
-    q["league_points_if_scored"] = pts.where(~unknown, np.nan)
-    q["nonzero_under_league_keys"] = np.where(unknown | needs_split, True, pts.abs() > TOL)   # unknown cannot prove zero
-    q["original_nonzero_ppr"] = q["fantasy_points_ppr"].abs() > TOL
+        num[c] = 0
+    needs_split = (num["def_fumbles_forced"] + num["fumble_recovery_own"] + num["fumble_recovery_opp"]) > 0
+    known_subtotal = league_points(num, settings)           # every component the weekly row states, no split credit
+    status = np.select([unknown, needs_split], ["unknown_component_value", "st_split_unknown"], default="scored")
+    scored = status == "scored"
+    q["rescoring_status"] = status
+    q["league_points_known_subtotal"] = known_subtotal.where(~unknown, np.nan)     # partial for st_split_unknown rows
+    q["league_points_if_scored"] = known_subtotal.where(scored, np.nan)            # exact only when fully scored
+    q["rescoring_verdict"] = np.select([~scored, known_subtotal.abs() > TOL], ["unknown", "known_nonzero"], default="verified_zero")
+    q["cannot_certify_inert"] = q["rescoring_verdict"] != "verified_zero"
+    q["original_nonzero_ppr"] = num["fantasy_points_ppr"].abs() > TOL
     season = pd.to_numeric(q["season"], errors="coerce") if "season" in q else pd.Series(np.nan, index=q.index)
     q["is_audit_season"] = (season == audit_season) if audit_season is not None else False
     q["is_reg"] = (q["season_type"] == "REG") if "season_type" in q else True
@@ -478,6 +490,7 @@ def audit_quarantine(quarantine: pd.DataFrame, settings: dict, audit_season: int
 
 def quarantine_summary(audited: pd.DataFrame) -> dict:
     a = audited
+    verdict = a["rescoring_verdict"]
     return {
         "rows_total": int(len(a)),
         "audit_season_rows": int(a["is_audit_season"].sum()),
@@ -485,26 +498,57 @@ def quarantine_summary(audited: pd.DataFrame) -> dict:
         "audit_season_post_rows": int((a["is_audit_season"] & ~a["is_reg"]).sum()),
         "historical_rows": int((~a["is_audit_season"]).sum()),
         "original_nonzero_ppr_rows": int(a["original_nonzero_ppr"].sum()),
-        "nonzero_under_league_keys_rows": int(a["nonzero_under_league_keys"].sum()),
+        "known_nonzero_rows": int((verdict == "known_nonzero").sum()),
+        "verified_zero_rows": int((verdict == "verified_zero").sum()),
+        "unknown_rows": int((verdict == "unknown").sum()),
         "st_split_unknown_rows": int((a["rescoring_status"] == "st_split_unknown").sum()),
         "unknown_component_value_rows": int((a["rescoring_status"] == "unknown_component_value").sum()),
+        "cannot_certify_inert_rows": int(a["cannot_certify_inert"].sum()),
     }
+
+
+COVERAGE_MISSING_ID = "missing_player_id"
+COVERAGE_NO_ROW = "no_weekly_row_for_player_week"
+
+
+def _joinable(events: pd.DataFrame, components: pd.DataFrame) -> pd.Series:
+    keys = set(zip(components["player_id"], components["week"])) if len(components) else set()
+    if not len(events):
+        return pd.Series(dtype=bool)
+    return pd.Series([(not _isna(p)) and (p, w) in keys for p, w in zip(events["player_id"], events["week"])],
+                     index=events.index, dtype=bool)
+
+
+def unattributed_events(events: pd.DataFrame, components: pd.DataFrame) -> pd.DataFrame:
+    """Every event that no verified player-week carries, with a named coverage reason and the
+    original status untouched: missing identity, nullified / ambiguous / missing-id status, or an
+    attributed event whose (player, week) has no weekly row."""
+    if not len(events):
+        return pd.DataFrame(columns=list(events.columns) + ["coverage_reason"])
+    ev = events.copy()
+    missing = ev["missing_player_id"].astype(bool)
+    joinable = _joinable(ev, components)
+    reason = np.select([missing, ev["status"] == "nullified", ev["status"] == "ambiguous", ev["status"] == "missing_id", ~joinable],
+                       [COVERAGE_MISSING_ID, "status_nullified", "status_ambiguous", COVERAGE_MISSING_ID, COVERAGE_NO_ROW], default="")
+    ev["coverage_reason"] = reason
+    return ev[ev["coverage_reason"] != ""].reset_index(drop=True)
 
 
 def event_coverage(events: pd.DataFrame, components: pd.DataFrame) -> dict:
     """Named denominators for the event ledger, so unknown-identity events stay visible even when
-    no component row can carry their flag."""
+    no component row can carry them. Missing identity is counted directly, not through the status."""
     ev = events
-    keys = set(zip(components["player_id"], components["week"])) if len(components) else set()
-    with_id = ev.dropna(subset=["player_id"]) if len(ev) else ev
-    joinable = pd.Series([(p, w) in keys for p, w in zip(with_id["player_id"], with_id["week"])], index=with_id.index, dtype=bool) if len(with_id) else pd.Series(dtype=bool)
+    joinable = _joinable(ev, components)
+    ledger = unattributed_events(ev, components)
     return {
         "events_total": int(len(ev)),
         "unique_plays": int(ev[["game_id", "play_id"]].drop_duplicates().shape[0]) if len(ev) else 0,
         "status_counts": {k: int(v) for k, v in ev["status"].value_counts().sort_index().items()} if len(ev) else {},
         "ambiguity_counts": {k: int(v) for k, v in ev.loc[ev["status"] == "ambiguous", "ambiguity_reason"].value_counts().sort_index().items()} if len(ev) else {},
-        "events_missing_player_id": int((ev["status"] == "missing_id").sum()) if len(ev) else 0,
-        "events_not_joinable_to_weekly": int((~joinable).sum()) if len(joinable) else 0,
+        "events_missing_player_id": int(ev["missing_player_id"].astype(bool).sum()) if len(ev) else 0,
+        "events_not_joinable_to_weekly": int((~joinable & ~ev["missing_player_id"].astype(bool)).sum()) if len(ev) else 0,
+        "unattributed_ledger_rows": int(len(ledger)),
+        "unattributed_by_reason": {k: int(v) for k, v in ledger["coverage_reason"].value_counts().sort_index().items()} if len(ledger) else {},
         "player_weeks_with_problem_events": int((components["problem_events"] > 0).sum()) if len(components) else 0,
         "player_weeks_unresolved": int((components["attribution_status"] == "unresolved").sum()) if len(components) else 0,
     }

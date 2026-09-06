@@ -124,7 +124,7 @@ def main(argv: list[str] | None = None) -> int:
     comps.to_csv(out_dir / "components.csv", index=False)
     events.to_csv(out_dir / "event_ledger.csv", index=False)
     # events that could not be attributed to a verified player/side never disappear: they are listed here and counted
-    events[events["status"] != "attributed"].to_csv(out_dir / "unattributed_events.csv", index=False)
+    lsa.unattributed_events(events, comps).to_csv(out_dir / "unattributed_events.csv", index=False)
     rec.to_csv(out_dir / "reconciliation.csv", index=False)
     pd.concat([rec[rec.status == "unresolved"].assign(source="reconciliation"),
                comps[comps.attribution_status == "unresolved"].assign(source="components")],

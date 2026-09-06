@@ -493,7 +493,8 @@ def test_quarantine_rows_are_rescored_under_league_keys_with_original_columns_ke
     q["team"] = ["AAA", "BBB", "CCC"]
     q["quarantine_reason"] = ["unattributed", "unattributed", "placeholder"]
     a = lsa.audit_quarantine(q, SETTINGS)
-    assert a.nonzero_under_league_keys.tolist() == [True, True, False]
+    assert a.rescoring_verdict.tolist() == ["known_nonzero", "known_nonzero", "verified_zero"]
+    assert a.cannot_certify_inert.tolist() == [True, True, False]
     assert a.league_points_if_scored.tolist() == [-2.0, 6.0, 0.0]
     assert a.quarantine_reason.tolist() == ["unattributed", "unattributed", "placeholder"]
     assert a.team.tolist() == ["AAA", "BBB", "CCC"]
@@ -725,11 +726,15 @@ def test_quarantine_reaudit_keeps_every_row_with_subset_flags_and_marks_unknown_
     assert a.championship_window.tolist() == [True, True, False, False, True]      # 2012 wk 6 and 2020 wk 3 sit inside their windows
     assert a.original_nonzero_ppr.tolist() == [True, False, False, False, False]
     assert a.rescoring_status.tolist() == ["scored", "st_split_unknown", "scored", "scored", "scored"]
-    assert bool(a.nonzero_under_league_keys.iloc[1]) is True                       # unknown split cannot be certified inert
+    assert a.rescoring_verdict.tolist() == ["known_nonzero", "unknown", "verified_zero", "verified_zero", "verified_zero"]
+    assert bool(a.cannot_certify_inert.iloc[1]) is True                             # unknown split cannot be certified inert
+    assert pd.isna(a.league_points_if_scored.iloc[1])                                # never presented as an exact score
+    assert float(a.league_points_known_subtotal.iloc[1]) == 0.0                     # the labelled partial subtotal
     s = lsa.quarantine_summary(a)
     assert s == {"rows_total": 5, "audit_season_rows": 3, "audit_season_reg_rows": 2, "audit_season_post_rows": 1,
-                 "historical_rows": 2, "original_nonzero_ppr_rows": 1, "nonzero_under_league_keys_rows": 2,
-                 "st_split_unknown_rows": 1, "unknown_component_value_rows": 0}
+                 "historical_rows": 2, "original_nonzero_ppr_rows": 1, "known_nonzero_rows": 1, "verified_zero_rows": 3,
+                 "unknown_rows": 1, "st_split_unknown_rows": 1, "unknown_component_value_rows": 0,
+                 "cannot_certify_inert_rows": 2}
 
 
 def test_event_coverage_names_every_denominator_including_events_no_weekly_row_can_carry():
@@ -749,3 +754,70 @@ def test_event_coverage_names_every_denominator_including_events_no_weekly_row_c
     assert cov["events_not_joinable_to_weekly"] == 2          # P9's two events: no weekly row for P9
     assert cov["player_weeks_with_problem_events"] == 0       # P1's own credit (lost, by team) is verified; the missing id is not his
     assert cov["player_weeks_unresolved"] == 0
+
+
+def test_quarantine_reaudit_keeps_original_missing_and_invalid_values_and_calls_them_unknown_not_nonzero():
+    q = weekly([dict(player_id=None, week=1, fantasy_points_ppr=0.0), dict(player_id=None, week=2, fantasy_points_ppr=0.0)])
+    q["receptions"] = [None, 2]
+    q["rushing_yards"] = ["bad", 10]
+    q["quarantine_reason"] = ["placeholder", "unattributed"]
+    q["season"] = 2025
+    a = lsa.audit_quarantine(q, SETTINGS, audit_season=2025)
+    assert a.receptions.tolist()[0] is None or pd.isna(a.receptions.tolist()[0])        # original value kept, not 0
+    assert a.rushing_yards.tolist() == ["bad", 10]                                        # original value kept verbatim
+    assert a.quarantine_reason.tolist() == ["placeholder", "unattributed"]
+    assert a.rescoring_status.tolist() == ["unknown_component_value", "scored"]
+    assert a.rescoring_verdict.tolist() == ["unknown", "known_nonzero"]
+    assert pd.isna(a.league_points_if_scored.iloc[0]) and float(a.league_points_if_scored.iloc[1]) == 3.0
+    assert a.cannot_certify_inert.tolist() == [True, True]
+    s = lsa.quarantine_summary(a)
+    assert s["unknown_rows"] == 1 and s["known_nonzero_rows"] == 1 and s["verified_zero_rows"] == 0
+    assert "nonzero_under_league_keys" not in a.columns
+
+
+# ── independent final review: three accounting regressions ───────────────────────────────────
+
+def test_recovery_side_counts_are_compared_separately_so_a_swapped_side_is_never_credited():
+    # weekly says OWN recovery; play-by-play shows an OPPONENT-ball special-teams recovery: sums agree, sides do not
+    w = weekly([dict(player_id="P1", week=4, fumble_recovery_own=1, fumble_recovery_opp=0)])
+    ev = _events([play("G1", 30, 4, play_type="punt", special_teams_play=1, fumbled_1_player_id="R1", fumbled_1_team="BBB",
+                       fumble_recovery_1_player_id="P1", fumble_recovery_1_team="AAA", fumble_lost=1, desc="FUMBLES")])
+    c = lsa.player_week_components(w, ev)
+    assert c.iloc[0].attribution_status == "unresolved" and c.iloc[0].unresolved_reason == "pbp_event_count_disagrees_with_weekly"
+    assert float(lsa.league_points(c, SETTINGS).iloc[0]) == 0.0
+
+
+def test_missing_player_id_is_counted_directly_even_when_a_capacity_ambiguity_overwrites_the_status():
+    ev = _events([play("G1", 7, 1, fumble_lost=1, fumbled_1_player_id="P1", fumbled_1_team="AAA",
+                       fumble_recovery_1_player_id=None, fumble_recovery_1_team="BBB",
+                       desc="P1 FUMBLES. FUMBLES again. FUMBLES a third time")])
+    rec = ev[ev.event_type == "recovery"].iloc[0]
+    assert rec.status == "ambiguous" and rec.ambiguity_reason == "slot_capacity" and bool(rec.missing_player_id) is True
+    cov = lsa.event_coverage(ev, lsa.player_week_components(weekly([dict(player_id="P1", week=1, fumbles_lost_total=1)]), ev))
+    assert cov["events_missing_player_id"] == 1 and cov["status_counts"] == {"ambiguous": 2}
+
+
+def test_unattributed_ledger_includes_attributed_events_no_weekly_row_can_carry_without_rewriting_status():
+    ev = _events([play("G1", 1, 1, fumbled_1_player_id="P1", fumbled_1_team="AAA", fumble_recovery_1_player_id="P9",
+                       fumble_recovery_1_team="BBB", fumble_lost=1, desc="FUMBLES")])
+    comps = lsa.player_week_components(weekly([dict(player_id="P1", week=1, fumbles_lost_total=1)]), ev)
+    led = lsa.unattributed_events(ev, comps)
+    assert len(led) == 1 and led.iloc[0].player_id == "P9" and led.iloc[0].status == "attributed"
+    assert led.iloc[0].coverage_reason == "no_weekly_row_for_player_week"
+    cov = lsa.event_coverage(ev, comps)
+    assert cov["unattributed_ledger_rows"] == 1 and cov["unattributed_by_reason"] == {"no_weekly_row_for_player_week": 1}
+    assert cov["events_not_joinable_to_weekly"] == 1
+
+
+def test_unattributed_ledger_names_every_reason_and_reconciles_with_the_manifest_counts():
+    ev = _events([
+        play("G1", 1, 1, fumbled_1_player_id="P1", fumbled_1_team="AAA", fumble_recovery_1_player_id=None, fumble_recovery_1_team="BBB",
+             fumble_lost=1, desc="FUMBLES"),
+        play("G1", 2, 1, play_type="no_play", fumbled_1_player_id="P1", fumbled_1_team="AAA", fumble_recovery_1_player_id="P1",
+             fumble_recovery_1_team="AAA"),
+    ])
+    comps = lsa.player_week_components(weekly([dict(player_id="P1", week=1, fumbles_lost_total=1)]), ev)
+    led = lsa.unattributed_events(ev, comps)
+    assert sorted(led.coverage_reason.tolist()) == ["missing_player_id", "status_nullified", "status_nullified"]
+    cov = lsa.event_coverage(ev, comps)
+    assert cov["unattributed_ledger_rows"] == len(led) == sum(cov["unattributed_by_reason"].values())
