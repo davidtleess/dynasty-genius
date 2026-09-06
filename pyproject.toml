@@ -9,6 +9,10 @@
 [tool.ruff]
 target-version = "py314"
 line-length = 88
+# runs/<UTC>/ holds frozen run evidence (AGENT-HOOK §5), including verbatim copies of
+# study scripts whose bytes are hashed in the run manifest. Linting would demand edits
+# that change those hashes; the evidence is not code under maintenance. Added by DG-165.
+extend-exclude = ["runs"]
 
 [tool.ruff.lint]
 # E712 is intentionally SELECTED (via E7), not ignored: pandas / Polars / NumPy

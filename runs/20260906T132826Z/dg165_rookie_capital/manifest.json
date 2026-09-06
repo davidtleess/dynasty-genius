@@ -1,0 +1,197 @@
+{
+ "ticket": "DG-165",
+ "model_version": "dg165_rookie_capital_v1",
+ "status": "RESEARCH CANDIDATE \u2014 not served, not promoted, not merged",
+ "run_dir": "runs/20260906T132826Z/dg165_rookie_capital",
+ "started_utc": "2026-09-06T13:28:26.428457+00:00",
+ "finished_utc": "2026-09-06T13:28:40.853178+00:00",
+ "git_sha": "ecc260ef2b7740f66bf199059b0606d215ed6e43",
+ "forecast_date": {
+  "forecast_year": 2026,
+  "season_clock": "pre-season 2026, after the NFL draft; rookie season = NFL season 1 = 2026",
+  "last_completed_season": 2025
+ },
+ "cohort": {
+  "source": "nflreadpy.load_draft_picks()",
+  "classes": [
+   1999,
+   2026
+  ],
+  "positions": [
+   "QB",
+   "RB",
+   "WR",
+   "TE"
+  ],
+  "coverage": {
+   "seasons": [
+    1999,
+    2000,
+    2001,
+    2002,
+    2003,
+    2004,
+    2005,
+    2006,
+    2007,
+    2008,
+    2009,
+    2010,
+    2011,
+    2012,
+    2013,
+    2014,
+    2015,
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025,
+    2026
+   ],
+   "skill_rows": 2238,
+   "no_gsis_kept_as_washout": 107,
+   "no_gsis_played_dropped_unlabelable": 1,
+   "duplicate_gsis_dropped": 0,
+   "missing_age": 108,
+   "rows": 2237
+  },
+  "no_gsis_rule": "a pick without a gsis_id and with zero PFR career games is KEPT under a synthetic id and labels 0 (107 of 108 such picks 1999-2025 never played; dropping them deletes washouts); a no-id pick who played is unlabelable and dropped, counted above",
+  "played_but_absent_from_panel": "picks with PFR career games > 0 who never appear in the skill-position weekly stats (fullbacks, long snappers, position changes; 66 of 1,932 in 1999-2025, none found under another id by name) are labelled not-played and not-qualified, which is correct for the fantasy question and slightly understates P(played)",
+  "undrafted": "NOT in the cohort and NOT modelled \u2014 no undrafted-prospect population table exists in the product; see REPORT"
+ },
+ "labels": {
+  "qualifying_season": "finished at or above the bar rank for the position by regular-season PPR total; bar = {'QB': 37, 'RB': 45, 'WR': 71, 'TE': 21}; tie-robust N-th largest (same as the canonical DG-164 cells, preserved publish_v3.py)",
+  "played_season": "at least one weekly stat row in nflverse regular-season player stats",
+  "horizons": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "window": "NFL seasons c .. c+h-1 for draft class c; label is NaN when c+h-1 > last completed season at the cutoff",
+  "cutoff_rule": "at forecast year T, training uses last_completed_season = T-1; class c contributes at horizon h only if c <= T-h",
+  "events_are_distinct": "P(played_h), P(Q_h) and E[N_h] are separate estimands; nothing here multiplies them. Engine A's rate is conditional on >= 8 career games (build_head_b_targets.py:84) and composes with P(played), never with P(Q)."
+ },
+ "model": {
+  "model_version": "dg165_rookie_capital_v1",
+  "estimator": "sklearn LogisticRegression (L2, C=1.0) on StandardScaler",
+  "design_columns": [
+   "log_pick",
+   "round",
+   "age_at_draft",
+   "age_missing",
+   "pos_QB",
+   "pos_RB",
+   "pos_WR",
+   "pos_TE",
+   "log_pick_x_QB",
+   "log_pick_x_RB",
+   "log_pick_x_WR",
+   "log_pick_x_TE"
+  ],
+  "feature_columns": [
+   "pick",
+   "round",
+   "age_at_draft",
+   "position"
+  ],
+  "horizons": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "age_median_by_position": {
+   "QB": 23.0,
+   "RB": 22.0,
+   "WR": 22.0,
+   "TE": 23.0
+  },
+  "n_train_by_label": {
+   "q_1": 2157,
+   "played_1": 2157,
+   "q_2": 2071,
+   "played_2": 2071,
+   "q_3": 1994,
+   "played_3": 1994,
+   "q_4": 1914,
+   "played_4": 1914,
+   "q_5": 1835,
+   "played_5": 1835,
+   "qy_1": 2157,
+   "qy_2": 2071,
+   "qy_3": 1994,
+   "qy_4": 1914,
+   "qy_5": 1835
+  },
+  "expected_seasons": "E[N_h] = sum_{j<=h} P(qualifies in NFL season j); bounded by h"
+ },
+ "evaluation": {
+  "forecast_years": [
+   2005,
+   2025
+  ],
+  "splits": 95,
+  "absent_pairs": 10,
+  "n_boot": 1000
+ },
+ "score_intervals": {
+  "method": "refit on player-resampled training sets, 5th/95th percentile",
+  "n_boot_requested": 200,
+  "n_boot_effective": 200
+ },
+ "dg176_names_present": {
+  "Fernando Mendoza": true,
+  "Ty Simpson": true,
+  "Kenyon Sadiq": true
+ },
+ "inputs": {
+  "nflverse_draft_picks": {
+   "path": "inputs/nflverse_draft_picks.parquet",
+   "sha256": "68940f7b20f4e776f86bf27d38b9975ba5bc3f17f7a6f345bdd87c8bd72c097f",
+   "rows": 12927
+  },
+  "panel": {
+   "path": "inputs/panel.parquet",
+   "sha256": "d8d260a85379f212564599877b7c2b36a7ffca26c11ffd73c56bac5d75879a35",
+   "rows": 14776,
+   "seasons": [
+    1999,
+    2025
+   ],
+   "source": "copied from runs/20260906T131535Z/dg165_reproduction/inputs/panel.parquet"
+  },
+  "age_cross_check": {
+   "overlap_rows": 874,
+   "both_present": 871,
+   "agree_within_0.5": 871,
+   "max_abs_diff": 0.0,
+   "source": "/Users/davidleess/dg-build/preserved/2026-09-06-dg165-rookie-translation/prospects_with_outcomes_v3.csv",
+   "sha256": "15e17cd9164c5ab05f0440f0ca90bb93f89ce7735efa517d331495cd2bea11d0"
+  }
+ },
+ "environment": {
+  "python": "3.14.7",
+  "pandas": "3.0.5",
+  "numpy": "2.5.2",
+  "sklearn": "1.8.0",
+  "nflreadpy": "0.1.5"
+ },
+ "outputs": [
+  ".gitignore",
+  "EVALUATION.md",
+  "ROOKIES_2026.md",
+  "evaluation.json",
+  "out_of_time_predictions.csv",
+  "rookie_scores_2026.csv",
+  "training_descriptives.json"
+ ]
+}

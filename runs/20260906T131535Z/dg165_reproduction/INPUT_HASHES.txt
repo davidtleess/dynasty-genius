@@ -1,0 +1,4 @@
+d8d260a85379f212564599877b7c2b36a7ffca26c11ffd73c56bac5d75879a35  inputs/panel.parquet
+15e17cd9164c5ab05f0440f0ca90bb93f89ce7735efa517d331495cd2bea11d0  inputs/prospects_with_outcomes_v3.csv
+22308c2a0fd1a2d0b13464ca35af210e42a089e4f3fc09928ba1bf800d85fe5e  rookie_repro.py
+4a0cfb7efeaca001012066c79eacf43b6b6c14da0a57304b0d0f4ba745709ac0  /Users/davidleess/dg-build/preserved/2026-09-06-dg165-rookie-translation/rookie.py

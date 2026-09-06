@@ -1,0 +1,76 @@
+cohort 478 prospects, selected by DRAFT CLASS ONLY (no inherited flag read)
+EVER QUALIFIED: 203 of 478 = 42%
+  zero-game prospects retained in the cohort: 85  <- the 85 that the flag would delete
+  by position: {'QB': {'size': 68, 'sum': 32, 'mean': 0.47}, 'RB': {'size': 129, 'sum': 63, 'mean': 0.49}, 'TE': {'size': 87, 'sum': 25, 'mean': 0.29}, 'WR': {'size': 194, 'sum': 83, 'mean': 0.43}}
+
+college feature coverage in the cohort: dominator 72%, final_dom 60%, final_college_age 100%, yprr_college 0%, ryptpa 35%, wr_breakout_age 31%
+
+LEAVE-ONE-CLASS-OUT — can we predict who ever becomes startable?
+  draft capital alone (pick, round, age)   AUC 0.813   n=478
+  college production alone                 AUC 0.655   n=478
+  capital + college                        AUC 0.817   n=478
+
+  INCREMENT of college ON TOP of capital: +0.004  90% CI [-0.007, +0.014]
+
+============================================================================
+IS THE NULL A SIGNAL PROBLEM OR A COVERAGE PROBLEM?
+  yprr_college is 0% populated — it contributes nothing because it is EMPTY
+  restricting to prospects WITH a dominator rating: 344 of 478 (72%)
+    ever-qualified rate in that subset: 43% (vs 42% overall)
+
+  on the 344 WITH college data, using only populated features ['dominator', 'final_dom', 'final_college_age', 'ryptpa', 'wr_breakout_age']:
+    draft capital alone                    AUC 0.803   n=344
+    capital + college                      AUC 0.806   n=344
+
+    INCREMENT on the covered subset: +0.003  90% CI [-0.014, +0.020]
+
+  DRAFT CAPITAL ALONE, as a calibration table:
+                   n  qualified  rate
+decile                               
+1st 20% of picks  98         84  0.86
+2nd               94         54  0.57
+3rd               97         33  0.34
+4th               95         21  0.22
+last 20%          94         11  0.12
+
+==============================================================================
+CODEX BRIEF — calibration, Brier, log loss, coverage, by position and draft band
+model                           AUC   Brier  log loss   (lower is better for both)
+draft capital alone           0.813  0.1719    0.5209
+college alone                 0.655  0.2281    0.6506
+capital + college             0.817  0.1706    0.5169
+base rate (no model)          0.500  0.2443    0.6818
+
+CALIBRATION of draft-capital-alone (out-of-class predictions):
+           n  predicted  actual
+bin                            
+0-10%     52      0.075   0.077
+10-20%    94      0.146   0.160
+20-35%    79      0.278   0.291
+35-50%    64      0.420   0.375
+50-70%    80      0.593   0.575
+70-100%  109      0.819   0.835
+  max |predicted - actual| = 0.045
+
+BY POSITION (draft capital alone):
+pos      n    base    AUC   Brier
+QB      68    0.47  0.876  0.1362
+RB     129    0.49  0.884  0.1468
+WR     194    0.43  0.743  0.2045
+TE      87    0.29  0.812  0.1645
+
+HOLDOUT — train on 2015-2018, predict the two NEWEST mature classes (2019-2020):
+  capital only      AUC 0.829  Brier 0.1723   n=157
+  capital + college AUC 0.837  Brier 0.1679
+  out-of-time increment: +0.008 AUC, -0.0043 Brier
+
+IS THE OUT-OF-TIME INCREMENT REAL? bootstrap on the 2019-2020 holdout
+  d AUC   +0.008  90% CI [-0.010, +0.026]
+  d Brier -0.0045 90% CI [-0.0135, +0.0037]   (negative = college helps)
+  -> BOTH span zero: not stable evidence
+
+THE FIVE DRAFT-PICK BUCKETS — Codex asked, and the answer is YES:
+  those percentages (86/57/34/22/12) are computed on ALL 478 rows with NO holdout.
+  They are DESCRIPTIVE, not validated probabilities.
+  The VALIDATED object is the calibration table above, which is out-of-fold
+  (leave-one-class-out) and deviates by at most 0.045 across six bins.
