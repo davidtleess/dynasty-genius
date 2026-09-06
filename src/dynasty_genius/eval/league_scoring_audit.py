@@ -439,12 +439,18 @@ POPULATION_NOTE = "rostered player-weeks only; not full-universe proof"
 SCHEMA_VERSION = "dg177_league_scoring_audit_v1"
 
 
-def audit_quarantine(quarantine: pd.DataFrame, settings: dict) -> pd.DataFrame:
-    """Re-score the PPR quarantine under the league's individual keys. Every original column
-    (including the original quarantine reason / exception) is kept; no play-by-play split is
-    attempted for unidentified rows, so only weekly-count components can move them."""
+def _window_last_week(season: pd.Series) -> pd.Series:
+    """Championship window: REG weeks 1–16 through 2020, 1–17 from 2021 (DG-179 window rule)."""
+    return np.where(pd.to_numeric(season, errors="coerce") >= 2021, 17, 16)
+
+
+def audit_quarantine(quarantine: pd.DataFrame, settings: dict, audit_season: int | None = None) -> pd.DataFrame:
+    """Re-score the WHOLE PPR quarantine (every row, every season) under the league's individual
+    keys. Every original column, reason and exception is kept. No play-by-play split is attempted
+    for unidentified rows, so a row whose weekly counts need the special-teams / side split is
+    `st_split_unknown` and cannot be certified inert; a missing or non-numeric required value is
+    `unknown_component_value`, never zero."""
     q = quarantine.copy()
-    present = [c for c in WEEKLY_COMPONENT_COLUMNS if c in q]
     unknown = pd.Series(False, index=q.index)
     for c in WEEKLY_COMPONENT_COLUMNS:
         if c not in q:
@@ -456,12 +462,52 @@ def audit_quarantine(quarantine: pd.DataFrame, settings: dict) -> pd.DataFrame:
     q["extra_fumbles_lost"] = q["fumbles_lost_total"] - q["sack_fumbles_lost"] - q["rushing_fumbles_lost"] - q["receiving_fumbles_lost"]
     for c in SPLIT_COLUMNS:
         q[c] = 0
+    needs_split = (q["def_fumbles_forced"] + q["fumble_recovery_own"] + q["fumble_recovery_opp"]) > 0
     pts = league_points(q, settings)
-    q["rescoring_status"] = np.where(unknown, "unknown_component_value", "scored")
+    q["rescoring_status"] = np.select([unknown, needs_split], ["unknown_component_value", "st_split_unknown"], default="scored")
     q["league_points_if_scored"] = pts.where(~unknown, np.nan)
-    q["nonzero_under_league_keys"] = np.where(unknown, True, pts.abs() > TOL)   # unknown cannot prove zero
-    q.attrs["columns_present"] = present
+    q["nonzero_under_league_keys"] = np.where(unknown | needs_split, True, pts.abs() > TOL)   # unknown cannot prove zero
+    q["original_nonzero_ppr"] = q["fantasy_points_ppr"].abs() > TOL
+    season = pd.to_numeric(q["season"], errors="coerce") if "season" in q else pd.Series(np.nan, index=q.index)
+    q["is_audit_season"] = (season == audit_season) if audit_season is not None else False
+    q["is_reg"] = (q["season_type"] == "REG") if "season_type" in q else True
+    week = pd.to_numeric(q["week"], errors="coerce") if "week" in q else pd.Series(np.nan, index=q.index)
+    q["championship_window"] = q["is_reg"] & (week <= _window_last_week(season))
     return q
+
+
+def quarantine_summary(audited: pd.DataFrame) -> dict:
+    a = audited
+    return {
+        "rows_total": int(len(a)),
+        "audit_season_rows": int(a["is_audit_season"].sum()),
+        "audit_season_reg_rows": int((a["is_audit_season"] & a["is_reg"]).sum()),
+        "audit_season_post_rows": int((a["is_audit_season"] & ~a["is_reg"]).sum()),
+        "historical_rows": int((~a["is_audit_season"]).sum()),
+        "original_nonzero_ppr_rows": int(a["original_nonzero_ppr"].sum()),
+        "nonzero_under_league_keys_rows": int(a["nonzero_under_league_keys"].sum()),
+        "st_split_unknown_rows": int((a["rescoring_status"] == "st_split_unknown").sum()),
+        "unknown_component_value_rows": int((a["rescoring_status"] == "unknown_component_value").sum()),
+    }
+
+
+def event_coverage(events: pd.DataFrame, components: pd.DataFrame) -> dict:
+    """Named denominators for the event ledger, so unknown-identity events stay visible even when
+    no component row can carry their flag."""
+    ev = events
+    keys = set(zip(components["player_id"], components["week"])) if len(components) else set()
+    with_id = ev.dropna(subset=["player_id"]) if len(ev) else ev
+    joinable = pd.Series([(p, w) in keys for p, w in zip(with_id["player_id"], with_id["week"])], index=with_id.index, dtype=bool) if len(with_id) else pd.Series(dtype=bool)
+    return {
+        "events_total": int(len(ev)),
+        "unique_plays": int(ev[["game_id", "play_id"]].drop_duplicates().shape[0]) if len(ev) else 0,
+        "status_counts": {k: int(v) for k, v in ev["status"].value_counts().sort_index().items()} if len(ev) else {},
+        "ambiguity_counts": {k: int(v) for k, v in ev.loc[ev["status"] == "ambiguous", "ambiguity_reason"].value_counts().sort_index().items()} if len(ev) else {},
+        "events_missing_player_id": int((ev["status"] == "missing_id").sum()) if len(ev) else 0,
+        "events_not_joinable_to_weekly": int((~joinable).sum()) if len(joinable) else 0,
+        "player_weeks_with_problem_events": int((components["problem_events"] > 0).sum()) if len(components) else 0,
+        "player_weeks_unresolved": int((components["attribution_status"] == "unresolved").sum()) if len(components) else 0,
+    }
 
 
 def coverage_counts(components: pd.DataFrame, reconciliation: pd.DataFrame, sleeper: pd.DataFrame, identity: pd.DataFrame) -> dict:

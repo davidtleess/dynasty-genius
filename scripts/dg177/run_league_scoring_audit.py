@@ -54,7 +54,9 @@ def _render(m: dict, rec: pd.DataFrame, comps: pd.DataFrame) -> str:
              f"{c['status_unresolved_championship']}",
              f"- reconciliation unresolved by reason: {c['reconciliation_unresolved_by_reason']}",
              f"- component weeks unresolved by reason: {c['components_unresolved_by_reason']}",
-             f"- {c['population_note']}\n",
+             f"- {c['population_note']}",
+             f"- event ledger: {m['event_coverage']}",
+             f"- quarantine re-audit (ALL rows, every season): {m['quarantine_reaudit']}\n",
              f"## Exact-league qualification: {m['league_scoring_exact']}\n", *[f"- {r}" for r in m["qualification_reasons"]], "",
              "## Differences vs research PPR (attributed) and unresolved rows (ids, never names)\n"]
     show = rec[rec.status.isin(["attributed_difference", "unresolved"])]
@@ -107,14 +109,12 @@ def main(argv: list[str] | None = None) -> int:
         sleeper = lsa.sleeper_week_points_from_payloads({int(n[-7:-5]): src.json()["payload"] for n, src in matchups.items()})
         identity = lsa.map_sleeper_ids(sleeper["sleeper_id"], cap["idmap"].frame()[["sleeper_id", "gsis_id"]])
         rec = lsa.reconcile(comps, sleeper, identity, settings)
-        quar = cap["quarantine"].frame()
-        if "season" in quar:
-            quar = quar[pd.to_numeric(quar["season"], errors="coerce") == args.season]
-        quar_audit = lsa.audit_quarantine(quar, settings)
+        quar_audit = lsa.audit_quarantine(cap["quarantine"].frame(), settings, audit_season=args.season)   # ALL rows, every season
+        event_cov = lsa.event_coverage(events, comps)
         counts = {**lsa.coverage_counts(comps, rec, sleeper, identity), **lsa.window_delta_summary(comps, settings),
-                  "events_total": int(len(events)), "events_unattributed": int((events["status"] == "missing_id").sum()),
-                  "events_ambiguous": int((events["status"] == "ambiguous").sum()),
-                  "events_nullified": int((events["status"] == "nullified").sum())}
+                  "events_total": event_cov["events_total"], "events_unattributed": event_cov["events_missing_player_id"],
+                  "events_ambiguous": int((events["status"] == "ambiguous").sum()) if len(events) else 0,
+                  "events_nullified": int((events["status"] == "nullified").sum()) if len(events) else 0}
         kickers = bool(weekly["position"].isin(["K", "P"]).any()) if "position" in weekly else False
         qual = lsa.exact_qualification(classification, counts, kicker_rows_present=kickers)
     except lsa.ScoringAuditError as err:
@@ -133,8 +133,8 @@ def main(argv: list[str] | None = None) -> int:
     manifest = lsa.build_audit_manifest(sources=sources, settings=settings, classification=classification, counts=counts,
                                         qualification=qual, launch=launch, outputs={})
     manifest["season"] = args.season
-    manifest["quarantine_reaudit"] = {"rows": int(len(quar_audit)),
-                                      "nonzero_under_league_keys": int(quar_audit["nonzero_under_league_keys"].sum())}
+    manifest["quarantine_reaudit"] = lsa.quarantine_summary(quar_audit)
+    manifest["event_coverage"] = event_cov
     (out_dir / "report.md").write_text(_render(manifest, rec, comps))
     manifest["outputs"] = {name: hashlib.sha256((out_dir / name).read_bytes()).hexdigest() for name in OUTPUTS}
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2, default=str) + "\n")

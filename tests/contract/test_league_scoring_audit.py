@@ -706,3 +706,46 @@ def test_events_with_a_missing_player_id_are_kept_in_the_unattributed_ledger(tmp
     assert len(led) == 1 and led.iloc[0].event_type == "recovery" and led.iloc[0].status == "missing_id"
     m = json.loads((run / "manifest.json").read_text())
     assert m["coverage"]["events_unattributed"] == 1 and "unattributed_events.csv" in m["outputs"]
+
+
+# ── root's scope review: the WHOLE quarantine, and named event denominators ──────────────────
+
+def test_quarantine_reaudit_keeps_every_row_with_subset_flags_and_marks_unknown_special_teams_splits():
+    q = weekly([dict(player_id=None, week=6, receptions=3, receiving_yards=1, fantasy_points_ppr=3.1),   # historical nonzero exception
+                dict(player_id=None, week=17, fantasy_points_ppr=0.0, def_fumbles_forced=1),  # audit season, needs a split
+                dict(player_id=None, week=18, fantasy_points_ppr=0.0),                       # audit season, outside the window
+                dict(player_id=None, week=20, season_type="POST", fantasy_points_ppr=0.0),   # audit season, POST
+                dict(player_id=None, week=3, fantasy_points_ppr=0.0)])
+    q["season"] = [2012, 2025, 2025, 2025, 2020]
+    q["quarantine_reason"] = "unattributed"
+    a = lsa.audit_quarantine(q, SETTINGS, audit_season=2025)
+    assert len(a) == 5 and a.quarantine_reason.tolist() == ["unattributed"] * 5
+    assert a.is_audit_season.tolist() == [False, True, True, True, False]
+    assert a.is_reg.tolist() == [True, True, True, False, True]
+    assert a.championship_window.tolist() == [True, True, False, False, True]      # 2012 wk 6 and 2020 wk 3 sit inside their windows
+    assert a.original_nonzero_ppr.tolist() == [True, False, False, False, False]
+    assert a.rescoring_status.tolist() == ["scored", "st_split_unknown", "scored", "scored", "scored"]
+    assert bool(a.nonzero_under_league_keys.iloc[1]) is True                       # unknown split cannot be certified inert
+    s = lsa.quarantine_summary(a)
+    assert s == {"rows_total": 5, "audit_season_rows": 3, "audit_season_reg_rows": 2, "audit_season_post_rows": 1,
+                 "historical_rows": 2, "original_nonzero_ppr_rows": 1, "nonzero_under_league_keys_rows": 2,
+                 "st_split_unknown_rows": 1, "unknown_component_value_rows": 0}
+
+
+def test_event_coverage_names_every_denominator_including_events_no_weekly_row_can_carry():
+    ev = lsa.extract_fumble_events(pbp([
+        play("G1", 1, 1, fumbled_1_player_id="P1", fumbled_1_team="AAA", fumble_recovery_1_player_id=None, fumble_recovery_1_team="BBB",
+             fumble_lost=1, desc="FUMBLES"),
+        play("G1", 2, 1, fumbled_1_player_id="P9", fumbled_1_team="AAA", fumble_recovery_1_player_id="P9", fumble_recovery_1_team="AAA",
+             desc="FUMBLES"),
+        play("G1", 3, 1, play_type="no_play", fumbled_1_player_id="P1", fumbled_1_team="AAA", fumble_recovery_1_player_id="P1",
+             fumble_recovery_1_team="AAA"),
+    ]))
+    comps = lsa.player_week_components(weekly([dict(player_id="P1", week=1, fumbles_lost_total=1)]), ev)
+    cov = lsa.event_coverage(ev, comps)
+    assert cov["events_total"] == len(ev) and cov["unique_plays"] == 3
+    assert cov["status_counts"] == {"attributed": 3, "missing_id": 1, "nullified": 2}
+    assert cov["events_missing_player_id"] == 1               # the unknown recoverer stays visible here, no row can carry it
+    assert cov["events_not_joinable_to_weekly"] == 2          # P9's two events: no weekly row for P9
+    assert cov["player_weeks_with_problem_events"] == 0       # P1's own credit (lost, by team) is verified; the missing id is not his
+    assert cov["player_weeks_unresolved"] == 0
