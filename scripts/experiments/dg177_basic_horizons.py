@@ -78,6 +78,15 @@ SCOPE = "REG"
 POSITIONS = ("QB", "RB", "WR", "TE")
 MIN_TRAINING_SEASONS = 6
 ARM = "basic_cohort_3col_plus_lags"
+#: The outcome window a producer file was labelled on; the ranking lane's adapter refuses a
+#: producer whose window differs from the board's, so the manifest names it explicitly.
+WINDOW_IDS = {"this_lane_REG_aggregation": "all_reg_weeks", "common_outcome_artifact": "championship_week17"}
+
+
+def window_id_for(label_source_kind: str) -> str:
+    if label_source_kind not in WINDOW_IDS:
+        raise ValueError(f"unknown label source {label_source_kind!r}; expected one of {sorted(WINDOW_IDS)}")
+    return WINDOW_IDS[label_source_kind]
 #: DG-165's immutable roster capture (read-only): one season-end roster row per player-season,
 #: 1999-2025, dated by week inside the season. Same-season offensive-role evidence only.
 DEFAULT_ROSTER_ROLES = Path("/Users/davidleess/dg-wt/DG-165/runs/20260906T154706Z/dg165_rookie_capital/inputs/nflverse_rosters.parquet")
@@ -381,10 +390,12 @@ def main(argv: list[str] | None = None) -> int:
     manifest["evaluation_status"] = evaluation_status({"historical": historical}, historical_predictions, arm_key=None)
     manifest["role_fallback"] = results["role_fallback"]
     manifest["label_source"] = label_source
+    manifest["window_id"] = window_id_for(label_source["kind"])
+    manifest["scoring_scope"]["window_id"] = manifest["window_id"]
     if label_source["kind"] == "common_outcome_artifact":
         manifest["scoring_scope"] = {"scope": scope_label, "scoring": label_source["scoring"],
                                      "exact_league_scoring": False, "weeks": label_source["weeks"],
-                                     "season_types": ["REG"]}
+                                     "season_types": ["REG"], "window_id": manifest["window_id"]}
         manifest["inputs"]["common_outcomes_sha256"] = label_source["csv_sha256"]
     validate_manifest(manifest, known_arms={ARM},
                       required_inputs=("weekly_stats_sha256", "players_sha256") + (("roster_roles_sha256",) if roster_facts.get("supplied") else ()),

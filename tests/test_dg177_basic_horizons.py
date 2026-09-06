@@ -1,6 +1,8 @@
 """Round 2, item 5 — years 1-5 on the basic cohort: unsupported cells are reported, never filled."""
 from __future__ import annotations
 
+import pytest
+
 from scripts.experiments.dg177_basic_horizons import (
     HORIZONS,
     evaluable_horizons,
@@ -26,3 +28,13 @@ def test_a_horizon_with_too_few_closed_seasons_is_unsupported_not_filled():
     support = horizon_support(seasons, last_complete_season=2025, min_training_seasons=6)
     assert support[5]["supported"] is False and "2018" in support[5]["reason"]
     assert evaluable_horizons(support) == [1, 2]      # 2018-2025 supports only 1-2 at that floor
+
+
+def test_the_manifest_window_id_follows_the_label_source():
+    from scripts.experiments.dg177_basic_horizons import WINDOW_IDS, window_id_for
+
+    assert WINDOW_IDS == {"this_lane_REG_aggregation": "all_reg_weeks", "common_outcome_artifact": "championship_week17"}
+    assert window_id_for("this_lane_REG_aggregation") == "all_reg_weeks"
+    assert window_id_for("common_outcome_artifact") == "championship_week17"
+    with pytest.raises(ValueError):
+        window_id_for("something_else")
