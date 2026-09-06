@@ -70,6 +70,14 @@ PROHIBITED_COLUMNS = {
 # Anchored regex for broader leakage scanning
 LEAKAGE_REGEX = r"^ktc_|^adp|_rank$|^expert|^market_|^value_|^consensus"
 
+# DG-173 (David's ruling 2026-09-06): a third-party PROJECTION or RANKING is a market
+# price. LEAKAGE_REGEX above admitted eleven of fourteen plausible projection column
+# names when measured; the class test below is authoritative and is shared with the
+# Engine B contract so the two cannot drift apart.
+from src.dynasty_genius.models.engine_b_contract import (  # noqa: E402
+    is_market_derived_column as is_market_derived_column,
+)
+
 # ── Position Mapping ────────────────────────────────────────────────────────
 POSITION_FEATURE_MATRIX = {
     "WR": ["dominator_rating", "receiving_yards_share", "ryptpa", "yprr_college"],
