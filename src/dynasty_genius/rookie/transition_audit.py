@@ -198,6 +198,16 @@ THIN_HISTORY_MAX_GAMES = 4
 LABEL_ATOL = 1e-9
 
 
+def _strict_int(values: pd.Series, name: str) -> np.ndarray:
+    """Year and key columns must be finite AND integral BEFORE any cast; astype(int) would truncate 2012.25 to 2012."""
+    arr = pd.to_numeric(values, errors="coerce").to_numpy(dtype=float)
+    bad = ~np.isfinite(arr) | (arr != np.floor(arr))
+    if bad.any():
+        sample = values[bad].head(5).tolist()
+        raise ValueError(f"{name}: {int(bad.sum())} values are not integral (or not numeric), e.g. {sample}")
+    return arr.astype(int)
+
+
 def _assert_unique(frame: pd.DataFrame, keys: list[str], what: str) -> None:
     dup = frame.duplicated(keys, keep=False)
     if dup.any():
@@ -213,6 +223,10 @@ def rookie_draft_time_frame(rookie: RookieRun, *, experience: int) -> pd.DataFra
     """
     j = experience + 1
     oot = rookie.out_of_time
+    for col in ("draft_season", "forecast_year", "pick", "round"):
+        _strict_int(oot[col], f"rookie history {col}")
+    for col in ("draft_season", "pick"):
+        _strict_int(rookie.cohort[col], f"cohort {col}")
     off = oot["forecast_year"].astype(int) != oot["draft_season"].astype(int)
     if off.any():
         raise ValueError(
@@ -256,6 +270,9 @@ def veteran_horizon1_frame(veteran: VeteranRun) -> pd.DataFrame:
     """Horizon-1 rows with their labels and the feature season's games_t; a prediction without its
     feature row is a broken input and refuses (thin history must never default from a missing key)."""
     h = veteran.historical
+    for col in ("horizon", "feature_season", "forecast_season"):
+        _strict_int(h[col], f"veteran history {col}")
+    _strict_int(veteran.cohort["feature_season"], "veteran basic cohort feature_season")
     frame = h.loc[h["horizon"] == 1].copy()
     off = frame["forecast_season"].astype(int) != frame["feature_season"].astype(int) + 1
     if off.any():
@@ -364,10 +381,12 @@ def join_transition(rookie: RookieRun, veteran: VeteranRun, *, experience: int) 
 
 LEDGER_CATEGORIES = (
     "paired",
-    "no_veteran_row_no_window_appearance",
-    "no_veteran_row_despite_window_appearance",
-    "veteran_row_without_rookie_forecast",
-    "label_unknown",
+    "no_veteran_row_no_window_appearance",        # measured 0 appearances in the feature season, no veteran row
+    "no_veteran_row_despite_window_appearance",   # measured appearance, no veteran row (e.g. role abstain)
+    "no_veteran_row_appearance_unknown",          # no veteran row and the appearance flag itself is unknown
+    "rookie_forecast_missing",                    # cohort player with no draft-time forecast row at all
+    "label_unknown",                              # any of the target season's appearance / points / games is unknown
+    "veteran_row_without_rookie_forecast",        # fail-safe; unreachable when the join's own guards hold
     "outside_overlap_classes",
     "identity_unresolved",
 )
@@ -400,10 +419,17 @@ def coverage_ledger(rookie: RookieRun, veteran: VeteranRun, *, experience: int) 
             cat = "outside_overlap_classes"
         elif pid in joined_ids:
             cat = "paired"
-        elif pid in r.index and pd.isna(r.loc[pid, "rookie_label_points"]):
+        elif pid not in r.index:
+            cat = "rookie_forecast_missing"
+        elif r.loc[pid, ["rookie_label_appeared", "rookie_label_points", "rookie_label_games"]].isna().any():
             cat = "label_unknown"
         elif (pid, fs) not in v.index:
-            cat = "no_veteran_row_despite_window_appearance" if appear_k == 1 else "no_veteran_row_no_window_appearance"
+            if appear_k == 1:
+                cat = "no_veteran_row_despite_window_appearance"
+            elif appear_k == 0:
+                cat = "no_veteran_row_no_window_appearance"
+            else:
+                cat = "no_veteran_row_appearance_unknown"
         else:
             cat = "veteran_row_without_rookie_forecast"
         rows.append({"player_id": pid, "name": row.name, "draft_season": cls, "pick": int(row.pick),
@@ -574,7 +600,29 @@ def _jsonable(value):
     return value
 
 
+EXPERIENCE_COMPARISON_CAVEAT = ("the experience strata are separate paired samples (different players and class ranges "
+                                "at each experience), so a comparison across experiences is between samples, not a "
+                                "within-person trend; a larger veteran advantage at higher experience is not an automatic "
+                                "'more NFL information' effect and must be read alongside the per-stratum populations")
+
+
+def _validate_audit_args(experiences: tuple[int, ...], seed: int, draws: int) -> tuple[int, ...]:
+    exps = tuple(experiences)
+    if not exps:
+        raise ValueError("experience: at least one experience stratum is required")
+    if any((not isinstance(e, (int, np.integer))) or isinstance(e, bool) or e < 1 for e in exps):
+        raise ValueError(f"experience: every value must be an integer >= 1, got {exps}")
+    if len(set(exps)) != len(exps):
+        raise ValueError(f"experience: duplicate strata would double-count rows and ledger entries, got {exps}")
+    if not isinstance(draws, (int, np.integer)) or isinstance(draws, bool) or draws < 1:
+        raise ValueError(f"draws: must be an integer >= 1, got {draws!r}")
+    if not isinstance(seed, (int, np.integer)) or isinstance(seed, bool):
+        raise ValueError(f"seed: must be an integer, got {seed!r}")
+    return tuple(int(e) for e in exps)
+
+
 def run_audit(rookie: RookieRun, veteran: VeteranRun, *, experiences: tuple[int, ...], seed: int, draws: int) -> dict:
+    experiences = _validate_audit_args(experiences, seed, draws)
     binding = verify_same_target(rookie, veteran)
     raw_rows = ((rookie.manifest.get("cohort") or {}).get("coverage") or {}).get("rows")
     raw_excluded = int(raw_rows) - int(len(rookie.cohort)) if raw_rows is not None else None
@@ -615,6 +663,7 @@ def run_audit(rookie: RookieRun, veteran: VeteranRun, *, experiences: tuple[int,
             "not": NOT_A_CORRECTION,
             "caveats": {
                 "rookie_policy_menu": ROOKIE_MENU_CAVEAT,
+                "experience_comparison": EXPERIENCE_COMPARISON_CAVEAT,
                 "rookie_evidence_status_verbatim": rookie.manifest.get("evidence_status"),
                 "bootstrap": BOOTSTRAP_CONDITIONAL_ON,
                 "role": ROLE_CAVEAT,

@@ -46,9 +46,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--draws", type=int, default=2000)
     ap.add_argument("--runs-root", default="runs")
     args = ap.parse_args(argv)
-    rookie = load_rookie_run(args.rookie_run)
-    veteran = load_veteran_run(args.veteran_run)
-    result = run_audit(rookie, veteran, experiences=tuple(args.experience), seed=args.seed, draws=args.draws)
+    try:
+        rookie = load_rookie_run(args.rookie_run)
+        veteran = load_veteran_run(args.veteran_run)
+        result = run_audit(rookie, veteran, experiences=tuple(args.experience), seed=args.seed, draws=args.draws)
+    except ValueError as exc:  # a refusal: say why, write nothing
+        print(f"refused: {exc}", file=sys.stderr)
+        return 2
     run_dir = create_run_dir(args.runs_root, name="dg165_transition_audit")
     write_audit(run_dir, result, rookie=rookie, veteran=veteran, seed=args.seed, draws=args.draws,
                 experiences=tuple(args.experience), git_sha=git_sha())

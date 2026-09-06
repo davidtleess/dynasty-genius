@@ -593,3 +593,120 @@ def test_negative_fantasy_points_remain_valid_labels_and_forecasts(tmp_path):
     j = join_transition(load_rookie_run(rookie_dir), load_veteran_run(vet_dir), experience=1)
     assert j.set_index("player_id").loc["00-C", "points"] == -3.0
     assert paired_metrics(j)["n"] == 3
+
+
+# ---------------------------------------------------------------- root review 2026-09-06 (2): integrality, ledger unknowns, duplicate experiences
+
+def test_non_integral_year_is_refused_not_truncated(tmp_path):
+    from src.dynasty_genius.rookie.transition_audit import (
+        join_transition,
+        load_rookie_run,
+        load_veteran_run,
+    )
+    rookie_dir = make_rookie_run(tmp_path)
+    hist = pd.read_csv(make_veteran_run(tmp_path) / "historical_predictions.csv")
+    hist["forecast_season"] = hist["forecast_season"].astype(float)
+    hist.loc[(hist.player_id == "00-A") & (hist.feature_season == 2015), "forecast_season"] = 2016.25  # astype(int) would say 2016
+    vet_dir = _rebuild_veteran(tmp_path, hist=hist)
+    with pytest.raises(ValueError, match="integral"):
+        join_transition(load_rookie_run(rookie_dir), load_veteran_run(vet_dir), experience=1)
+
+
+def test_non_integral_rookie_key_is_refused(tmp_path):
+    import shutil
+
+    from src.dynasty_genius.rookie.transition_audit import (
+        load_rookie_run,
+        rookie_draft_time_frame,
+    )
+    rookie_dir = make_rookie_run(tmp_path)
+    oot = pd.read_csv(rookie_dir / "out_of_time_predictions.csv")
+    oot["pick"] = oot["pick"].astype(float)
+    oot.loc[oot.gsis_id == "00-B", "pick"] = 40.5
+    shutil.rmtree(rookie_dir)
+    rookie_dir = make_rookie_run(tmp_path, oot=oot)
+    with pytest.raises(ValueError, match="integral"):
+        rookie_draft_time_frame(load_rookie_run(rookie_dir), experience=1)
+
+
+def test_ledger_partial_label_is_unknown_and_missing_forecast_row_is_its_own_category(tmp_path):
+    import shutil
+
+    from src.dynasty_genius.rookie.transition_audit import (
+        coverage_ledger,
+        load_rookie_run,
+        load_veteran_run,
+    )
+    rookie_dir = make_rookie_run(tmp_path)
+    oot = pd.read_csv(rookie_dir / "out_of_time_predictions.csv")
+    oot.loc[oot.gsis_id == "00-A", "appear_2"] = np.nan          # points remain: the label is UNKNOWN, not "no forecast"
+    oot = oot[oot.gsis_id != "00-C"]                              # C (appeared, unpaired) has no draft-time forecast row at all
+    shutil.rmtree(rookie_dir)
+    rookie_dir = make_rookie_run(tmp_path, oot=oot)
+    vet_dir = make_veteran_run(tmp_path)
+    led = coverage_ledger(load_rookie_run(rookie_dir), load_veteran_run(vet_dir), experience=1)
+    cat = led.set_index("player_id")["category"]
+    assert len(led) == 5
+    assert cat["00-A"] == "label_unknown"
+    assert cat["00-C"] == "rookie_forecast_missing"                # never "no window appearance" from a NaN flag
+    assert cat["00-D"] == "no_veteran_row_no_window_appearance"    # D's appearance flag is a measured 0
+
+
+def test_ledger_unknown_appearance_without_veteran_row_is_not_called_no_appearance(tmp_path):
+    import shutil
+
+    from src.dynasty_genius.rookie.transition_audit import (
+        coverage_ledger,
+        load_rookie_run,
+        load_veteran_run,
+    )
+    rookie_dir = make_rookie_run(tmp_path)
+    oot = pd.read_csv(rookie_dir / "out_of_time_predictions.csv")
+    oot.loc[oot.gsis_id == "00-D", "appear_1"] = np.nan          # D: no veteran row AND unknown rookie-season appearance
+    shutil.rmtree(rookie_dir)
+    rookie_dir = make_rookie_run(tmp_path, oot=oot)
+    led = coverage_ledger(load_rookie_run(rookie_dir), load_veteran_run(make_veteran_run(tmp_path)), experience=1)
+    assert led.set_index("player_id")["category"]["00-D"] == "no_veteran_row_appearance_unknown"
+
+
+def test_run_audit_rejects_duplicate_or_empty_experiences_and_bad_draws(runs):
+    from src.dynasty_genius.rookie.transition_audit import (
+        load_rookie_run,
+        load_veteran_run,
+        run_audit,
+    )
+    rookie_dir, vet_dir = runs
+    r, v = load_rookie_run(rookie_dir), load_veteran_run(vet_dir)
+    with pytest.raises(ValueError, match="experience"):
+        run_audit(r, v, experiences=(1, 1), seed=1, draws=5)
+    with pytest.raises(ValueError, match="experience"):
+        run_audit(r, v, experiences=(), seed=1, draws=5)
+    with pytest.raises(ValueError, match="draws"):
+        run_audit(r, v, experiences=(1,), seed=1, draws=0)
+
+
+def test_cli_rejects_duplicate_experiences(runs, tmp_path):
+    import os
+    import subprocess
+    import sys
+    rookie_dir, vet_dir = runs
+    repo = Path(__file__).resolve().parents[2]
+    proc = subprocess.run(
+        [sys.executable, "scripts/dg165/audit_rookie_transition.py", "--rookie-run", str(rookie_dir), "--veteran-run", str(vet_dir),
+         "--experience", "1", "1", "--seed", "1", "--draws", "5", "--runs-root", str(tmp_path / "runs")],
+        capture_output=True, text=True, cwd=repo, env={**os.environ, "PYTHONPATH": "."},
+    )
+    assert proc.returncode != 0 and "experience" in (proc.stderr + proc.stdout).lower()
+    assert not (tmp_path / "runs").exists()
+
+
+def test_metrics_carry_the_separate_samples_caveat(runs):
+    from src.dynasty_genius.rookie.transition_audit import (
+        load_rookie_run,
+        load_veteran_run,
+        run_audit,
+    )
+    rookie_dir, vet_dir = runs
+    res = run_audit(load_rookie_run(rookie_dir), load_veteran_run(vet_dir), experiences=(1, 2), seed=1, draws=5)
+    text = res["metrics"]["definitions"]["caveats"]["experience_comparison"]
+    assert "separate" in text and "within" in text
