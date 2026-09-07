@@ -157,3 +157,52 @@ def cumulative_contributor(rows: pd.DataFrame, horizons=(1, 2, 3)) -> pd.DataFra
         out.append({"player_id": pid, "origin": int(origin), "closed": bool(closed),
                     "any_contributor_1_3": bool(g["contributor"].astype(bool).any()) if closed else pd.NA})
     return pd.DataFrame(out, columns=["player_id", "origin", "closed", "any_contributor_1_3"])
+
+
+# ── paired orderings from the frozen history ─────────────────────────────────────────────────
+
+ORDERING_COLUMNS = ("rank_current", "rank_current_total", "rank_current_ppg", "rank_draft", "rank_future",
+                    "rank_future_appear", "rank_future_candidate", "rank_null")
+CELL = ["origin", "position", "horizon"]
+
+
+def attach_forecasts(rows: pd.DataFrame, history: pd.DataFrame) -> pd.DataFrame:
+    """Join the frozen producer's out-of-fold forecasts for (player, origin, horizon). A candidate-horizon
+    row without a history row is a chronology or source error and refuses; it is never a zero."""
+    parts = []
+    for j, g in rows.groupby("horizon"):
+        j = int(j)
+        cols = {f"policy_e_points_year{j}": "future_points", f"policy_p_appear_year{j}": "future_appear",
+                f"candidate_e_points_year{j}": "future_candidate", f"baseline_e_points_year{j}": "null_reference"}
+        h = history[history["horizon"] == j][["player_id", "feature_season", *cols]].rename(columns=cols)
+        h = h.rename(columns={"feature_season": "origin"}).drop_duplicates(["player_id", "origin"])
+        m = g.merge(h, on=["player_id", "origin"], how="left", indicator=True)
+        missing = m[m["_merge"] != "both"]
+        if len(missing):
+            raise StashSelectionError(f"{len(missing)} candidate rows have no frozen history row at horizon {j} "
+                                      f"(e.g. {missing[['player_id', 'origin']].head(3).to_dict('records')})")
+        parts.append(m.drop(columns=["_merge"]))
+    return pd.concat(parts, ignore_index=True) if parts else rows.copy()
+
+
+def _rank_desc(frame: pd.DataFrame, col: str) -> pd.Series:
+    """Average rank within a cell, higher value first."""
+    return frame.groupby(CELL)[col].rank(method="average", ascending=False)
+
+
+def orderings(rows: pd.DataFrame) -> pd.DataFrame:
+    """Average ranks inside each (origin, position, horizon) cell for every declared ordering. Draft
+    capital ranks the overall pick ascending; undrafted and not-yet-visible picks share one last rank."""
+    r = rows.copy()
+    r["rank_current"] = _rank_desc(r, "origin_points")
+    r["rank_current_total"] = _rank_desc(r, "total_points_t")
+    r["rank_current_ppg"] = _rank_desc(r, "ppg_t")
+    pick = pd.to_numeric(r["draft_pick"], errors="coerce").where(r["draft_visible"].astype(bool))
+    r["_draft_key"] = (-pick).fillna(-np.inf)                 # ascending pick == descending negative pick; unknown last
+    r["rank_draft"] = _rank_desc(r, "_draft_key")
+    r = r.drop(columns=["_draft_key"])
+    r["rank_future"] = _rank_desc(r, "future_points")
+    r["rank_future_appear"] = _rank_desc(r, "future_appear")
+    r["rank_future_candidate"] = _rank_desc(r, "future_candidate")
+    r["rank_null"] = _rank_desc(r, "null_reference")
+    return r

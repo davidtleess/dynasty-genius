@@ -159,3 +159,54 @@ def test_cumulative_contributor_exists_only_when_every_horizon_is_closed():
     cum = ss.cumulative_contributor(rows, horizons=(1, 2, 3)).set_index("player_id")
     assert bool(cum.loc["P3", "any_contributor_1_3"]) is True and bool(cum.loc["P3", "closed"]) is True
     assert bool(cum.loc["P5", "closed"]) is False and pd.isna(cum.loc["P5", "any_contributor_1_3"])
+
+
+# ── Task 4: paired orderings from the frozen history ─────────────────────────────────────────
+
+def hist_row(player_id, origin, horizon, *, policy_points, p_appear=0.5, candidate_points=None, baseline_points=1.0, position="WR"):
+    j = horizon
+    return {"horizon": j, "player_id": player_id, "position": position, "feature_season": origin, "forecast_season": origin + j,
+            f"policy_e_points_year{j}": policy_points, f"policy_p_appear_year{j}": p_appear,
+            f"candidate_e_points_year{j}": policy_points if candidate_points is None else candidate_points,
+            f"baseline_e_points_year{j}": baseline_points}
+
+
+def _rows(origin=2020):
+    base = {"origin": origin, "position": "WR", "horizon": 1, "target_season": origin + 1, "label_source": "artifact_row",
+            "later_line": 100.0, "later_deep_line": 60.0, "contributor_abs": False, "contributor_deep": False}
+    return pd.DataFrame([
+        {**base, "player_id": "P1", "origin_points": 40.0, "total_points_t": 45.0, "ppg_t": 4.5, "draft_visible": True, "draft_pick": 10, "realized_points": 150.0, "realized_games": 15, "appeared": True, "contributor": True},
+        {**base, "player_id": "P2", "origin_points": 40.0, "total_points_t": 30.0, "ppg_t": 3.0, "draft_visible": False, "draft_pick": None, "realized_points": 20.0, "realized_games": 4, "appeared": True, "contributor": False},
+        {**base, "player_id": "P3", "origin_points": 5.0, "total_points_t": 5.0, "ppg_t": 1.0, "draft_visible": True, "draft_pick": 200, "realized_points": 0.0, "realized_games": 0, "appeared": False, "contributor": False},
+        {**base, "player_id": "P4", "origin_points": 60.0, "total_points_t": 70.0, "ppg_t": 7.0, "draft_visible": False, "draft_pick": None, "realized_points": 110.0, "realized_games": 16, "appeared": True, "contributor": True},
+    ])
+
+
+def test_forecasts_join_the_frozen_history_on_origin_and_horizon_and_refuse_a_missing_row():
+    hist = pd.DataFrame([hist_row("P1", 2020, 1, policy_points=80.0), hist_row("P2", 2020, 1, policy_points=30.0),
+                         hist_row("P3", 2020, 1, policy_points=10.0), hist_row("P4", 2020, 1, policy_points=50.0),
+                         hist_row("P1", 2019, 1, policy_points=999.0)])                      # a different origin must not leak in
+    rows = ss.attach_forecasts(_rows(), hist).set_index("player_id")
+    assert rows.loc["P1", "future_points"] == 80.0 and rows.loc["P1", "future_appear"] == 0.5 and rows.loc["P1", "null_reference"] == 1.0
+    with pytest.raises(ss.StashSelectionError, match="history"):
+        ss.attach_forecasts(_rows(), hist[hist.player_id != "P3"])
+
+
+def test_orderings_rank_within_cells_with_average_ties_and_invisible_draft_last():
+    hist = pd.DataFrame([hist_row("P1", 2020, 1, policy_points=80.0), hist_row("P2", 2020, 1, policy_points=30.0),
+                         hist_row("P3", 2020, 1, policy_points=10.0), hist_row("P4", 2020, 1, policy_points=50.0)])
+    r = ss.orderings(ss.attach_forecasts(_rows(), hist)).set_index("player_id")
+    assert r.loc["P4", "rank_current"] == 1 and r.loc["P1", "rank_current"] == 2.5 and r.loc["P2", "rank_current"] == 2.5 and r.loc["P3", "rank_current"] == 4
+    assert r.loc["P1", "rank_draft"] == 1 and r.loc["P3", "rank_draft"] == 2 and r.loc["P2", "rank_draft"] == 3.5 and r.loc["P4", "rank_draft"] == 3.5
+    assert r.loc["P1", "rank_future"] == 1 and r.loc["P4", "rank_future"] == 2 and r.loc["P2", "rank_future"] == 3 and r.loc["P3", "rank_future"] == 4
+    assert r["rank_null"].nunique() == 1                                        # the position marginal cannot discriminate
+    assert r.loc["P4", "rank_current_total"] == 1 and r.loc["P1", "rank_current_total"] == 2
+
+
+def test_orderings_are_computed_inside_each_origin_position_horizon_cell_only():
+    a, b = _rows(2020), _rows(2021)
+    hist = pd.DataFrame([hist_row(p, o, 1, policy_points=v) for o in (2020, 2021) for p, v in (("P1", 80.0), ("P2", 30.0), ("P3", 10.0), ("P4", 50.0))])
+    r = ss.orderings(ss.attach_forecasts(pd.concat([a, b], ignore_index=True), hist))
+    assert r.groupby(["origin", "position", "horizon"]).rank_future.max().tolist() == [4, 4]
+    assert set(ss.ORDERING_COLUMNS) == {"rank_current", "rank_current_total", "rank_current_ppg", "rank_draft", "rank_future",
+                                        "rank_future_appear", "rank_future_candidate", "rank_null"}
