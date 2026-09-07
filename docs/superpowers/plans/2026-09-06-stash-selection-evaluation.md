@@ -40,6 +40,13 @@
 6. **Label ledger:** artifact_row (incl. row-backed zero/negative), no_record_zero, unresolved_identity (excluded, counted), open_season (excluded, counted); no-record-as-unknown sensitivity gives lower/upper hit bounds; no negative clamp.
 7. **Claims:** retrospective frozen-policy evaluation; the policy was selected historically on these folds; the bootstrap conditions on realized origins and fixed fits.
 
+## Definitions v3 and the review-driven corrections (all RED first, before any actual result)
+
+- **v3** (`docs/experiments/stash_selection_definitions_v3.json`, sha `fbcf1a05…`): exploratory secondary = summed years 2–5 window (the app's Future 2027–2030) on origin 2020 only, no separate-year AUC substitution, UI claims restricted to the primary t+2/t+3 test; implementation safeguards and the panel position-assignment caveat are part of the frozen file.
+- **Safeguards implemented:** forecast pivot keyed by (player_id, position, feature_season, horizon) with duplicate-identity refusal and finite integral years; conflicting or foreign-id draft rows exclude that player with a reason (`draft_conflict`), never picked; outcome rows validated (unique keys, finite points, strict booleans — "False" is False) and absence means a missing key; a short panel's bar is unavailable (NaN) and becomes a counted exclusion (`missing_bar`, `bar_unavailable`), never a false non-contributor; an absent horizon column is a counted `missing_forecast`.
+- **Bootstrap corrections (independent reviewer):** rank metrics are paired on the JOINT finite support of cells before pooling and inside every resample, with excluded cells and players disclosed; selection uncertainty freezes each strategy's fractional weights on the original cells and player-cluster-bootstraps the paired per-player contributions (no reselection, so a duplicated player never spends two slots), with positional cluster extraction, draws requested/finite/rejected, and a stated estimand; the point estimate stays the original selection.
+- **CLI evidence:** semantic bindings to the accepted producers (`stash_selection_bindings_v1.json`), coherent target/cutoff refusal, nonproduction marks for fixture flags, validated run ids, exported bar panels and strict rows, points per slot, NaN → null with support fields and infinite values refused.
+
 ## File Structure
 
 - Create `docs/experiments/stash_selection_definitions_v1.json` — the frozen definitions (this task writes it; the CLI hashes it).
