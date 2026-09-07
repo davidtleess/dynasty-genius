@@ -33,6 +33,10 @@ __all__ = [
     "load_census_run",
     "full_nfl_source_status",
     "missing_default_pool",
+    "recovery_sidecar",
+    "render_coverage_report",
+    "summarize_ledger",
+    "write_coverage",
     "nfl_history",
     "route_for",
 ]
@@ -372,3 +376,101 @@ def build_ledger(missing: pd.DataFrame, evidence: pd.DataFrame, history: pd.Data
     if len(out) != len(missing):
         raise AssertionError("ledger rows must equal missing-player rows")
     return out
+
+
+# ----------------------------------------------------------------------------- recovery sidecar, summary, writer
+
+RECOVERY_VALUE_COLUMNS = sorted({c for j in range(1, 6) for c in (
+    f"p_appear_year{j}", f"e_points_year{j}_given_appear", f"e_games_year{j}_given_appear", f"e_points_year{j}", f"e_games_year{j}")})
+
+
+def recovery_sidecar(ledger: pd.DataFrame, *, basic_forecasts: pd.DataFrame, veteran_binding: dict) -> pd.DataFrame:
+    """The ORIGINAL DG-177 rows for ledger players routed existing_forecast_join_failure, copied value for value
+    and bound to the producer's hashes. Nothing is refitted; a join failure without an original row refuses."""
+    want = ledger.loc[ledger["route"] == "existing_forecast_join_failure"]
+    bf = basic_forecasts.copy()
+    bf["player_id"] = bf["player_id"].astype(str)
+    bf = bf.drop_duplicates("player_id").set_index("player_id")
+    rows = []
+    for _, r in want.iterrows():
+        pid = str(r["gsis_id"])
+        if pid not in bf.index:
+            raise ValueError(f"{r['name']} ({pid}) is routed as a join failure but has no original producer row to recover")
+        src = bf.loc[pid]
+        row = {"sleeper_id": str(r["sleeper_id"]), "gsis_id": pid, "name": r["name"], "fantasy_positions": r.get("fantasy_positions"),
+               "producer_position": src.get("position"), "producer_statline_position": src.get("statline_position"),
+               "producer_feature_season": src.get("feature_season"), "producer_arm": src.get("arm"),
+               "estimate_class": "recovered_existing_forecast",
+               "producer_run_dir": veteran_binding.get("run_dir"), "producer_manifest_sha256": veteran_binding.get("manifest_sha256"),
+               "producer_corrected_manifest_sha256": veteran_binding.get("corrected_manifest_sha256"),
+               "producer_basic_forecasts_sha256": veteran_binding.get("basic_forecasts_sha256")}
+        for col in RECOVERY_VALUE_COLUMNS:
+            row[col] = float(src[col]) if col in src.index and pd.notna(src[col]) else None
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def summarize_ledger(ledger: pd.DataFrame) -> dict:
+    def counts(col):
+        return {str(k): int(v) for k, v in ledger[col].value_counts(dropna=False).sort_index().items()}
+    never = ledger.loc[ledger["route"].astype(str).str.startswith("never_appeared")]
+    return {
+        "rows": int(len(ledger)),
+        "by_route": counts("route"),
+        "by_draft_status": counts("draft_status"),
+        "by_availability_class": counts("availability_class"),
+        "by_position": counts("league_position"),
+        "by_route_and_draft_status": {f"{r}|{d}": int(n) for (r, d), n in ledger.groupby(["route", "draft_status"]).size().items()},
+        "by_full_nfl_source_reason": counts("full_nfl_source_reason") if "full_nfl_source_reason" in ledger.columns else {},
+        "never_appeared_entry_seasons": {str(int(k)): int(v) for k, v in never["entry_season"].dropna().value_counts().sort_index().items()},
+        "join_failures": ledger.loc[ledger["route"] == "existing_forecast_join_failure", ["sleeper_id", "name", "gsis_id"]].to_dict("records"),
+        "definitions": {
+            "no_draft_record": "no positive draft record in the sources that know the id; a statement about the sources, never a claim that the player was passed over in the draft",
+            "never_appeared": "no championship-window stat row in the common outcome artifact; not observed zero production",
+            "full_nfl_source_reason": "DG-177's own reason from its universe reconciliation (any REG stat line, e.g. week 18) — kept beside the window view, never merged",
+        },
+    }
+
+
+def render_coverage_report(summary: dict, recovery: pd.DataFrame | None) -> str:
+    lines = ["# DG-165 unowned cold-start coverage", "", f"Missing default-pool players audited: {summary['rows']}.", "",
+             "## By route", ""] + [f"- {k}: {v}" for k, v in summary["by_route"].items()]
+    lines += ["", "## By draft status (positive evidence only)", ""] + [f"- {k}: {v}" for k, v in summary["by_draft_status"].items()]
+    lines += ["", "## By NFL availability class", ""] + [f"- {k}: {v}" for k, v in summary["by_availability_class"].items()]
+    lines += ["", "## By position", ""] + [f"- {k}: {v}" for k, v in summary["by_position"].items()]
+    if summary.get("by_full_nfl_source_reason"):
+        lines += ["", "## DG-177 full-NFL source reason (beside the window view)", ""] + [f"- {k}: {v}" for k, v in summary["by_full_nfl_source_reason"].items()]
+    lines += ["", "## Entry seasons of never-appeared players", ""] + [f"- {k}: {v}" for k, v in summary["never_appeared_entry_seasons"].items()]
+    lines += ["", "## Existing-forecast join failures (recovered from the original producer rows, not refitted)", ""]
+    if recovery is not None and len(recovery):
+        lines += [f"- {r['name']} (sleeper {r['sleeper_id']}, gsis {r['gsis_id']}): DG-177 {r['producer_feature_season']} row, e_points_year1 {r['e_points_year1']}" for _, r in recovery.iterrows()]
+    else:
+        lines += ["- none"]
+    lines += ["", "## Definitions", ""] + [f"- **{k}**: {v}" for k, v in summary["definitions"].items()] + [""]
+    return "\n".join(lines)
+
+
+COVERAGE_OUTPUTS = ("ledger.csv", "summary.json", "REPORT.md", "recovery_sidecar.csv", "manifest.json")
+
+
+def write_coverage(run_dir: Path, *, ledger: pd.DataFrame, summary: dict, recovery: pd.DataFrame | None, inputs: dict, git_sha: str) -> dict:
+    run_dir = Path(run_dir)
+    existing = [n for n in COVERAGE_OUTPUTS if (run_dir / n).exists()]
+    if existing:
+        raise FileExistsError(f"refusing to overwrite existing coverage outputs in {run_dir}: {existing}")
+    from datetime import datetime, timezone
+    started = datetime.now(timezone.utc).isoformat()
+    ledger.to_csv(run_dir / "ledger.csv", index=False)
+    (run_dir / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True))
+    (run_dir / "REPORT.md").write_text(render_coverage_report(summary, recovery))
+    written = ["ledger.csv", "summary.json", "REPORT.md"]
+    if recovery is not None:
+        recovery.to_csv(run_dir / "recovery_sidecar.csv", index=False)
+        written.append("recovery_sidecar.csv")
+    outputs = {n: _sha((run_dir / n).read_bytes()) for n in written}
+    manifest = {"schema_version": "dg165_cold_start_coverage_v1", "ticket": "DG-165", "git_sha": git_sha, "run_dir": str(run_dir),
+                "started_utc": started, "finished_utc": datetime.now(timezone.utc).isoformat(), "inputs": inputs,
+                "outputs_sha256": outputs, "rows": int(len(ledger)), "frozen_inputs_untouched": True,
+                "not": "a coverage ledger; no estimate is produced here and no accepted forecast is altered"}
+    (run_dir / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True))
+    return manifest

@@ -231,3 +231,58 @@ def test_full_nfl_source_reason_sits_beside_the_window_route():
     assert led.loc["11", "full_nfl_source_reason"] == "left_cohort_two_absent_seasons" and led.loc["11", "route"] == "dormant_no_draft_record"
     assert led.loc["12", "full_nfl_source_reason"] == "no_nfl_history" and led.loc["12", "route"] == "never_appeared_no_draft_record"
 
+
+
+# ---------------------------------------------------------------- Task 4: recovery sidecar, writer, CLI
+
+def test_recovery_sidecar_copies_original_producer_rows_and_binds_them():
+    from src.dynasty_genius.rookie.cold_start import recovery_sidecar
+    outcomes, bc, bf, rs = _history_sources()
+    bf = bf.assign(p_appear_year1=[0.6, 0.1], e_points_year1_given_appear=[183.33, 200.0], e_games_year1_given_appear=[12.0, 3.0], e_games_year1=[7.2, 0.3])
+    ledger = pd.DataFrame({"sleeper_id": ["10", "13", "12"], "name": ["Ann", "Dee", "Uma"], "gsis_id": ["00-A", "00-D", "00-U"],
+                           "fantasy_positions": ["QB", "TE", "WR"], "route": ["existing_forecast_join_failure", "existing_forecast_join_failure", "never_appeared_no_draft_record"]})
+    side = recovery_sidecar(ledger, basic_forecasts=bf, veteran_binding={"manifest_sha256": "m" * 64, "corrected_manifest_sha256": "c" * 64,
+                                                                          "basic_forecasts_sha256": "b" * 64, "run_dir": "/vet"})
+    assert side["sleeper_id"].tolist() == ["10", "13"] and side["gsis_id"].tolist() == ["00-A", "00-D"]
+    assert side.set_index("gsis_id").loc["00-A", "e_points_year1"] == 110.0  # the ORIGINAL row value, copied not refitted
+    assert (side["estimate_class"] == "recovered_existing_forecast").all() and (side["producer_basic_forecasts_sha256"] == "b" * 64).all()
+    assert (side["producer_manifest_sha256"] == "m" * 64).all() and (side["producer_corrected_manifest_sha256"] == "c" * 64).all()
+
+
+def test_recovery_sidecar_refuses_a_join_failure_without_an_original_row():
+    from src.dynasty_genius.rookie.cold_start import recovery_sidecar
+    outcomes, bc, bf, rs = _history_sources()
+    ledger = pd.DataFrame({"sleeper_id": ["77"], "name": ["Ghost"], "gsis_id": ["00-G"], "fantasy_positions": ["RB"], "route": ["existing_forecast_join_failure"]})
+    with pytest.raises(ValueError, match="original"):
+        recovery_sidecar(ledger, basic_forecasts=bf, veteran_binding={"manifest_sha256": "m" * 64, "corrected_manifest_sha256": None,
+                                                                     "basic_forecasts_sha256": "b" * 64, "run_dir": "/vet"})
+
+
+def test_write_coverage_is_immutable_hashes_outputs_and_renders_from_summary(tmp_path):
+    from src.dynasty_genius.rookie.cold_start import (
+        build_ledger,
+        draft_evidence,
+        nfl_history,
+        summarize_ledger,
+        write_coverage,
+    )
+    picks, players, rosters = _draft_sources()
+    outcomes, bc, bf, rs = _history_sources()
+    missing = pd.DataFrame({"sleeper_id": ["11", "12"], "name": ["Cy", "Uma"], "league_position": ["WR", "WR"], "fantasy_positions": ["WR", "WR"],
+                            "availability_class": ["practice_squad", "active"], "nfl_team": ["C", "U"], "nfl_status_raw": ["DEV", "ACT"],
+                            "nfl_gsis_id": ["00-C", "00-U"], "sleeper_gsis_id": [None, None], "join_basis": ["sleeper_id"] * 2})
+    ev = draft_evidence(missing["nfl_gsis_id"], draft_picks=picks, players=players, rosters=rosters)
+    hist = nfl_history(missing["nfl_gsis_id"], outcomes=outcomes, basic_cohort=bc, basic_forecasts=bf, rookie_scores=rs, last_complete_season=2025)
+    led = build_ledger(missing, ev, hist)
+    summary = summarize_ledger(led)
+    assert summary["rows"] == 2 and summary["by_route"]["dormant_no_draft_record"] == 1 and summary["by_route"]["never_appeared_no_draft_record"] == 1
+    out = tmp_path / "runs" / "20990101T000000Z" / "dg165_cold_start_coverage"
+    out.mkdir(parents=True)
+    manifest = write_coverage(out, ledger=led, summary=summary, recovery=None, inputs={"census.csv": {"path": "/c", "sha256": "1" * 64}}, git_sha="abc")
+    for name, sha in manifest["outputs_sha256"].items():
+        assert hashlib.sha256((out / name).read_bytes()).hexdigest() == sha
+    assert {"ledger.csv", "summary.json", "REPORT.md"} <= set(manifest["outputs_sha256"])
+    report = (out / "REPORT.md").read_text()
+    assert "never_appeared_no_draft_record: 1" in report and "undrafted" not in report.lower()
+    with pytest.raises(FileExistsError):
+        write_coverage(out, ledger=led, summary=summary, recovery=None, inputs={}, git_sha="abc")
