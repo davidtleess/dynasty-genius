@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import subprocess
 import sys
 from pathlib import Path
@@ -79,7 +80,6 @@ def main(argv: list[str] | None = None) -> int:
         declared = veteran.manifest["outputs_sha256"]
         bf_raw = _verified(vet_dir / "basic_forecasts.csv", declared["basic_forecasts.csv"], "veteran run")
         ur_raw = _verified(vet_dir / "universe_reconciliation.csv", declared["universe_reconciliation.csv"], "veteran run")
-        import io
         basic_forecasts = pd.read_csv(io.BytesIO(bf_raw))
         universe = pd.read_csv(io.BytesIO(ur_raw))
         rookie_scores_path = Path(args.rookie_run) / "rookie_scores_2026.csv"
@@ -91,7 +91,12 @@ def main(argv: list[str] | None = None) -> int:
         rosters_sha = rookie.manifest["inputs"]["nflverse_rosters"]["sha256"]
         players = verified_parquet(Path(args.rookie_run) / "inputs" / "nflverse_players.parquet", players_sha, "rookie run players")
         rosters = verified_parquet(Path(args.rookie_run) / "inputs" / "nflverse_rosters.parquet", rosters_sha, "rookie run rosters")
-        evidence = draft_evidence(missing["nfl_gsis_id"], draft_picks=rookie.draft_picks, players=players, rosters=rosters)
+        src = (census.report.get("sources") or {}).get("nflverse_roster") or {}
+        roster_path = Path(src.get("path", ""))
+        if not roster_path.is_absolute():
+            roster_path = Path("/Users/davidleess/dg-wt/DG-178") / roster_path
+        current_roster = pd.read_csv(io.BytesIO(_verified(roster_path, src.get("sha256", ""), "census current roster capture")), dtype={"gsis_id": str})
+        evidence = draft_evidence(missing["nfl_gsis_id"], draft_picks=rookie.draft_picks, players=players, rosters=rosters, current_roster=current_roster)
         history = nfl_history(missing["nfl_gsis_id"], outcomes=outcomes, basic_cohort=veteran.cohort, basic_forecasts=basic_forecasts,
                               rookie_scores=rookie_scores, last_complete_season=int(veteran.manifest["last_complete_season"]))
         full_nfl = full_nfl_source_status(missing["sleeper_id"], universe)
@@ -114,6 +119,7 @@ def main(argv: list[str] | None = None) -> int:
                         "basic_forecasts_sha256": declared["basic_forecasts.csv"], "universe_reconciliation_sha256": declared["universe_reconciliation.csv"],
                         "basic_cohort_sha256": declared["basic_cohort.csv.gz"]},
         "outcome_artifact": {"path": str(art_path), "sha256": rookie.manifest["outcomes"]["csv_sha256"]},
+        "current_roster_capture": {"path": str(roster_path), "sha256": src.get("sha256"), "use": "CURRENT 2026 entry/draft evidence only; never historical cohort selection"},
     }
     run_dir = create_run_dir(args.runs_root, name="dg165_cold_start_coverage")
     write_coverage(run_dir, ledger=ledger, summary=summary, recovery=recovery, inputs=inputs, git_sha=git_sha())

@@ -163,7 +163,7 @@ def test_draft_evidence_is_positive_only_and_never_says_udfa():
     assert by.loc["00-C", "draft_status"] == "no_draft_record_2_sources"  # present in players + rosters, no draft fields anywhere
     assert by.loc["00-U", "draft_status"] == "no_draft_record_2_sources" and by.loc["00-U", "entry_season"] == 2026
     assert by.loc["00-LB", "draft_status"] == "drafted_verified" and by.loc["00-LB", "draft_position"] == "LB"
-    assert by.loc["00-ZZ", "draft_status"] == "unknown_identity"
+    assert by.loc["00-ZZ", "draft_status"] == "no_history_in_held_sources"
     assert by.loc["00-A", "draft_season"] == 2015 and by.loc["00-A", "draft_pick"] == 1 and by.loc["00-A", "draft_round"] == 1
     assert by.loc["00-C", "college"] == "C U" and by.loc["00-C", "birth_date"] == "1995-03-03" and by.loc["00-C", "age_2026"] == pytest.approx(31.5, abs=0.1)
     joined = " ".join(ev["draft_status"].astype(str)).lower()
@@ -216,7 +216,7 @@ def test_route_classification_and_ledger_keep_every_missing_player():
     assert led.loc["11", "route"] == "dormant_no_draft_record" and led.loc["11", "seasons_since_last_appearance"] == 3
     assert led.loc["12", "route"] == "never_appeared_no_draft_record" and "stat row" in led.loc["12", "route_reason"]
     assert led.loc["13", "route"] == "existing_forecast_join_failure" and led.loc["13", "sleeper_gsis_agrees"] == False  # noqa: E712
-    assert led.loc["14", "route"] == "unknown_identity"
+    assert led.loc["14", "route"] == "no_held_source_history"
     assert "zero production" not in led.loc["12", "route_reason"].lower()
     assert set(led.columns) >= {"draft_status", "entry_season", "age_2026", "inputs_available", "identity_status"}
     assert route_for({"draft_status": "drafted_verified", "nfl_appearance_seasons": 0, "dg177_2025_forecast_row": False, "dg165_rookie_2026_row": False})[0] == "never_appeared_drafted"
@@ -255,7 +255,7 @@ def test_recovery_sidecar_copies_original_producer_rows_and_binds_them():
     from src.dynasty_genius.rookie.cold_start import recovery_sidecar
     bf = _bf_full()
     ledger = pd.DataFrame({"sleeper_id": ["10", "13", "12"], "name": ["Ann", "Dee", "Uma"], "gsis_id": ["00-A", "00-D", "00-U"],
-                           "fantasy_positions": ["QB", "TE", "WR"], "route": ["existing_forecast_join_failure", "existing_forecast_join_failure", "never_appeared_no_draft_record"]})
+                           "fantasy_positions": ["QB", "TE", "WR"], "route": ["existing_forecast_join_failure", "existing_forecast_join_failure", "never_appeared_no_draft_record"], "identity_status": ["verified_nfl_join"] * 3})
     side = recovery_sidecar(ledger, basic_forecasts=bf, veteran_binding={"manifest_sha256": "m" * 64, "corrected_manifest_sha256": "c" * 64,
                                                                           "basic_forecasts_sha256": "b" * 64, "run_dir": "/vet"})
     assert side["sleeper_id"].tolist() == ["10", "13"] and side["gsis_id"].tolist() == ["00-A", "00-D"]
@@ -266,7 +266,7 @@ def test_recovery_sidecar_copies_original_producer_rows_and_binds_them():
 
 def test_recovery_sidecar_refuses_a_join_failure_without_an_original_row():
     from src.dynasty_genius.rookie.cold_start import recovery_sidecar
-    ledger = pd.DataFrame({"sleeper_id": ["77"], "name": ["Ghost"], "gsis_id": ["00-G"], "fantasy_positions": ["RB"], "route": ["existing_forecast_join_failure"]})
+    ledger = pd.DataFrame({"sleeper_id": ["77"], "name": ["Ghost"], "gsis_id": ["00-G"], "fantasy_positions": ["RB"], "route": ["existing_forecast_join_failure"], "identity_status": ["verified_nfl_join"]})
     with pytest.raises(ValueError, match="original"):
         recovery_sidecar(ledger, basic_forecasts=_bf_full(), veteran_binding={"manifest_sha256": "m" * 64, "corrected_manifest_sha256": None,
                                                                      "basic_forecasts_sha256": "b" * 64, "run_dir": "/vet"})
@@ -325,7 +325,7 @@ def test_recovery_carries_years_arm_and_binding_and_copies_every_value_exactly()
     from src.dynasty_genius.rookie.cold_start import recovery_sidecar
     bf = _bf_full()
     ledger = pd.DataFrame({"sleeper_id": ["10", "13"], "name": ["Ann", "Dee"], "gsis_id": ["00-A", "00-D"], "fantasy_positions": ["RB", "RB"],
-                           "route": ["existing_forecast_join_failure"] * 2})
+                           "route": ["existing_forecast_join_failure"] * 2, "identity_status": ["verified_nfl_join"] * 2})
     side = recovery_sidecar(ledger, basic_forecasts=bf, veteran_binding=_binding())
     assert side["forecast_years"].tolist() == ["2026-2030"] * 2 and (side["producer_arm"] == "basic_cohort_3col_plus_lags").all()
     assert (side["producer_feature_season"] == 2025).all() and (side["source_binding"] == "basic_forecasts.csv@" + "b" * 64).all()
@@ -336,7 +336,7 @@ def test_recovery_carries_years_arm_and_binding_and_copies_every_value_exactly()
 
 def test_recovery_refuses_partial_or_nonfinite_paths_and_discordant_identities():
     from src.dynasty_genius.rookie.cold_start import recovery_sidecar
-    ledger = pd.DataFrame({"sleeper_id": ["10"], "name": ["Ann"], "gsis_id": ["00-A"], "fantasy_positions": ["RB"], "route": ["existing_forecast_join_failure"]})
+    ledger = pd.DataFrame({"sleeper_id": ["10"], "name": ["Ann"], "gsis_id": ["00-A"], "fantasy_positions": ["RB"], "route": ["existing_forecast_join_failure"], "identity_status": ["verified_nfl_join"]})
     bf = _bf_full()
     bf.loc[bf.player_id == "00-A", "e_points_year4"] = float("nan")
     with pytest.raises(ValueError, match="finite"):
@@ -348,7 +348,7 @@ def test_recovery_refuses_partial_or_nonfinite_paths_and_discordant_identities()
     with pytest.raises(ValueError, match="unique"):
         recovery_sidecar(ledger, basic_forecasts=bf, veteran_binding=_binding())
     two = pd.DataFrame({"sleeper_id": ["10", "11"], "name": ["Ann", "Ann2"], "gsis_id": ["00-A", "00-A"], "fantasy_positions": ["RB", "RB"],
-                        "route": ["existing_forecast_join_failure"] * 2})  # two Sleeper ids claiming one GSIS: discordant
+                        "route": ["existing_forecast_join_failure"] * 2, "identity_status": ["verified_nfl_join"] * 2})  # two Sleeper ids claiming one GSIS: discordant
     with pytest.raises(ValueError, match="identit"):
         recovery_sidecar(two, basic_forecasts=_bf_full(), veteran_binding=_binding())
 
@@ -362,3 +362,103 @@ def test_verified_parquet_refuses_altered_bytes(tmp_path):
     pd.DataFrame({"gsis_id": ["00-B"], "position": ["QB"]}).to_parquet(path, index=False)
     with pytest.raises(ValueError, match="sha256"):
         verified_parquet(path, sha, "players")
+
+
+# ---------------------------------------------------------------- root coverage review 2 (2026-09-06): ambiguous evidence, wording, recovery boundaries
+
+def test_duplicate_positive_draft_evidence_is_ambiguous_not_silently_first():
+    from src.dynasty_genius.rookie.cold_start import draft_evidence
+    picks, players, rosters = _draft_sources()
+    picks = pd.concat([picks, pd.DataFrame({"season": [2015], "round": [3], "pick": [99], "gsis_id": ["00-A"], "position": ["QB"], "pfr_player_name": ["Ann"]})], ignore_index=True)
+    ev = draft_evidence(pd.Series(["00-A"]), draft_picks=picks, players=players, rosters=rosters).set_index("gsis_id")
+    assert ev.loc["00-A", "draft_status"] == "draft_sources_conflict" and "draft_picks" in str(ev.loc["00-A", "draft_conflict_detail"])
+
+
+def test_unknown_to_historical_sources_keeps_the_verified_current_identity():
+    from src.dynasty_genius.rookie.cold_start import (
+        build_ledger,
+        draft_evidence,
+        nfl_history,
+    )
+    picks, players, rosters = _draft_sources()
+    outcomes, bc, bf, rs = _history_sources()
+    missing = pd.DataFrame({"sleeper_id": ["14"], "name": ["Zed"], "league_position": ["RB"], "fantasy_positions": ["RB"], "availability_class": ["active"],
+                            "nfl_team": ["Z"], "nfl_status_raw": ["ACT"], "nfl_gsis_id": ["00-ZZ"], "sleeper_gsis_id": [None], "join_basis": ["sleeper_id"]})
+    ev = draft_evidence(missing["nfl_gsis_id"], draft_picks=picks, players=players, rosters=rosters)
+    hist = nfl_history(missing["nfl_gsis_id"], outcomes=outcomes, basic_cohort=bc, basic_forecasts=bf, rookie_scores=rs, last_complete_season=2025)
+    led = build_ledger(missing, ev, hist).set_index("sleeper_id")
+    assert led.loc["14", "draft_status"] == "no_history_in_held_sources" and led.loc["14", "route"] == "no_held_source_history"
+    assert led.loc["14", "identity_status"] == "verified_nfl_join"  # the census join is verified; only the HISTORICAL sources lack him
+    assert "unverified" not in str(led.loc["14", "route_reason"]).lower()
+
+
+def test_recovery_refuses_conflicting_identity_multiple_feature_seasons_and_empty_binding():
+    from src.dynasty_genius.rookie.cold_start import recovery_sidecar
+    base = pd.DataFrame({"sleeper_id": ["10"], "name": ["Ann"], "gsis_id": ["00-A"], "fantasy_positions": ["RB"], "route": ["existing_forecast_join_failure"], "identity_status": ["verified_nfl_join"]})
+    conflicting = base.assign(identity_status=["sleeper_gsis_disagrees"])
+    with pytest.raises(ValueError, match="identit"):
+        recovery_sidecar(conflicting, basic_forecasts=_bf_full(), veteran_binding=_binding(), feature_season=2025)
+    two_seasons = pd.concat([_bf_full().assign(feature_season=2018), _bf_full()], ignore_index=True)  # 2018 row first, 2025 second
+    side = recovery_sidecar(base, basic_forecasts=two_seasons, veteran_binding=_binding(), feature_season=2025)
+    assert (side["producer_feature_season"] == 2025).all() and side.set_index("gsis_id").loc["00-A", "e_points_year1"] == 100.0
+    twice_2025 = pd.concat([_bf_full(), _bf_full()], ignore_index=True)
+    with pytest.raises(ValueError, match="unique"):
+        recovery_sidecar(base, basic_forecasts=twice_2025, veteran_binding=_binding(), feature_season=2025)
+    with pytest.raises(ValueError, match="binding"):
+        recovery_sidecar(base, basic_forecasts=_bf_full(), veteran_binding={"manifest_sha256": None, "corrected_manifest_sha256": None,
+                                                                             "basic_forecasts_sha256": "", "run_dir": "/vet"}, feature_season=2025)
+    bf_inf = _bf_full()
+    bf_inf.loc[bf_inf.player_id == "00-A", "e_games_year2"] = float("inf")
+    with pytest.raises(ValueError, match="finite"):
+        recovery_sidecar(base, basic_forecasts=bf_inf, veteran_binding=_binding(), feature_season=2025)
+
+
+def test_current_roster_capture_recovers_a_2026_entry_without_touching_history():
+    from src.dynasty_genius.rookie.cold_start import draft_evidence
+    picks, players, rosters = _draft_sources()
+    current = pd.DataFrame({"season": [2026], "gsis_id": ["00-ZZ"], "position": ["RB"], "status": ["ACT"], "entry_year": [2026], "rookie_year": [2026],
+                            "draft_number": [None], "draft_club": [None], "birth_date": ["2004-01-01"], "college": ["Z U"]})
+    ev = draft_evidence(pd.Series(["00-ZZ", "00-A"]), draft_picks=picks, players=players, rosters=rosters, current_roster=current).set_index("gsis_id")
+    assert ev.loc["00-ZZ", "draft_status"] == "no_draft_record_1_source" and ev.loc["00-ZZ", "entry_season"] == 2026
+    assert ev.loc["00-ZZ", "known_to_historical_sources"] == 0 and bool(ev.loc["00-ZZ", "known_to_current_roster"]) and ev.loc["00-ZZ", "current_roster_entry_year"] == 2026
+    assert ev.loc["00-A", "draft_status"] == "drafted_verified"  # the current capture adds nothing to a verified draft record
+
+
+
+# ---------------------------------------------------------------- root regression: every recovery row is validated, not just the first
+
+def _two_row_ledger(**second):
+    rows = [{"sleeper_id": "10", "name": "Ann", "gsis_id": "00-A", "fantasy_positions": "RB", "route": "existing_forecast_join_failure", "identity_status": "verified_nfl_join"},
+            {"sleeper_id": "13", "name": "Dee", "gsis_id": "00-D", "fantasy_positions": "RB", "route": "existing_forecast_join_failure", "identity_status": "verified_nfl_join"}]
+    rows[1].update(second)
+    return pd.DataFrame(rows)
+
+
+def test_recovery_validates_the_second_row_too():
+    from src.dynasty_genius.rookie.cold_start import recovery_sidecar
+    # second row's forecast seasons are 2019-2023 (a stale copied path): refuse
+    bf = _bf_full()
+    for j in range(1, 6):
+        bf.loc[bf.player_id == "00-D", f"forecast_season_year{j}"] = 2018 + j
+    with pytest.raises(ValueError, match="2026"):
+        recovery_sidecar(_two_row_ledger(), basic_forecasts=bf, veteran_binding=_binding(), feature_season=2025)
+    # second row's identity disagrees: refuse
+    with pytest.raises(ValueError, match="identit"):
+        recovery_sidecar(_two_row_ledger(identity_status="sleeper_gsis_disagrees"), basic_forecasts=_bf_full(), veteran_binding=_binding(), feature_season=2025)
+    # second row's arm is not the selected arm: refuse
+    bf = _bf_full()
+    bf.loc[bf.player_id == "00-D", "arm"] = "other_arm"
+    with pytest.raises(ValueError, match="arm"):
+        recovery_sidecar(_two_row_ledger(), basic_forecasts=bf, veteran_binding=_binding(), feature_season=2025)
+    # missing forecast-season columns are never inferred from the feature season: refuse
+    bf = _bf_full().drop(columns=["forecast_season_year3"])
+    with pytest.raises(ValueError, match="forecast_season"):
+        recovery_sidecar(_two_row_ledger(), basic_forecasts=bf, veteran_binding=_binding(), feature_season=2025)
+    # an empty binding dict refuses
+    with pytest.raises(ValueError, match="binding"):
+        recovery_sidecar(_two_row_ledger(), basic_forecasts=_bf_full(), veteran_binding={}, feature_season=2025)
+    # a ledger without identity_status cannot be recovered (identity must be verified explicitly)
+    with pytest.raises(ValueError, match="identit"):
+        recovery_sidecar(_two_row_ledger().drop(columns=["identity_status"]), basic_forecasts=_bf_full(), veteran_binding=_binding(), feature_season=2025)
+    good = recovery_sidecar(_two_row_ledger(), basic_forecasts=_bf_full(), veteran_binding=_binding(), feature_season=2025)
+    assert len(good) == 2 and (good["producer_feature_season"] == 2025).all()

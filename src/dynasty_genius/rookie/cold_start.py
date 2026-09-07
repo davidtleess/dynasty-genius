@@ -171,7 +171,7 @@ DRAFT_STATUS = (
     "no_draft_record_3_sources",   # the id is known to all three sources, none carries a draft record
     "no_draft_record_2_sources",
     "no_draft_record_1_source",
-    "unknown_identity",            # the id is known to no source at all
+    "no_history_in_held_sources",  # known to no held source, historical or current; the CURRENT census identity stays verified
 )
 AGE_REFERENCE = pd.Timestamp("2026-09-01")
 
@@ -183,7 +183,8 @@ def _latest_roster_rows(rosters: pd.DataFrame) -> pd.DataFrame:
     return r.sort_values(sort_cols).groupby("gsis_id", sort=False).last()
 
 
-def draft_evidence(gsis_ids: pd.Series, *, draft_picks: pd.DataFrame, players: pd.DataFrame, rosters: pd.DataFrame) -> pd.DataFrame:
+def draft_evidence(gsis_ids: pd.Series, *, draft_picks: pd.DataFrame, players: pd.DataFrame, rosters: pd.DataFrame,
+                   current_roster: pd.DataFrame | None = None) -> pd.DataFrame:
     """Draft facts from three independent sources, labelled positively.
 
     A source is POSITIVE when its draft fields are non-null. ``drafted_verified`` needs at least one positive
@@ -193,31 +194,55 @@ def draft_evidence(gsis_ids: pd.Series, *, draft_picks: pd.DataFrame, players: p
     """
     picks = draft_picks.loc[draft_picks["gsis_id"].notna()].copy()
     picks["gsis_id"] = picks["gsis_id"].astype(str)
-    picks = picks.drop_duplicates("gsis_id").set_index("gsis_id")
     pl = players.copy()
     pl["gsis_id"] = pl["gsis_id"].astype(str)
-    pl = pl.drop_duplicates("gsis_id").set_index("gsis_id")
     ro = _latest_roster_rows(rosters)
+    cur = None
+    if current_roster is not None:
+        cur = current_roster.loc[current_roster["gsis_id"].notna()].copy()
+        cur["gsis_id"] = cur["gsis_id"].astype(str)
     rows = []
     for pid in gsis_ids.astype(str):
-        known = 0
+        known_hist = 0
         positive = []
-        if pid in picks.index:
-            known += 1
-            p = picks.loc[pid]
-            positive.append(("draft_picks", int(p["season"]), int(p["pick"]), int(p["round"]), str(p["position"])))
-        if pid in pl.index:
-            known += 1
-            p = pl.loc[pid]
-            if pd.notna(p.get("draft_year")) and pd.notna(p.get("draft_pick")):
-                positive.append(("players", int(p["draft_year"]), int(p["draft_pick"]), int(p["draft_round"]) if pd.notna(p.get("draft_round")) else None, None))
+        ambiguous = []
+        pk = picks.loc[picks["gsis_id"] == pid]
+        if len(pk):
+            known_hist += 1
+            for _, p in pk.iterrows():
+                positive.append(("draft_picks", int(p["season"]), int(p["pick"]), int(p["round"]), str(p["position"])))
+            if len(pk) > 1:
+                ambiguous.append(f"draft_picks has {len(pk)} rows for the id")
+        pr = pl.loc[pl["gsis_id"] == pid]
+        if len(pr):
+            known_hist += 1
+            for _, p in pr.iterrows():
+                if pd.notna(p.get("draft_year")) and pd.notna(p.get("draft_pick")):
+                    positive.append(("players", int(p["draft_year"]), int(p["draft_pick"]), int(p["draft_round"]) if pd.notna(p.get("draft_round")) else None, None))
+            if len(pr) > 1:
+                ambiguous.append(f"players table has {len(pr)} rows for the id")
         if pid in ro.index:
-            known += 1
+            known_hist += 1
             p = ro.loc[pid]
             if pd.notna(p.get("draft_number")) and pd.notna(p.get("entry_year")):
                 positive.append(("rosters", int(p["entry_year"]), int(p["draft_number"]), None, None))
+        known_current = False
+        current_entry = None
+        if cur is not None:
+            cr = cur.loc[cur["gsis_id"] == pid]
+            if len(cr):
+                known_current = True
+                c = cr.iloc[0]
+                if pd.notna(c.get("draft_number")) and pd.notna(c.get("entry_year")):
+                    positive.append(("current_roster", int(c["entry_year"]), int(c["draft_number"]), None, None))
+                current_entry = int(c["entry_year"]) if pd.notna(c.get("entry_year")) else None
+                if len(cr) > 1:
+                    ambiguous.append(f"current roster has {len(cr)} rows for the id")
+        known = known_hist + (1 if known_current else 0)
         if known == 0:
-            status = "unknown_identity"
+            status = "no_history_in_held_sources"
+        elif ambiguous:
+            status = "draft_sources_conflict"
         elif not positive:
             status = f"no_draft_record_{known}_sources" if known > 1 else "no_draft_record_1_source"
         else:
@@ -231,8 +256,8 @@ def draft_evidence(gsis_ids: pd.Series, *, draft_picks: pd.DataFrame, players: p
         rookie = None
         birth = None
         college = None
-        if pid in pl.index:
-            p = pl.loc[pid]
+        if len(pr):
+            p = pr.iloc[0]
             rookie = int(p["rookie_season"]) if pd.notna(p.get("rookie_season")) else None
             birth = str(p["birth_date"]) if pd.notna(p.get("birth_date")) else None
             college = str(p["college_name"]) if pd.notna(p.get("college_name")) else None
@@ -241,6 +266,10 @@ def draft_evidence(gsis_ids: pd.Series, *, draft_picks: pd.DataFrame, players: p
             entry = int(p["entry_year"]) if pd.notna(p.get("entry_year")) else None
             birth = birth or (str(p["birth_date"]) if pd.notna(p.get("birth_date")) else None)
             college = college or (str(p["college"]) if pd.notna(p.get("college")) else None)
+        if cur is not None and known_current:
+            c = cur.loc[cur["gsis_id"] == pid].iloc[0]
+            birth = birth or (str(c["birth_date"]) if pd.notna(c.get("birth_date")) else None)
+            college = college or (str(c["college"]) if pd.notna(c.get("college")) else None)
         entry_season = rookie if rookie is not None else entry
         age = None
         if birth:
@@ -253,8 +282,11 @@ def draft_evidence(gsis_ids: pd.Series, *, draft_picks: pd.DataFrame, players: p
             "draft_pick": first[2] if (first and status == "drafted_verified") else None,
             "draft_position": draft_pos if status == "drafted_verified" else None,
             "draft_sources_agree": (status == "drafted_verified") if positive else None,
-            "draft_conflict_detail": "; ".join(f"{src}:{s}/{o}" for src, s, o, _, _ in positive) if status == "draft_sources_conflict" else None,
-            "entry_season": entry_season, "rookie_season": rookie, "birth_date": birth, "age_2026": age, "college": college,
+            "draft_conflict_detail": ("; ".join(f"{src}:{s}/{o}" for src, s, o, _, _ in positive) + ("; " + "; ".join(ambiguous) if ambiguous else ""))
+                                     if status == "draft_sources_conflict" else None,
+            "entry_season": entry_season if entry_season is not None else current_entry, "rookie_season": rookie, "birth_date": birth,
+            "age_2026": age, "college": college,
+            "known_to_historical_sources": known_hist, "known_to_current_roster": known_current, "current_roster_entry_year": current_entry,
         })
     return pd.DataFrame(rows)
 
@@ -267,8 +299,8 @@ ROUTES = (
     "never_appeared_no_draft_record",
     "dormant_drafted",
     "dormant_no_draft_record",
-    "draft_sources_conflict_unresolved",   # positive draft records disagree: explicit unresolved, never a routine route
-    "unknown_identity",
+    "draft_sources_conflict_unresolved",   # positive draft records disagree or are ambiguous: explicit unresolved, never a routine route
+    "no_held_source_history",              # no entry/draft history in any held source; the current census identity is still verified
 )
 NEVER_APPEARED_REASON = ("no championship-window stat row in the common outcome artifact 2001–{last}; a statement about the "
                          "artifact's records, not a claim of zero individual production observed")
@@ -312,10 +344,11 @@ def route_for(row) -> tuple[str, str]:
     if bool(row.get("dg177_2025_forecast_row")) or bool(row.get("dg165_rookie_2026_row")):
         which = "DG-177 2025 forecast" if bool(row.get("dg177_2025_forecast_row")) else "DG-165 2026 rookie score"
         return "existing_forecast_join_failure", f"a {which} exists under this gsis id but the accepted board carries none for the Sleeper id — a join to investigate, not a new estimate"
-    if status == "unknown_identity":
-        return "unknown_identity", "the NFL gsis id is known to no held source (draft picks, players table, rosters)"
+    if status == "no_history_in_held_sources":
+        return "no_held_source_history", ("no entry/draft history in the held historical sources (draft picks, players table, rosters "
+                                          "through 2025) nor the current roster capture; the current NFL identity is verified by the census join")
     if status == "draft_sources_conflict":
-        return "draft_sources_conflict_unresolved", "positive draft records disagree across sources; unresolved until a source is adjudicated"
+        return "draft_sources_conflict_unresolved", "positive draft records disagree or are ambiguous across sources; unresolved until adjudicated"
     drafted = status == "drafted_verified"
     suffix = "drafted" if drafted else "no_draft_record"
     detail = ""
@@ -349,7 +382,7 @@ LEDGER_COLUMNS = [
     "sleeper_id", "name", "league_position", "fantasy_positions", "availability_class", "nfl_team", "nfl_status_raw",
     "gsis_id", "join_basis", "sleeper_gsis_agrees", "identity_status",
     "draft_status", "draft_sources_positive", "draft_sources_checked", "draft_season", "draft_round", "draft_pick", "draft_position",
-    "draft_sources_agree", "draft_conflict_detail",
+    "draft_sources_agree", "draft_conflict_detail", "known_to_historical_sources", "known_to_current_roster", "current_roster_entry_year",
     "birth_date", "age_2026", "entry_season", "rookie_season", "college",
     "nfl_appearance_seasons", "first_appearance_season", "last_appearance_season", "seasons_since_last_appearance", "window_points_last_appearance",
     "dg177_2025_feature_row", "dg177_2025_forecast_row", "dg177_last_feature_season", "dg165_rookie_2026_row",
@@ -375,8 +408,8 @@ def build_ledger(missing: pd.DataFrame, evidence: pd.DataFrame, history: pd.Data
     led = m.join(ev, on="gsis_id").join(hi, on="gsis_id")
     sg = led["sleeper_gsis_id"] if "sleeper_gsis_id" in led.columns else pd.Series([None] * len(led), index=led.index)
     led["sleeper_gsis_agrees"] = [None if pd.isna(s) else (str(s) == g) for s, g in zip(sg, led["gsis_id"])]
-    led["identity_status"] = ["unknown" if st == "unknown_identity" else ("verified_nfl_join" if a in (True, None) else "sleeper_gsis_disagrees")
-                              for st, a in zip(led["draft_status"], led["sleeper_gsis_agrees"])]
+    # current identity comes from the census join and is independent of historical-source presence
+    led["identity_status"] = ["verified_nfl_join" if a in (True, None) else "sleeper_gsis_disagrees" for a in led["sleeper_gsis_agrees"]]
     routes = [route_for(r) for _, r in led.iterrows()]
     led["route"] = [r for r, _ in routes]
     led["route_reason"] = [why for _, why in routes]
@@ -408,18 +441,31 @@ def verified_parquet(path: Path | str, declared: str, what: str) -> pd.DataFrame
     return pd.read_parquet(io.BytesIO(data))
 
 
-def recovery_sidecar(ledger: pd.DataFrame, *, basic_forecasts: pd.DataFrame, veteran_binding: dict) -> pd.DataFrame:
+RECOVERY_EXPECTED_SEASONS = (2026, 2027, 2028, 2029, 2030)
+RECOVERY_SELECTED_ARM = "basic_cohort_3col_plus_lags"
+
+
+def recovery_sidecar(ledger: pd.DataFrame, *, basic_forecasts: pd.DataFrame, veteran_binding: dict, feature_season: int = 2025,
+                     arm: str = RECOVERY_SELECTED_ARM) -> pd.DataFrame:
     """The ORIGINAL DG-177 rows for ledger players routed existing_forecast_join_failure, copied value for value
     and bound to the producer's hashes. Nothing is refitted. Refuses a join failure without an original row, a
     duplicate producer row, two Sleeper ids claiming one GSIS, and a partial or non-finite five-year path."""
+    for key in ("manifest_sha256", "basic_forecasts_sha256", "run_dir"):
+        if not veteran_binding.get(key):
+            raise ValueError(f"recovery binding is incomplete: {key} is empty; refusing to export unbound rows")
     want = ledger.loc[ledger["route"] == "existing_forecast_join_failure"].copy()
     want["gsis_id"] = want["gsis_id"].astype(str)
+    if "identity_status" not in want.columns:
+        raise ValueError("ledger carries no identity_status; a recovery needs an explicitly verified census identity per row")
+    if (want["identity_status"].astype(str) != "verified_nfl_join").any():
+        bad = want.loc[want["identity_status"].astype(str) != "verified_nfl_join", ["sleeper_id", "gsis_id", "identity_status"]].to_dict("records")
+        raise ValueError(f"conflicting identity on join-failure rows; refusing to recover: {bad}")
     if want["gsis_id"].duplicated().any():
         dup = want.loc[want["gsis_id"].duplicated(keep=False), ["sleeper_id", "gsis_id"]].to_dict("records")
         raise ValueError(f"discordant identities: more than one Sleeper id claims a GSIS among the join failures: {dup}")
     if want["sleeper_id"].astype(str).duplicated().any():
         raise ValueError("discordant identities: a Sleeper id appears twice among the join failures")
-    bf = basic_forecasts.copy()
+    bf = basic_forecasts.loc[basic_forecasts["feature_season"].astype(int) == int(feature_season)].copy()
     bf["player_id"] = bf["player_id"].astype(str)
     if bf["player_id"].duplicated().any():
         dup = bf.loc[bf["player_id"].duplicated(keep=False), "player_id"].unique().tolist()[:5]
@@ -427,6 +473,12 @@ def recovery_sidecar(ledger: pd.DataFrame, *, basic_forecasts: pd.DataFrame, vet
     missing_cols = [c for c in RECOVERY_VALUE_COLUMNS if c not in bf.columns]
     if missing_cols:
         raise ValueError(f"producer file carries a partial forecast path; missing {missing_cols}")
+    season_cols = [f"forecast_season_year{j}" for j in range(1, 6)]
+    missing_seasons = [c for c in season_cols if c not in bf.columns]
+    if missing_seasons:
+        raise ValueError(f"producer file lacks explicit forecast_season columns {missing_seasons}; seasons are never inferred from the feature season")
+    if "arm" not in bf.columns:
+        raise ValueError("producer file carries no arm column; the selected arm cannot be verified")
     bf = bf.set_index("player_id")
     rows = []
     for _, r in want.iterrows():
@@ -434,6 +486,13 @@ def recovery_sidecar(ledger: pd.DataFrame, *, basic_forecasts: pd.DataFrame, vet
         if pid not in bf.index:
             raise ValueError(f"{r['name']} ({pid}) is routed as a join failure but has no original producer row to recover")
         src = bf.loc[pid]
+        if int(src["feature_season"]) != int(feature_season):
+            raise ValueError(f"{r['name']} ({pid}): producer feature_season {src['feature_season']} is not {feature_season}")
+        if str(src.get("arm")) != arm:
+            raise ValueError(f"{r['name']} ({pid}): producer arm {src.get('arm')!r} is not the selected arm {arm!r}")
+        seasons = [int(src[c]) if pd.notna(src[c]) else None for c in season_cols]
+        if seasons != list(RECOVERY_EXPECTED_SEASONS):
+            raise ValueError(f"{r['name']} ({pid}): producer forecast seasons {seasons} are not {list(RECOVERY_EXPECTED_SEASONS)} (2026-2030)")
         values = {col: src[col] for col in RECOVERY_VALUE_COLUMNS}
         bad = [col for col, v in values.items() if pd.isna(v) or not np.isfinite(float(v))]
         if bad:
@@ -446,19 +505,12 @@ def recovery_sidecar(ledger: pd.DataFrame, *, basic_forecasts: pd.DataFrame, vet
                "producer_corrected_manifest_sha256": veteran_binding.get("corrected_manifest_sha256"),
                "producer_basic_forecasts_sha256": veteran_binding.get("basic_forecasts_sha256"),
                "source_binding": f"basic_forecasts.csv@{veteran_binding.get('basic_forecasts_sha256')}"}
-        for j in range(1, 6):
-            fs = src.get(f"forecast_season_year{j}")
-            row[f"season_year{j}"] = int(fs) if pd.notna(fs) else int(src["feature_season"]) + j
+        for j, season in enumerate(seasons, start=1):
+            row[f"season_year{j}"] = int(season)
         for col, v in values.items():
             row[col] = float(v)
         rows.append(row)
-    out = pd.DataFrame(rows)
-    if len(out):
-        expected = [2026, 2027, 2028, 2029, 2030]
-        got = [int(out[f"season_year{j}"].iloc[0]) for j in range(1, 6)]
-        if got != expected:
-            raise ValueError(f"recovered path covers seasons {got}, not {expected}")
-    return out
+    return pd.DataFrame(rows)
 
 
 def summarize_ledger(ledger: pd.DataFrame) -> dict:
