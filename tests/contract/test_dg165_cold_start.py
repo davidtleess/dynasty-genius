@@ -253,24 +253,22 @@ def test_full_nfl_source_reason_sits_beside_the_window_route():
 
 def test_recovery_sidecar_copies_original_producer_rows_and_binds_them():
     from src.dynasty_genius.rookie.cold_start import recovery_sidecar
-    outcomes, bc, bf, rs = _history_sources()
-    bf = bf.assign(p_appear_year1=[0.6, 0.1], e_points_year1_given_appear=[183.33, 200.0], e_games_year1_given_appear=[12.0, 3.0], e_games_year1=[7.2, 0.3])
+    bf = _bf_full()
     ledger = pd.DataFrame({"sleeper_id": ["10", "13", "12"], "name": ["Ann", "Dee", "Uma"], "gsis_id": ["00-A", "00-D", "00-U"],
                            "fantasy_positions": ["QB", "TE", "WR"], "route": ["existing_forecast_join_failure", "existing_forecast_join_failure", "never_appeared_no_draft_record"]})
     side = recovery_sidecar(ledger, basic_forecasts=bf, veteran_binding={"manifest_sha256": "m" * 64, "corrected_manifest_sha256": "c" * 64,
                                                                           "basic_forecasts_sha256": "b" * 64, "run_dir": "/vet"})
     assert side["sleeper_id"].tolist() == ["10", "13"] and side["gsis_id"].tolist() == ["00-A", "00-D"]
-    assert side.set_index("gsis_id").loc["00-A", "e_points_year1"] == 110.0  # the ORIGINAL row value, copied not refitted
+    assert side.set_index("gsis_id").loc["00-A", "e_points_year1"] == 100.0  # the ORIGINAL row value, copied not refitted
     assert (side["estimate_class"] == "recovered_existing_forecast").all() and (side["producer_basic_forecasts_sha256"] == "b" * 64).all()
     assert (side["producer_manifest_sha256"] == "m" * 64).all() and (side["producer_corrected_manifest_sha256"] == "c" * 64).all()
 
 
 def test_recovery_sidecar_refuses_a_join_failure_without_an_original_row():
     from src.dynasty_genius.rookie.cold_start import recovery_sidecar
-    outcomes, bc, bf, rs = _history_sources()
     ledger = pd.DataFrame({"sleeper_id": ["77"], "name": ["Ghost"], "gsis_id": ["00-G"], "fantasy_positions": ["RB"], "route": ["existing_forecast_join_failure"]})
     with pytest.raises(ValueError, match="original"):
-        recovery_sidecar(ledger, basic_forecasts=bf, veteran_binding={"manifest_sha256": "m" * 64, "corrected_manifest_sha256": None,
+        recovery_sidecar(ledger, basic_forecasts=_bf_full(), veteran_binding={"manifest_sha256": "m" * 64, "corrected_manifest_sha256": None,
                                                                      "basic_forecasts_sha256": "b" * 64, "run_dir": "/vet"})
 
 
@@ -302,3 +300,65 @@ def test_write_coverage_is_immutable_hashes_outputs_and_renders_from_summary(tmp
     assert "never_appeared_no_draft_record: 1" in report and "undrafted" not in report.lower()
     with pytest.raises(FileExistsError):
         write_coverage(out, ledger=led, summary=summary, recovery=None, inputs={}, git_sha="abc")
+
+
+# ---------------------------------------------------------------- root coverage review 2026-09-06: recovery guards, verified parquet bytes
+
+def _bf_full():
+    cols = {}
+    for j in range(1, 6):
+        cols[f"p_appear_year{j}"] = [0.6 - 0.1 * j, 0.1]
+        cols[f"e_points_year{j}_given_appear"] = [180.0 - 10 * j, 200.0]
+        cols[f"e_games_year{j}_given_appear"] = [12.0, 3.0]
+        cols[f"e_points_year{j}"] = [110.0 - 10 * j, 20.0]
+        cols[f"e_games_year{j}"] = [7.2, 0.3]
+        cols[f"forecast_season_year{j}"] = [2025 + j, 2025 + j]
+    return pd.DataFrame({"player_id": ["00-A", "00-D"], "feature_season": [2025, 2025], "arm": ["basic_cohort_3col_plus_lags"] * 2,
+                         "position": ["RB", "RB"], "statline_position": ["FB", "FB"], **cols})
+
+
+def _binding():
+    return {"manifest_sha256": "m" * 64, "corrected_manifest_sha256": "c" * 64, "basic_forecasts_sha256": "b" * 64, "run_dir": "/vet"}
+
+
+def test_recovery_carries_years_arm_and_binding_and_copies_every_value_exactly():
+    from src.dynasty_genius.rookie.cold_start import recovery_sidecar
+    bf = _bf_full()
+    ledger = pd.DataFrame({"sleeper_id": ["10", "13"], "name": ["Ann", "Dee"], "gsis_id": ["00-A", "00-D"], "fantasy_positions": ["RB", "RB"],
+                           "route": ["existing_forecast_join_failure"] * 2})
+    side = recovery_sidecar(ledger, basic_forecasts=bf, veteran_binding=_binding())
+    assert side["forecast_years"].tolist() == ["2026-2030"] * 2 and (side["producer_arm"] == "basic_cohort_3col_plus_lags").all()
+    assert (side["producer_feature_season"] == 2025).all() and (side["source_binding"] == "basic_forecasts.csv@" + "b" * 64).all()
+    for j in range(1, 6):
+        assert side.set_index("gsis_id").loc["00-A", f"e_points_year{j}"] == 110.0 - 10 * j
+        assert side.set_index("gsis_id").loc["00-A", f"season_year{j}"] == 2025 + j
+
+
+def test_recovery_refuses_partial_or_nonfinite_paths_and_discordant_identities():
+    from src.dynasty_genius.rookie.cold_start import recovery_sidecar
+    ledger = pd.DataFrame({"sleeper_id": ["10"], "name": ["Ann"], "gsis_id": ["00-A"], "fantasy_positions": ["RB"], "route": ["existing_forecast_join_failure"]})
+    bf = _bf_full()
+    bf.loc[bf.player_id == "00-A", "e_points_year4"] = float("nan")
+    with pytest.raises(ValueError, match="finite"):
+        recovery_sidecar(ledger, basic_forecasts=bf, veteran_binding=_binding())
+    bf = _bf_full().drop(columns=["e_games_year5"])
+    with pytest.raises(ValueError, match="partial"):
+        recovery_sidecar(ledger, basic_forecasts=bf, veteran_binding=_binding())
+    bf = pd.concat([_bf_full(), _bf_full().iloc[[0]]], ignore_index=True)  # duplicate producer row for 00-A: never silently dropped
+    with pytest.raises(ValueError, match="unique"):
+        recovery_sidecar(ledger, basic_forecasts=bf, veteran_binding=_binding())
+    two = pd.DataFrame({"sleeper_id": ["10", "11"], "name": ["Ann", "Ann2"], "gsis_id": ["00-A", "00-A"], "fantasy_positions": ["RB", "RB"],
+                        "route": ["existing_forecast_join_failure"] * 2})  # two Sleeper ids claiming one GSIS: discordant
+    with pytest.raises(ValueError, match="identit"):
+        recovery_sidecar(two, basic_forecasts=_bf_full(), veteran_binding=_binding())
+
+
+def test_verified_parquet_refuses_altered_bytes(tmp_path):
+    from src.dynasty_genius.rookie.cold_start import verified_parquet
+    path = tmp_path / "players.parquet"
+    pd.DataFrame({"gsis_id": ["00-A"], "position": ["QB"]}).to_parquet(path, index=False)
+    sha = hashlib.sha256(path.read_bytes()).hexdigest()
+    assert len(verified_parquet(path, sha, "players")) == 1
+    pd.DataFrame({"gsis_id": ["00-B"], "position": ["QB"]}).to_parquet(path, index=False)
+    with pytest.raises(ValueError, match="sha256"):
+        verified_parquet(path, sha, "players")

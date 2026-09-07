@@ -36,6 +36,7 @@ from src.dynasty_genius.rookie.cold_start import (  # noqa: E402
     nfl_history,
     recovery_sidecar,
     summarize_ledger,
+    verified_parquet,
     write_coverage,
 )
 from src.dynasty_genius.rookie.run_dir import create_run_dir  # noqa: E402
@@ -86,9 +87,11 @@ def main(argv: list[str] | None = None) -> int:
         rookie_scores = pd.read_csv(io.BytesIO(rs_raw))
         art_path = Path(rookie.manifest["outcomes"]["csv_path"])
         outcomes = pd.read_csv(io.BytesIO(_verified(art_path, rookie.manifest["outcomes"]["csv_sha256"], "outcome artifact")))
-        evidence = draft_evidence(missing["nfl_gsis_id"], draft_picks=rookie.draft_picks,
-                                  players=pd.read_parquet(Path(args.rookie_run) / "inputs" / "nflverse_players.parquet"),
-                                  rosters=pd.read_parquet(Path(args.rookie_run) / "inputs" / "nflverse_rosters.parquet"))
+        players_sha = rookie.manifest["inputs"]["nflverse_players"]["sha256"]
+        rosters_sha = rookie.manifest["inputs"]["nflverse_rosters"]["sha256"]
+        players = verified_parquet(Path(args.rookie_run) / "inputs" / "nflverse_players.parquet", players_sha, "rookie run players")
+        rosters = verified_parquet(Path(args.rookie_run) / "inputs" / "nflverse_rosters.parquet", rosters_sha, "rookie run rosters")
+        evidence = draft_evidence(missing["nfl_gsis_id"], draft_picks=rookie.draft_picks, players=players, rosters=rosters)
         history = nfl_history(missing["nfl_gsis_id"], outcomes=outcomes, basic_cohort=veteran.cohort, basic_forecasts=basic_forecasts,
                               rookie_scores=rookie_scores, last_complete_season=int(veteran.manifest["last_complete_season"]))
         full_nfl = full_nfl_source_status(missing["sleeper_id"], universe)
@@ -105,8 +108,8 @@ def main(argv: list[str] | None = None) -> int:
         "accepted_report": {"path": str(accepted.path), "sha256": accepted.sha256},
         "rookie_run": {"run_dir": str(rookie.run_dir), "manifest_sha256": rookie.manifest_sha256, "verified": rookie.verified,
                        "rookie_scores_sha256": rookie.manifest["outputs_sha256"]["rookie_scores_2026.csv"],
-                       "players_parquet_sha256": rookie.manifest["inputs"]["nflverse_players"]["sha256"],
-                       "rosters_parquet_sha256": rookie.manifest["inputs"]["nflverse_rosters"]["sha256"]},
+                       "players_parquet_sha256": players_sha, "rosters_parquet_sha256": rosters_sha,
+                       "players_rosters_bytes_verified": True},
         "veteran_run": {"run_dir": str(vet_dir), "manifest_sha256": veteran.manifest_sha256, "corrected_manifest_sha256": veteran.corrected_manifest_sha256,
                         "basic_forecasts_sha256": declared["basic_forecasts.csv"], "universe_reconciliation_sha256": declared["universe_reconciliation.csv"],
                         "basic_cohort_sha256": declared["basic_cohort.csv.gz"]},

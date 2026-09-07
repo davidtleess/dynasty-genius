@@ -18,6 +18,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 __all__ = [
@@ -36,6 +37,7 @@ __all__ = [
     "recovery_sidecar",
     "render_coverage_report",
     "summarize_ledger",
+    "verified_parquet",
     "write_coverage",
     "nfl_history",
     "route_for",
@@ -391,34 +393,72 @@ def build_ledger(missing: pd.DataFrame, evidence: pd.DataFrame, history: pd.Data
 
 # ----------------------------------------------------------------------------- recovery sidecar, summary, writer
 
-RECOVERY_VALUE_COLUMNS = sorted({c for j in range(1, 6) for c in (
-    f"p_appear_year{j}", f"e_points_year{j}_given_appear", f"e_games_year{j}_given_appear", f"e_points_year{j}", f"e_games_year{j}")})
+RECOVERY_VALUE_COLUMNS = [c for j in range(1, 6) for c in (
+    f"p_appear_year{j}", f"e_points_year{j}_given_appear", f"e_games_year{j}_given_appear", f"e_points_year{j}", f"e_games_year{j}")]
+RECOVERY_YEARS = "2026-2030"
+
+
+def verified_parquet(path: Path | str, declared: str, what: str) -> pd.DataFrame:
+    """Read a parquet only after its bytes hash to the declared sha256; parsed from the same bytes."""
+    path = Path(path)
+    data = path.read_bytes()
+    actual = _sha(data)
+    if actual != declared:
+        raise ValueError(f"{what}: sha256 mismatch for {path.name}: declared {str(declared)[:12]}…, actual {actual[:12]}…")
+    return pd.read_parquet(io.BytesIO(data))
 
 
 def recovery_sidecar(ledger: pd.DataFrame, *, basic_forecasts: pd.DataFrame, veteran_binding: dict) -> pd.DataFrame:
     """The ORIGINAL DG-177 rows for ledger players routed existing_forecast_join_failure, copied value for value
-    and bound to the producer's hashes. Nothing is refitted; a join failure without an original row refuses."""
-    want = ledger.loc[ledger["route"] == "existing_forecast_join_failure"]
+    and bound to the producer's hashes. Nothing is refitted. Refuses a join failure without an original row, a
+    duplicate producer row, two Sleeper ids claiming one GSIS, and a partial or non-finite five-year path."""
+    want = ledger.loc[ledger["route"] == "existing_forecast_join_failure"].copy()
+    want["gsis_id"] = want["gsis_id"].astype(str)
+    if want["gsis_id"].duplicated().any():
+        dup = want.loc[want["gsis_id"].duplicated(keep=False), ["sleeper_id", "gsis_id"]].to_dict("records")
+        raise ValueError(f"discordant identities: more than one Sleeper id claims a GSIS among the join failures: {dup}")
+    if want["sleeper_id"].astype(str).duplicated().any():
+        raise ValueError("discordant identities: a Sleeper id appears twice among the join failures")
     bf = basic_forecasts.copy()
     bf["player_id"] = bf["player_id"].astype(str)
-    bf = bf.drop_duplicates("player_id").set_index("player_id")
+    if bf["player_id"].duplicated().any():
+        dup = bf.loc[bf["player_id"].duplicated(keep=False), "player_id"].unique().tolist()[:5]
+        raise ValueError(f"producer rows are not unique by player_id (never dropped silently), e.g. {dup}")
+    missing_cols = [c for c in RECOVERY_VALUE_COLUMNS if c not in bf.columns]
+    if missing_cols:
+        raise ValueError(f"producer file carries a partial forecast path; missing {missing_cols}")
+    bf = bf.set_index("player_id")
     rows = []
     for _, r in want.iterrows():
-        pid = str(r["gsis_id"])
+        pid = r["gsis_id"]
         if pid not in bf.index:
             raise ValueError(f"{r['name']} ({pid}) is routed as a join failure but has no original producer row to recover")
         src = bf.loc[pid]
+        values = {col: src[col] for col in RECOVERY_VALUE_COLUMNS}
+        bad = [col for col, v in values.items() if pd.isna(v) or not np.isfinite(float(v))]
+        if bad:
+            raise ValueError(f"{r['name']} ({pid}): original producer path is not finite at {bad}; refusing to export a partial recovery")
         row = {"sleeper_id": str(r["sleeper_id"]), "gsis_id": pid, "name": r["name"], "fantasy_positions": r.get("fantasy_positions"),
                "producer_position": src.get("position"), "producer_statline_position": src.get("statline_position"),
-               "producer_feature_season": src.get("feature_season"), "producer_arm": src.get("arm"),
-               "estimate_class": "recovered_existing_forecast",
+               "producer_feature_season": int(src["feature_season"]), "producer_arm": src.get("arm"),
+               "forecast_years": RECOVERY_YEARS, "estimate_class": "recovered_existing_forecast",
                "producer_run_dir": veteran_binding.get("run_dir"), "producer_manifest_sha256": veteran_binding.get("manifest_sha256"),
                "producer_corrected_manifest_sha256": veteran_binding.get("corrected_manifest_sha256"),
-               "producer_basic_forecasts_sha256": veteran_binding.get("basic_forecasts_sha256")}
-        for col in RECOVERY_VALUE_COLUMNS:
-            row[col] = float(src[col]) if col in src.index and pd.notna(src[col]) else None
+               "producer_basic_forecasts_sha256": veteran_binding.get("basic_forecasts_sha256"),
+               "source_binding": f"basic_forecasts.csv@{veteran_binding.get('basic_forecasts_sha256')}"}
+        for j in range(1, 6):
+            fs = src.get(f"forecast_season_year{j}")
+            row[f"season_year{j}"] = int(fs) if pd.notna(fs) else int(src["feature_season"]) + j
+        for col, v in values.items():
+            row[col] = float(v)
         rows.append(row)
-    return pd.DataFrame(rows)
+    out = pd.DataFrame(rows)
+    if len(out):
+        expected = [2026, 2027, 2028, 2029, 2030]
+        got = [int(out[f"season_year{j}"].iloc[0]) for j in range(1, 6)]
+        if got != expected:
+            raise ValueError(f"recovered path covers seasons {got}, not {expected}")
+    return out
 
 
 def summarize_ledger(ledger: pd.DataFrame) -> dict:
