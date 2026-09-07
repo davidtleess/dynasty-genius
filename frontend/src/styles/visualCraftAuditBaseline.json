@@ -46,6 +46,15 @@
       "card_treatment_selectors": 17
     },
     {
+      "path": "market-ranks/MarketRanks.css",
+      "focus_visible_selectors": 1,
+      "focus_token_consumers": 1,
+      "hover_selectors": 1,
+      "elevation_consumers": 0,
+      "row_treatment_selectors": 6,
+      "card_treatment_selectors": 0
+    },
+    {
       "path": "model-scoreboard/ModelScoreboard.css",
       "focus_visible_selectors": 0,
       "focus_token_consumers": 0,
@@ -97,6 +106,33 @@
       "hover_selectors": 0,
       "elevation_consumers": 0,
       "row_treatment_selectors": 1,
+      "card_treatment_selectors": 0
+    },
+    {
+      "path": "research/AvailablePlayers.css",
+      "focus_visible_selectors": 0,
+      "focus_token_consumers": 0,
+      "hover_selectors": 0,
+      "elevation_consumers": 0,
+      "row_treatment_selectors": 0,
+      "card_treatment_selectors": 0
+    },
+    {
+      "path": "research/ResearchPreview.css",
+      "focus_visible_selectors": 0,
+      "focus_token_consumers": 0,
+      "hover_selectors": 0,
+      "elevation_consumers": 0,
+      "row_treatment_selectors": 7,
+      "card_treatment_selectors": 0
+    },
+    {
+      "path": "research/RosterComparison.css",
+      "focus_visible_selectors": 0,
+      "focus_token_consumers": 0,
+      "hover_selectors": 0,
+      "elevation_consumers": 0,
+      "row_treatment_selectors": 0,
       "card_treatment_selectors": 0
     },
     {
@@ -218,11 +254,11 @@
     }
   ],
   "totals": {
-    "focus_visible_selectors": 20,
-    "focus_token_consumers": 17,
-    "hover_selectors": 9,
+    "focus_visible_selectors": 21,
+    "focus_token_consumers": 18,
+    "hover_selectors": 10,
     "elevation_consumers": 0,
-    "row_treatment_selectors": 46,
+    "row_treatment_selectors": 59,
     "card_treatment_selectors": 31
   }
 }

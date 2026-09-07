@@ -1,5 +1,10 @@
+import { MarketRanksProvider } from "./market-ranks/MarketRanksContext";
 import { AppShell } from "./shell/AppShell";
 
 export function App() {
-  return <AppShell />;
+  return (
+    <MarketRanksProvider>
+      <AppShell />
+    </MarketRanksProvider>
+  );
 }

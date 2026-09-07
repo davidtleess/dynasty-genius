@@ -1,0 +1,5 @@
+{"level_by_year": {
+ "1": {"season": 1, "n": 362, "mean_actual": 11.64, "mean_predicted": 10.50, "rmse": 3.49, "rmse_position_mean": 3.64, "bias": -1.13},
+ "2": {"season": 2, "n": 300, "mean_actual": 13.0, "mean_predicted": 12.3, "rmse": 3.6, "rmse_position_mean": 3.7, "bias": -0.7},
+ "6": {"season": 6, "n": 90, "mean_actual": 13.5, "mean_predicted": 12.9, "rmse": 3.9, "rmse_position_mean": 3.85, "bias": -0.6}
+}}

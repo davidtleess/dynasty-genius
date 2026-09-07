@@ -1,0 +1,64 @@
+{
+ "historical": {
+  "WR": {
+   "year1": {
+    "recent_production_3col": {
+     "pooled": {
+      "points_unconditional": {
+       "model": {
+        "rmse": 80.0
+       },
+       "baseline": {
+        "rmse": 90.0
+       }
+      }
+     }
+    }
+   },
+   "year2": {
+    "recent_production_3col": {
+     "pooled": {
+      "points_unconditional": {
+       "model": {
+        "rmse": 95.0
+       },
+       "baseline": {
+        "rmse": 92.0
+       }
+      }
+     }
+    }
+   }
+  },
+  "QB": {
+   "year1": {
+    "recent_production_3col": {
+     "pooled": {
+      "points_unconditional": {
+       "model": {
+        "rmse": 70.0
+       },
+       "baseline": {
+        "rmse": 75.0
+       }
+      }
+     }
+    }
+   },
+   "year2": {
+    "recent_production_3col": {
+     "pooled": {
+      "points_unconditional": {
+       "model": {
+        "rmse": 101.0
+       },
+       "baseline": {
+        "rmse": 98.0
+       }
+      }
+     }
+    }
+   }
+  }
+ }
+}

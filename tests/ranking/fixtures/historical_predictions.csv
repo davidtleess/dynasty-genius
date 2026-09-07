@@ -1,0 +1,2 @@
+horizon,player_id,position,feature_season,forecast_season,policy_e_points_year1,policy_e_games_year1,baseline_e_points_year1,baseline_e_games_year1,points_year1,games_year1
+1,00-1,WR,2024,2025,150.0,15.0,120.0,14.0,160.0,16

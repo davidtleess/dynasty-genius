@@ -1,0 +1,160 @@
+/* DG-181 compare players — the app's tokens only; no raw colours, no verdict hues, no raw sizes.
+   Both sides are model forecasts, so neither wears a lane hue; weight and scale carry the eye. */
+.dg-compare {
+  display: grid;
+  gap: var(--dg-space-4, 1rem);
+}
+.dg-compare > * {
+  min-width: 0;
+}
+.dg-compare__pickers {
+  display: grid;
+  gap: var(--dg-space-3, 0.75rem);
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  align-items: start;
+}
+.dg-compare__picker {
+  display: grid;
+  gap: var(--dg-space-2, 0.5rem);
+  padding: var(--dg-space-3, 0.75rem);
+  border: 1px solid var(--dg-border);
+  border-radius: var(--dg-radius-card);
+  min-width: 0;
+}
+.dg-compare__chosen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dg-space-1, 0.25rem) var(--dg-space-2, 0.5rem);
+  align-items: baseline;
+  min-width: 0;
+}
+.dg-compare__chosen-name {
+  font-weight: var(--dg-weight-semibold);
+}
+.dg-compare__status,
+.dg-compare__num-note {
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+.dg-compare__flag {
+  display: inline-block;
+  padding: 0 var(--dg-space-2, 0.5rem);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: var(--dg-radius-round);
+  font-size: var(--dg-text-sm);
+}
+.dg-compare__options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--dg-space-1, 0.25rem);
+}
+.dg-compare__options > li {
+  display: grid;
+}
+.dg-compare__option {
+  font: inherit;
+  text-align: left;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  border: 1px solid var(--dg-border);
+  border-radius: var(--dg-radius-control);
+  padding: var(--dg-space-1, 0.25rem) var(--dg-space-2, 0.5rem);
+  display: grid;
+  gap: var(--dg-space-1, 0.25rem);
+  min-width: 0;
+}
+.dg-compare__option[aria-pressed="true"] {
+  border-color: var(--dg-model);
+  font-weight: var(--dg-weight-semibold);
+}
+.dg-compare__board {
+  display: grid;
+  gap: var(--dg-space-3, 0.75rem);
+}
+.dg-compare__pair {
+  display: grid;
+  gap: var(--dg-space-3, 0.75rem);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.dg-compare__side {
+  display: grid;
+  gap: var(--dg-space-2, 0.5rem);
+  padding: var(--dg-space-3, 0.75rem);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: var(--dg-radius-card);
+  min-width: 0;
+  align-content: start;
+}
+.dg-compare__side-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--dg-space-2, 0.5rem);
+  min-width: 0;
+}
+.dg-compare__nums {
+  display: grid;
+  gap: var(--dg-space-2, 0.5rem);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.dg-compare__num {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+.dg-compare__num-label {
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+.dg-compare__num-value {
+  font-family: var(--dg-font-display);
+  font-size: var(--dg-text-2xl);
+  font-weight: var(--dg-weight-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--dg-leading-tight);
+}
+.dg-compare__headline {
+  margin: 0;
+  line-height: var(--dg-leading-normal);
+}
+.dg-compare__caveat {
+  margin: 0;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+.dg-compare__notice {
+  margin: 0;
+  font-size: var(--dg-text-sm);
+  border-left: 3px solid var(--dg-border-strong);
+  padding-left: var(--dg-space-3, 0.75rem);
+}
+.dg-compare__seasons th,
+.dg-compare__seasons td {
+  padding: var(--dg-space-1, 0.25rem) var(--dg-space-2, 0.5rem);
+}
+.dg-compare__seasons tbody th {
+  text-align: left;
+  font-weight: var(--dg-weight-medium);
+}
+.dg-compare__seasons small {
+  display: block;
+  font-weight: 400;
+  color: var(--dg-text-muted);
+}
+/* A phone: the two players stack, the four numbers stay paired, nothing pans sideways. */
+@media (max-width: 640px) {
+  .dg-compare__pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dg-compare__num-value {
+    font-size: var(--dg-text-xl);
+  }
+  .dg-compare__seasons th,
+  .dg-compare__seasons td {
+    font-size: var(--dg-text-sm);
+    padding: var(--dg-space-1, 0.25rem);
+  }
+}

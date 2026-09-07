@@ -1,0 +1,189 @@
+/* DG-178 research preview — the app's tokens only; no raw colours, no verdict hues. */
+.dg-research {
+  display: grid;
+  gap: var(--dg-space-4, 1rem);
+  padding-block: var(--dg-space-2, 0.5rem) var(--dg-space-8, 2rem);
+}
+.dg-research__header {
+  display: grid;
+  gap: var(--dg-space-2, 0.5rem);
+}
+.dg-research__kicker {
+  margin: 0;
+  font-size: var(--dg-text-sm);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--dg-text-muted);
+}
+.dg-research__title {
+  margin: 0;
+  font-size: var(--dg-text-2xl);
+}
+.dg-research__lede {
+  margin: 0;
+  max-width: 64ch;
+  line-height: 1.45;
+}
+.dg-research__facts {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: var(--dg-space-1, 0.25rem);
+  font-size: var(--dg-text-sm);
+}
+.dg-research__heading {
+  margin: var(--dg-space-3, 0.75rem) 0 0;
+  font-size: var(--dg-text-lg);
+}
+.dg-research__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.dg-research__table th,
+.dg-research__table td {
+  padding: var(--dg-space-2, 0.5rem) var(--dg-space-3, 0.75rem);
+  text-align: right;
+  border-bottom: 1px solid var(--dg-border);
+  vertical-align: middle;
+}
+.dg-research__table th:first-child,
+.dg-research__table td:first-child {
+  text-align: left;
+}
+.dg-research__focal {
+  font-weight: 700;
+  font-size: var(--dg-text-xl);
+}
+.dg-research__margin small {
+  font-weight: 400;
+  color: var(--dg-text-muted);
+  margin-left: var(--dg-space-1, 0.25rem);
+}
+.dg-research__chip {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: var(--dg-text-sm);
+  border: 1px solid var(--dg-border-strong);
+  margin-right: var(--dg-space-1, 0.25rem);
+}
+.dg-research__chip[data-readiness="comparable"] {
+  border-color: var(--dg-model);
+}
+.dg-research__why {
+  font: inherit;
+  font-size: var(--dg-text-sm);
+  background: none;
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+  color: inherit;
+}
+.dg-research__detail td {
+  text-align: left;
+  font-size: var(--dg-text-sm);
+  line-height: 1.4;
+}
+.dg-research__detail p {
+  margin: var(--dg-space-1, 0.25rem) 0;
+}
+.dg-research__provenance {
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+  overflow-wrap: anywhere;
+}
+.dg-research__missing {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: var(--dg-space-1, 0.25rem);
+  line-height: 1.4;
+}
+.dg-research__empty {
+  margin: 0;
+}
+@media (max-width: 640px) {
+  .dg-research__table th,
+  .dg-research__table td {
+    padding: var(--dg-space-1, 0.25rem) var(--dg-space-1, 0.25rem);
+    font-size: var(--dg-text-sm);
+  }
+  .dg-research__focal {
+    font-size: var(--dg-text-lg);
+  }
+}
+.dg-research__support {
+  margin: 0;
+  max-width: 64ch;
+  line-height: 1.45;
+  font-size: var(--dg-text-sm);
+}
+.dg-research__views {
+  display: flex;
+  gap: var(--dg-space-2, 0.5rem);
+}
+.dg-research__view {
+  font: inherit;
+  font-size: var(--dg-text-sm);
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--dg-border-strong);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.dg-research__view[aria-selected="true"] {
+  border-color: var(--dg-model);
+  font-weight: 600;
+}
+.dg-research__details {
+  font-size: var(--dg-text-sm);
+}
+.dg-research__details > summary {
+  cursor: pointer;
+}
+.dg-research__details .dg-research__facts {
+  margin-top: var(--dg-space-2, 0.5rem);
+}
+.dg-research__provenance-id {
+  opacity: 0.7;
+}
+.dg-research__age,
+.dg-research__owner {
+  display: block;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+.dg-research__search {
+  display: grid;
+  gap: var(--dg-space-1, 0.25rem);
+  max-width: 64ch;
+}
+.dg-research__search-label {
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+.dg-research__search-input {
+  font: inherit;
+  padding: var(--dg-space-2, 0.5rem) var(--dg-space-3, 0.75rem);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: var(--dg-radius, 0.5rem);
+  background: none;
+  color: inherit;
+}
+.dg-research__search-hint {
+  margin: 0;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+/* A grid item defaults to min-width:auto, so a wide results table would widen the whole
+   page instead of scrolling inside its own region (root found scrollWidth 442 at 390px). */
+.dg-research__results {
+  min-width: 0;
+  max-width: 100%;
+}
+.dg-research > * {
+  min-width: 0;
+}

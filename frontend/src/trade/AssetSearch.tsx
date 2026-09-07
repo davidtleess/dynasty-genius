@@ -11,6 +11,7 @@ import { CATALOG_PAGE_SIZE, useAssetCatalogSearch } from "./useAssetCatalogSearc
 // and the command palette (DG-110).
 export function AssetSearch({
   onSelect,
+  playerRanks = false,
   label = "Search tradeable assets",
   placeholder,
   visibleLabel = false,
@@ -20,6 +21,8 @@ export function AssetSearch({
   filteredNotice = "Some assets matched, but none this box can open.",
 }: {
   onSelect: (entry: CatalogEntry) => void;
+  /** Global player lookup can use the configured comparable-rank population. Trade search does not. */
+  playerRanks?: boolean;
   /** Accessible name for the box — the shell's copy differs from Trade Lab's. */
   label?: string;
   placeholder?: string | undefined;
@@ -46,7 +49,7 @@ export function AssetSearch({
 }) {
   const inputId = useId();
   const [query, setQuery] = useState("");
-  const search = useAssetCatalogSearch(query);
+  const search = useAssetCatalogSearch(query, playerRanks);
   // Three different facts, three different sentences. `answered` is what the
   // catalog said; `results` is what this box will offer. Collapsing the gap
   // between them into "nothing matched" states something untrue.
