@@ -21,7 +21,7 @@ in c..t at or above the deep-roster bar (QB 37 / RB 45 / WR 71 / TE 21, from the
 convention zero). Ledger exclusions: 4,082 outside draft years 1–3, 3,327 without a verified draft class, 1,019 prior
 contributors; 1 conflicting draft id excluded with a reason; 1,774 foreign ids in the draft source's gsis column
 disclosed. 1,800 primary candidates. The summed t+2/t+3 test needs both frozen horizons and both closed seasons:
-1,147 rows over origins 2014–2022 (563 players, 606 repeated across origins); 384 excluded as `missing_forecast`
+1,147 rows over origins 2014–2022 (563 players, 386 of them at more than one origin; the candidate ledger itself has 832 unique players, 606 at more than one origin); 384 excluded as `missing_forecast`
 (origins 2011–2013 have no frozen year-3 rows), 269 as `open_season` (origins 2023–2024), 0 as `missing_bar`. No short
 panel at either bar. Contributors (appeared AND ≥ the later season's bar in t+2 or t+3): 166 of 1,147 (14.5%); by
 position QB 10, RB 53, TE 36, WR 67. 663 rows have a no-record season inside their window.

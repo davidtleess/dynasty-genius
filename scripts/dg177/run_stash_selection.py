@@ -104,8 +104,9 @@ def _render(m: dict, metrics: dict) -> str:
              "## Cohort (drafted early-career not-yet-contributor screen)\n",
              f"- ledger rows {c['ledger_rows']} over origins {c['origins']}; primary candidates {c['primary_candidates']}; "
              f"ledger exclusions {c['ledger_exclusions']}; draft conflicts {c['draft_conflicting_ids']}, invalid draft ids {c['draft_invalid_ids']}",
-             f"- summed t+2/t+3 test rows {p['n_rows']} ({p['n_players']} players; origins {p['origins']}); exclusions {c['exclusions']}; "
-             f"repeated players {c['repeated_players']}",
+             f"- summed t+2/t+3 test rows {p['n_rows']} ({p['n_players']} players, {c['repeated_players_primary_tested']} of them at more than one "
+             f"origin; origins {p['origins']}); exclusions {c['exclusions']}; candidate-ledger players at more than one origin "
+             f"{c['repeated_players_candidate_ledger']}",
              f"- bars primary {m['bars']['primary']} strict {m['bars']['strict']}; short panels primary {c['short_panels_primary']} strict {c['short_panels_strict']}",
              f"- panel caveat: {m['panel_caveat']}\n",
              "## Primary test: summed t+2/t+3 (pooled over origin × position cells)\n",
@@ -214,7 +215,9 @@ def main(argv: list[str] | None = None) -> int:
         counts = {"origins": [lo, hi], "ledger_rows": int(len(ledger)), "primary_candidates": int(len(cands)),
                   "ledger_exclusions": {k: int(v) for k, v in ledger["exclusion_reason"].value_counts().items() if k},
                   "draft_conflicting_ids": int(len(vd.attrs.get("conflicting_ids", []))), "draft_invalid_ids": int(vd.attrs.get("invalid_ids", 0)),
-                  "exclusions": summed.attrs["exclusions"], "repeated_players": int((cands.groupby("player_id").size() > 1).sum()),
+                  "exclusions": summed.attrs["exclusions"],
+                  "repeated_players_candidate_ledger": int((cands.groupby("player_id").size() > 1).sum()),
+                  "repeated_players_primary_tested": int((rows.groupby("player_id").size() > 1).sum()) if len(rows) else 0,
                   "short_panels_primary": int(panel_primary["short_panel"].sum()), "short_panels_strict": int(panel_strict["short_panel"].sum())}
         metrics_json = json.dumps(ss.to_jsonable(metrics), indent=2, allow_nan=False)
     except ss.StashSelectionError as err:

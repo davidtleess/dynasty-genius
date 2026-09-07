@@ -486,6 +486,8 @@ def test_cli_writes_an_immutable_run_with_hashed_inputs_and_definitions_and_refu
     assert m["definitions"]["sha256"] == ss.load_definitions(Path("docs/experiments/stash_selection_definitions_v3.json"))["_file"]["sha256"]
     assert m["sources"]["history"]["sha256"] and m["sources"]["cohort"]["sha256"] and m["launch"]["git_head"]
     assert m["counts"]["primary_candidates"] == 4 and m["counts"]["exclusions"]["missing_forecast"] == 0
+    assert m["counts"]["repeated_players_candidate_ledger"] == 0 and m["counts"]["repeated_players_primary_tested"] == 0
+    assert "repeated_players" not in m["counts"]                                  # the unlabelled count was ambiguous
     assert m["bars_override_used"] is True                                   # a fixture bar is disclosed, never silent
     metrics = json.loads((run / "metrics.json").read_text())
     boot = metrics["primary"]["bootstrap"]["rank_future_sum_minus_rank_origin_points"]

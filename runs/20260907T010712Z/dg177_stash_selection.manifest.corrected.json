@@ -114,9 +114,10 @@
       "open_season": 269,
       "missing_bar": 0
     },
-    "repeated_players": 606,
     "short_panels_primary": 0,
-    "short_panels_strict": 0
+    "short_panels_strict": 0,
+    "repeated_players_candidate_ledger": 606,
+    "repeated_players_primary_tested": 386
   },
   "outputs": {
     "primary_candidates.csv": "7b9c66ad5f2e4c306cb6c9fda0eb92d9fa44adc6408dc890b68f9891bbe4a667",
@@ -183,12 +184,15 @@
     "outputs_unchanged": true,
     "changes": [
       "panel_caveat: discloses retrospective position-source risk (frozen stat-line positions can reflect later-role corrections; roles are not contemporaneously verified); definitions v4 carries the same wording for future runs",
-      "deployment / nonproduction_meaning added"
+      "deployment / nonproduction_meaning added",
+      "counts: the original 'repeated_players 606' counts candidate-ledger players at more than one origin (1,800 candidates, 832 unique); the primary tested rows have 386 players at more than one origin (1,147 rows, 563 unique), as the bootstrap block already records; no numeric or threshold change"
     ],
     "binding_guard_note": "the CLI at launch (d7bc8315) did not compare the captured outcome-manifest bytes to the bindings; this run's sources.outcomes_manifest records the accepted manifest d3812d0d\u2026, so its numeric results stand; the guard and its metadata-mutation test were added afterwards",
     "definitions_at_run": {
       "version": "stash_selection_definitions_v3",
       "sha256": "fbcf1a05e061842b50be072f312132c0b216c6684353b5cb34504f8c4c4ffcbe"
-    }
+    },
+    "original_report_sha256": "3bcaa17ace9f33cb6ab388974dcbc8b1df21711ab721867690c476c47ced7e4c",
+    "original_metrics_sha256": "0b2e16500bb109e5713d52a4b652f581aafa3b6ac6c6c1d7e3fcfd18fb09c08d"
   }
 }
