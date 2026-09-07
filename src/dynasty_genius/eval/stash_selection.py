@@ -14,9 +14,10 @@ class StashSelectionError(ValueError):
     """A definitions, source or chronology condition under which the evaluator refuses."""
 
 
-DEFINITIONS_VERSION = "stash_selection_definitions_v1"
-REQUIRED_DEFINITION_KEYS = ("version", "frozen_before_first_result", "origins", "low_production", "developmental",
-                            "outcome", "orderings", "metrics", "claims_not_made")
+DEFINITIONS_VERSION = "stash_selection_definitions_v2"
+REQUIRED_DEFINITION_KEYS = ("version", "frozen_before_first_result", "origins", "contribution_bars", "cohort_primary",
+                            "cohort_exploratory", "primary_test", "immediate_help_test", "budgets", "uncertainty", "label_ledger",
+                            "claims_not_made")
 
 
 def load_definitions(path: Path) -> dict:
@@ -26,7 +27,7 @@ def load_definitions(path: Path) -> dict:
     if missing:
         raise StashSelectionError(f"definitions file lacks {missing}")
     if d.get("version") != DEFINITIONS_VERSION or d.get("frozen_before_first_result") is not True:
-        raise StashSelectionError("definitions must be the frozen v1 file")
+        raise StashSelectionError("definitions must be the frozen v2 file")
     d["_file"] = {"path": str(path), "sha256": hashlib.sha256(raw).hexdigest(), "bytes": len(raw)}
     return d
 

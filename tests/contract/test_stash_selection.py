@@ -9,18 +9,21 @@ import pytest
 
 from src.dynasty_genius.eval import stash_selection as ss
 
-DEFS = json.loads(Path("docs/experiments/stash_selection_definitions_v1.json").read_text())
+DEFS = json.loads(Path("docs/experiments/stash_selection_definitions_v2.json").read_text())
 
 
 # ── Task 1: frozen definitions ────────────────────────────────────────────────────────────────
 
 def test_definitions_file_is_frozen_complete_and_hashed():
-    d = ss.load_definitions(Path("docs/experiments/stash_selection_definitions_v1.json"))
+    d = ss.load_definitions(Path("docs/experiments/stash_selection_definitions_v2.json"))
     assert d["version"] == ss.DEFINITIONS_VERSION and d["frozen_before_first_result"] is True
     assert set(ss.REQUIRED_DEFINITION_KEYS) <= set(d)
     assert len(d["_file"]["sha256"]) == 64 and d["_file"]["bytes"] > 0
-    assert d["low_production"]["starter_slots"] == {"QB": 24, "RB": 36, "WR": 48, "TE": 18}
-    assert d["outcome"]["horizons"] == [1, 2, 3] and d["metrics"]["budgets_per_position_per_origin"] == [2, 4, 8]
+    assert d["contribution_bars"]["primary"] == {"QB": 37, "RB": 45, "WR": 71, "TE": 21}
+    assert d["contribution_bars"]["strict_sensitivity"] == {"QB": 24, "RB": 36, "WR": 48, "TE": 12}
+    assert d["budgets"]["primary_per_position_per_origin"] == 2 and d["budgets"]["sensitivity"] == [1, 3]
+    with pytest.raises(ss.StashSelectionError, match="v2"):
+        ss.load_definitions(Path("docs/experiments/stash_selection_definitions_v1.json"))
 
 
 def test_definitions_loader_refuses_a_file_missing_a_required_section(tmp_path):
