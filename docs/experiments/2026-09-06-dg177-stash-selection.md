@@ -82,6 +82,23 @@ stashes per position per season it found about the same number of later contribu
 72 picks, differences within noise). This is not a waiver backtest and not a breakout probability. P(appears) is the
 chance of any game in that season, not the chance of becoming useful."
 
+## Disclosures added after root's read (metadata only; companion `dg177_stash_selection.manifest.corrected.json` beside the run)
+
+- **Retrospective position-source risk.** The bars use each player-season's FROZEN stat-line position (modal, with the
+  same-season roster fallback). Those frozen assignments can themselves carry later-role corrections in the source (an
+  independent transition review found 12 historic stat-line/roster conflicts), so roles are not contemporaneously
+  verified. The exact frozen forecast values and role assignments are preserved as they are; definitions v4 carries this
+  wording for future runs with no other change.
+- **Deployment.** `nonproduction=False` means only that the accepted bindings held. Nothing was deployed, promoted or
+  served; this is a report-only research run.
+- **Binding guard.** At launch the CLI did not compare the captured outcome-manifest bytes to the bindings; this run's
+  manifest records the accepted DG-179 manifest `d3812d0d…` in its sources, so the results stand. The guard and its
+  metadata-only-mutation test were added afterwards.
+- **What the numbers support.** A broader-pool ordering improvement, retrospectively; the chosen two-per-position-per-origin
+  shortlist has no demonstrated edge (future 27 hits = origin 27; help-now 26; persistence 33; paired hit and point
+  intervals cross zero). No proved stash-pickup strategy and no breakout badge follow from this. Root authors the final
+  UI copy after numeric acceptance; the wording above is a proposal.
+
 ## Not claimed
 
 Waiver or availability backtest; calibrated breakout probability; David's optimal allocation; NFL experience from

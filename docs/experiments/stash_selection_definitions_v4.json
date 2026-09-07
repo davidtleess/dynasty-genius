@@ -1,0 +1,132 @@
+{
+  "version": "stash_selection_definitions_v4",
+  "frozen_before_first_result": true,
+  "supersedes": "v3 \u2014 WORDING ONLY (panel caveat), issued after run 20260907T010712Z; no cohort, bar, test, budget or uncertainty definition changed after results were seen",
+  "root_amendments": "root's frozen scientific choices of 2026-09-06; not a David approval item",
+  "origins": {
+    "feature_seasons": [
+      2011,
+      2024
+    ],
+    "positions": [
+      "QB",
+      "RB",
+      "WR",
+      "TE"
+    ],
+    "source": "basic cohort rows of run 20260906T195728Z (a row exists if the player appeared in t or t-1); identity must be resolved"
+  },
+  "contribution_bars": {
+    "primary": {
+      "QB": 37,
+      "RB": 45,
+      "WR": 71,
+      "TE": 21
+    },
+    "primary_meaning": "deep-roster relevance counts (DG-165); the bar is the N-th highest DG-179 championship points among the FULL positional outcome panel of that season (all cohort rows of the position), never among selected candidates",
+    "strict_sensitivity": {
+      "QB": 24,
+      "RB": 36,
+      "WR": 48,
+      "TE": 12
+    },
+    "strict_meaning": "positional-depth scenario, not a guaranteed lineup gain; no starter claim",
+    "contributor": "appeared AND points >= bar, so a zero bar never creates a contributor from an absent record",
+    "cohort_fixed_when_varying_label": true
+  },
+  "cohort_primary": {
+    "name": "drafted early-career not-yet-contributor screen",
+    "rule": "verified draft class c with c <= t (visible at origin), 1 <= t - c + 1 <= 3, and NO season s in c..t with (appeared AND DG-179 points_s >= primary bar of season s); resolved absent row = explicit convention zero",
+    "not": "all stash/waiver candidates; no contemporary roster eligibility; draft absence is unknown, not UDFA"
+  },
+  "cohort_exploratory": {
+    "name": "observed-history stratum",
+    "rule": "seasons_played (stat-row seasons observed since 2005) <= 3 at origin; no draft requirement",
+    "never": "called NFL experience"
+  },
+  "primary_test": {
+    "name": "summed future",
+    "future_ranking": "policy_e_points_year2 + policy_e_points_year3 from the frozen producer, required finite for both (missing forecast origins are counted exclusions, never zero, never fatal)",
+    "pivot_keys": [
+      "player_id",
+      "position",
+      "feature_season",
+      "horizon"
+    ],
+    "target_check": "forecast_season == feature_season + horizon",
+    "outcome_points": "realized DG-179 points in t+2 plus t+3 (both closed: origins <= 2022)",
+    "outcome_contributor": "contributor in t+2 OR t+3",
+    "comparators_on_identical_candidates": [
+      "origin actual DG-179 points (t)",
+      "frozen policy year-1 expected points (help now)",
+      "draft pick ascending",
+      "persistence comparator: baseline_e_points_year2 + year3 (total_points_t x training retention x appearance rate; within a cell it orders like all-games production)"
+    ]
+  },
+  "immediate_help_test": {
+    "ranking": "policy_e_points_year1",
+    "outcome": "realized DG-179 points and contributor in t+1",
+    "comparators": [
+      "origin actual points",
+      "draft pick",
+      "persistence comparator year1"
+    ]
+  },
+  "exploratory_secondary": {
+    "summed_window_2_5": "policy_e_points_year2 + year3 + year4 + year5 vs realized DG-179 points t+2..t+5, matching the app's Future 2027-2030 window; frozen year 5 exists for origin 2020 ONLY, so this is one-origin evidence stated prominently",
+    "no_separate_year_auc_substitution": true,
+    "ui_claims_restricted_to": "the primary summed t+2/t+3 test"
+  },
+  "budgets": {
+    "primary_per_position_per_origin": 2,
+    "sensitivity": [
+      1,
+      3
+    ],
+    "meaning": "declared scenarios, not David's optimal allocation",
+    "selection_outputs": [
+      "picks",
+      "hits",
+      "misses",
+      "zero_appearance_busts",
+      "realized_future_points_per_slot",
+      "boundary_ties (fractional credit)"
+    ]
+  },
+  "uncertainty": {
+    "method": "paired player-cluster bootstrap of ordering differences",
+    "draws": 1000,
+    "seed": 20260906,
+    "conditional_on": "realized origins and the fixed frozen fits; no future-season or model-selection uncertainty is claimed",
+    "disclosures": [
+      "per-origin results",
+      "repeated players across origins",
+      "cells with fewer rows than the bar count"
+    ]
+  },
+  "label_ledger": {
+    "artifact_row": "DG-179 row (including true row-backed zero or negative points)",
+    "no_record_zero": "resolved identity, covered season, no DG-179 row: convention zero",
+    "unresolved_identity": "excluded and counted; never zero",
+    "open_season": "target season after the last complete season: excluded and counted; never zero",
+    "no_record_as_unknown_sensitivity": "fixed selections report lower/upper hit bounds treating no-record rows as unknown",
+    "negative_clamp": "none on any core quantity"
+  },
+  "claims_not_made": [
+    "waiver or availability backtest (no point-in-time ownership source): a historical low-production candidate screen",
+    "calibrated breakout probability",
+    "David's optimal bench allocation",
+    "NFL experience from observed-history seasons",
+    "an untouched confirmation: the policy was selected historically on these folds; this is a retrospective frozen-policy evaluation"
+  ],
+  "implementation_safeguards": [
+    "forecast pivot keys (player_id, position, feature_season, horizon); ambiguous duplicate forecast identities refuse",
+    "forecast_season == feature_season + horizon with finite integral years",
+    "conflicting duplicate draft or outcome rows refuse; never silently pick one",
+    "an artifact row with non-finite points or an invalid appeared flag refuses; absence means a missing key",
+    "boolean strings are parsed strictly; 'False' is False",
+    "a target season without a full-panel bar is a counted exclusion (missing_bar), never a silent non-contributor",
+    "all sums finite"
+  ],
+  "panel_caveat": "contribution bars come from the basic-cohort positional panel (players who appeared in that season or the one before), with each player-season's position taken from the FROZEN stat-line assignment (modal, with the same-season roster fallback), not from today's listing. There is retrospective position-source risk: frozen stat-line positions can themselves reflect later-role corrections in the source (an independent transition review found 12 historic stat-line/roster conflicts), so roles are not contemporaneously verified; the exact frozen forecast values and role assignments are preserved as they are. The panel covers 2005-2025, so every origin and target season used here is inside it"
+}

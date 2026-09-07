@@ -14,7 +14,8 @@ class StashSelectionError(ValueError):
     """A definitions, source or chronology condition under which the evaluator refuses."""
 
 
-DEFINITIONS_VERSION = "stash_selection_definitions_v3"
+DEFINITIONS_VERSION = "stash_selection_definitions_v4"
+ACCEPTED_DEFINITION_VERSIONS = ("stash_selection_definitions_v3", "stash_selection_definitions_v4")   # v4 is wording-only
 REQUIRED_DEFINITION_KEYS = ("version", "frozen_before_first_result", "origins", "contribution_bars", "cohort_primary",
                             "cohort_exploratory", "primary_test", "immediate_help_test", "budgets", "uncertainty", "label_ledger",
                             "claims_not_made")
@@ -23,8 +24,8 @@ REQUIRED_DEFINITION_KEYS = ("version", "frozen_before_first_result", "origins", 
 def load_definitions(path: Path) -> dict:
     raw = Path(path).read_bytes()
     d = json.loads(raw)
-    if d.get("version") != DEFINITIONS_VERSION or d.get("frozen_before_first_result") is not True:
-        raise StashSelectionError(f"definitions must be the frozen v3 file ({DEFINITIONS_VERSION}); got {d.get('version')!r}")
+    if d.get("version") not in ACCEPTED_DEFINITION_VERSIONS or d.get("frozen_before_first_result") is not True:
+        raise StashSelectionError(f"definitions must be a frozen v3/v4 file ({ACCEPTED_DEFINITION_VERSIONS}); got {d.get('version')!r}")
     missing = [k for k in REQUIRED_DEFINITION_KEYS if k not in d]
     if missing:
         raise StashSelectionError(f"definitions file lacks {missing}")
@@ -699,6 +700,9 @@ def build_manifest(*, definitions: dict, sources: dict, launch: dict, counts: di
                                                  "frozen-policy evaluation, not an untouched confirmation",
         "bars_override_used": bool(bars_override_used), "origins_override": origins_override,
         "year5_disclosure": "the frozen year-5 horizon exists for origin 2020 only (one-origin evidence)",
+        "deployment": "none; report-only research run, nothing promoted or served",
+        "nonproduction_meaning": "nonproduction=True marks fixture overrides (bars, origins, draws, --nonproduction); "
+                                 "nonproduction=False means only that the accepted bindings held, never that anything was deployed",
     }
 
 

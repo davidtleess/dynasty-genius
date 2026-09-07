@@ -17,13 +17,13 @@ DEFS = json.loads(Path("docs/experiments/stash_selection_definitions_v3.json").r
 
 def test_definitions_file_is_frozen_complete_and_hashed():
     d = ss.load_definitions(Path("docs/experiments/stash_selection_definitions_v3.json"))
-    assert d["version"] == ss.DEFINITIONS_VERSION and d["frozen_before_first_result"] is True
+    assert d["version"] in ss.ACCEPTED_DEFINITION_VERSIONS and d["frozen_before_first_result"] is True
     assert set(ss.REQUIRED_DEFINITION_KEYS) <= set(d)
     assert len(d["_file"]["sha256"]) == 64 and d["_file"]["bytes"] > 0
     assert d["contribution_bars"]["primary"] == {"QB": 37, "RB": 45, "WR": 71, "TE": 21}
     assert d["contribution_bars"]["strict_sensitivity"] == {"QB": 24, "RB": 36, "WR": 48, "TE": 12}
     assert d["budgets"]["primary_per_position_per_origin"] == 2 and d["budgets"]["sensitivity"] == [1, 3]
-    with pytest.raises(ss.StashSelectionError, match="v3"):
+    with pytest.raises(ss.StashSelectionError, match="v3/v4"):
         ss.load_definitions(Path("docs/experiments/stash_selection_definitions_v2.json"))
 
 
@@ -732,3 +732,45 @@ def test_bindings_are_checked_semantically_not_just_hashed(tmp_path):
     assert res.returncode == 1 and "binding" in res.stderr and not (tmp_path / "runs" / "20260101T000005Z").exists()
     bad_id = subprocess.run([*cmd[:-1], "not-a-run-id", "--nonproduction"], capture_output=True, text=True)
     assert bad_id.returncode == 1 and "run id" in bad_id.stderr
+
+
+# ── root's disclosure corrections: retrospective position-source risk, deployment statement, v4 wording ─
+
+def test_definitions_v4_is_wording_only_and_both_v3_and_v4_load():
+    v3 = ss.load_definitions(Path("docs/experiments/stash_selection_definitions_v3.json"))
+    v4 = ss.load_definitions(Path("docs/experiments/stash_selection_definitions_v4.json"))
+    assert v4["version"] == "stash_selection_definitions_v4" and v4["supersedes"].startswith("v3")
+    for key in ("origins", "contribution_bars", "cohort_primary", "primary_test", "budgets", "uncertainty", "label_ledger"):
+        assert v3[key] == v4[key], key                                   # no cohort, bar, test or budget change after results
+    assert "retrospective" in v4["panel_caveat"] and "not contemporaneously verified" in v4["panel_caveat"]
+    assert "later-role corrections" in v4["panel_caveat"]
+
+
+def test_manifest_states_that_nothing_was_deployed_and_what_nonproduction_means():
+    m = ss.build_manifest(definitions={"version": ss.DEFINITIONS_VERSION, "_file": {"sha256": "d" * 64, "bytes": 3, "path": "x"}},
+                          sources={}, launch={"git_head": "h"}, counts={}, outputs={})
+    assert m["deployment"] == "none; report-only research run, nothing promoted or served"
+    assert "fixture" in m["nonproduction_meaning"]
+
+
+def test_bindings_verify_the_outcome_manifest_bytes_so_a_metadata_only_mutation_is_refused(tmp_path):
+    import hashlib
+    import subprocess
+    import sys
+    cohort_p, out_p, draft_p, hist_p = _real_shaped_inputs(tmp_path)
+    good = tmp_path / "manifest_good.json"
+    good.write_text(json.dumps({"target_identity": "1" * 64, "last_complete_season": 2018, "scoring_identity": "s" * 64}))
+    mutated = tmp_path / "manifest_mutated.json"
+    mutated.write_text(json.dumps({"target_identity": "1" * 64, "last_complete_season": 2018, "scoring_identity": "x" * 64}))
+    sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()  # noqa: E731
+    bindings = tmp_path / "bindings.json"
+    bindings.write_text(json.dumps({"history_sha256": sha(hist_p), "cohort_sha256": sha(cohort_p), "outcomes_sha256": sha(out_p),
+                                    "outcomes_manifest_sha256": sha(good), "target_identity": "1" * 64, "last_complete_season": 2018}))
+    base = [sys.executable, "scripts/dg177/run_stash_selection.py", "--history", str(hist_p), "--cohort", str(cohort_p),
+            "--outcomes", str(out_p), "--draft", str(draft_p), "--definitions", "docs/experiments/stash_selection_definitions_v4.json",
+            "--bindings", str(bindings), "--last-complete-season", "2018", "--out-root", str(tmp_path / "runs")]
+    bad = subprocess.run([*base, "--outcomes-manifest", str(mutated), "--run-id", "20260101T000006Z"], capture_output=True, text=True)
+    assert bad.returncode == 1 and "binding" in bad.stderr and "manifest" in bad.stderr
+    assert not (tmp_path / "runs" / "20260101T000006Z").exists()
+    ok = subprocess.run([*base, "--outcomes-manifest", str(good), "--run-id", "20260101T000007Z"], capture_output=True, text=True)
+    assert ok.returncode == 0, ok.stderr

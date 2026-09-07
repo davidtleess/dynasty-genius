@@ -1,0 +1,194 @@
+{
+  "schema_version": "dg177_stash_selection_v1",
+  "producer": "DG-177 stash-selection evaluation (report-only)",
+  "definitions": {
+    "version": "stash_selection_definitions_v3",
+    "path": "docs/experiments/stash_selection_definitions_v3.json",
+    "sha256": "fbcf1a05e061842b50be072f312132c0b216c6684353b5cb34504f8c4c4ffcbe",
+    "bytes": 6269
+  },
+  "sources": {
+    "history": {
+      "path": "runs/20260906T195728Z/dg177_basic_horizons/historical_predictions.csv",
+      "sha256": "f4fe6644d3dd6e347b89d573eb05730b3bbda522355f648f7f0087eaf66aa1f1",
+      "bytes": 11546867
+    },
+    "cohort": {
+      "path": "runs/20260906T195728Z/dg177_basic_horizons/basic_cohort.csv.gz",
+      "sha256": "46e1fc01380b4ad768058dbe84ccdf807be056b451b9a46105cda8eab745d25e",
+      "bytes": 404505
+    },
+    "outcomes": {
+      "path": "/Users/davidleess/dg-wt/DG-179/runs/20260906T194819Z/league_season_outcomes/outcomes.csv",
+      "sha256": "199a48beb96a25f5dad50758b3f72b40a5d7d0cf2000f7cdaf2f411873c6ecb8",
+      "bytes": 1326702
+    },
+    "draft": {
+      "path": "/Users/davidleess/dynasty-genius-product/app/data/backtest/qb_validation/raw/draft_picks/draft_picks_full.parquet",
+      "sha256": "6be2a6404ae480bcb0c292d1c7af9d7f69ce4005f6f9264cfa35f8b6a3cf93d2",
+      "bytes": 456563
+    },
+    "outcomes_manifest": {
+      "path": "/Users/davidleess/dg-wt/DG-179/runs/20260906T194819Z/league_season_outcomes/manifest.json",
+      "sha256": "d3812d0d56b50971e98552fed4f791d3132eeffa7c242601e7c609285863ba18",
+      "bytes": 62577
+    },
+    "bindings": {
+      "path": "docs/experiments/stash_selection_bindings_v1.json",
+      "sha256": "04dae02e7427b243b529d41ceb4ded3916ec41c1ec0ea9cc85aa8f9ca49a3d83",
+      "bytes": 942
+    }
+  },
+  "launch": {
+    "git_head": "d7bc8315f6dc47d971bd79cbb525c37a85068464",
+    "git_branch": "ticket/DG-177",
+    "git_dirty": true,
+    "tracked_dirty": false,
+    "untracked_paths": [
+      "runs/20260906T132607Z/dg177_veteran_candidate/predictions.csv",
+      "runs/20260906T132607Z/dg177_veteran_candidate/report.md",
+      "runs/20260906T132607Z/dg177_veteran_candidate/results.json",
+      "runs/20260906T145026Z/dg177_annual_forecasts/annual_forecasts.csv",
+      "runs/20260906T145026Z/dg177_annual_forecasts/historical_predictions.csv",
+      "runs/20260906T145026Z/dg177_annual_forecasts/manifest.json",
+      "runs/20260906T145026Z/dg177_annual_forecasts/report.md",
+      "runs/20260906T145026Z/dg177_annual_forecasts/results.json",
+      "runs/20260906T145026Z/dg177_annual_forecasts/weekly_stats_snapshot.csv.gz",
+      "runs/20260906T155259Z/dg177_basic_horizons/historical_predictions.csv",
+      "runs/20260906T191832Z/dg177_basic_horizons/historical_predictions.csv",
+      "runs/20260906T195728Z/dg177_basic_horizons/historical_predictions.csv",
+      "runs/20260906T214340Z/dg177_league_scoring_audit/components.csv",
+      "runs/20260906T214340Z/dg177_league_scoring_audit/event_ledger.csv",
+      "runs/20260906T214340Z/dg177_league_scoring_audit/quarantine_reaudit.csv",
+      "runs/20260906T214340Z/dg177_league_scoring_audit/reconciliation.csv",
+      "runs/20260906T214340Z/dg177_league_scoring_audit/unresolved.csv",
+      "runs/20260906T214632Z/dg177_league_scoring_audit/components.csv",
+      "runs/20260906T214632Z/dg177_league_scoring_audit/event_ledger.csv",
+      "runs/20260906T214632Z/dg177_league_scoring_audit/quarantine_reaudit.csv",
+      "runs/20260906T214632Z/dg177_league_scoring_audit/reconciliation.csv",
+      "runs/20260906T214632Z/dg177_league_scoring_audit/unresolved.csv",
+      "runs/20260906T214808Z/dg177_league_scoring_audit/components.csv",
+      "runs/20260906T214808Z/dg177_league_scoring_audit/event_ledger.csv",
+      "runs/20260906T214808Z/dg177_league_scoring_audit/quarantine_reaudit.csv",
+      "runs/20260906T214808Z/dg177_league_scoring_audit/reconciliation.csv",
+      "runs/20260906T214808Z/dg177_league_scoring_audit/unresolved.csv"
+    ],
+    "captured_at_utc": "2026-09-07T01:07:12.295218+00:00",
+    "argv": [
+      "scripts/dg177/run_stash_selection.py",
+      "--history",
+      "runs/20260906T195728Z/dg177_basic_horizons/historical_predictions.csv",
+      "--cohort",
+      "runs/20260906T195728Z/dg177_basic_horizons/basic_cohort.csv.gz",
+      "--outcomes",
+      "/Users/davidleess/dg-wt/DG-179/runs/20260906T194819Z/league_season_outcomes/outcomes.csv",
+      "--outcomes-manifest",
+      "/Users/davidleess/dg-wt/DG-179/runs/20260906T194819Z/league_season_outcomes/manifest.json",
+      "--draft",
+      "/Users/davidleess/dynasty-genius-product/app/data/backtest/qb_validation/raw/draft_picks/draft_picks_full.parquet",
+      "--definitions",
+      "docs/experiments/stash_selection_definitions_v3.json",
+      "--bindings",
+      "docs/experiments/stash_selection_bindings_v1.json",
+      "--out-root",
+      "runs"
+    ],
+    "python": "3.14.7"
+  },
+  "counts": {
+    "origins": [
+      2011,
+      2024
+    ],
+    "ledger_rows": 10228,
+    "primary_candidates": 1800,
+    "ledger_exclusions": {
+      "draft_year_outside_1_3": 4082,
+      "no_verified_draft_class": 3327,
+      "prior_contribution": 1019
+    },
+    "draft_conflicting_ids": 1,
+    "draft_invalid_ids": 1774,
+    "exclusions": {
+      "missing_forecast": 384,
+      "open_season": 269,
+      "missing_bar": 0
+    },
+    "repeated_players": 606,
+    "short_panels_primary": 0,
+    "short_panels_strict": 0
+  },
+  "outputs": {
+    "primary_candidates.csv": "7b9c66ad5f2e4c306cb6c9fda0eb92d9fa44adc6408dc890b68f9891bbe4a667",
+    "cohort_ledger.csv": "24b0f5f330b4bd0cff11a7d76b4e4e600113a18d7537688e994025168db4a4bf",
+    "summed_future_rows.csv": "5ee04f28d82ad3159a9e8065665a4352b11bc3a01b56f32bd5b0ad453604c42a",
+    "summed_future_rows_strict.csv": "6f70310f41885c55f9b75a4741298010ba6740b603e5f8d167226f3f913be534",
+    "secondary_2_5_rows.csv": "507c01914df4bcd4e4e1041d4c866701a60ad77ee41d5906b9a35e80d8290e10",
+    "year1_rows.csv": "85f92b178143b7760952e3a4dfb71942f3c14db14db420bfbf2841deeb1437f6",
+    "bars_primary.csv": "77a77fb1a3cb9fadba1a035774aaa57b09da52abe6e825a2724b6fee2a0cd013",
+    "bars_strict.csv": "253c1951b7f3a0891a48154a2b6108cd0f152e81d9485f3971d2e60673be7361",
+    "metrics.json": "0b2e16500bb109e5713d52a4b652f581aafa3b6ac6c6c1d7e3fcfd18fb09c08d",
+    "season_table.csv": "04ccb9141e42e59ea996482ebd8eb626be42fc590e8c119fd0761db61b862844",
+    "selection.csv": "d00449115fd3b6f14c65431c30aaa0f07106825454cc12c20ce914c6678e585d",
+    "report.md": "3bcaa17ace9f33cb6ab388974dcbc8b1df21711ab721867690c476c47ced7e4c"
+  },
+  "claim": "historical low-production candidate screen on frozen out-of-fold forecasts and DG-179 outcomes; not a waiver backtest (no point-in-time ownership source); no breakout probability; budgets are declared scenarios",
+  "uncertainty_conditional_on": "realized origins and the fixed frozen fits",
+  "not_an_untouched_confirmation": true,
+  "not_an_untouched_confirmation_meaning": "the selection policy was chosen historically on these folds; this is a retrospective frozen-policy evaluation, not an untouched confirmation",
+  "bars_override_used": false,
+  "origins_override": null,
+  "year5_disclosure": "the frozen year-5 horizon exists for origin 2020 only (one-origin evidence)",
+  "nonproduction": false,
+  "nonproduction_reasons": [],
+  "bindings": {
+    "meaning": "semantic bindings of the stash-selection inputs to the ACCEPTED producers; the CLI refuses a production run whose captured bytes or target/cutoff do not match",
+    "history_sha256": "f4fe6644d3dd6e347b89d573eb05730b3bbda522355f648f7f0087eaf66aa1f1",
+    "history_source": "runs/20260906T195728Z/dg177_basic_horizons/historical_predictions.csv (accepted producer; corrected companion b73027d0\u2026)",
+    "cohort_sha256": "46e1fc01380b4ad768058dbe84ccdf807be056b451b9a46105cda8eab745d25e",
+    "outcomes_sha256": "199a48beb96a25f5dad50758b3f72b40a5d7d0cf2000f7cdaf2f411873c6ecb8",
+    "outcomes_manifest_sha256": "d3812d0d56b50971e98552fed4f791d3132eeffa7c242601e7c609285863ba18",
+    "target_identity": "049d2229c4ba06eececba66a083a777142f85ff0f459b0499912f49fa0ca3c6a",
+    "last_complete_season": 2025,
+    "draft_source_note": "draft_picks_full.parquet is declared by its own hash in the manifest; it has no accepted-producer binding"
+  },
+  "panel_caveat": "contribution bars come from the basic-cohort positional panel (players who appeared in that season or the one before), with each player-season's position taken from the FROZEN stat-line assignment (modal, with the same-season roster fallback), not from today's listing. There is retrospective position-source risk: frozen stat-line positions can themselves reflect later-role corrections in the source (an independent transition review found 12 historic stat-line/roster conflicts), so roles are not contemporaneously verified; the exact frozen forecast values and role assignments are preserved as they are. The panel covers 2005-2025, so every origin and target season used here is inside it",
+  "bars": {
+    "primary": {
+      "QB": 37,
+      "RB": 45,
+      "WR": 71,
+      "TE": 21
+    },
+    "strict": {
+      "QB": 24,
+      "RB": 36,
+      "WR": 48,
+      "TE": 12
+    }
+  },
+  "last_complete_season": 2025,
+  "budgets": [
+    2,
+    1,
+    3
+  ],
+  "draws": 1000,
+  "seed": 20260906,
+  "deployment": "none; report-only research run, nothing promoted or served",
+  "nonproduction_meaning": "nonproduction=True marks fixture overrides; nonproduction=False means only that the accepted bindings held, never that anything was deployed",
+  "corrects": {
+    "of": "manifest.json in this run directory (immutable, left in place)",
+    "original_manifest_sha256": "71385a489417c92c19b6de9a09df517786cf9f0b81ae411991f9095a13d550da",
+    "outputs_unchanged": true,
+    "changes": [
+      "panel_caveat: discloses retrospective position-source risk (frozen stat-line positions can reflect later-role corrections; roles are not contemporaneously verified); definitions v4 carries the same wording for future runs",
+      "deployment / nonproduction_meaning added"
+    ],
+    "binding_guard_note": "the CLI at launch (d7bc8315) did not compare the captured outcome-manifest bytes to the bindings; this run's sources.outcomes_manifest records the accepted manifest d3812d0d\u2026, so its numeric results stand; the guard and its metadata-mutation test were added afterwards",
+    "definitions_at_run": {
+      "version": "stash_selection_definitions_v3",
+      "sha256": "fbcf1a05e061842b50be072f312132c0b216c6684353b5cb34504f8c4c4ffcbe"
+    }
+  }
+}

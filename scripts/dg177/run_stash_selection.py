@@ -50,12 +50,16 @@ def _frame(src: CapturedSource) -> pd.DataFrame:
     return pd.read_csv(io.BytesIO(src.bytes), low_memory=False)
 
 
-def _check_bindings(bindings: dict, cap: dict, outcomes_manifest: dict | None, last_complete_season: int) -> None:
+def _check_bindings(bindings: dict, cap: dict, outcomes_manifest: dict | None, last_complete_season: int,
+                    outcomes_manifest_sha256: str | None = None) -> None:
     for name, key in (("history", "history_sha256"), ("cohort", "cohort_sha256"), ("outcomes", "outcomes_sha256")):
         if cap[name].sha256 != bindings.get(key):
             raise ss.StashSelectionError(f"binding failed: {name} bytes {cap[name].sha256[:12]}… are not the accepted {str(bindings.get(key))[:12]}…")
     if outcomes_manifest is None:
         raise ss.StashSelectionError("binding failed: a production run needs --outcomes-manifest for the target identity")
+    if outcomes_manifest_sha256 != bindings.get("outcomes_manifest_sha256"):
+        raise ss.StashSelectionError("binding failed: the captured outcome manifest bytes are not the accepted manifest "
+                                     f"({str(outcomes_manifest_sha256)[:12]}… vs {str(bindings.get('outcomes_manifest_sha256'))[:12]}…)")
     if outcomes_manifest.get("target_identity") != bindings.get("target_identity"):
         raise ss.StashSelectionError("binding failed: outcome manifest target_identity is not the accepted target")
     if int(outcomes_manifest.get("last_complete_season", -1)) != int(bindings.get("last_complete_season", -2)) or \
@@ -168,11 +172,11 @@ def main(argv: list[str] | None = None) -> int:
         defs = ss.load_definitions(args.definitions)
         cap = {name: CapturedSource(getattr(args, name)) for name in ("history", "cohort", "outcomes", "draft")}
         sources = {name: src.describe() for name, src in cap.items()}
-        outcomes_manifest = None
+        outcomes_manifest, outcomes_manifest_sha = None, None
         if args.outcomes_manifest is not None:
             om = CapturedSource(args.outcomes_manifest)
             sources["outcomes_manifest"] = om.describe()
-            outcomes_manifest = om.json()
+            outcomes_manifest, outcomes_manifest_sha = om.json(), om.sha256
         bindings = None
         if not nonprod_reasons:
             if args.bindings is None:
@@ -180,7 +184,7 @@ def main(argv: list[str] | None = None) -> int:
             bsrc = CapturedSource(args.bindings)
             sources["bindings"] = bsrc.describe()
             bindings = bsrc.json()
-            _check_bindings(bindings, cap, outcomes_manifest, args.last_complete_season)
+            _check_bindings(bindings, cap, outcomes_manifest, args.last_complete_season, outcomes_manifest_sha)
         history, cohort, outcomes, draft = (_frame(cap[k]) for k in ("history", "cohort", "outcomes", "draft"))
         bars_primary = json.loads(args.bars_override) if args.bars_override else defs["contribution_bars"]["primary"]
         bars_strict = defs["contribution_bars"]["strict_sensitivity"] if not args.bars_override else {k: max(1, v - 1) for k, v in bars_primary.items()}
