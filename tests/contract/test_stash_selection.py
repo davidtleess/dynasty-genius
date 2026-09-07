@@ -325,3 +325,85 @@ def test_prior_contribution_check_treats_an_absent_season_as_convention_zero_nev
     draft = pd.DataFrame([draft_row("A3", 2013, 3, 90)])
     ledger = ss.primary_cohort_ledger(cohort, outcomes, draft, definitions=DEFS, bars=TINY_BARS, origin=2015).set_index("player_id")
     assert ledger.loc["A3", "exclusion_reason"] == "" and ledger.loc["A3", "prior_seasons_checked"] == 3 and ledger.loc["A3", "prior_no_record_seasons"] == 1
+
+
+# ── v2 primary test: summed t+2/t+3 future on identical complete candidates ──────────────────
+
+def _v2_setup():
+    # origin 2015; candidates C1..C4 drafted 2014 (year 2); bars tiny; outcomes for 2013..2018
+    rows, outs = [], []
+    for s in range(2013, 2019):
+        for p, pts in (("A1", 200.0), ("A2", 150.0), ("C1", 30.0), ("C2", 20.0), ("C3", 10.0), ("C4", 5.0)):
+            rows.append(cohort_row(p, s, seasons_played=max(1, s - 2013)))
+            if not (p == "C4" and s >= 2016):                       # C4 has no record after 2015
+                outs.append(outcome_row(p, s, pts if s < 2016 else {"C1": 160.0, "C2": 0.0, "C3": 155.0, "A1": 100.0, "A2": 140.0}.get(p, pts)))
+    draft = pd.DataFrame([draft_row(p, 2014, 3, 70 + i) for i, p in enumerate(("C1", "C2", "C3", "C4"))])
+    hist = []
+    for j in (1, 2, 3):
+        for p, v in (("C1", 40.0), ("C2", 35.0), ("C3", 30.0), ("C4", 5.0)):
+            hist.append(hist_row(p, 2015, j, policy_points=v * j, baseline_points=v / 2))
+    return pd.DataFrame(rows), pd.DataFrame(outs), draft, pd.DataFrame(hist)
+
+
+def test_summed_future_rows_use_both_frozen_horizons_and_the_fixed_cohort_with_ledger_labels():
+    cohort, outcomes, draft, hist = _v2_setup()
+    cands = ss.primary_candidates(cohort, outcomes, draft, definitions=DEFS, bars=TINY_BARS, origin=2015)
+    assert sorted(cands.player_id) == ["C1", "C2", "C3", "C4"]
+    bars = ss.contribution_bars(cohort, outcomes, bars=TINY_BARS)
+    rows = ss.summed_future_rows(cands, hist, outcomes, bars, last_complete_season=2018)
+    r = rows.set_index("player_id")
+    assert r.loc["C1", "future_sum"] == 40.0 * 2 + 40.0 * 3 and r.loc["C1", "future_year1"] == 40.0
+    assert r.loc["C1", "persistence_sum"] == 20.0 * 2                     # baseline y2 + y3 = 20 + 20
+    assert r.loc["C1", "realized_sum"] == 320.0 and bool(r.loc["C1", "contributor_any"]) is True
+    assert r.loc["C2", "realized_sum"] == 0.0 and bool(r.loc["C2", "contributor_any"]) is False and r.loc["C2", "label_sources"] == "artifact_row+artifact_row"
+    assert r.loc["C4", "realized_sum"] == 0.0 and r.loc["C4", "label_sources"] == "no_record_zero+no_record_zero" and bool(r.loc["C4", "any_no_record"]) is True
+    assert rows.attrs["exclusions"] == {"missing_forecast": 0, "open_season": 0}
+
+
+def test_summed_future_rows_count_missing_forecasts_and_open_seasons_as_exclusions_never_zero():
+    cohort, outcomes, draft, hist = _v2_setup()
+    cands = ss.primary_candidates(cohort, outcomes, draft, definitions=DEFS, bars=TINY_BARS, origin=2015)
+    bars = ss.contribution_bars(cohort, outcomes, bars=TINY_BARS)
+    sparse = hist[~((hist.player_id == "C3") & (hist.horizon == 3))]
+    rows = ss.summed_future_rows(cands, sparse, outcomes, bars, last_complete_season=2018)
+    assert "C3" not in set(rows.player_id) and rows.attrs["exclusions"]["missing_forecast"] == 1
+    rows2 = ss.summed_future_rows(cands, hist, outcomes, bars, last_complete_season=2017)
+    assert len(rows2) == 0 and rows2.attrs["exclusions"]["open_season"] == 4
+
+
+def test_summed_future_rows_refuse_a_history_row_whose_target_season_is_not_origin_plus_horizon():
+    cohort, outcomes, draft, hist = _v2_setup()
+    cands = ss.primary_candidates(cohort, outcomes, draft, definitions=DEFS, bars=TINY_BARS, origin=2015)
+    bars = ss.contribution_bars(cohort, outcomes, bars=TINY_BARS)
+    bad = hist.copy()
+    bad.loc[(bad.player_id == "C1") & (bad.horizon == 2), "forecast_season"] = 2099
+    with pytest.raises(ss.StashSelectionError, match="forecast_season"):
+        ss.summed_future_rows(cands, bad, outcomes, bars, last_complete_season=2018)
+
+
+def test_v2_orderings_rank_the_summed_future_and_its_comparators_and_selection_reports_bounds():
+    cohort, outcomes, draft, hist = _v2_setup()
+    cands = ss.primary_candidates(cohort, outcomes, draft, definitions=DEFS, bars=TINY_BARS, origin=2015)
+    bars = ss.contribution_bars(cohort, outcomes, bars=TINY_BARS)
+    rows = ss.v2_orderings(ss.summed_future_rows(cands, hist, outcomes, bars, last_complete_season=2018))
+    r = rows.set_index("player_id")
+    assert r.loc["C1", "rank_future_sum"] == 1 and r.loc["C4", "rank_future_sum"] == 4
+    assert r.loc["C1", "rank_origin_points"] == 1 and r.loc["C1", "rank_draft"] == 1 and r.loc["C1", "rank_persistence"] == 1
+    assert set(ss.V2_ORDERINGS) == {"rank_future_sum", "rank_future_year1", "rank_origin_points", "rank_draft", "rank_persistence"}
+    sel = ss.select_at_budget(rows, "rank_future_sum", budget=2, flag_col="contributor_any", points_col="realized_sum").iloc[0]
+    assert sel.hits == 1 and sel.points_captured == 320.0 and sel.misses == 1 and sel.busts == 0
+    b = ss.selection_bounds_no_record_unknown(rows, "rank_future_sum", budget=2, flag_col="contributor_any")
+    assert b["hits_lower"] == 1 and b["hits_upper"] == 1 and b["no_record_picks"] == 0
+    b3 = ss.selection_bounds_no_record_unknown(rows, "rank_future_sum", budget=4, flag_col="contributor_any")
+    assert b3["no_record_picks"] == 1 and b3["hits_lower"] == 2 and b3["hits_upper"] == 2 and b3["picks_known"] == 3
+
+
+def test_a_zero_bar_never_makes_a_contributor_out_of_an_absent_record():
+    cands = _cands(origin=2022, players=("P5",))
+    lines = pd.DataFrame([{"position": "WR", "season": 2023, "slots": 2, "rows_in_cell": 1, "line_points": 0.0, "short_cell": True,
+                           "deep_line_points": 0.0}])
+    rows = ss.attach_outcomes(cands, pd.DataFrame(columns=["player_id", "season", "points", "games", "appeared"]), lines,
+                              horizons=(1,), last_complete_season=2025)
+    r = rows.iloc[0]
+    assert r.label_source == "no_record_zero" and bool(r.appeared) is False
+    assert bool(r.contributor) is False and bool(r.contributor_deep) is False

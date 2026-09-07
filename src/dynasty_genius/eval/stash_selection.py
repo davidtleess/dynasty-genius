@@ -143,9 +143,10 @@ def attach_outcomes(cands: pd.DataFrame, outcomes: pd.DataFrame, lines: pd.DataF
         if out["later_line"].isna().any():
             missing = out.loc[out["later_line"].isna(), ["position", "target_season"]].drop_duplicates()
             raise StashSelectionError(f"no starter line for {missing.to_dict('records')}; a missing line is not zero")
-        out["contributor"] = out["realized_points"] >= out["later_line"]
-        out["contributor_abs"] = out["realized_points"] >= float(absolute_line)
-        out["contributor_deep"] = (out["realized_points"] >= out["later_deep_line"]).where(out["later_deep_line"].notna(), other=pd.NA)
+        appeared = out["appeared"].astype(bool)          # a zero bar never creates a contributor from an absent record
+        out["contributor"] = appeared & (out["realized_points"] >= out["later_line"])
+        out["contributor_abs"] = appeared & (out["realized_points"] >= float(absolute_line))
+        out["contributor_deep"] = (appeared & (out["realized_points"] >= out["later_deep_line"])).where(out["later_deep_line"].notna(), other=pd.NA)
     out.attrs["censored_dropped"] = censored
     return out.reset_index(drop=True)
 
@@ -253,7 +254,8 @@ def auc_by_cell(rows: pd.DataFrame, rank_col: str, flag_col: str = "contributor"
     return pd.DataFrame(out, columns=[*CELL, "ordering", "n", "n_positive", "value"])
 
 
-def select_at_budget(rows: pd.DataFrame, rank_col: str, budget: int, flag_col: str = "contributor") -> pd.DataFrame:
+def select_at_budget(rows: pd.DataFrame, rank_col: str, budget: int, flag_col: str = "contributor",
+                     points_col: str = "realized_points") -> pd.DataFrame:
     """Pick the `budget` best-ranked candidates in each cell. A tie straddling the boundary is
     disclosed and credited fractionally (slots left ÷ tied rows); it is never broken by an arbitrary order."""
     out = []
@@ -261,7 +263,7 @@ def select_at_budget(rows: pd.DataFrame, rank_col: str, budget: int, flag_col: s
         g = g.sort_values(rank_col)
         r = g[rank_col].to_numpy(dtype=float)
         flag = g[flag_col].astype(bool).to_numpy().astype(float)
-        pts = g["realized_points"].to_numpy(dtype=float)
+        pts = g[points_col].to_numpy(dtype=float)
         bust = (~g["appeared"].astype(bool)).to_numpy().astype(float)
         n = len(g)
         k = min(int(budget), n)
@@ -398,3 +400,97 @@ def primary_cohort_ledger(cohort: pd.DataFrame, outcomes: pd.DataFrame, draft: p
 def primary_candidates(cohort, outcomes, draft, *, definitions: dict, bars: dict, origin: int) -> pd.DataFrame:
     ledger = primary_cohort_ledger(cohort, outcomes, draft, definitions=definitions, bars=bars, origin=origin)
     return ledger[ledger["exclusion_reason"] == ""].reset_index(drop=True)
+
+
+# ── v2 primary test: summed t+2 / t+3 future on identical complete candidates ────────────────
+
+V2_ORDERINGS = ("rank_future_sum", "rank_future_year1", "rank_origin_points", "rank_draft", "rank_persistence")
+V2_CELL = ["origin", "position"]
+
+
+def _history_pivot(history: pd.DataFrame, horizon: int) -> pd.DataFrame:
+    j = int(horizon)
+    h = history[history["horizon"] == j].copy()
+    bad = h[h["forecast_season"] != h["feature_season"] + j]
+    if len(bad):
+        raise StashSelectionError(f"{len(bad)} history rows at horizon {j} have forecast_season != feature_season + horizon")
+    cols = {f"policy_e_points_year{j}": f"policy_{j}", f"baseline_e_points_year{j}": f"persistence_{j}"}
+    return (h[["player_id", "feature_season", *cols]].rename(columns=cols).rename(columns={"feature_season": "origin"})
+            .drop_duplicates(["player_id", "origin"]))
+
+
+def summed_future_rows(cands: pd.DataFrame, history: pd.DataFrame, outcomes: pd.DataFrame, bars: pd.DataFrame, *,
+                       last_complete_season: int = 2025) -> pd.DataFrame:
+    """Per candidate: the frozen policy expected points for t+2 plus t+3 (both required finite; a missing one is a
+    counted exclusion, never zero), the year-1 expected points (help now), the persistence comparator, and the
+    realized t+2 + t+3 DG-179 points with per-season label sources; contributor_any = contributor in t+2 or t+3."""
+    exclusions = {"missing_forecast": 0, "open_season": 0}
+    c = cands.copy()
+    open_rows = (c["origin"] + 3) > last_complete_season
+    exclusions["open_season"] = int(open_rows.sum())
+    c = c[~open_rows]
+    for j in (1, 2, 3):
+        c = c.merge(_history_pivot(history, j), on=["player_id", "origin"], how="left")
+    need = ["policy_1", "policy_2", "policy_3", "persistence_2", "persistence_3"]
+    finite = np.isfinite(c[need].to_numpy(dtype=float)).all(axis=1) if len(c) else np.array([], dtype=bool)
+    exclusions["missing_forecast"] = int((~finite).sum())
+    c = c[finite].copy()
+    c["future_sum"] = c["policy_2"] + c["policy_3"]
+    c["future_year1"] = c["policy_1"]
+    c["persistence_sum"] = c["persistence_2"] + c["persistence_3"]
+    labels, realized, contrib, appeared_any, no_record_any = [], [], [], [], []
+    for _, r in c.iterrows():
+        seasons = [int(r["origin"]) + 2, int(r["origin"]) + 3]
+        t = pd.DataFrame({"player_id": r["player_id"], "target_season": seasons})
+        pts, lab = _window_points(t, outcomes, "target_season")
+        o = outcomes[["player_id", "season", "appeared"]].drop_duplicates(["player_id", "season"])
+        m = t.merge(o, left_on=["player_id", "target_season"], right_on=["player_id", "season"], how="left")
+        app = m["appeared"].map(lambda v: bool(v) if not pd.isna(v) else False)
+        flags = contributor_flags(pd.DataFrame({"season": seasons, "points": pts.to_numpy(), "appeared": app.to_numpy()}), bars,
+                                  position=r["position"])
+        labels.append("+".join(lab.tolist()))
+        realized.append(float(pts.sum()))
+        contrib.append(bool(flags.any()))
+        appeared_any.append(bool(app.any()))
+        no_record_any.append(bool((lab == LABEL_NO_RECORD).any()))
+    c["label_sources"] = labels
+    c["realized_sum"] = realized
+    c["contributor_any"] = contrib
+    c["appeared"] = appeared_any                      # any appearance in t+2 or t+3 (bust = neither)
+    c["any_no_record"] = no_record_any
+    c["horizon"] = 23                                 # a fixed pseudo-horizon so the cell helpers work unchanged
+    c["realized_points"] = c["realized_sum"]
+    c.attrs["exclusions"] = exclusions
+    return c.reset_index(drop=True)
+
+
+def v2_orderings(rows: pd.DataFrame) -> pd.DataFrame:
+    r = rows.copy()
+    r["rank_future_sum"] = _rank_desc(r, "future_sum")
+    r["rank_future_year1"] = _rank_desc(r, "future_year1")
+    r["rank_origin_points"] = _rank_desc(r, "origin_points")
+    pick = pd.to_numeric(r["draft_pick"], errors="coerce").where(r["draft_visible"].astype(bool))
+    r["_draft_key"] = (-pick).fillna(-np.inf)
+    r["rank_draft"] = _rank_desc(r, "_draft_key")
+    r = r.drop(columns=["_draft_key"])
+    r["rank_persistence"] = _rank_desc(r, "persistence_sum")
+    return r
+
+
+def selection_bounds_no_record_unknown(rows: pd.DataFrame, rank_col: str, budget: int, flag_col: str = "contributor_any") -> dict:
+    """Sensitivity: treat no-record picks as UNKNOWN. Lower bound counts them as non-hits; the upper bound
+    drops them from the picks (hit rate among known picks); both are reported with the count."""
+    picked_hits_lower = picked_hits_upper = picks_known = no_record_picks = 0.0
+    for _, g in rows.groupby(V2_CELL + ["horizon"]):
+        g = g.sort_values(rank_col)
+        k = min(int(budget), len(g))
+        top = g.iloc[:k]
+        unknown = top["any_no_record"].astype(bool)
+        known = top[~unknown]
+        picked_hits_lower += float(known[flag_col].astype(bool).sum())
+        picked_hits_upper += float(known[flag_col].astype(bool).sum())
+        picks_known += float(len(known))
+        no_record_picks += float(unknown.sum())
+    return {"hits_lower": picked_hits_lower, "hits_upper": picked_hits_upper, "picks_known": picks_known,
+            "no_record_picks": no_record_picks,
+            "meaning": "lower: no-record picks count as non-hits over all picks; upper: hits over known picks only"}
