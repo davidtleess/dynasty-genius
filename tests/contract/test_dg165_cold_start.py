@@ -152,3 +152,82 @@ def test_draft_evidence_is_positive_only_and_never_says_udfa():
     assert by.loc["00-C", "college"] == "C U" and by.loc["00-C", "birth_date"] == "1995-03-03" and by.loc["00-C", "age_2026"] == pytest.approx(31.5, abs=0.1)
     joined = " ".join(ev["draft_status"].astype(str)).lower()
     assert "udfa" not in joined and "undrafted" not in joined
+
+
+# ---------------------------------------------------------------- Task 3: NFL history, existing-forecast join check, route, ledger
+
+def _history_sources():
+    outcomes = pd.DataFrame({"player_id": ["00-A", "00-A", "00-C", "00-C", "00-D"], "season": [2024, 2025, 2022, 2023, 2025],
+                             "points": [100.0, 120.0, 30.0, 0.0, 15.0], "games": [15, 16, 6, 0, 3], "appeared": [True, True, True, False, True]})
+    basic_cohort = pd.DataFrame({"player_id": ["00-A", "00-C", "00-D"], "feature_season": [2025, 2023, 2025], "games_t": [16, 0, 3]})
+    basic_forecasts = pd.DataFrame({"player_id": ["00-A", "00-D"], "feature_season": [2025, 2025], "e_points_year1": [110.0, 20.0]})
+    rookie_scores = pd.DataFrame({"gsis_id": ["00-R"], "name": ["Rook"], "e_points_year1": [50.0]})
+    return outcomes, basic_cohort, basic_forecasts, rookie_scores
+
+
+def test_nfl_history_reads_the_artifact_and_the_frozen_producers():
+    from src.dynasty_genius.rookie.cold_start import nfl_history
+    outcomes, bc, bf, rs = _history_sources()
+    h = nfl_history(pd.Series(["00-A", "00-C", "00-U", "00-D", "00-R"]), outcomes=outcomes, basic_cohort=bc, basic_forecasts=bf,
+                    rookie_scores=rs, last_complete_season=2025).set_index("gsis_id")
+    assert h.loc["00-A", "nfl_appearance_seasons"] == 2 and h.loc["00-A", "last_appearance_season"] == 2025 and bool(h.loc["00-A", "dg177_2025_forecast_row"])
+    assert h.loc["00-C", "nfl_appearance_seasons"] == 1 and h.loc["00-C", "last_appearance_season"] == 2022 and h.loc["00-C", "seasons_since_last_appearance"] == 3
+    assert h.loc["00-C", "window_points_last_appearance"] == 30.0 and h.loc["00-C", "dg177_last_feature_season"] == 2023
+    assert h.loc["00-U", "nfl_appearance_seasons"] == 0 and pd.isna(h.loc["00-U", "first_appearance_season"]) and pd.isna(h.loc["00-U", "seasons_since_last_appearance"])
+    assert bool(h.loc["00-R", "dg165_rookie_2026_row"]) and not bool(h.loc["00-U", "dg177_2025_feature_row"])
+
+
+def test_route_classification_and_ledger_keep_every_missing_player():
+    from src.dynasty_genius.rookie.cold_start import (
+        build_ledger,
+        draft_evidence,
+        nfl_history,
+        route_for,
+    )
+    picks, players, rosters = _draft_sources()
+    outcomes, bc, bf, rs = _history_sources()
+    missing = pd.DataFrame({"sleeper_id": ["10", "11", "12", "13", "14"], "name": ["Ann", "Cy", "Uma", "Dee", "Zed"],
+                            "league_position": ["QB", "WR", "WR", "TE", "RB"], "fantasy_positions": ["QB", "WR", "WR", "TE", "RB"],
+                            "availability_class": ["active", "practice_squad", "practice_squad", "injured_reserve", "active"],
+                            "nfl_team": ["A", "C", "U", "D", "Z"], "nfl_status_raw": ["ACT", "DEV", "DEV", "RES", "ACT"],
+                            "nfl_gsis_id": ["00-A", "00-C", "00-U", "00-D", "00-ZZ"], "sleeper_gsis_id": ["00-A", None, None, "00-X", None],
+                            "join_basis": ["sleeper_id"] * 5})
+    ev = draft_evidence(missing["nfl_gsis_id"], draft_picks=picks, players=players, rosters=rosters)
+    hist = nfl_history(missing["nfl_gsis_id"], outcomes=outcomes, basic_cohort=bc, basic_forecasts=bf, rookie_scores=rs, last_complete_season=2025)
+    led = build_ledger(missing, ev, hist).set_index("sleeper_id")
+    assert len(led) == 5
+    assert led.loc["10", "route"] == "existing_forecast_join_failure"      # a DG-177 2025 forecast exists under this gsis
+    assert led.loc["11", "route"] == "dormant_no_draft_record" and led.loc["11", "seasons_since_last_appearance"] == 3
+    assert led.loc["12", "route"] == "never_appeared_no_draft_record" and "stat row" in led.loc["12", "route_reason"]
+    assert led.loc["13", "route"] == "existing_forecast_join_failure" and led.loc["13", "sleeper_gsis_agrees"] == False  # noqa: E712
+    assert led.loc["14", "route"] == "unknown_identity"
+    assert "zero production" not in led.loc["12", "route_reason"].lower()
+    assert set(led.columns) >= {"draft_status", "entry_season", "age_2026", "inputs_available", "identity_status"}
+    assert route_for({"draft_status": "drafted_verified", "nfl_appearance_seasons": 0, "dg177_2025_forecast_row": False, "dg165_rookie_2026_row": False})[0] == "never_appeared_drafted"
+    # root 2026-09-06: a draft-source conflict stays an EXPLICIT unresolved route, never folded into "no draft record"
+    assert route_for({"draft_status": "draft_sources_conflict", "nfl_appearance_seasons": 2, "dg177_2025_forecast_row": False, "dg165_rookie_2026_row": False})[0] == "draft_sources_conflict_unresolved"
+
+
+def test_full_nfl_source_reason_sits_beside_the_window_route():
+    from src.dynasty_genius.rookie.cold_start import (
+        build_ledger,
+        draft_evidence,
+        full_nfl_source_status,
+        nfl_history,
+    )
+    picks, players, rosters = _draft_sources()
+    outcomes, bc, bf, rs = _history_sources()
+    # Muse-like case: a week-18 REG record (full-NFL history says appeared) but no championship-window row
+    universe = pd.DataFrame({"sleeper_id": ["12", "11"], "name": ["Uma", "Cy"], "position": ["WR", "WR"], "rostered": [False, False],
+                             "gsis_id": ["00-U", "00-C"], "status": ["no_nfl_history", "left_cohort_two_absent_seasons"],
+                             "last_season_seen": [None, 2023], "cohort_position": [None, "WR"], "games_2025": [0, 0]})
+    missing = pd.DataFrame({"sleeper_id": ["11", "12"], "name": ["Cy", "Uma"], "league_position": ["WR", "WR"], "fantasy_positions": ["WR", "WR"],
+                            "availability_class": ["practice_squad", "practice_squad"], "nfl_team": ["C", "U"], "nfl_status_raw": ["DEV", "DEV"],
+                            "nfl_gsis_id": ["00-C", "00-U"], "sleeper_gsis_id": [None, None], "join_basis": ["sleeper_id"] * 2})
+    ev = draft_evidence(missing["nfl_gsis_id"], draft_picks=picks, players=players, rosters=rosters)
+    hist = nfl_history(missing["nfl_gsis_id"], outcomes=outcomes, basic_cohort=bc, basic_forecasts=bf, rookie_scores=rs, last_complete_season=2025)
+    fn = full_nfl_source_status(missing["sleeper_id"], universe)
+    led = build_ledger(missing, ev, hist, fn).set_index("sleeper_id")
+    assert led.loc["11", "full_nfl_source_reason"] == "left_cohort_two_absent_seasons" and led.loc["11", "route"] == "dormant_no_draft_record"
+    assert led.loc["12", "full_nfl_source_reason"] == "no_nfl_history" and led.loc["12", "route"] == "never_appeared_no_draft_record"
+

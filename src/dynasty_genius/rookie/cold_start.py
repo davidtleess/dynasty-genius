@@ -23,12 +23,18 @@ import pandas as pd
 __all__ = [
     "DEFAULT_POOL",
     "DRAFT_STATUS",
+    "LEDGER_COLUMNS",
+    "ROUTES",
     "AcceptedReport",
     "CensusRun",
+    "build_ledger",
     "draft_evidence",
     "load_accepted_report",
     "load_census_run",
+    "full_nfl_source_status",
     "missing_default_pool",
+    "nfl_history",
+    "route_for",
 ]
 
 # NFL availability classes David can actually pick up from (the brief's default relevant unowned pool).
@@ -234,3 +240,135 @@ def draft_evidence(gsis_ids: pd.Series, *, draft_picks: pd.DataFrame, players: p
             "entry_season": entry_season, "rookie_season": rookie, "birth_date": birth, "age_2026": age, "college": college,
         })
     return pd.DataFrame(rows)
+
+
+# ----------------------------------------------------------------------------- NFL history, route, ledger
+
+ROUTES = (
+    "existing_forecast_join_failure",   # a frozen producer already forecasts this GSIS; the board's join lost it — investigate, never re-estimate
+    "never_appeared_drafted",
+    "never_appeared_no_draft_record",
+    "dormant_drafted",
+    "dormant_no_draft_record",
+    "draft_sources_conflict_unresolved",   # positive draft records disagree: explicit unresolved, never a routine route
+    "unknown_identity",
+)
+NEVER_APPEARED_REASON = ("no championship-window stat row in the common outcome artifact 2001–{last}; a statement about the "
+                         "artifact's records, not a claim of zero individual production observed")
+
+
+def nfl_history(gsis_ids: pd.Series, *, outcomes: pd.DataFrame, basic_cohort: pd.DataFrame, basic_forecasts: pd.DataFrame,
+                rookie_scores: pd.DataFrame, last_complete_season: int) -> pd.DataFrame:
+    """Appearance history from the DG-179 artifact plus whether either frozen producer already covers the id."""
+    o = outcomes.loc[outcomes["appeared"].astype(bool)].copy()
+    o["player_id"] = o["player_id"].astype(str)
+    agg = o.groupby("player_id").agg(first=("season", "min"), last=("season", "max"), n=("season", "size"))
+    last_points = o.sort_values("season").groupby("player_id").last()["points"]
+    bc = basic_cohort.copy()
+    bc["player_id"] = bc["player_id"].astype(str)
+    bc_last = bc.groupby("player_id")["feature_season"].max()
+    bc_2025 = set(bc.loc[bc["feature_season"] == last_complete_season, "player_id"])
+    bf_2025 = set(basic_forecasts.loc[basic_forecasts["feature_season"] == last_complete_season, "player_id"].astype(str))
+    rookies = set(rookie_scores["gsis_id"].astype(str))
+    rows = []
+    for pid in gsis_ids.astype(str):
+        hit = pid in agg.index
+        last = int(agg.loc[pid, "last"]) if hit else None
+        rows.append({
+            "gsis_id": pid,
+            "nfl_appearance_seasons": int(agg.loc[pid, "n"]) if hit else 0,
+            "first_appearance_season": int(agg.loc[pid, "first"]) if hit else None,
+            "last_appearance_season": last,
+            "seasons_since_last_appearance": (last_complete_season - last) if hit else None,
+            "window_points_last_appearance": float(last_points.loc[pid]) if hit else None,
+            "dg177_2025_feature_row": pid in bc_2025,
+            "dg177_2025_forecast_row": pid in bf_2025,
+            "dg177_last_feature_season": int(bc_last.loc[pid]) if pid in bc_last.index else None,
+            "dg165_rookie_2026_row": pid in rookies,
+        })
+    return pd.DataFrame(rows)
+
+
+def route_for(row) -> tuple[str, str]:
+    """(route, reason) for one ledger row; rule order matters and is the same for every player."""
+    status = str(row["draft_status"])
+    if bool(row.get("dg177_2025_forecast_row")) or bool(row.get("dg165_rookie_2026_row")):
+        which = "DG-177 2025 forecast" if bool(row.get("dg177_2025_forecast_row")) else "DG-165 2026 rookie score"
+        return "existing_forecast_join_failure", f"a {which} exists under this gsis id but the accepted board carries none for the Sleeper id — a join to investigate, not a new estimate"
+    if status == "unknown_identity":
+        return "unknown_identity", "the NFL gsis id is known to no held source (draft picks, players table, rosters)"
+    if status == "draft_sources_conflict":
+        return "draft_sources_conflict_unresolved", "positive draft records disagree across sources; unresolved until a source is adjudicated"
+    drafted = status == "drafted_verified"
+    suffix = "drafted" if drafted else "no_draft_record"
+    detail = ""
+    if int(row["nfl_appearance_seasons"]) == 0:
+        return f"never_appeared_{suffix}", NEVER_APPEARED_REASON.format(last=2025) + detail
+    return f"dormant_{suffix}", (f"appeared in {int(row['nfl_appearance_seasons'])} window season(s), last {int(row['last_appearance_season'])}; "
+                                 f"{int(row['seasons_since_last_appearance'])} season(s) absent since" + detail)
+
+
+def full_nfl_source_status(sleeper_ids: pd.Series, universe_reconciliation: pd.DataFrame) -> pd.DataFrame:
+    """DG-177's own reason for not forecasting a Sleeper id, read from its hash-bound universe reconciliation.
+
+    This is the FULL-NFL-record view (any REG stat line, e.g. a week-18 record outside the championship
+    window); the ledger keeps it beside the window-absence route and never relabels one with the other."""
+    u = universe_reconciliation.copy()
+    u["sleeper_id"] = u["sleeper_id"].astype(str)
+    u = u.drop_duplicates("sleeper_id").set_index("sleeper_id")
+    rows = []
+    for sid in sleeper_ids.astype(str):
+        if sid in u.index:
+            r = u.loc[sid]
+            rows.append({"sleeper_id": sid, "full_nfl_source_reason": str(r["status"]),
+                         "full_nfl_last_season_seen": int(r["last_season_seen"]) if pd.notna(r.get("last_season_seen")) else None,
+                         "full_nfl_games_2025": int(r["games_2025"]) if pd.notna(r.get("games_2025")) else None})
+        else:
+            rows.append({"sleeper_id": sid, "full_nfl_source_reason": "not_in_dg177_universe", "full_nfl_last_season_seen": None, "full_nfl_games_2025": None})
+    return pd.DataFrame(rows)
+
+
+LEDGER_COLUMNS = [
+    "sleeper_id", "name", "league_position", "fantasy_positions", "availability_class", "nfl_team", "nfl_status_raw",
+    "gsis_id", "join_basis", "sleeper_gsis_agrees", "identity_status",
+    "draft_status", "draft_sources_positive", "draft_sources_checked", "draft_season", "draft_round", "draft_pick", "draft_position",
+    "draft_sources_agree", "draft_conflict_detail",
+    "birth_date", "age_2026", "entry_season", "rookie_season", "college",
+    "nfl_appearance_seasons", "first_appearance_season", "last_appearance_season", "seasons_since_last_appearance", "window_points_last_appearance",
+    "dg177_2025_feature_row", "dg177_2025_forecast_row", "dg177_last_feature_season", "dg165_rookie_2026_row",
+    "full_nfl_source_reason", "full_nfl_last_season_seen", "full_nfl_games_2025",
+    "route", "route_reason", "inputs_available",
+]
+
+
+def build_ledger(missing: pd.DataFrame, evidence: pd.DataFrame, history: pd.DataFrame,
+                 full_nfl: pd.DataFrame | None = None) -> pd.DataFrame:
+    """One row per missing player — exactly len(missing), asserted — with identity, draft evidence, history and route."""
+    m = missing.copy()
+    m["gsis_id"] = m["nfl_gsis_id"].astype(str)
+    if full_nfl is not None:
+        fn = full_nfl.drop_duplicates("sleeper_id").set_index(full_nfl["sleeper_id"].astype(str))
+        m = m.join(fn.drop(columns=["sleeper_id"]), on=m["sleeper_id"].astype(str).rename("_sid"))
+    ev = evidence.drop_duplicates("gsis_id").set_index("gsis_id")
+    hi = history.drop_duplicates("gsis_id").set_index("gsis_id")
+    missing_ev = sorted(set(m["gsis_id"]) - set(ev.index))
+    missing_hi = sorted(set(m["gsis_id"]) - set(hi.index))
+    if missing_ev or missing_hi:
+        raise ValueError(f"ledger inputs incomplete: evidence lacks {missing_ev[:5]}, history lacks {missing_hi[:5]}")
+    led = m.join(ev, on="gsis_id").join(hi, on="gsis_id")
+    sg = led["sleeper_gsis_id"] if "sleeper_gsis_id" in led.columns else pd.Series([None] * len(led), index=led.index)
+    led["sleeper_gsis_agrees"] = [None if pd.isna(s) else (str(s) == g) for s, g in zip(sg, led["gsis_id"])]
+    led["identity_status"] = ["unknown" if st == "unknown_identity" else ("verified_nfl_join" if a in (True, None) else "sleeper_gsis_disagrees")
+                              for st, a in zip(led["draft_status"], led["sleeper_gsis_agrees"])]
+    routes = [route_for(r) for _, r in led.iterrows()]
+    led["route"] = [r for r, _ in routes]
+    led["route_reason"] = [why for _, why in routes]
+    input_fields = ["draft_season", "birth_date", "entry_season", "college", "last_appearance_season", "dg177_last_feature_season"]
+    led["inputs_available"] = [",".join(f for f in input_fields if pd.notna(r.get(f))) for _, r in led.iterrows()]
+    for col in LEDGER_COLUMNS:
+        if col not in led.columns:
+            led[col] = None
+    out = led[LEDGER_COLUMNS].reset_index(drop=True)
+    if len(out) != len(missing):
+        raise AssertionError("ledger rows must equal missing-player rows")
+    return out
