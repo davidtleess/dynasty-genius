@@ -49,9 +49,12 @@ def _window_points(frame: pd.DataFrame, outcomes: pd.DataFrame, season_col: str)
     return pd.Series(points, index=frame.index), pd.Series(label, index=frame.index)
 
 
-def starter_lines(cohort: pd.DataFrame, outcomes: pd.DataFrame, *, slots: dict, multiplier: float = 1.0) -> pd.DataFrame:
+def starter_lines(cohort: pd.DataFrame, outcomes: pd.DataFrame, *, slots: dict, multiplier: float = 1.0,
+                  deep_slots: dict | None = None) -> pd.DataFrame:
     """The N-th highest realized window points among the season's cohort rows of a position,
-    N = round(slots × multiplier). A cell with fewer rows than N has line 0 and is disclosed."""
+    N = round(slots × multiplier). A cell with fewer rows than N has line 0 and is disclosed.
+    `deep_slots` (DG-165's deep-roster relevance counts, not a starting cutoff) gives a second,
+    separately named line."""
     c = cohort[cohort["position"].isin(slots)].copy()
     c["points"], _ = _window_points(c, outcomes, "feature_season")
     rows = []
@@ -59,9 +62,13 @@ def starter_lines(cohort: pd.DataFrame, outcomes: pd.DataFrame, *, slots: dict, 
         n = max(1, int(round(slots[pos] * multiplier)))
         pts = np.sort(g["points"].to_numpy())[::-1]
         short = len(pts) < n
+        deep = np.nan
+        if deep_slots is not None and pos in deep_slots:
+            dn = int(deep_slots[pos])
+            deep = 0.0 if len(pts) < dn else float(pts[dn - 1])
         rows.append({"position": pos, "season": int(season), "slots": n, "rows_in_cell": int(len(pts)),
-                     "line_points": 0.0 if short else float(pts[n - 1]), "short_cell": bool(short)})
-    return pd.DataFrame(rows, columns=["position", "season", "slots", "rows_in_cell", "line_points", "short_cell"])
+                     "line_points": 0.0 if short else float(pts[n - 1]), "short_cell": bool(short), "deep_line_points": deep})
+    return pd.DataFrame(rows, columns=["position", "season", "slots", "rows_in_cell", "line_points", "short_cell", "deep_line_points"])
 
 
 def candidates(cohort: pd.DataFrame, outcomes: pd.DataFrame, draft: pd.DataFrame, *, definitions: dict, slots: dict | None = None,
@@ -100,3 +107,53 @@ def candidates(cohort: pd.DataFrame, outcomes: pd.DataFrame, draft: pd.DataFrame
             "total_points_t", "ppg_t", "games_t", "age", "observed_history_seasons", "draft_visible", "draft_season", "draft_round",
             "draft_pick", "nfl_years_since_draft"]
     return keep[cols].sort_values(["origin", "position", "player_id"]).reset_index(drop=True)
+
+
+# ── closed outcomes with label sources ───────────────────────────────────────────────────────
+
+def attach_outcomes(cands: pd.DataFrame, outcomes: pd.DataFrame, lines: pd.DataFrame, *, horizons=(1, 2, 3),
+                    last_complete_season: int = 2025, absolute_line: float = 100.0) -> pd.DataFrame:
+    """One row per (player_id, origin, horizon) with the realized DG-179 window points of the target
+    season and the contributor flags. Target seasons after the last complete season are dropped and
+    counted (`.attrs["censored_dropped"]`), never zero. A target season without a starter line refuses."""
+    frames = []
+    censored = 0
+    for j in horizons:
+        r = cands[["player_id", "origin", "position"]].copy()
+        r["horizon"] = int(j)
+        r["target_season"] = r["origin"] + int(j)
+        open_rows = r["target_season"] > last_complete_season
+        censored += int(open_rows.sum())
+        r = r[~open_rows]
+        if not len(r):
+            continue
+        pts, label = _window_points(r, outcomes, "target_season")
+        r["realized_points"], r["label_source"] = pts, label
+        o = outcomes[["player_id", "season", "games", "appeared"]].drop_duplicates(["player_id", "season"])
+        m = r.merge(o, left_on=["player_id", "target_season"], right_on=["player_id", "season"], how="left")
+        r["realized_games"] = pd.to_numeric(m["games"], errors="coerce").fillna(0).astype(int).to_numpy()
+        r["appeared"] = m["appeared"].map(lambda v: bool(v) if not pd.isna(v) else False).to_numpy()
+        frames.append(r)
+    out = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=["player_id", "origin", "position", "horizon", "target_season"])
+    if len(out):
+        keyed = lines.drop_duplicates(["position", "season"]).rename(columns={"season": "target_season", "line_points": "later_line",
+                                                                              "deep_line_points": "later_deep_line"})
+        out = out.merge(keyed[["position", "target_season", "later_line", "later_deep_line"]], on=["position", "target_season"], how="left")
+        if out["later_line"].isna().any():
+            missing = out.loc[out["later_line"].isna(), ["position", "target_season"]].drop_duplicates()
+            raise StashSelectionError(f"no starter line for {missing.to_dict('records')}; a missing line is not zero")
+        out["contributor"] = out["realized_points"] >= out["later_line"]
+        out["contributor_abs"] = out["realized_points"] >= float(absolute_line)
+        out["contributor_deep"] = (out["realized_points"] >= out["later_deep_line"]).where(out["later_deep_line"].notna(), other=pd.NA)
+    out.attrs["censored_dropped"] = censored
+    return out.reset_index(drop=True)
+
+
+def cumulative_contributor(rows: pd.DataFrame, horizons=(1, 2, 3)) -> pd.DataFrame:
+    """Per (player_id, origin): contributor in any of the horizons, defined only when every horizon is closed."""
+    out = []
+    for (pid, origin), g in rows.groupby(["player_id", "origin"]):
+        closed = set(int(h) for h in g["horizon"]) >= set(int(h) for h in horizons)
+        out.append({"player_id": pid, "origin": int(origin), "closed": bool(closed),
+                    "any_contributor_1_3": bool(g["contributor"].astype(bool).any()) if closed else pd.NA})
+    return pd.DataFrame(out, columns=["player_id", "origin", "closed", "any_contributor_1_3"])

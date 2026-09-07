@@ -107,3 +107,55 @@ def test_origins_outside_the_frozen_range_or_positions_are_refused_or_excluded()
     with pytest.raises(ss.StashSelectionError, match="origin"):
         ss.candidates(cohort, pd.DataFrame(columns=["player_id", "season", "points", "games", "appeared"]),
                       pd.DataFrame(columns=["gsis_id", "season", "round", "pick"]), definitions=DEFS, slots=SMALL_SLOTS)
+
+
+# ── Task 3: closed outcomes with label sources ───────────────────────────────────────────────
+
+def _cands(origin=2022, players=("P3", "P5")):
+    return pd.DataFrame([{"player_id": p, "origin": origin, "position": "WR", "origin_points": 10.0, "origin_label_source": "artifact_row",
+                          "origin_line": 100.0, "origin_short_cell": False, "total_points_t": 12.0, "ppg_t": 2.0, "games_t": 6, "age": 23,
+                          "observed_history_seasons": 1, "draft_visible": False, "draft_season": None, "draft_round": None,
+                          "draft_pick": None, "nfl_years_since_draft": None} for p in players])
+
+
+def _lines(seasons, line=100.0, deep=60.0):
+    return pd.DataFrame([{"position": "WR", "season": s, "slots": 2, "rows_in_cell": 5, "line_points": line, "short_cell": False,
+                          "deep_line_points": deep} for s in seasons])
+
+
+def test_outcomes_drop_censored_years_and_count_them_never_as_zero():
+    cands = _cands(origin=2024)
+    outcomes = pd.DataFrame([outcome_row("P3", 2025, 150.0)])
+    rows = ss.attach_outcomes(cands, outcomes, _lines([2025, 2026, 2027]), horizons=(1, 2, 3), last_complete_season=2025)
+    assert set(rows.horizon) == {1} and rows.attrs["censored_dropped"] == 4
+    r = rows.set_index("player_id")
+    assert r.loc["P3", "realized_points"] == 150.0 and r.loc["P3", "label_source"] == "artifact_row" and bool(r.loc["P3", "contributor"]) is True
+    assert r.loc["P5", "realized_points"] == 0.0 and r.loc["P5", "label_source"] == "no_record_zero" and bool(r.loc["P5", "contributor"]) is False
+    assert bool(r.loc["P5", "appeared"]) is False and bool(r.loc["P3", "appeared"]) is True
+
+
+def test_contributor_uses_the_later_season_line_and_the_absolute_and_deep_lines_are_separate_flags():
+    cands = _cands(origin=2022, players=("P3",))
+    outcomes = pd.DataFrame([outcome_row("P3", 2023, 90.0), outcome_row("P3", 2024, 130.0), outcome_row("P3", 2025, 50.0)])
+    lines = pd.DataFrame([{"position": "WR", "season": 2023, "slots": 2, "rows_in_cell": 5, "line_points": 80.0, "short_cell": False, "deep_line_points": 40.0},
+                          {"position": "WR", "season": 2024, "slots": 2, "rows_in_cell": 5, "line_points": 140.0, "short_cell": False, "deep_line_points": 100.0},
+                          {"position": "WR", "season": 2025, "slots": 2, "rows_in_cell": 5, "line_points": 60.0, "short_cell": False, "deep_line_points": 45.0}])
+    rows = ss.attach_outcomes(cands, outcomes, lines, horizons=(1, 2, 3), last_complete_season=2025, absolute_line=100.0).set_index("horizon")
+    assert rows.loc[1, "contributor"] and not rows.loc[2, "contributor"] and not rows.loc[3, "contributor"]
+    assert not rows.loc[1, "contributor_abs"] and rows.loc[2, "contributor_abs"] and not rows.loc[3, "contributor_abs"]
+    assert rows.loc[1, "contributor_deep"] and rows.loc[2, "contributor_deep"] and rows.loc[3, "contributor_deep"]
+    assert rows.loc[2, "later_line"] == 140.0 and rows.loc[2, "target_season"] == 2024
+
+
+def test_missing_later_line_refuses_rather_than_assuming_zero():
+    cands = _cands(origin=2022, players=("P3",))
+    with pytest.raises(ss.StashSelectionError, match="line"):
+        ss.attach_outcomes(cands, pd.DataFrame([outcome_row("P3", 2023, 1.0)]), _lines([2023]), horizons=(1, 2), last_complete_season=2025)
+
+
+def test_cumulative_contributor_exists_only_when_every_horizon_is_closed():
+    rows = pd.DataFrame([{"player_id": "P3", "origin": 2022, "horizon": h, "contributor": c} for h, c in ((1, False), (2, True), (3, False))]
+                        + [{"player_id": "P5", "origin": 2023, "horizon": h, "contributor": False} for h in (1, 2)])
+    cum = ss.cumulative_contributor(rows, horizons=(1, 2, 3)).set_index("player_id")
+    assert bool(cum.loc["P3", "any_contributor_1_3"]) is True and bool(cum.loc["P3", "closed"]) is True
+    assert bool(cum.loc["P5", "closed"]) is False and pd.isna(cum.loc["P5", "any_contributor_1_3"])
