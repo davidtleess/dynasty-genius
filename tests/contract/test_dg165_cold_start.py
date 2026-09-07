@@ -114,3 +114,41 @@ def test_accepted_report_must_describe_the_same_census(tmp_path):
     accepted = load_accepted_report(make_accepted_report(tmp_path / "x", other))  # written against a different census
     with pytest.raises(ValueError, match="census"):
         missing_default_pool(census, accepted)
+
+
+# ---------------------------------------------------------------- Task 2: three-source draft evidence, positively labelled
+
+def _draft_sources():
+    picks = pd.DataFrame({"season": [2015, 2015, 2014], "round": [1, 2, 4], "pick": [1, 40, 120],
+                          "gsis_id": ["00-A", "00-B", "00-LB"], "position": ["QB", "RB", "LB"], "pfr_player_name": ["Ann", "Bob", "Lou"]})
+    players = pd.DataFrame({"gsis_id": ["00-A", "00-B", "00-C", "00-U", "00-LB"], "display_name": ["Ann", "Bob", "Cy", "Uma", "Lou"],
+                            "birth_date": ["1993-01-01", "1994-02-02", "1995-03-03", "2003-04-04", "1992-05-05"],
+                            "position": ["QB", "RB", "WR", "WR", "LB"], "college_name": ["A U", "B U", "C U", "U U", "L U"],
+                            "rookie_season": [2015, 2015, 2017, 2026, 2014], "last_season": [2025, 2025, 2020, 2026, 2020],
+                            "years_of_experience": [10, 10, 3, 0, 6],
+                            "draft_year": [2015, 2015, None, None, 2014], "draft_round": [1, 2, None, None, 4],
+                            "draft_pick": [1, 40, None, None, 120], "draft_team": ["X", "Y", None, None, "Z"]})
+    rosters = pd.DataFrame({"season": [2025, 2025, 2020, 2026, 2019, 2026], "week": [1] * 6,
+                            "gsis_id": ["00-A", "00-B", "00-C", "00-U", "00-LB", "00-B"], "position": ["QB", "RB", "WR", "WR", "LB", "RB"],
+                            "status": ["ACT", "ACT", "ACT", "DEV", "ACT", "ACT"], "birth_date": ["1993-01-01", "1994-02-02", "1995-03-03", "2003-04-04", "1992-05-05", "1994-02-02"],
+                            "college": ["A U", "B U", "C U", "U U", "L U", "B U"], "entry_year": [2015, 2015, 2017, 2026, 2014, 2015],
+                            "rookie_year": [2015, 2015, 2017, 2026, 2014, 2015], "draft_club": ["X", "Y", None, None, "Z", "Y"],
+                            "draft_number": [1, 41, None, None, 120, 41], "years_exp": [10, 10, 3, 0, 5, 11]})
+    return picks, players, rosters
+
+
+def test_draft_evidence_is_positive_only_and_never_says_udfa():
+    from src.dynasty_genius.rookie.cold_start import draft_evidence
+    picks, players, rosters = _draft_sources()
+    ev = draft_evidence(pd.Series(["00-A", "00-B", "00-C", "00-U", "00-LB", "00-ZZ"]), draft_picks=picks, players=players, rosters=rosters)
+    by = ev.set_index("gsis_id")
+    assert by.loc["00-A", "draft_status"] == "drafted_verified" and by.loc["00-A", "draft_sources_positive"] == 3 and bool(by.loc["00-A", "draft_sources_agree"])
+    assert by.loc["00-B", "draft_status"] == "draft_sources_conflict"  # picks/players say 40, rosters says 41
+    assert by.loc["00-C", "draft_status"] == "no_draft_record_2_sources"  # present in players + rosters, no draft fields anywhere
+    assert by.loc["00-U", "draft_status"] == "no_draft_record_2_sources" and by.loc["00-U", "entry_season"] == 2026
+    assert by.loc["00-LB", "draft_status"] == "drafted_verified" and by.loc["00-LB", "draft_position"] == "LB"
+    assert by.loc["00-ZZ", "draft_status"] == "unknown_identity"
+    assert by.loc["00-A", "draft_season"] == 2015 and by.loc["00-A", "draft_pick"] == 1 and by.loc["00-A", "draft_round"] == 1
+    assert by.loc["00-C", "college"] == "C U" and by.loc["00-C", "birth_date"] == "1995-03-03" and by.loc["00-C", "age_2026"] == pytest.approx(31.5, abs=0.1)
+    joined = " ".join(ev["draft_status"].astype(str)).lower()
+    assert "udfa" not in joined and "undrafted" not in joined

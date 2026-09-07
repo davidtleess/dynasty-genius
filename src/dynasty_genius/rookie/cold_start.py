@@ -22,8 +22,10 @@ import pandas as pd
 
 __all__ = [
     "DEFAULT_POOL",
+    "DRAFT_STATUS",
     "AcceptedReport",
     "CensusRun",
+    "draft_evidence",
     "load_accepted_report",
     "load_census_run",
     "missing_default_pool",
@@ -136,3 +138,99 @@ def missing_default_pool(census: CensusRun, accepted: AcceptedReport) -> pd.Data
         raise ValueError("default pool does not reconcile with the accepted report: " + "; ".join(problems))
     missing = unowned.loc[unowned["availability_class"].isin(DEFAULT_POOL) & ~unowned["has_forecast"]].copy()
     return missing.sort_values(["availability_class", "league_position", "name"]).drop(columns="has_forecast").reset_index(drop=True)
+
+
+# ----------------------------------------------------------------------------- draft evidence
+
+DRAFT_STATUS = (
+    "drafted_verified",            # >= 1 positive draft record and every positive source agrees on season and overall pick
+    "draft_sources_conflict",      # positive draft records that disagree — not verified, not "no record"
+    "no_draft_record_3_sources",   # the id is known to all three sources, none carries a draft record
+    "no_draft_record_2_sources",
+    "no_draft_record_1_source",
+    "unknown_identity",            # the id is known to no source at all
+)
+AGE_REFERENCE = pd.Timestamp("2026-09-01")
+
+
+def _latest_roster_rows(rosters: pd.DataFrame) -> pd.DataFrame:
+    r = rosters.loc[rosters["gsis_id"].notna()].copy()
+    r["gsis_id"] = r["gsis_id"].astype(str)
+    sort_cols = ["season"] + (["week"] if "week" in r.columns else [])
+    return r.sort_values(sort_cols).groupby("gsis_id", sort=False).last()
+
+
+def draft_evidence(gsis_ids: pd.Series, *, draft_picks: pd.DataFrame, players: pd.DataFrame, rosters: pd.DataFrame) -> pd.DataFrame:
+    """Draft facts from three independent sources, labelled positively.
+
+    A source is POSITIVE when its draft fields are non-null. ``drafted_verified`` needs at least one positive
+    source and agreement (season and overall pick) among all positive sources. Absence of a draft record in
+    every source that knows the player is ``no_draft_record_<n>_sources`` — a statement about the sources,
+    never a claim that the player went undrafted.
+    """
+    picks = draft_picks.loc[draft_picks["gsis_id"].notna()].copy()
+    picks["gsis_id"] = picks["gsis_id"].astype(str)
+    picks = picks.drop_duplicates("gsis_id").set_index("gsis_id")
+    pl = players.copy()
+    pl["gsis_id"] = pl["gsis_id"].astype(str)
+    pl = pl.drop_duplicates("gsis_id").set_index("gsis_id")
+    ro = _latest_roster_rows(rosters)
+    rows = []
+    for pid in gsis_ids.astype(str):
+        known = 0
+        positive = []
+        if pid in picks.index:
+            known += 1
+            p = picks.loc[pid]
+            positive.append(("draft_picks", int(p["season"]), int(p["pick"]), int(p["round"]), str(p["position"])))
+        if pid in pl.index:
+            known += 1
+            p = pl.loc[pid]
+            if pd.notna(p.get("draft_year")) and pd.notna(p.get("draft_pick")):
+                positive.append(("players", int(p["draft_year"]), int(p["draft_pick"]), int(p["draft_round"]) if pd.notna(p.get("draft_round")) else None, None))
+        if pid in ro.index:
+            known += 1
+            p = ro.loc[pid]
+            if pd.notna(p.get("draft_number")) and pd.notna(p.get("entry_year")):
+                positive.append(("rosters", int(p["entry_year"]), int(p["draft_number"]), None, None))
+        if known == 0:
+            status = "unknown_identity"
+        elif not positive:
+            status = f"no_draft_record_{known}_sources" if known > 1 else "no_draft_record_1_source"
+        else:
+            seasons = {s for _, s, _, _, _ in positive}
+            overall = {o for _, _, o, _, _ in positive}
+            status = "drafted_verified" if len(seasons) == 1 and len(overall) == 1 else "draft_sources_conflict"
+        first = positive[0] if positive else None
+        draft_round = next((r for _, _, _, r, _ in positive if r is not None), None)
+        draft_pos = next((q for _, _, _, _, q in positive if q is not None), None)
+        entry = None
+        rookie = None
+        birth = None
+        college = None
+        if pid in pl.index:
+            p = pl.loc[pid]
+            rookie = int(p["rookie_season"]) if pd.notna(p.get("rookie_season")) else None
+            birth = str(p["birth_date"]) if pd.notna(p.get("birth_date")) else None
+            college = str(p["college_name"]) if pd.notna(p.get("college_name")) else None
+        if pid in ro.index:
+            p = ro.loc[pid]
+            entry = int(p["entry_year"]) if pd.notna(p.get("entry_year")) else None
+            birth = birth or (str(p["birth_date"]) if pd.notna(p.get("birth_date")) else None)
+            college = college or (str(p["college"]) if pd.notna(p.get("college")) else None)
+        entry_season = rookie if rookie is not None else entry
+        age = None
+        if birth:
+            bd = pd.to_datetime(birth, errors="coerce")
+            age = float((AGE_REFERENCE - bd).days / 365.25) if pd.notna(bd) else None
+        rows.append({
+            "gsis_id": pid, "draft_status": status, "draft_sources_positive": len(positive), "draft_sources_checked": known,
+            "draft_season": first[1] if (first and status == "drafted_verified") else None,
+            "draft_round": draft_round if status == "drafted_verified" else None,
+            "draft_pick": first[2] if (first and status == "drafted_verified") else None,
+            "draft_position": draft_pos if status == "drafted_verified" else None,
+            "draft_sources_agree": (status == "drafted_verified") if positive else None,
+            "draft_conflict_detail": "; ".join(f"{src}:{s}/{o}" for src, s, o, _, _ in positive) if status == "draft_sources_conflict" else None,
+            "entry_season": entry_season, "rookie_season": rookie, "birth_date": birth, "age_2026": age, "college": college,
+        })
+    return pd.DataFrame(rows)
