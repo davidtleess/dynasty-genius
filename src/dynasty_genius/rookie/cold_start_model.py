@@ -29,14 +29,19 @@ __all__ = [
     "HORIZONS",
     "SELECTION_RULE",
     "SKILL_POSITIONS",
+    "assert_capture_coverage",
     "evaluate_candidate",
     "export_sidecar",
     "first_full_reg_season",
     "fit_arms",
     "never_record_population",
+    "paired_rmse_bootstrap",
     "predict_arms",
+    "render_candidate_report",
     "support_table",
+    "unresolved_from_ledger",
     "verify_capture",
+    "write_candidate_run",
 ]
 
 SKILL_POSITIONS = ("QB", "RB", "WR", "TE")
@@ -97,6 +102,52 @@ def first_full_reg_season(capture_dir: Path | str) -> pd.Series:
     return reg.groupby("player_id")["season"].min().astype(int)
 
 
+GSIS_PATTERN = r"\d{2}-\w+"  # two digits, a dash, a token: rejects placeholders like unresolved:2015:10 and bare ids
+
+
+def _strict_bool(values: pd.Series, name: str) -> pd.Series:
+    """True/False only; strings, NaN and anything else refuse — bool(NaN) and bool('False') are both True."""
+    out = []
+    for v in values.tolist():
+        if isinstance(v, (bool, np.bool_)):
+            out.append(bool(v))
+        elif isinstance(v, (int, np.integer)) and not isinstance(v, bool) and v in (0, 1):
+            out.append(bool(v))
+        else:  # strings (even 'False'), NaN, floats and everything else refuse: the artifact writes real booleans
+            raise ValueError(f"{name}: value {v!r} is not a strict boolean")
+    return pd.Series(out, index=values.index, dtype=bool)
+
+
+def assert_capture_coverage(capture_dir: Path | str, *, required_seasons) -> dict[str, str]:
+    """Every required season must be declared exactly once with no recorded failure; an omitted season can never read
+    as 'no NFL record'. Returns season -> declared file."""
+    capture_dir = Path(capture_dir)
+    manifest = json.loads((capture_dir / "manifest.json").read_text())
+    failures = manifest.get("failures") or []
+    if failures:
+        raise ValueError(f"capture manifest records failures: {failures[:3]}")
+    files = manifest.get("files") or {}
+    entries = list(files.values()) if isinstance(files, dict) else list(files)
+    by_season: dict[str, list[str]] = {}
+    for meta in entries:
+        season = meta.get("season") if isinstance(meta, dict) else None
+        path = meta.get("path") if isinstance(meta, dict) else None
+        if season is None:
+            continue
+        by_season.setdefault(str(int(season)), []).append(str(path))
+    if isinstance(files, dict):
+        for rel, meta in files.items():
+            if isinstance(meta, dict) and meta.get("season") is not None:
+                by_season[str(int(meta["season"]))] = [rel]
+    out = {}
+    for s in required_seasons:
+        got = by_season.get(str(int(s)), [])
+        if len(got) != 1:
+            raise ValueError(f"capture does not affirm season {s} exactly once (found {len(got)} files); an omitted season is not 'no record'")
+        out[str(int(s))] = got[0]
+    return out
+
+
 def _age_at(birth: pd.Series, year: pd.Series) -> np.ndarray:
     bd = pd.to_datetime(birth, errors="coerce")
     ref = pd.to_datetime(year.astype(int).astype(str) + AGE_MONTH_DAY)
@@ -106,8 +157,20 @@ def _age_at(birth: pd.Series, year: pd.Series) -> np.ndarray:
 def never_record_population(*, cohort: pd.DataFrame, first_reg: pd.Series, outcomes: pd.DataFrame, players: pd.DataFrame,
                             last_complete_season: int) -> pd.DataFrame:
     """One row per eligible draftee (frozen definition) with origin-dated features and horizon labels."""
-    c = cohort.loc[cohort["label_basis"].astype(str) != "unresolved"].copy()
+    if "label_basis" not in cohort.columns:
+        raise ValueError("cohort carries no label_basis column; an affirmative resolved identity basis is required")
+    basis = cohort["label_basis"].astype("string")
+    resolved = basis.notna() & (basis.str.strip() != "") & (basis != "unresolved")
+    c = cohort.loc[resolved.fillna(False).to_numpy()].copy()
     c["gsis_id"] = c["gsis_id"].astype(str)
+    if not c["gsis_id"].str.fullmatch(GSIS_PATTERN).all():
+        bad = c.loc[~c["gsis_id"].str.fullmatch(GSIS_PATTERN), "gsis_id"].head(5).tolist()
+        raise ValueError(f"cohort rows with a resolved basis carry ids that are not gsis ids, e.g. {bad}")
+    if c["gsis_id"].duplicated().any():
+        raise ValueError(f"cohort has duplicate gsis ids, e.g. {c.loc[c['gsis_id'].duplicated(), 'gsis_id'].head(5).tolist()}")
+    if c.duplicated(["draft_season", "pick"]).any():
+        dup = c.loc[c.duplicated(["draft_season", "pick"], keep=False), ["gsis_id", "draft_season", "pick"]].head(5).to_dict("records")
+        raise ValueError(f"cohort has duplicate draft keys (season, pick), e.g. {dup}")
     c = c.loc[c["draft_season"].astype(int).between(FIRST_CLASS, last_complete_season) & c["position"].isin(SKILL_POSITIONS)].copy()
     first = c["gsis_id"].map(first_reg)
     eligible = first.isna() | (first > c["draft_season"].astype(int))
@@ -119,14 +182,29 @@ def never_record_population(*, cohort: pd.DataFrame, first_reg: pd.Series, outco
     pop["pick"] = pop["pick"].astype(int)
     pop["round"] = pop["round"].astype(int)
     pop["log_pick"] = np.log(pop["pick"].astype(float))
-    pl = players.copy()
+    pl = players.loc[players["gsis_id"].notna(), ["gsis_id", "birth_date"]].copy()
     pl["gsis_id"] = pl["gsis_id"].astype(str)
-    birth = pop["gsis_id"].map(pl.drop_duplicates("gsis_id").set_index("gsis_id")["birth_date"])
+    distinct = pl.dropna(subset=["birth_date"]).drop_duplicates()
+    conflicting = distinct.loc[distinct["gsis_id"].duplicated(keep=False), "gsis_id"].unique()
+    conflicting = [g for g in conflicting if g in set(pop["gsis_id"])]
+    if conflicting:
+        raise ValueError(f"conflicting birth dates in the players table for {conflicting[:5]}; refusing to choose one")
+    birth = pop["gsis_id"].map(distinct.drop_duplicates("gsis_id").set_index("gsis_id")["birth_date"])
     pop["birth_date"] = birth
     pop["age_at_origin"] = _age_at(birth, pop["origin_year"])
     # labels from the artifact: complete season with no row -> convention zero; beyond last complete -> unknown
     o = outcomes.copy()
     o["player_id"] = o["player_id"].astype(str)
+    o["appeared"] = _strict_bool(o["appeared"], "appeared")
+    closed = o["season"].astype(int) <= last_complete_season
+    for col in ("points", "games"):
+        vals = pd.to_numeric(o[col], errors="coerce")
+        bad = closed & (~np.isfinite(vals.to_numpy(float)))
+        if bad.any():
+            raise ValueError(f"outcome artifact: {int(bad.sum())} closed-season rows carry a missing or non-finite {col}; malformed, refusing")
+        o[col] = vals
+    if o.duplicated(["player_id", "season"]).any():
+        raise ValueError("outcome artifact: duplicate (player_id, season) rows")
     key = o.set_index(["player_id", o["season"].astype(int)])
     window_first = o.loc[o["appeared"].astype(bool)].groupby("player_id")["season"].min()
     wf = pop["gsis_id"].map(window_first)
@@ -167,8 +245,9 @@ def support_table(population: pd.DataFrame, *, origins=range(2012, 2026), horizo
     rows = []
     for T in origins:
         for h in horizons:
-            train = population.loc[(population["draft_season"] + h < T) & population[f"appear_{h}"].notna()]
-            test = population.loc[(population["draft_season"] == T - 1) & population[f"appear_{h}"].notna()]
+            complete = population[f"appear_{h}"].notna() & population[f"points_{h}"].notna() & population[f"games_{h}"].notna()
+            train = population.loc[(population["draft_season"] + h < T) & complete]
+            test = population.loc[(population["draft_season"] == T - 1) & complete]
             by_pos_rows = {p: int((train["draft_position"] == p).sum()) for p in SKILL_POSITIONS}
             by_pos_app = {p: int(train.loc[train["draft_position"] == p, f"appear_{h}"].sum()) for p in SKILL_POSITIONS}
             rows.append({"origin": int(T), "horizon": int(h), "train_rows": int(len(train)), "train_appearers": int(train[f"appear_{h}"].sum()),
@@ -185,9 +264,10 @@ from sklearn.preprocessing import StandardScaler  # noqa: E402
 CANDIDATE_MIN_TRAIN = 60
 CANDIDATE_MIN_APPEARERS = 15
 B1_MIN_POSITION_ROWS = 10
-B1_MIN_CONDITIONAL_APPEARERS = 3
+B1_MIN_CONDITIONAL_APPEARERS = 1  # frozen: zero appearers -> conditional unsupported; >= 1 gives a ROUGH conditional baseline
 L2_C = 1.0
 RIDGE_ALPHA = 1.0
+GAMES_BOUND = (1, 17)  # declared before fitting: conditional games (given appearance) are bounded to the modern window; points are never clamped
 ARMS = ("candidate", "b1", "b2")
 SELECTION_RULE = ("per horizon, on the same paired supported rows: the candidate is selected only if BOTH the paired Brier(appear) "
                   "difference and the paired RMSE(unconditional points) difference vs B1 have 90% player-cluster bootstrap "
@@ -204,17 +284,28 @@ CAVEATS = {
 }
 
 
-def _design(frame: pd.DataFrame, *, positions: tuple[str, ...], with_age: bool, age_median: dict | None) -> np.ndarray:
-    cols = [frame["log_pick"].to_numpy(float), frame["round"].to_numpy(float)]
-    if with_age:
-        age = frame["age_at_origin"].to_numpy(float).copy()
-        fill = frame["draft_position"].map(age_median or {}).to_numpy(float)
-        age = np.where(np.isnan(age), fill, age)
-        cols.append(age)
+PROB_BLOCK_CANDIDATE = ("log_pick", "round", "age_at_origin")   # + position dummies
+PROB_BLOCK_B2 = ("log_pick", "round")                          # + position dummies (age removed; exploratory)
+COND_BLOCK = ("log_pick",)                                       # + position dummies (frozen conditional features)
+
+
+def _design(frame: pd.DataFrame, *, block: tuple[str, ...], positions: tuple[str, ...], age_median: dict | None) -> np.ndarray:
+    cols = []
+    for name in block:
+        if name == "age_at_origin":
+            age = frame["age_at_origin"].to_numpy(float).copy()
+            fill = frame["draft_position"].map(age_median or {}).to_numpy(float)
+            cols.append(np.where(np.isnan(age), fill, age))
+        else:
+            cols.append(frame[name].to_numpy(float))
     pos = frame["draft_position"].to_numpy()
     for p in positions:
         cols.append((pos == p).astype(float))
     return np.column_stack(cols)
+
+
+def _block_names(block: tuple[str, ...], positions: tuple[str, ...]) -> list[str]:
+    return list(block) + [f"pos_{p}" for p in positions]
 
 
 def _fit_hurdle(train: pd.DataFrame, h: int, *, with_age: bool) -> dict:
@@ -235,15 +326,26 @@ def _fit_hurdle(train: pd.DataFrame, h: int, *, with_age: bool) -> dict:
                       for p in SKILL_POSITIONS}
         if not np.isfinite(overall):
             reasons.append("no training age is known")
-    out = {"supported": not reasons, "reason": "; ".join(reasons) if reasons else None, "n_train": int(len(train)), "n_appearers": int(y.sum()),
-           "positions": positions, "with_age": with_age, "age_median_by_position": age_median}
+    prob_block = PROB_BLOCK_CANDIDATE if with_age else PROB_BLOCK_B2
+    age_fallback = None
+    if with_age:
+        ages = train["age_at_origin"]
+        missing = ages.isna()
+        pos_has = train["draft_position"].map(lambda p: ages[train["draft_position"] == p].notna().any())
+        age_fallback = {"rule": "training position median first, then the overall training median only when the same position has no observed age; "
+                                "unsupported when no training age exists at all (ex-ante missing-feature rule)",
+                        "observed": int((~missing).sum()), "position_median": int((missing & pos_has).sum()),
+                        "overall_median": int((missing & ~pos_has).sum())}
+    out = {"supported": not reasons, "age_fallback": age_fallback, "reason": "; ".join(reasons) if reasons else None, "n_train": int(len(train)), "n_appearers": int(y.sum()),
+           "positions": positions, "with_age": with_age, "age_median_by_position": age_median,
+           "feature_blocks": {"probability": _block_names(prob_block, positions), "conditional": _block_names(COND_BLOCK, positions)}}
     if reasons:
         return out
-    X = _design(train, positions=positions, with_age=with_age, age_median=age_median)
+    X = _design(train, block=prob_block, positions=positions, age_median=age_median)
     scaler = StandardScaler().fit(X)
     logit = LogisticRegression(C=L2_C, max_iter=2000).fit(scaler.transform(X), y)
     app = y == 1.0
-    Xc = _design(train.loc[app], positions=positions, with_age=False, age_median=None)
+    Xc = _design(train.loc[app], block=COND_BLOCK, positions=positions, age_median=None)
     scaler_c = StandardScaler().fit(Xc)
     ridge_pts = Ridge(alpha=RIDGE_ALPHA).fit(scaler_c.transform(Xc), train.loc[app, f"points_{h}"].to_numpy(float))
     ridge_games = Ridge(alpha=RIDGE_ALPHA).fit(scaler_c.transform(Xc), train.loc[app, f"games_{h}"].to_numpy(float))
@@ -283,11 +385,12 @@ def _predict_hurdle(fit: dict, frame: pd.DataFrame, prefix: str) -> dict[str, np
         return {f"{prefix}_p_appear": nan, f"{prefix}_e_points_given_appear": nan, f"{prefix}_e_games_given_appear": nan,
                 f"{prefix}_e_points": nan, f"{prefix}_e_games": nan, f"{prefix}_supported": np.zeros(n, dtype=bool)}
     known_pos = frame["draft_position"].isin(fit["positions"]).to_numpy()
-    X = _design(frame, positions=fit["positions"], with_age=fit["with_age"], age_median=fit["age_median_by_position"])
+    prob_block = PROB_BLOCK_CANDIDATE if fit["with_age"] else PROB_BLOCK_B2
+    X = _design(frame, block=prob_block, positions=fit["positions"], age_median=fit["age_median_by_position"])
     p = fit["logit"].predict_proba(fit["scaler"].transform(X))[:, 1]
-    Xc = _design(frame, positions=fit["positions"], with_age=False, age_median=None)
+    Xc = _design(frame, block=COND_BLOCK, positions=fit["positions"], age_median=None)
     pts = fit["ridge_points"].predict(fit["scaler_c"].transform(Xc))
-    games = fit["ridge_games"].predict(fit["scaler_c"].transform(Xc))
+    games = np.clip(fit["ridge_games"].predict(fit["scaler_c"].transform(Xc)), GAMES_BOUND[0], GAMES_BOUND[1])
     p = np.where(known_pos, p, np.nan)
     pts = np.where(known_pos, pts, np.nan)
     games = np.where(known_pos, games, np.nan)
@@ -334,6 +437,24 @@ def _cluster_bootstrap(values: np.ndarray, units: np.ndarray, *, seed: int, draw
     return {"point": float(values.mean()), "lo": float(np.percentile(stats, 5)), "hi": float(np.percentile(stats, 95)), "n_units": int(len(uniq))}
 
 
+def paired_rmse_bootstrap(pred_a: np.ndarray, pred_b: np.ndarray, actual: np.ndarray, units: np.ndarray, *, seed: int, draws: int) -> dict:
+    """RMSE(a) - RMSE(b) with a 90% player-cluster interval computed IN RMSE UNITS: each draw resamples units, recomputes
+    both arms' mean squared error on the resampled rows, and takes sqrt(mean SE a) - sqrt(mean SE b)."""
+    se_a = (np.asarray(pred_a, float) - np.asarray(actual, float)) ** 2
+    se_b = (np.asarray(pred_b, float) - np.asarray(actual, float)) ** 2
+    uniq, inverse = np.unique(np.asarray(units), return_inverse=True)
+    sum_a = np.bincount(inverse, weights=se_a, minlength=len(uniq))
+    sum_b = np.bincount(inverse, weights=se_b, minlength=len(uniq))
+    counts = np.bincount(inverse, minlength=len(uniq)).astype(float)
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, len(uniq), size=(draws, len(uniq)))
+    n = counts[idx].sum(axis=1)
+    stats = np.sqrt(sum_a[idx].sum(axis=1) / n) - np.sqrt(sum_b[idx].sum(axis=1) / n)
+    point = float(np.sqrt(se_a.mean()) - np.sqrt(se_b.mean()))
+    return {"point": point, "lo": float(np.percentile(stats, 5)), "hi": float(np.percentile(stats, 95)), "n_units": int(len(uniq)),
+            "units": "RMSE points"}
+
+
 def _arm_metrics(rows: pd.DataFrame, prefix: str, h: int) -> dict:
     y = rows[f"appear_{h}"].to_numpy(float)
     pts = rows[f"points_{h}"].to_numpy(float)
@@ -370,8 +491,9 @@ def evaluate_candidate(population: pd.DataFrame, *, origins=range(2012, 2026), h
         collected = []
         fold_support = []
         for T in origins:
-            train = population.loc[(population["draft_season"] + h < T) & population[f"appear_{h}"].notna()]
-            test = population.loc[(population["draft_season"] == T - 1) & population[f"appear_{h}"].notna()].copy()
+            complete = population[f"appear_{h}"].notna() & population[f"points_{h}"].notna() & population[f"games_{h}"].notna()
+            train = population.loc[(population["draft_season"] + h < T) & complete]
+            test = population.loc[(population["draft_season"] == T - 1) & complete].copy()
             fit = fit_arms(train, horizon=h, origin=T)
             fold_support.append({"origin": int(T), "train_rows": fit["candidate"]["n_train"], "train_appearers": fit["candidate"]["n_appearers"],
                                  "candidate_supported": bool(fit["candidate"]["supported"]), "candidate_reason": fit["candidate"]["reason"],
@@ -404,14 +526,10 @@ def evaluate_candidate(population: pd.DataFrame, *, origins=range(2012, 2026), h
         for arm in ("candidate", "b2"):
             brier_d = (paired[f"{arm}_p_appear"].to_numpy(float) - y) ** 2 - (paired["b1_p_appear"].to_numpy(float) - y) ** 2
             sq_d = (paired[f"{arm}_e_points"].to_numpy(float) - pts) ** 2 - (paired["b1_e_points"].to_numpy(float) - pts) ** 2
-            rmse_a = float(np.sqrt(np.mean((paired[f"{arm}_e_points"].to_numpy(float) - pts) ** 2)))
-            rmse_b = float(np.sqrt(np.mean((paired["b1_e_points"].to_numpy(float) - pts) ** 2)))
-            rmse_boot = _cluster_bootstrap(sq_d, units, seed=seed, draws=draws)
             diffs[arm] = {"brier_diff": _cluster_bootstrap(brier_d, units, seed=seed, draws=draws),
-                          "mean_sq_err_points_diff": rmse_boot,
-                          "rmse_points_diff": {"point": rmse_a - rmse_b, "lo": rmse_boot["lo"], "hi": rmse_boot["hi"],
-                                               "note": "point = RMSE difference; lo/hi = 90% player-cluster interval on the paired mean "
-                                                       "squared-error difference, which has the same sign"}}
+                          "mean_sq_err_points_diff": _cluster_bootstrap(sq_d, units, seed=seed, draws=draws),
+                          "rmse_points_diff": paired_rmse_bootstrap(paired[f"{arm}_e_points"].to_numpy(float), paired["b1_e_points"].to_numpy(float),
+                                                                    pts, units, seed=seed, draws=draws)}
         block["paired_vs_b1"] = diffs["candidate"]
         block["b2_vs_b1_exploratory"] = diffs["b2"]
         d = diffs["candidate"]
@@ -431,33 +549,219 @@ def evaluate_candidate(population: pd.DataFrame, *, origins=range(2012, 2026), h
             "paired_rows_frame": pd.concat(all_rows, ignore_index=True) if all_rows else pd.DataFrame()}
 
 
-def export_sidecar(candidates: pd.DataFrame, predictions: pd.DataFrame, *, selected_per_horizon: dict, origin_year: int) -> pd.DataFrame:
-    """Sidecar rows for the 2026 candidates: per horizon the selected arm's numbers (or none), explicit seasons and classes."""
+SIDECAR_ROUTE = "never_appeared_drafted"
+SIDECAR_CLASS_YEAR = 2025
+REQUIRED_BINDING = ("origin_year", "capture_manifest_sha256", "artifact_sha256", "cohort_sha256", "coverage_run")
+
+
+def export_sidecar(candidates: pd.DataFrame, predictions: pd.DataFrame, *, selected_per_horizon: dict, origin_year: int,
+                   binding: dict | None = None) -> pd.DataFrame:
+    """Sidecar rows for the verified new-eligible candidates only; per horizon the selected arm's numbers or an explicit
+    'unsupported'. Refuses invalid or duplicate identities, a wrong route/class/draft position, a missing or conflicting
+    origin/binding, invalid support flags, non-finite values, probabilities outside [0, 1], impossible games and a
+    P × conditional mismatch. Never touches the accepted 825 or the recovery rows."""
+    binding = binding or {}
+    missing_b = [k for k in REQUIRED_BINDING if not binding.get(k)]
+    if missing_b:
+        raise ValueError(f"sidecar binding is incomplete: missing {missing_b}")
+    if int(binding["origin_year"]) != int(origin_year):
+        raise ValueError(f"origin year {origin_year} conflicts with the binding's origin_year {binding['origin_year']}")
+    c = candidates.copy()
+    c["gsis_id"] = c["gsis_id"].astype(str)
+    c["sleeper_id"] = c["sleeper_id"].astype(str)
+    if c["gsis_id"].duplicated().any() or c["sleeper_id"].duplicated().any():
+        raise ValueError("duplicate candidate identities (gsis_id or sleeper_id)")
+    if "identity_status" not in c.columns or (c["identity_status"].astype(str) != "verified_nfl_join").any():
+        raise ValueError("every candidate needs identity_status == verified_nfl_join")
+    if (c["route"].astype(str) != SIDECAR_ROUTE).any():
+        raise ValueError(f"every candidate must carry route {SIDECAR_ROUTE!r}")
+    if (c["draft_season"].astype(int) != SIDECAR_CLASS_YEAR).any():
+        raise ValueError(f"every candidate must be a {SIDECAR_CLASS_YEAR} draftee")
+    if (~c["draft_position"].isin(SKILL_POSITIONS)).any():
+        raise ValueError("every candidate must carry a skill draft position (QB/RB/WR/TE)")
     pred = predictions.copy()
     pred["gsis_id"] = pred["gsis_id"].astype(str)
     if pred["gsis_id"].duplicated().any():
         raise ValueError("predictions are not unique by gsis_id")
     pred = pred.set_index("gsis_id")
     rows = []
-    for _, c in candidates.iterrows():
-        pid = str(c["gsis_id"])
+    for _, r in c.iterrows():
+        pid = r["gsis_id"]
         if pid not in pred.index:
-            raise ValueError(f"{c['name']} ({pid}) has no prediction row; refusing to export")
+            raise ValueError(f"{r['name']} ({pid}) has no prediction row; refusing to export")
         p = pred.loc[pid]
-        row = {"sleeper_id": str(c["sleeper_id"]), "gsis_id": pid, "name": c["name"], "draft_position": c["draft_position"],
-               "route": c.get("route"), "draft_status": c.get("draft_status"), "origin_year": int(origin_year)}
+        row = {"sleeper_id": r["sleeper_id"], "gsis_id": pid, "name": r["name"], "draft_position": r["draft_position"],
+               "route": r["route"], "draft_status": r.get("draft_status"), "origin_year": int(origin_year),
+               "source_binding": json.dumps({k: binding[k] for k in REQUIRED_BINDING}, sort_keys=True)}
         for j in range(1, 6):
             sel = selected_per_horizon.get(j, "unsupported")
             arm = "candidate" if sel == "cold_start_candidate" else ("b1" if sel == "baseline_research_candidate" else None)
-            supported = bool(p.get(f"{arm}_supported_{j}", False)) if arm else False
-            if arm is None or not supported:
-                sel = "unsupported"
             row[f"season_year{j}"] = int(origin_year) + j - 1
-            row[f"estimate_class_year{j}"] = sel
             names = {"p_appear": f"p_appear_year{j}", "e_points": f"e_points_year{j}", "e_games": f"e_games_year{j}",
                      "e_points_given_appear": f"e_points_year{j}_given_appear", "e_games_given_appear": f"e_games_year{j}_given_appear"}
+            if arm is not None:
+                flag = p.get(f"{arm}_supported_{j}")
+                if not isinstance(flag, (bool, np.bool_)):
+                    raise ValueError(f"{r['name']} ({pid}) horizon {j}: {arm}_supported flag {flag!r} is not a strict boolean")
+                if not bool(flag):
+                    sel, arm = "unsupported", None
+            row[f"estimate_class_year{j}"] = sel
+            if arm is None:
+                for out_name in names.values():
+                    row[out_name] = np.nan
+                continue
+            vals = {q: p.get(f"{arm}_{q}_{j}") for q in names}
+            for q in ("p_appear", "e_points", "e_games"):
+                v = vals[q]
+                if v is None or not np.isfinite(float(v)):
+                    raise ValueError(f"{r['name']} ({pid}) horizon {j}: {arm} {q} is not finite")
+            pv = float(vals["p_appear"])
+            if not (0.0 <= pv <= 1.0):
+                raise ValueError(f"{r['name']} ({pid}) horizon {j}: probability {pv} outside [0, 1]")
+            for q in ("e_points_given_appear", "e_games_given_appear"):
+                v = vals[q]
+                if v is not None and pd.notna(v) and not np.isfinite(float(v)):
+                    raise ValueError(f"{r['name']} ({pid}) horizon {j}: {arm} {q} is not finite")
+            g = vals["e_games_given_appear"]
+            if g is not None and pd.notna(g) and not (GAMES_BOUND[0] <= float(g) <= GAMES_BOUND[1]):
+                raise ValueError(f"{r['name']} ({pid}) horizon {j}: conditional games {g} outside {GAMES_BOUND}")
+            cp = vals["e_points_given_appear"]
+            if cp is not None and pd.notna(cp) and abs(pv * float(cp) - float(vals["e_points"])) > 1e-6:
+                raise ValueError(f"{r['name']} ({pid}) horizon {j}: e_points {vals['e_points']} != P x conditional product {pv * float(cp)}")
             for q, out_name in names.items():
-                val = p.get(f"{arm}_{q}_{j}") if arm else None
-                row[out_name] = float(val) if (arm and sel != "unsupported" and val is not None and pd.notna(val)) else np.nan
+                v = vals[q]
+                row[out_name] = float(v) if (v is not None and pd.notna(v)) else np.nan
         rows.append(row)
     return pd.DataFrame(rows)
+
+
+# ----------------------------------------------------------------------------- unresolved list and the immutable run writer
+
+NEXT_EXPERIMENT = {
+    "never_appeared_no_draft_record": ("no draft record in any held source, no championship-window row: a separately specified no-record "
+                                       "entry cohort (entry season, position, age) with its own frozen population is the smallest valid next "
+                                       "experiment; no roster-survivor selection"),
+    "dormant_drafted": "appeared before, then absent: a dormant-return experiment on last observed production and absence length (separate population)",
+    "dormant_no_draft_record": "appeared before, then absent, no draft record: the dormant-return experiment without draft features",
+    "draft_sources_conflict_unresolved": "adjudicate the conflicting draft records at the source before any estimate",
+    "no_held_source_history": "no entry/draft history in any held source: acquire a source-backed entry record before any estimate",
+    "never_appeared_drafted": "drafted, no rookie-year record, but outside the frozen candidate population (class or draft position): a separately frozen population",
+}
+
+
+def unresolved_from_ledger(ledger: pd.DataFrame, *, candidate_ids: set) -> pd.DataFrame:
+    """Every ledger player NOT in the candidate set, with an honest reason and the smallest valid next experiment.
+    Recovered join failures are listed with their own status; nothing here is an estimate."""
+    rows = []
+    for _, r in ledger.iterrows():
+        pid = str(r["gsis_id"])
+        if pid in candidate_ids:
+            continue
+        route = str(r["route"])
+        if route == "existing_forecast_join_failure":
+            rows.append({"sleeper_id": str(r["sleeper_id"]), "gsis_id": pid, "name": r["name"], "route": route, "status": "recovered_existing_forecast",
+                         "why": "an accepted DG-177 forecast exists for this identity; delivered in the coverage run's recovery sidecar, not re-estimated",
+                         "smallest_next_experiment": "none needed; consumption is root's numerical/identity acceptance"})
+            continue
+        why = ""
+        dp = str(r.get("draft_position"))
+        if route.endswith("_drafted") and dp not in SKILL_POSITIONS:
+            why = f"draft position {dp} is outside the skill cohort (QB/RB/WR/TE); no silent mapping to a skill prior"
+        elif route == "never_appeared_drafted":
+            why = f"drafted in {r.get('entry_season')}, outside the frozen 2025-class candidate population"
+        else:
+            why = {"never_appeared_no_draft_record": "no draft record in the held sources and no championship-window stat row",
+                   "dormant_drafted": "appeared before and left DG-177's cohort after two absent seasons",
+                   "dormant_no_draft_record": "appeared before and left DG-177's cohort after two absent seasons; no draft record",
+                   "draft_sources_conflict_unresolved": "positive draft records disagree across sources",
+                   "no_held_source_history": "no entry/draft history in any held source; current census identity verified"}.get(route, route)
+        rows.append({"sleeper_id": str(r["sleeper_id"]), "gsis_id": pid, "name": r["name"], "route": route, "status": "unresolved", "why": why,
+                     "smallest_next_experiment": NEXT_EXPERIMENT.get(route, "a separately specified population")})
+    return pd.DataFrame(rows)
+
+
+CANDIDATE_OUTPUTS = ("population.csv", "support.csv", "evaluation.json", "paired_rows.csv", "cold_start_estimates.csv", "unresolved.csv",
+                     "REPORT.md", "manifest.json")
+
+
+def _jsonable(value):
+    if isinstance(value, dict):
+        return {str(k): _jsonable(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_jsonable(v) for v in value]
+    if isinstance(value, (np.floating, float)):
+        return None if not np.isfinite(value) else float(value)
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.bool_):
+        return bool(value)
+    if isinstance(value, pd.DataFrame):
+        return f"<frame {len(value)} rows>"
+    return value
+
+
+def _fmt(x, nd=2):
+    return "n/a" if x is None or (isinstance(x, float) and not np.isfinite(x)) else f"{x:.{nd}f}"
+
+
+def render_candidate_report(evaluation: dict, support: pd.DataFrame, sidecar: pd.DataFrame, unresolved: pd.DataFrame) -> str:
+    cav = evaluation["caveats"]
+    lines = ["# DG-165 cold-start candidate — drafted players with no rookie-year regular-season record", "",
+             f"Population caveat: {cav['population']}.", f"Selection caveat: {cav['selection']}.", f"Appearance: {cav['appearance']}.", "",
+             f"Selection rule: {evaluation['selection_rule']}", "", "## Per horizon (career years 2–6)", ""]
+    for h, b in evaluation["horizons"].items():
+        lines.append(f"### Horizon {h}")
+        if b.get("paired_rows", 0) == 0:
+            lines += ["", "No paired supported rows; unsupported.", ""]
+            continue
+        lines += ["", f"Paired supported rows: {b['paired_rows']} of {b['total_test_rows']} test rows (excluded as unsupported: {b['support']['excluded_rows_unsupported']}).", "",
+                  "| arm | n | Brier(appear) | RMSE points | MAE points | bias points |", "|---|---|---|---|---|---|"]
+        for arm, m in b["arms"].items():
+            lines.append(f"| {arm} | {m['n']} | {_fmt(m['brier'], 4)} | {_fmt(m['rmse_points'])} | {_fmt(m['mae_points'])} | {_fmt(m['bias_points'])} |")
+        d = b["paired_vs_b1"]
+        lines += ["", f"Candidate − B1, 90% player-cluster intervals: Brier {_fmt(d['brier_diff']['point'], 4)} [{_fmt(d['brier_diff']['lo'], 4)}, {_fmt(d['brier_diff']['hi'], 4)}]; "
+                  f"RMSE points {_fmt(d['rmse_points_diff']['point'])} [{_fmt(d['rmse_points_diff']['lo'])}, {_fmt(d['rmse_points_diff']['hi'])}] (RMSE units).",
+                  f"**Selection at this horizon: {b['selection']}** (both arms reported; this is retrospective model selection).", "",
+                  "| draft position | n | candidate Brier | B1 Brier | candidate RMSE | B1 RMSE |", "|---|---|---|---|---|---|"]
+        for pos, m in b["by_position"].items():
+            lines.append(f"| {pos} | {m['candidate']['n']} | {_fmt(m['candidate']['brier'], 4)} | {_fmt(m['b1']['brier'], 4)} | {_fmt(m['candidate']['rmse_points'])} | {_fmt(m['b1']['rmse_points'])} |")
+        lines += ["", "| origin | n | candidate Brier | B1 Brier | candidate RMSE | B1 RMSE |", "|---|---|---|---|---|---|"]
+        for T, m in b["by_origin"].items():
+            lines.append(f"| {T} | {m['candidate']['n']} | {_fmt(m['candidate']['brier'], 4)} | {_fmt(m['b1']['brier'], 4)} | {_fmt(m['candidate']['rmse_points'])} | {_fmt(m['b1']['rmse_points'])} |")
+        lines.append("")
+    lines += ["## Support (recorded before fitting)", "", f"{len(support)} origin × horizon cells; see support.csv for training rows, appearers, per-position counts and test rows.", ""]
+    lines += ["## Sidecar", "", f"{len(sidecar)} candidate rows; estimate classes per horizon: "
+              + "; ".join(f"year {j}: " + ", ".join(f"{k} {v}" for k, v in sidecar[f'estimate_class_year{j}'].value_counts().items()) for j in range(1, 6) if len(sidecar)), ""]
+    lines += ["## Unresolved", "", f"{len(unresolved)} players remain without a new estimate; see unresolved.csv for the reason and the smallest valid next experiment per player.", ""]
+    lines += ["## Caveats", ""] + [f"- **{k}**: {v}" for k, v in cav.items()] + [""]
+    return "\n".join(lines)
+
+
+def write_candidate_run(run_dir: Path, *, population: pd.DataFrame, support: pd.DataFrame, evaluation: dict, paired_rows: pd.DataFrame,
+                        sidecar: pd.DataFrame, unresolved: pd.DataFrame, inputs: dict, git_sha: str) -> dict:
+    from datetime import datetime, timezone
+    run_dir = Path(run_dir)
+    existing = [n for n in CANDIDATE_OUTPUTS if (run_dir / n).exists()]
+    if existing:
+        raise FileExistsError(f"refusing to overwrite existing candidate outputs in {run_dir}: {existing}")
+    started = datetime.now(timezone.utc).isoformat()
+    ev = {k: v for k, v in evaluation.items() if k != "paired_rows_frame"}
+    population.to_csv(run_dir / "population.csv", index=False)
+    support.to_csv(run_dir / "support.csv", index=False)
+    (run_dir / "evaluation.json").write_text(json.dumps(_jsonable(ev), indent=2, sort_keys=True, allow_nan=False))
+    paired_rows.to_csv(run_dir / "paired_rows.csv", index=False)
+    sidecar.to_csv(run_dir / "cold_start_estimates.csv", index=False)
+    unresolved.to_csv(run_dir / "unresolved.csv", index=False)
+    (run_dir / "REPORT.md").write_text(render_candidate_report(ev, support, sidecar, unresolved))
+    names = [n for n in CANDIDATE_OUTPUTS if n != "manifest.json"]
+    outputs = {n: _sha((run_dir / n).read_bytes()) for n in names}
+    manifest = {"schema_version": "dg165_cold_start_candidate_v1", "ticket": "DG-165", "git_sha": git_sha, "run_dir": str(run_dir),
+                "started_utc": started, "finished_utc": datetime.now(timezone.utc).isoformat(), "inputs": inputs,
+                "selection_rule": SELECTION_RULE, "caveats": CAVEATS, "support_floors": ev.get("support_floors"),
+                "feature_blocks": {"candidate_probability": list(PROB_BLOCK_CANDIDATE) + ["position dummies"], "conditional": list(COND_BLOCK) + ["position dummies"],
+                                   "b2_probability": list(PROB_BLOCK_B2) + ["position dummies"]},
+                "games_bound_declared": list(GAMES_BOUND), "seed": ev.get("seed"), "draws": ev.get("draws"), "origins": ev.get("origins"),
+                "outputs_sha256": outputs, "frozen_inputs_untouched": True,
+                "not": "a research candidate for root's review; the accepted 825 rows and the recovery sidecar are untouched"}
+    (run_dir / "manifest.json").write_text(json.dumps(_jsonable(manifest), indent=2, sort_keys=True))
+    return manifest

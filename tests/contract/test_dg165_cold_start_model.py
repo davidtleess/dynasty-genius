@@ -255,7 +255,9 @@ def test_evaluate_uses_the_same_paired_rows_selects_per_horizon_and_is_determini
 def test_sidecar_exports_per_horizon_classes_seasons_and_refuses_unknown_players(tmp_path):
     from src.dynasty_genius.rookie.cold_start_model import export_sidecar
     seven = pd.DataFrame({"sleeper_id": ["1", "2"], "gsis_id": ["g1", "g2"], "name": ["A", "B"], "draft_position": ["QB", "WR"],
-                          "route": ["never_appeared_drafted"] * 2, "draft_status": ["drafted_verified"] * 2})
+                          "route": ["never_appeared_drafted"] * 2, "draft_status": ["drafted_verified"] * 2, "draft_season": [2025, 2025],
+                          "identity_status": ["verified_nfl_join"] * 2})
+    binding = {"origin_year": 2026, "capture_manifest_sha256": "a" * 64, "artifact_sha256": "b" * 64, "cohort_sha256": "c" * 64, "coverage_run": "runs/x"}
     preds = pd.DataFrame({"gsis_id": ["g1", "g2"], **{f"candidate_p_appear_{h}": [0.3, 0.4] for h in range(1, 6)},
                           **{f"candidate_e_points_given_appear_{h}": [50.0, 60.0] for h in range(1, 6)},
                           **{f"candidate_e_points_{h}": [15.0, 24.0] for h in range(1, 6)}, **{f"candidate_e_games_{h}": [3.0, 4.0] for h in range(1, 6)},
@@ -263,7 +265,7 @@ def test_sidecar_exports_per_horizon_classes_seasons_and_refuses_unknown_players
                           **{f"b1_e_points_{h}": [8.0, 10.0] for h in range(1, 6)}, **{f"b1_e_games_{h}": [2.0, 2.5] for h in range(1, 6)},
                           **{f"candidate_supported_{h}": [True, True] for h in range(1, 6)}, **{f"b1_supported_{h}": [True, True] for h in range(1, 6)}})
     selected = {1: "cold_start_candidate", 2: "baseline_research_candidate", 3: "baseline_research_candidate", 4: "unsupported", 5: "unsupported"}
-    side = export_sidecar(seven, preds, selected_per_horizon=selected, origin_year=2026)
+    side = export_sidecar(seven, preds, selected_per_horizon=selected, origin_year=2026, binding=binding)
     by = side.set_index("gsis_id")
     assert by.loc["g1", "estimate_class_year1"] == "cold_start_candidate" and by.loc["g1", "p_appear_year1"] == 0.3 and by.loc["g1", "e_points_year1"] == 15.0
     assert by.loc["g1", "estimate_class_year2"] == "baseline_research_candidate" and by.loc["g1", "p_appear_year2"] == 0.2 and by.loc["g1", "e_points_year2"] == 8.0
@@ -271,4 +273,253 @@ def test_sidecar_exports_per_horizon_classes_seasons_and_refuses_unknown_players
     assert by.loc["g1", "estimate_class_year4"] == "unsupported" and pd.isna(by.loc["g1", "p_appear_year4"]) and pd.isna(by.loc["g1", "e_points_year4"])
     assert [int(by.loc["g1", f"season_year{j}"]) for j in range(1, 6)] == [2026, 2027, 2028, 2029, 2030]
     with pytest.raises(ValueError, match="prediction"):
-        export_sidecar(seven.assign(gsis_id=["g1", "g9"]), preds, selected_per_horizon=selected, origin_year=2026)
+        export_sidecar(seven.assign(gsis_id=["g1", "g9"]), preds, selected_per_horizon=selected, origin_year=2026, binding=binding)
+
+
+# ---------------------------------------------------------------- Task 6: unresolved list and the immutable run writer
+
+def test_unresolved_from_ledger_names_a_reason_and_next_experiment_per_route():
+    from src.dynasty_genius.rookie.cold_start_model import unresolved_from_ledger
+    ledger = pd.DataFrame({"sleeper_id": ["1", "2", "3", "4", "5", "6", "7"], "name": ["Cand", "UDF", "Dorm", "DormN", "Join", "Conf", "Held"],
+                           "gsis_id": ["g1", "g2", "g3", "g4", "g5", "g6", "g7"], "league_position": ["QB", "WR", "RB", "TE", "RB", "WR", "RB"],
+                           "draft_status": ["drafted_verified", "no_draft_record_2_sources", "drafted_verified", "no_draft_record_3_sources",
+                                            "drafted_verified", "draft_sources_conflict", "no_history_in_held_sources"],
+                           "draft_position": ["QB", None, "FB", None, None, None, None],
+                           "route": ["never_appeared_drafted", "never_appeared_no_draft_record", "dormant_drafted", "dormant_no_draft_record",
+                                     "existing_forecast_join_failure", "draft_sources_conflict_unresolved", "no_held_source_history"],
+                           "entry_season": [2025, 2026, 2019, 2020, 2016, 2024, 2026]})
+    un = unresolved_from_ledger(ledger, candidate_ids={"g1"}).set_index("gsis_id")
+    assert "g1" not in un.index and len(un) == 6
+    assert un.loc["g3", "why"].startswith("draft position FB") and "skill" in un.loc["g3", "why"]
+    assert "recovery sidecar" in un.loc["g5", "why"]
+    for pid in ("g2", "g3", "g4", "g6", "g7"):
+        assert un.loc[pid, "smallest_next_experiment"] and un.loc[pid, "status"] == "unresolved"
+    assert un.loc["g5", "status"] == "recovered_existing_forecast"
+
+
+def test_write_candidate_run_is_immutable_and_binds_inputs(tmp_path):
+    from src.dynasty_genius.rookie.cold_start_model import (
+        evaluate_candidate,
+        export_sidecar,
+        support_table,
+        write_candidate_run,
+    )
+    pop = _synthetic_population()
+    ev = evaluate_candidate(pop, origins=range(2012, 2026), horizons=(1,), seed=1, draws=20)
+    frame = ev.pop("paired_rows_frame")
+    binding = {"origin_year": 2026, "capture_manifest_sha256": "a" * 64, "artifact_sha256": "b" * 64, "cohort_sha256": "c" * 64, "coverage_run": "runs/x"}
+    sidecar = export_sidecar(pd.DataFrame({"sleeper_id": ["s"], "gsis_id": ["2024-0"], "name": ["X"], "draft_position": ["QB"], "route": ["never_appeared_drafted"],
+                                           "draft_status": ["drafted_verified"], "draft_season": [2025], "identity_status": ["verified_nfl_join"]}),
+                             pd.DataFrame({"gsis_id": ["2024-0"], **{f"{a}_p_appear_{h}": [0.5] for a in ("candidate", "b1") for h in range(1, 6)},
+                                           **{f"{a}_e_points_given_appear_{h}": [40.0] for a in ("candidate", "b1") for h in range(1, 6)},
+                                           **{f"{a}_e_points_{h}": [20.0] for a in ("candidate", "b1") for h in range(1, 6)},
+                                           **{f"{a}_e_games_given_appear_{h}": [8.0] for a in ("candidate", "b1") for h in range(1, 6)},
+                                           **{f"{a}_e_games_{h}": [4.0] for a in ("candidate", "b1") for h in range(1, 6)},
+                                           **{f"{a}_supported_{h}": [True] for a in ("candidate", "b1") for h in range(1, 6)}}),
+                             selected_per_horizon={1: "cold_start_candidate"}, origin_year=2026, binding=binding)
+    out = tmp_path / "runs" / "20990101T000000Z" / "dg165_cold_start_candidate"
+    out.mkdir(parents=True)
+    manifest = write_candidate_run(out, population=pop, support=support_table(pop, origins=(2016,), horizons=(1,)), evaluation=ev,
+                                   paired_rows=frame, sidecar=sidecar, unresolved=pd.DataFrame({"gsis_id": []}),
+                                   inputs={"capture": {"manifest_sha256": "a" * 64, "files": {"raw/x.parquet": "b" * 64}}}, git_sha="abc")
+    for name, sha in manifest["outputs_sha256"].items():
+        assert hashlib.sha256((out / name).read_bytes()).hexdigest() == sha
+    assert {"population.csv", "support.csv", "evaluation.json", "paired_rows.csv", "cold_start_estimates.csv", "unresolved.csv", "REPORT.md"} <= set(manifest["outputs_sha256"])
+    assert manifest["inputs"]["capture"]["manifest_sha256"] == "a" * 64 and manifest["selection_rule"] and manifest["caveats"]["population"]
+    report = (out / "REPORT.md").read_text()
+    assert "retrospective" in report and "not conditioned on remaining on a current roster" in report and "breakout" not in report.lower().replace("not a breakout", "")
+    with pytest.raises(FileExistsError):
+        write_candidate_run(out, population=pop, support=support_table(pop, origins=(2016,), horizons=(1,)), evaluation=ev, paired_rows=frame,
+                            sidecar=sidecar, unresolved=pd.DataFrame({"gsis_id": []}), inputs={}, git_sha="abc")
+
+
+# ---------------------------------------------------------------- root pre-fit review of the population builder (2026-09-06)
+
+def test_population_requires_an_affirmative_resolved_identity(capture):
+    from src.dynasty_genius.rookie.cold_start_model import (
+        first_full_reg_season,
+        never_record_population,
+    )
+    first = first_full_reg_season(capture)
+    cohort = pd.concat([_cohort(), pd.DataFrame({"gsis_id": ["unresolved:2015:10"], "draft_season": [2015], "position": ["WR"], "pick": [10], "round": [1],
+                                                  "age_at_draft": [22.0], "team": ["X"], "name": ["Ghost"], "label_basis": [None], "position_current": [None]})])
+    pop = never_record_population(cohort=cohort, first_reg=first, outcomes=_artifact(), players=_players(), last_complete_season=2025)
+    assert "unresolved:2015:10" not in set(pop["gsis_id"])
+    with pytest.raises(ValueError, match="label_basis"):
+        never_record_population(cohort=_cohort().drop(columns=["label_basis"]), first_reg=first, outcomes=_artifact(), players=_players(), last_complete_season=2025)
+    bad_id = _cohort().assign(gsis_id=["00-A", "00-B", "C", "00-W", "00-P", "00-OLD"], label_basis=["nflverse_gsis"] * 6)
+    with pytest.raises(ValueError, match="gsis"):
+        never_record_population(cohort=bad_id, first_reg=first, outcomes=_artifact(), players=_players(), last_complete_season=2025)
+
+
+def test_population_refuses_duplicate_cohort_identity_or_draft_keys(capture):
+    from src.dynasty_genius.rookie.cold_start_model import (
+        first_full_reg_season,
+        never_record_population,
+    )
+    first = first_full_reg_season(capture)
+    dup_id = pd.concat([_cohort(), _cohort().iloc[[2]]])
+    with pytest.raises(ValueError, match="duplicate"):
+        never_record_population(cohort=dup_id, first_reg=first, outcomes=_artifact(), players=_players(), last_complete_season=2025)
+    dup_key = _cohort().copy()
+    dup_key.loc[dup_key.gsis_id == "00-P", ["draft_season", "pick"]] = [2015, 90]  # same (season, pick) as C
+    with pytest.raises(ValueError, match="duplicate"):
+        never_record_population(cohort=dup_key, first_reg=first, outcomes=_artifact(), players=_players(), last_complete_season=2025)
+
+
+def test_labels_parse_booleans_strictly_and_refuse_malformed_closed_rows(capture):
+    from src.dynasty_genius.rookie.cold_start_model import (
+        first_full_reg_season,
+        never_record_population,
+        support_table,
+    )
+    first = first_full_reg_season(capture)
+    art = _artifact().astype({"appeared": object})
+    art.loc[art.player_id == "00-B", "appeared"] = "False"          # a string 'False' is NOT truthy
+    with pytest.raises(ValueError, match="appeared"):
+        never_record_population(cohort=_cohort(), first_reg=first, outcomes=art, players=_players(), last_complete_season=2025)
+    art = _artifact()
+    art.loc[(art.player_id == "00-B") & (art.season == 2016), "points"] = np.nan   # closed season, present row, NaN points: malformed
+    with pytest.raises(ValueError, match="points"):
+        never_record_population(cohort=_cohort(), first_reg=first, outcomes=art, players=_players(), last_complete_season=2025)
+    pop = never_record_population(cohort=_cohort(), first_reg=first, outcomes=_artifact(), players=_players(), last_complete_season=2025)
+    sup = support_table(pop, origins=(2016,), horizons=(1,)).set_index(["origin", "horizon"])
+    assert sup.loc[(2016, 1), "test_rows"] == 3  # B, C, P all jointly complete (appear, points, games) at 2016
+
+
+def test_conflicting_birth_dates_refuse(capture):
+    from src.dynasty_genius.rookie.cold_start_model import (
+        first_full_reg_season,
+        never_record_population,
+    )
+    players = pd.concat([_players(), pd.DataFrame({"gsis_id": ["00-B"], "birth_date": ["1990-01-01"]})])
+    with pytest.raises(ValueError, match="birth"):
+        never_record_population(cohort=_cohort(), first_reg=first_full_reg_season(capture), outcomes=_artifact(), players=players, last_complete_season=2025)
+
+
+def test_capture_must_affirm_every_required_season(tmp_path):
+    from src.dynasty_genius.rookie.cold_start_model import assert_capture_coverage
+    cap = make_capture(tmp_path, {2015: _weekly([("00-A", 2015, 3, "REG", "QB")]), 2016: _weekly([("00-B", 2016, 5, "REG", "RB")])})
+    assert assert_capture_coverage(cap, required_seasons=(2015, 2016)) == {"2015": "raw/player_stats_2015.parquet", "2016": "raw/player_stats_2016.parquet"}
+    with pytest.raises(ValueError, match="2017"):
+        assert_capture_coverage(cap, required_seasons=(2015, 2016, 2017))  # an omitted season can never read as 'no NFL record'
+    m = json.loads((cap / "manifest.json").read_text())
+    m["failures"] = [{"season": 2016, "error": "http 500"}]
+    (cap / "manifest.json").write_text(json.dumps(m))
+    with pytest.raises(ValueError, match="failure"):
+        assert_capture_coverage(cap, required_seasons=(2015, 2016))
+
+
+# ---------------------------------------------------------------- root model review (2026-09-06): feature blocks, RMSE units, frozen B1 floor
+
+def test_feature_blocks_are_explicit_and_train_only():
+    from src.dynasty_genius.rookie.cold_start_model import fit_arms
+    pop = _synthetic_population()
+    train = pop.loc[(pop["draft_season"] + 1 < 2016) & pop["appear_1"].notna()]
+    fit = fit_arms(train, horizon=1, origin=2016)
+    positions = list(fit["candidate"]["positions"])
+    assert fit["candidate"]["feature_blocks"] == {"probability": ["log_pick", "round", "age_at_origin"] + [f"pos_{p}" for p in positions],
+                                                  "conditional": ["log_pick"] + [f"pos_{p}" for p in positions]}
+    assert fit["b2"]["feature_blocks"] == {"probability": ["log_pick", "round"] + [f"pos_{p}" for p in positions],
+                                           "conditional": ["log_pick"] + [f"pos_{p}" for p in positions]}
+    assert fit["candidate"]["ridge_points"].coef_.shape[0] == 1 + len(positions)   # no round in the conditional ridge
+    assert fit["candidate"]["logit"].coef_.shape[1] == 3 + len(positions)
+    assert fit["b1"]["min_conditional_appearers"] == 1 and fit["b1"]["min_position_rows"] == 10  # the frozen rule
+
+
+def test_rmse_interval_is_in_rmse_units():
+    from src.dynasty_genius.rookie.cold_start_model import paired_rmse_bootstrap
+    rng = np.random.default_rng(0)
+    actual = rng.normal(50, 20, 400)
+    base_err = rng.normal(0, 10, 400)
+    b1 = actual + base_err
+    cand = actual + 2.0 * base_err          # candidate errors exactly twice the baseline's
+    units = np.array([f"p{i}" for i in range(400)])
+    d = paired_rmse_bootstrap(cand, b1, actual, units, seed=1, draws=300)
+    rmse_c = np.sqrt(np.mean((cand - actual) ** 2))
+    rmse_b = np.sqrt(np.mean((b1 - actual) ** 2))
+    assert d["point"] == pytest.approx(rmse_c - rmse_b)
+    assert d["lo"] <= d["point"] <= d["hi"] and (d["hi"] - d["lo"]) < 3 * (rmse_c - rmse_b)   # ~10 points wide, not ~300 (MSE units)
+    assert abs(d["lo"]) < 40 and abs(d["hi"]) < 40
+
+
+# ---------------------------------------------------------------- root exporter contract (2026-09-06): the seven-player sidecar refuses bad inputs
+
+def _seven_ok():
+    return pd.DataFrame({"sleeper_id": ["1"], "gsis_id": ["00-0040211"], "name": ["A"], "draft_position": ["QB"], "draft_season": [2025],
+                         "route": ["never_appeared_drafted"], "draft_status": ["drafted_verified"], "identity_status": ["verified_nfl_join"]})
+
+
+def _preds_ok(**over):
+    d = {"gsis_id": ["00-0040211"]}
+    for h in range(1, 6):
+        d[f"candidate_p_appear_{h}"] = [0.3]
+        d[f"candidate_e_points_given_appear_{h}"] = [50.0]
+        d[f"candidate_e_points_{h}"] = [15.0]
+        d[f"candidate_e_games_given_appear_{h}"] = [6.0]
+        d[f"candidate_e_games_{h}"] = [1.8]
+        d[f"candidate_supported_{h}"] = [True]
+        d[f"b1_p_appear_{h}"] = [0.2]
+        d[f"b1_e_points_given_appear_{h}"] = [40.0]
+        d[f"b1_e_points_{h}"] = [8.0]
+        d[f"b1_e_games_given_appear_{h}"] = [5.0]
+        d[f"b1_e_games_{h}"] = [1.0]
+        d[f"b1_supported_{h}"] = [True]
+    d.update(over)
+    return pd.DataFrame(d)
+
+
+def _binding_ok():
+    return {"origin_year": 2026, "capture_manifest_sha256": "a" * 64, "artifact_sha256": "b" * 64, "cohort_sha256": "c" * 64, "coverage_run": "runs/x"}
+
+
+def test_sidecar_contract_refuses_each_invalid_input():
+    from src.dynasty_genius.rookie.cold_start_model import export_sidecar
+    sel = {h: "cold_start_candidate" for h in range(1, 6)}
+    good = export_sidecar(_seven_ok(), _preds_ok(), selected_per_horizon=sel, origin_year=2026, binding=_binding_ok())
+    assert len(good) == 1 and good["estimate_class_year1"].iloc[0] == "cold_start_candidate" and good["source_binding"].iloc[0]
+    cases = {
+        "finite": _preds_ok(candidate_e_points_3=[float("inf")]),
+        "probab": _preds_ok(candidate_p_appear_2=[1.5]),
+        "supported": _preds_ok(candidate_supported_4=[np.nan]),
+        "games": _preds_ok(candidate_e_games_given_appear_1=[19.0]),
+        "product": _preds_ok(candidate_e_points_1=[99.0]),  # != 0.3 * 50
+    }
+    for pattern, preds in cases.items():
+        with pytest.raises(ValueError, match=pattern):
+            export_sidecar(_seven_ok(), preds, selected_per_horizon=sel, origin_year=2026, binding=_binding_ok())
+    with pytest.raises(ValueError, match="duplicate"):
+        export_sidecar(pd.concat([_seven_ok(), _seven_ok()]), _preds_ok(), selected_per_horizon=sel, origin_year=2026, binding=_binding_ok())
+    with pytest.raises(ValueError, match="route"):
+        export_sidecar(_seven_ok().assign(route="dormant_drafted"), _preds_ok(), selected_per_horizon=sel, origin_year=2026, binding=_binding_ok())
+    with pytest.raises(ValueError, match="2025"):
+        export_sidecar(_seven_ok().assign(draft_season=2024), _preds_ok(), selected_per_horizon=sel, origin_year=2026, binding=_binding_ok())
+    with pytest.raises(ValueError, match="skill"):
+        export_sidecar(_seven_ok().assign(draft_position="FB"), _preds_ok(), selected_per_horizon=sel, origin_year=2026, binding=_binding_ok())
+    with pytest.raises(ValueError, match="identit"):
+        export_sidecar(_seven_ok().assign(identity_status="sleeper_gsis_disagrees"), _preds_ok(), selected_per_horizon=sel, origin_year=2026, binding=_binding_ok())
+    with pytest.raises(ValueError, match="binding"):
+        export_sidecar(_seven_ok(), _preds_ok(), selected_per_horizon=sel, origin_year=2026, binding={"origin_year": 2026})
+    with pytest.raises(ValueError, match="origin"):
+        export_sidecar(_seven_ok(), _preds_ok(), selected_per_horizon=sel, origin_year=2027, binding=_binding_ok())
+    unsupported = export_sidecar(_seven_ok(), _preds_ok(candidate_supported_5=[False]), selected_per_horizon=sel, origin_year=2026, binding=_binding_ok())
+    assert unsupported["estimate_class_year5"].iloc[0] == "unsupported" and pd.isna(unsupported["p_appear_year5"].iloc[0])
+    assert unsupported["estimate_class_year1"].iloc[0] == "cold_start_candidate"
+
+
+def test_age_fallback_is_recorded_and_games_bound_is_declared():
+    from src.dynasty_genius.rookie.cold_start_model import (
+        GAMES_BOUND,
+        fit_arms,
+        predict_arms,
+    )
+    pop = _synthetic_population()
+    train = pop.loc[(pop["draft_season"] + 1 < 2016) & pop["appear_1"].notna()].copy()
+    train.loc[train["draft_position"] == "TE", "age_at_origin"] = np.nan  # no TE age at all -> overall training median for TE
+    fit = fit_arms(train, horizon=1, origin=2016)
+    fb = fit["candidate"]["age_fallback"]
+    assert fb["position_median"] > 0 and fb["overall_median"] > 0 and fb["rule"].startswith("training position median")
+    assert GAMES_BOUND == (1, 17)
+    pred = predict_arms(fit, pop.loc[pop["draft_season"] == 2015])
+    assert pred["candidate_e_games_given_appear"].between(1, 17).all()
+    assert np.allclose(pred["candidate_e_games"], pred["candidate_p_appear"] * pred["candidate_e_games_given_appear"])
