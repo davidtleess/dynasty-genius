@@ -23,11 +23,11 @@ REQUIRED_DEFINITION_KEYS = ("version", "frozen_before_first_result", "origins", 
 def load_definitions(path: Path) -> dict:
     raw = Path(path).read_bytes()
     d = json.loads(raw)
+    if d.get("version") != DEFINITIONS_VERSION or d.get("frozen_before_first_result") is not True:
+        raise StashSelectionError(f"definitions must be the frozen v2 file ({DEFINITIONS_VERSION}); got {d.get('version')!r}")
     missing = [k for k in REQUIRED_DEFINITION_KEYS if k not in d]
     if missing:
         raise StashSelectionError(f"definitions file lacks {missing}")
-    if d.get("version") != DEFINITIONS_VERSION or d.get("frozen_before_first_result") is not True:
-        raise StashSelectionError("definitions must be the frozen v2 file")
     d["_file"] = {"path": str(path), "sha256": hashlib.sha256(raw).hexdigest(), "bytes": len(raw)}
     return d
 
@@ -314,3 +314,87 @@ def compare_orderings(rows: pd.DataFrame, ordering_cols, budgets=(2, 4, 8), flag
         season_frames.append(f)
     by_season = pd.concat(season_frames, ignore_index=True) if season_frames else pd.DataFrame(columns=CELL)
     return {"pooled": pooled, "by_season": by_season}
+
+
+# ── v2: contribution bars from the full positional panel, and the drafted early-career cohort ─
+
+EXCL_NO_DRAFT = "no_verified_draft_class"
+EXCL_DRAFT_YEAR = "draft_year_outside_1_3"
+EXCL_PRIOR = "prior_contribution"
+EXCL_IDENTITY = "unresolved_identity"
+
+
+def contribution_bars(cohort: pd.DataFrame, outcomes: pd.DataFrame, *, bars: dict) -> pd.DataFrame:
+    """The N-th highest DG-179 window points among ALL cohort rows of a position in a season (the full
+    positional outcome panel), never among selected candidates. Short panels have bar 0 and are disclosed."""
+    c = cohort[cohort["position"].isin(bars)].copy()
+    c["points"], _ = _window_points(c, outcomes, "feature_season")
+    rows = []
+    for (pos, season), g in c.groupby(["position", "feature_season"]):
+        n = int(bars[pos])
+        pts = np.sort(g["points"].to_numpy())[::-1]
+        short = len(pts) < n
+        rows.append({"position": pos, "season": int(season), "bar_count": n, "rows_in_panel": int(len(pts)),
+                     "bar_points": 0.0 if short else float(pts[n - 1]), "short_panel": bool(short)})
+    return pd.DataFrame(rows, columns=["position", "season", "bar_count", "rows_in_panel", "bar_points", "short_panel"])
+
+
+def contributor_flags(outcome_rows: pd.DataFrame, bars: pd.DataFrame, *, position: str) -> pd.Series:
+    """appeared AND points >= bar of that season; a zero bar never creates a contributor from an absent record."""
+    b = bars[bars["position"] == position].set_index("season")["bar_points"]
+    bar = outcome_rows["season"].map(b)
+    appeared = outcome_rows["appeared"].map(lambda v: bool(v) if not pd.isna(v) else False)
+    return (appeared & (pd.to_numeric(outcome_rows["points"], errors="coerce") >= bar) & bar.notna()).astype(bool)
+
+
+def primary_cohort_ledger(cohort: pd.DataFrame, outcomes: pd.DataFrame, draft: pd.DataFrame, *, definitions: dict, bars: dict,
+                          origin: int) -> pd.DataFrame:
+    """Every cohort row of the origin season with an exclusion reason ('' = primary candidate): a verified draft
+    class c <= origin with 1 <= origin - c + 1 <= 3, and no season in c..origin in which the player appeared
+    AND scored at or above the primary bar (absent DG-179 row = convention zero; unresolved identity excluded)."""
+    lo, hi = definitions["origins"]["feature_seasons"]
+    if not (lo <= int(origin) <= hi):
+        raise StashSelectionError(f"origin {origin} is outside the frozen range {lo}-{hi}")
+    c = cohort[(pd.to_numeric(cohort["feature_season"], errors="coerce") == int(origin)) & cohort["position"].isin(bars)].copy()
+    c["origin"] = int(origin)
+    c["origin_points"], c["origin_label_source"] = _window_points(c, outcomes, "feature_season")
+    d = draft.dropna(subset=["gsis_id"]).copy() if len(draft) else pd.DataFrame(columns=["gsis_id", "season", "round", "pick"])
+    d = d.sort_values(["gsis_id", "season"]).drop_duplicates("gsis_id", keep="first")
+    d = d.rename(columns={"gsis_id": "player_id", "season": "draft_season", "round": "draft_round", "pick": "draft_pick"})
+    c = c.merge(d[["player_id", "draft_season", "draft_round", "draft_pick"]], on="player_id", how="left")
+    visible = c["draft_season"].notna() & (c["draft_season"] <= c["origin"])
+    c["draft_visible"] = visible
+    for col in ("draft_season", "draft_round", "draft_pick"):
+        c[col] = c[col].where(visible)
+    c["nfl_years_since_draft"] = (c["origin"] - c["draft_season"] + 1).where(visible)
+    c["observed_history_seasons"] = pd.to_numeric(c["seasons_played"], errors="coerce") if "seasons_played" in c else np.nan
+    panel_bars = contribution_bars(cohort, outcomes, bars=bars)
+    o = outcomes[["player_id", "season", "points", "games", "appeared"]].drop_duplicates(["player_id", "season"])
+    verdicts: list[tuple[str, int, int]] = []          # (exclusion_reason, prior_seasons_checked, prior_no_record_seasons)
+    for _, r in c.iterrows():
+        if "identity_status" in c and not pd.isna(r.get("identity_status")) and r["identity_status"] != "resolved":
+            verdicts.append((EXCL_IDENTITY, 0, 0))
+        elif not bool(r["draft_visible"]):
+            verdicts.append((EXCL_NO_DRAFT, 0, 0))
+        elif not (1 <= int(r["nfl_years_since_draft"]) <= 3):
+            verdicts.append((EXCL_DRAFT_YEAR, 0, 0))
+        else:
+            seasons = list(range(int(r["draft_season"]), int(origin) + 1))
+            hist = pd.DataFrame({"player_id": r["player_id"], "season": seasons}).merge(o, on=["player_id", "season"], how="left")
+            absent = hist["points"].isna()
+            hist["points"] = hist["points"].fillna(0.0)                 # resolved absent row = explicit convention zero
+            hist["appeared"] = hist["appeared"].where(~absent, False)
+            flags = contributor_flags(hist, panel_bars, position=r["position"])
+            verdicts.append((EXCL_PRIOR if bool(flags.any()) else "", len(seasons), int(absent.sum())))
+    c["exclusion_reason"] = [v[0] for v in verdicts]
+    c["prior_seasons_checked"] = [v[1] for v in verdicts]
+    c["prior_no_record_seasons"] = [v[2] for v in verdicts]
+    cols = ["player_id", "origin", "position", "origin_points", "origin_label_source", "total_points_t", "ppg_t", "games_t", "age",
+            "observed_history_seasons", "draft_visible", "draft_season", "draft_round", "draft_pick", "nfl_years_since_draft",
+            "exclusion_reason", "prior_seasons_checked", "prior_no_record_seasons"]
+    return c[[k for k in cols if k in c]].sort_values(["position", "player_id"]).reset_index(drop=True)
+
+
+def primary_candidates(cohort, outcomes, draft, *, definitions: dict, bars: dict, origin: int) -> pd.DataFrame:
+    ledger = primary_cohort_ledger(cohort, outcomes, draft, definitions=definitions, bars=bars, origin=origin)
+    return ledger[ledger["exclusion_reason"] == ""].reset_index(drop=True)

@@ -29,7 +29,7 @@ def test_definitions_file_is_frozen_complete_and_hashed():
 def test_definitions_loader_refuses_a_file_missing_a_required_section(tmp_path):
     p = tmp_path / "d.json"
     p.write_text(json.dumps({"version": ss.DEFINITIONS_VERSION, "frozen_before_first_result": True}))
-    with pytest.raises(ss.StashSelectionError, match="outcome"):
+    with pytest.raises(ss.StashSelectionError, match="cohort_primary"):
         ss.load_definitions(p)
 
 
@@ -272,3 +272,56 @@ def test_compare_orderings_pools_by_horizon_and_position_and_keeps_every_season(
     assert pooled["rank_future"]["spearman"]["n"] == 8 and pooled["rank_future"]["spearman"]["value"] == pytest.approx(1.0)
     assert pooled["rank_future"]["selection"]["2"]["hits"] == 4 and pooled["rank_future"]["selection"]["2"]["cells"] == 2
     assert sorted(out["by_season"].origin.unique()) == [2020, 2021]
+
+
+# ── v2 (root's frozen amendments): drafted early-career not-yet-contributor cohort ───────────
+
+PRIMARY_BARS = {"QB": 37, "RB": 45, "WR": 71, "TE": 21}
+TINY_BARS = {"WR": 2, "RB": 2, "QB": 2, "TE": 2}
+
+
+def _panel_2013_2015():
+    # a full positional panel: rows for every season so bars exist for c..t
+    rows, outs = [], []
+    for s in (2013, 2014, 2015):
+        for p, pts in (("A1", 200.0), ("A2", 150.0), ("A3", 40.0), ("A4", 10.0)):
+            rows.append(cohort_row(p, s, seasons_played=s - 2012))
+            outs.append(outcome_row(p, s, pts))
+    return pd.DataFrame(rows), pd.DataFrame(outs)
+
+
+def test_contribution_bars_come_from_the_full_positional_panel_and_need_an_appearance():
+    cohort, outcomes = _panel_2013_2015()
+    bars = ss.contribution_bars(cohort, outcomes, bars=TINY_BARS).set_index(["position", "season"])
+    assert bars.loc[("WR", 2015), "bar_points"] == 150.0 and bars.loc[("WR", 2015), "rows_in_panel"] == 4
+    flags = ss.contributor_flags(pd.DataFrame([outcome_row("A2", 2015, 150.0), outcome_row("Z9", 2015, 0.0, games=0)]),
+                                 bars.reset_index(), position="WR")
+    assert flags.tolist() == [True, False]
+
+
+def test_primary_cohort_requires_a_visible_draft_class_within_three_years_and_no_prior_contribution():
+    cohort, outcomes = _panel_2013_2015()
+    draft = pd.DataFrame([draft_row("A3", 2013, 3, 90), draft_row("A4", 2013, 7, 250), draft_row("A2", 2013, 1, 5),
+                          draft_row("A1", 2010, 1, 1)])
+    c = ss.primary_candidates(cohort, outcomes, draft, definitions=DEFS, bars=TINY_BARS, origin=2015)
+    # A2 crossed the bar in every season (contributor before the origin) → out; A1 drafted 2010 → year 6 → out;
+    # A3 and A4 are drafted 2013 (year 3 at 2015) and never crossed the bar → in
+    assert c.player_id.tolist() == ["A3", "A4"]
+    assert c.set_index("player_id").loc["A3", "nfl_years_since_draft"] == 3
+    assert (c.exclusion_reason == "").all()
+
+
+def test_primary_cohort_exclusions_are_counted_by_reason_not_silently_dropped():
+    cohort, outcomes = _panel_2013_2015()
+    draft = pd.DataFrame([draft_row("A3", 2013, 3, 90), draft_row("A2", 2013, 1, 5), draft_row("A1", 2010, 1, 1)])
+    ledger = ss.primary_cohort_ledger(cohort, outcomes, draft, definitions=DEFS, bars=TINY_BARS, origin=2015)
+    by = ledger.set_index("player_id").exclusion_reason.to_dict()
+    assert by["A3"] == "" and by["A2"] == "prior_contribution" and by["A1"] == "draft_year_outside_1_3" and by["A4"] == "no_verified_draft_class"
+
+
+def test_prior_contribution_check_treats_an_absent_season_as_convention_zero_never_as_unknown():
+    cohort, outcomes = _panel_2013_2015()
+    outcomes = outcomes[~((outcomes.player_id == "A3") & (outcomes.season == 2014))]        # A3 has no 2014 row
+    draft = pd.DataFrame([draft_row("A3", 2013, 3, 90)])
+    ledger = ss.primary_cohort_ledger(cohort, outcomes, draft, definitions=DEFS, bars=TINY_BARS, origin=2015).set_index("player_id")
+    assert ledger.loc["A3", "exclusion_reason"] == "" and ledger.loc["A3", "prior_seasons_checked"] == 3 and ledger.loc["A3", "prior_no_record_seasons"] == 1
