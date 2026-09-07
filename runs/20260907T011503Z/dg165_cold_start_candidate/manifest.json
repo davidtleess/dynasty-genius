@@ -1,0 +1,174 @@
+{
+  "caveats": {
+    "appearance": "P(appear) is the probability of at least one championship-window stat row; it is not a breakout or usefulness probability",
+    "horizons": "each horizon is fitted, evaluated and selected independently; acceptance at one horizon never validates another",
+    "labels": "a complete season with no artifact row is the producers' shared convention zero (tagged); seasons beyond 2025 are unknown",
+    "population": "a draft-population prior for drafted players with no rookie-year regular-season record; not conditioned on remaining on a current roster; direction and size of this mismatch have not been measured",
+    "selection": "selecting a policy on this historical evaluation is retrospective model selection, NOT independent confirmation of the selected policy; both arms are reported at every horizon"
+  },
+  "draws": 2000,
+  "feature_blocks": {
+    "b2_probability": [
+      "log_pick",
+      "round",
+      "position dummies"
+    ],
+    "candidate_probability": [
+      "log_pick",
+      "round",
+      "age_at_origin",
+      "position dummies"
+    ],
+    "conditional": [
+      "log_pick",
+      "position dummies"
+    ]
+  },
+  "finished_utc": "2026-09-07T01:15:03.615401+00:00",
+  "frozen_inputs_untouched": true,
+  "games_bound_declared": [
+    1,
+    17
+  ],
+  "git_sha": "1394ac97a94faeda2eaadac948b7849c0d75e8bb",
+  "inputs": {
+    "capture": {
+      "dir": "runs/20260906T191723Z/weekly_source_capture",
+      "files": {
+        "raw/stats_player_week_1999.parquet": "394013b85a0531fa920781c1389f7015b1e1b1d34f2e30de037fd605f52edf49",
+        "raw/stats_player_week_2000.parquet": "1b5cb5c8d7acb85c248ec5da1b71d4f092ae2b73763bfa429778d28566fab8f1",
+        "raw/stats_player_week_2001.parquet": "5a9f2cfc6630e17e95d4a3375ab3a2ebf31256a383aa9f05e999b41e8d68ddf0",
+        "raw/stats_player_week_2002.parquet": "d9cf9291d8105fba23d056c0f5889be2c549f09db930b0e3f9d97d2cd81ba231",
+        "raw/stats_player_week_2003.parquet": "3113e4a054dbee1b4ddde2a0ec143eb44f8ca22daaa3ba18a64e8ce03d711ca0",
+        "raw/stats_player_week_2004.parquet": "52d33704c7cc5affe55fcbebbd3d7d955a0913851a97a67d1e856cb8afbf38ae",
+        "raw/stats_player_week_2005.parquet": "5646a8f2c0f4081f4e0675e5922d7548d9e8ed12717d9ab34e951d98d6ab57a3",
+        "raw/stats_player_week_2006.parquet": "587b99fc241871c914e65373e27e3c6f53599f473f717b8c3969f2bcc9b8796d",
+        "raw/stats_player_week_2007.parquet": "3868cd0e9309949895d2298a615aecbd9cb64366a9a5e0982c121bb62b76b460",
+        "raw/stats_player_week_2008.parquet": "ce409b1e815043c29ad3148b41aae683793c9c3b0d7eed69870f49008bf11898",
+        "raw/stats_player_week_2009.parquet": "5f823939e53bec1e3f505d5c7878e23e4634513074456b6d1806d7a10f82dda0",
+        "raw/stats_player_week_2010.parquet": "90992f88abffb2406f933f5c2f28be201e5f112485f9c0ff6c450b293cec573a",
+        "raw/stats_player_week_2011.parquet": "f5c12ba8c217238ed3cb3f8b0aa44d328176a0a08ef548c127bb1af4ad0ac28d",
+        "raw/stats_player_week_2012.parquet": "b33f939c2ec0659c15dc38a5cbc4de20e330008c8f36576ef398877a4ddcd7c9",
+        "raw/stats_player_week_2013.parquet": "7d662bc12628085bffdf065e3d6bdb59813f43178c7b543588f336b41b796411",
+        "raw/stats_player_week_2014.parquet": "513a48ce4e16937d81d48be54be6821ebb517df541d19d49a29297727e5b0bcd",
+        "raw/stats_player_week_2015.parquet": "c2fffc7cc53e137c1c8bffe896e1c0300ddf2ad4b601ab4985f4bb7aeb8ed59a",
+        "raw/stats_player_week_2016.parquet": "f9d648fdf1f26d60ac0ac0e02c672840b604c6b8372cbb8a8bf847fdbc047acf",
+        "raw/stats_player_week_2017.parquet": "23398fa5ff45dbf8aeb0986be87eed28dd92213d8f862912f95d522963e0ce8e",
+        "raw/stats_player_week_2018.parquet": "d40914a95fdb97245567d8d816e474547b0d28d5152259813ba1542f13a8f0f4",
+        "raw/stats_player_week_2019.parquet": "1a80298e2aca5a830e0dcfeb834c220bc79918211dc42e2f1e46acc39cd437c9",
+        "raw/stats_player_week_2020.parquet": "e788d88318a6e99b8005c1c9814423d05bb91f757d5d977d3280f2eb83927b23",
+        "raw/stats_player_week_2021.parquet": "2c6894499e96dcf20b060969c607a0ff4e2018f369efad6e97d88abbe77b7277",
+        "raw/stats_player_week_2022.parquet": "64c1684938b029d68e33d7852cbee918266c8ac7f30b4c097c0a8912b4384e52",
+        "raw/stats_player_week_2023.parquet": "ac776fbd7c9fefdb4069b72304f4c5fa05ae417acd49f6e4e27be14b9d7a4bbc",
+        "raw/stats_player_week_2024.parquet": "847569d194ca3d96b5efcf91e6eac5e18780fc47568a713fd545a82d29d155c1",
+        "raw/stats_player_week_2025.parquet": "2a461becaa9adb3c93a3074a3a31f1e960162a50163371a2d34e28393b5fff10"
+      },
+      "manifest_sha256": "712b05fe9f152d670d835250a7d35a52ae8cb10a3621b561bbb37ce59a91e588",
+      "required_seasons": [
+        2001,
+        2025
+      ],
+      "season_files": {
+        "2001": "raw/stats_player_week_2001.parquet",
+        "2002": "raw/stats_player_week_2002.parquet",
+        "2003": "raw/stats_player_week_2003.parquet",
+        "2004": "raw/stats_player_week_2004.parquet",
+        "2005": "raw/stats_player_week_2005.parquet",
+        "2006": "raw/stats_player_week_2006.parquet",
+        "2007": "raw/stats_player_week_2007.parquet",
+        "2008": "raw/stats_player_week_2008.parquet",
+        "2009": "raw/stats_player_week_2009.parquet",
+        "2010": "raw/stats_player_week_2010.parquet",
+        "2011": "raw/stats_player_week_2011.parquet",
+        "2012": "raw/stats_player_week_2012.parquet",
+        "2013": "raw/stats_player_week_2013.parquet",
+        "2014": "raw/stats_player_week_2014.parquet",
+        "2015": "raw/stats_player_week_2015.parquet",
+        "2016": "raw/stats_player_week_2016.parquet",
+        "2017": "raw/stats_player_week_2017.parquet",
+        "2018": "raw/stats_player_week_2018.parquet",
+        "2019": "raw/stats_player_week_2019.parquet",
+        "2020": "raw/stats_player_week_2020.parquet",
+        "2021": "raw/stats_player_week_2021.parquet",
+        "2022": "raw/stats_player_week_2022.parquet",
+        "2023": "raw/stats_player_week_2023.parquet",
+        "2024": "raw/stats_player_week_2024.parquet",
+        "2025": "raw/stats_player_week_2025.parquet"
+      }
+    },
+    "coverage_run": {
+      "ledger_sha256": "6ad45bcbd0e2aa4faf6ae9c9dd508f20598309bbdfe37c8e2f13059aa4c0cf33",
+      "manifest_sha256": "071bc6d90bae6e79a1f05700db8bad02d91557c8cd15f397382f14901191ab60",
+      "run_dir": "runs/20260907T010020Z/dg165_cold_start_coverage"
+    },
+    "outcome_artifact": {
+      "path": "/Users/davidleess/dg-wt/DG-179/runs/20260906T194819Z/league_season_outcomes/outcomes.csv",
+      "sha256": "199a48beb96a25f5dad50758b3f72b40a5d7d0cf2000f7cdaf2f411873c6ecb8",
+      "target_identity": "049d2229c4ba06eececba66a083a777142f85ff0f459b0499912f49fa0ca3c6a"
+    },
+    "partition": {
+      "candidates": 7,
+      "ledger_rows": 84,
+      "recovered_existing_forecast": 4,
+      "unresolved": 73
+    },
+    "population": {
+      "by_position": {
+        "QB": 118,
+        "RB": 85,
+        "TE": 71,
+        "WR": 150
+      },
+      "rows": 424
+    },
+    "rookie_run": {
+      "manifest_sha256": "b863c3cf34d87254ec154a39caeec954e3ae804e88fb7e864f7d43e5e19609e5",
+      "players_parquet_sha256": "58ad30108bacf89e0f391f86b911cbbf6f26c9889f06aa7ab29018e803e45a07",
+      "run_dir": "runs/20260906T195904Z/dg165_rookie_capital",
+      "verified": {
+        "cohort.csv": "d96b93b444d99ca073591cddfb45b43d61d3ba5c105623869167d6348c7a5afc",
+        "inputs/nflverse_draft_picks.parquet": "68940f7b20f4e776f86bf27d38b9975ba5bc3f17f7a6f345bdd87c8bd72c097f",
+        "out_of_time_predictions.csv": "d44620f699ae58b88d4b589a2e6b289be2be6648f38b8f7fb7e191476fa76361",
+        "outcomes.csv": "199a48beb96a25f5dad50758b3f72b40a5d7d0cf2000f7cdaf2f411873c6ecb8"
+      }
+    }
+  },
+  "not": "a research candidate for root's review; the accepted 825 rows and the recovery sidecar are untouched",
+  "origins": [
+    2012,
+    2013,
+    2014,
+    2015,
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025
+  ],
+  "outputs_sha256": {
+    "REPORT.md": "c081970b44e0c7e22b8594ee6193172389b76f5c10e93d1319b88d9d9389ff92",
+    "cold_start_estimates.csv": "93bc11aaf6781fb98f678ed52ce47417a04945c3b9b4b62363eef105dcc4eff7",
+    "evaluation.json": "4b314447138c227d08d7af937316ec0628cc66007c252496727e9897bc5ff1a7",
+    "paired_rows.csv": "4c25f1e04e12eb5114c32b725e46013b8e79c30f72805f8b533137828cca51b8",
+    "population.csv": "35aadb7c7682fdd205915037bff96594fec55095a7048aff88aa48c45fa90280",
+    "support.csv": "b60365649fb4e62bb65b7f7857c721a85cd3590c3c8165327c0fce76c19d1205",
+    "unresolved.csv": "a760699d68ffc602bbf531b6cf19175d88010dafbececc29069ff781cb23ceed"
+  },
+  "run_dir": "runs/20260907T011503Z/dg165_cold_start_candidate",
+  "schema_version": "dg165_cold_start_candidate_v1",
+  "seed": 20260906,
+  "selection_rule": "per horizon, on the same paired supported rows: the candidate is selected only if BOTH the paired Brier(appear) difference and the paired RMSE(unconditional points) difference vs B1 have 90% player-cluster bootstrap intervals entirely below zero; otherwise B1's estimate is a baseline_research_candidate with its measured out-of-time error and support; a horizon whose arms are unsupported at the final origin is unsupported",
+  "started_utc": "2026-09-07T01:15:03.594487+00:00",
+  "support_floors": {
+    "b1_min_conditional_appearers": 1,
+    "b1_min_position_rows": 10,
+    "candidate_min_appearers": 15,
+    "candidate_min_train": 60
+  },
+  "ticket": "DG-165"
+}
