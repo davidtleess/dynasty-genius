@@ -206,3 +206,110 @@ def orderings(rows: pd.DataFrame) -> pd.DataFrame:
     r["rank_future_candidate"] = _rank_desc(r, "future_candidate")
     r["rank_null"] = _rank_desc(r, "null_reference")
     return r
+
+
+# ── rank discrimination and selection at a fixed budget ──────────────────────────────────────
+
+def _avg_rank(values: np.ndarray) -> np.ndarray:
+    return pd.Series(values).rank(method="average").to_numpy()
+
+
+def _spearman(rank_col: np.ndarray, points: np.ndarray) -> float:
+    """Spearman between the ordering (lower rank = preferred) and realized points, signed so that a
+    positive value means the preferred players earned more. NaN when either side is constant."""
+    a, b = _avg_rank(-np.asarray(rank_col, dtype=float)), _avg_rank(np.asarray(points, dtype=float))
+    if a.std() == 0 or b.std() == 0:
+        return float("nan")
+    return float(np.corrcoef(a, b)[0, 1])
+
+
+def _auc(rank_col: np.ndarray, flag: np.ndarray) -> float:
+    """P(preferred score of a positive > negative) + half credit for ties; NaN with a single class."""
+    score = -np.asarray(rank_col, dtype=float)
+    pos, neg = score[flag.astype(bool)], score[~flag.astype(bool)]
+    if not len(pos) or not len(neg):
+        return float("nan")
+    wins = (pos[:, None] > neg[None, :]).sum() + 0.5 * (pos[:, None] == neg[None, :]).sum()
+    return float(wins / (len(pos) * len(neg)))
+
+
+def spearman_by_cell(rows: pd.DataFrame, rank_col: str) -> pd.DataFrame:
+    out = []
+    for key, g in rows.groupby(CELL):
+        r = g[rank_col].to_numpy(dtype=float)
+        val = _spearman(r, g["realized_points"].to_numpy()) if len(g) >= 3 else float("nan")
+        out.append({**dict(zip(CELL, key)), "ordering": rank_col, "n": int(len(g)), "value": val,
+                    "all_tied": bool(len(np.unique(r)) == 1)})
+    return pd.DataFrame(out, columns=[*CELL, "ordering", "n", "value", "all_tied"])
+
+
+def auc_by_cell(rows: pd.DataFrame, rank_col: str, flag_col: str = "contributor") -> pd.DataFrame:
+    out = []
+    for key, g in rows.groupby(CELL):
+        flag = g[flag_col].astype(bool).to_numpy()
+        out.append({**dict(zip(CELL, key)), "ordering": rank_col, "n": int(len(g)), "n_positive": int(flag.sum()),
+                    "value": _auc(g[rank_col].to_numpy(dtype=float), flag)})
+    return pd.DataFrame(out, columns=[*CELL, "ordering", "n", "n_positive", "value"])
+
+
+def select_at_budget(rows: pd.DataFrame, rank_col: str, budget: int, flag_col: str = "contributor") -> pd.DataFrame:
+    """Pick the `budget` best-ranked candidates in each cell. A tie straddling the boundary is
+    disclosed and credited fractionally (slots left ÷ tied rows); it is never broken by an arbitrary order."""
+    out = []
+    for key, g in rows.groupby(CELL):
+        g = g.sort_values(rank_col)
+        r = g[rank_col].to_numpy(dtype=float)
+        flag = g[flag_col].astype(bool).to_numpy().astype(float)
+        pts = g["realized_points"].to_numpy(dtype=float)
+        bust = (~g["appeared"].astype(bool)).to_numpy().astype(float)
+        n = len(g)
+        k = min(int(budget), n)
+        weight = np.zeros(n)
+        if k:
+            cutoff = r[k - 1]
+            better = r < cutoff
+            tied = r == cutoff
+            slots_left = k - int(better.sum())
+            weight[better] = 1.0
+            if tied.sum() > slots_left:
+                weight[tied] = slots_left / tied.sum()
+                boundary, fractional = int(tied.sum()), True
+            else:
+                weight[tied] = 1.0
+                boundary, fractional = 0, False
+        else:
+            boundary, fractional = 0, False
+        hits = float((weight * flag).sum())
+        out.append({**dict(zip(CELL, key)), "ordering": rank_col, "budget": int(budget), "n": int(n), "picks": int(k),
+                    "hits": hits, "points_captured": float((weight * pts).sum()), "misses": float(flag.sum() - hits),
+                    "busts": float((weight * bust).sum()), "boundary_ties": boundary, "fractional_credit_applied": fractional})
+    return pd.DataFrame(out, columns=[*CELL, "ordering", "budget", "n", "picks", "hits", "points_captured", "misses", "busts",
+                                      "boundary_ties", "fractional_credit_applied"])
+
+
+def _pooled(cells: pd.DataFrame) -> dict:
+    d = cells.dropna(subset=["value"])
+    n = int(d["n"].sum())
+    return {"n": n, "cells": int(len(d)), "cells_undefined": int(len(cells) - len(d)),
+            "value": float((d["value"] * d["n"]).sum() / n) if n else float("nan")}
+
+
+def compare_orderings(rows: pd.DataFrame, ordering_cols, budgets=(2, 4, 8), flag_col: str = "contributor") -> dict:
+    pooled: dict = {}
+    season_frames = []
+    for col in ordering_cols:
+        sp, auc = spearman_by_cell(rows, col), auc_by_cell(rows, col, flag_col)
+        sel = {str(b): select_at_budget(rows, col, b, flag_col) for b in budgets}
+        pooled[col] = {"spearman": _pooled(sp), "auc": _pooled(auc),
+                       "selection": {b: {"cells": int(len(s)), "picks": int(s["picks"].sum()), "hits": float(s["hits"].sum()),
+                                         "points_captured": float(s["points_captured"].sum()), "misses": float(s["misses"].sum()),
+                                         "busts": float(s["busts"].sum()), "boundary_ties": int(s["boundary_ties"].sum()),
+                                         "cells_with_fractional_credit": int(s["fractional_credit_applied"].sum())}
+                                     for b, s in sel.items()}}
+        f = sp.rename(columns={"value": "spearman"}).merge(auc[[*CELL, "n_positive", "value"]].rename(columns={"value": "auc"}), on=CELL)
+        for b, s in sel.items():
+            f = f.merge(s[[*CELL, "picks", "hits", "points_captured", "misses", "busts", "boundary_ties"]].rename(
+                columns={c: f"{c}_b{b}" for c in ("picks", "hits", "points_captured", "misses", "busts", "boundary_ties")}), on=CELL)
+        season_frames.append(f)
+    by_season = pd.concat(season_frames, ignore_index=True) if season_frames else pd.DataFrame(columns=CELL)
+    return {"pooled": pooled, "by_season": by_season}

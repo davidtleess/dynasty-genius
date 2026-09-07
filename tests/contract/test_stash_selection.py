@@ -210,3 +210,62 @@ def test_orderings_are_computed_inside_each_origin_position_horizon_cell_only():
     assert r.groupby(["origin", "position", "horizon"]).rank_future.max().tolist() == [4, 4]
     assert set(ss.ORDERING_COLUMNS) == {"rank_current", "rank_current_total", "rank_current_ppg", "rank_draft", "rank_future",
                                         "rank_future_appear", "rank_future_candidate", "rank_null"}
+
+
+# ── Task 5: rank discrimination and selection at a fixed budget ──────────────────────────────
+
+def _ranked(origin=2020):
+    hist = pd.DataFrame([hist_row("P1", origin, 1, policy_points=80.0), hist_row("P2", origin, 1, policy_points=30.0),
+                         hist_row("P3", origin, 1, policy_points=10.0), hist_row("P4", origin, 1, policy_points=50.0)])
+    return ss.orderings(ss.attach_forecasts(_rows(origin), hist))
+
+
+def test_perfect_ordering_scores_one_and_a_constant_ordering_is_undefined_or_chance():
+    r = _ranked()
+    sp = ss.spearman_by_cell(r, "rank_future").iloc[0]
+    assert sp.n == 4 and sp.value == pytest.approx(1.0)                       # future rank 1,2,3,4 vs points 150,110,20,0 → ranks agree
+    auc = ss.auc_by_cell(r, "rank_future", "contributor").iloc[0]
+    assert auc.n_positive == 2 and auc.value == pytest.approx(1.0)
+    null_sp = ss.spearman_by_cell(r, "rank_null").iloc[0]
+    assert pd.isna(null_sp.value) and bool(null_sp.all_tied) is True
+    null_auc = ss.auc_by_cell(r, "rank_null", "contributor").iloc[0]
+    assert null_auc.value == pytest.approx(0.5)
+
+
+def test_cells_too_small_or_single_class_are_undefined_not_zero():
+    r = _ranked()
+    one_class = r.assign(contributor=False)
+    assert pd.isna(ss.auc_by_cell(one_class, "rank_future", "contributor").iloc[0].value)
+    tiny = r[r.player_id.isin(["P1", "P2"])]
+    assert pd.isna(ss.spearman_by_cell(tiny, "rank_future").iloc[0].value)
+
+
+def test_selection_at_budget_counts_hits_points_misses_and_busts():
+    r = _ranked()
+    s = ss.select_at_budget(r, "rank_future", budget=2).iloc[0]
+    assert s.picks == 2 and s.hits == 2 and s.points_captured == 260.0 and s.misses == 0 and s.busts == 0 and s.boundary_ties == 0
+    s3 = ss.select_at_budget(r, "rank_future", budget=3).iloc[0]
+    assert s3.picks == 3 and s3.hits == 2 and s3.misses == 0 and s3.busts == 0
+    big = ss.select_at_budget(r, "rank_future", budget=10).iloc[0]
+    assert big.picks == 4 and big.busts == 1                                  # P3 never appeared
+    cur = ss.select_at_budget(r, "rank_current", budget=1).iloc[0]
+    assert cur.picks == 1 and cur.hits == 1 and cur.points_captured == 110.0 and cur.misses == 1
+
+
+def test_boundary_ties_get_fractional_credit_and_are_counted():
+    r = _ranked()
+    # rank_current: P4=1, P1=2.5, P2=2.5, P3=4 — a budget of 2 cuts through the P1/P2 tie
+    s = ss.select_at_budget(r, "rank_current", budget=2).iloc[0]
+    assert s.boundary_ties == 2 and bool(s.fractional_credit_applied) is True
+    assert s.picks == 2 and s.hits == pytest.approx(1.5) and s.points_captured == pytest.approx(110.0 + 0.5 * 150.0 + 0.5 * 20.0)
+    assert s.misses == pytest.approx(0.5)
+
+
+def test_compare_orderings_pools_by_horizon_and_position_and_keeps_every_season():
+    r = pd.concat([_ranked(2020), _ranked(2021)], ignore_index=True)
+    out = ss.compare_orderings(r, ["rank_future", "rank_current"], budgets=(2,))
+    pooled = out["pooled"]
+    assert set(pooled.keys()) == {"rank_future", "rank_current"}
+    assert pooled["rank_future"]["spearman"]["n"] == 8 and pooled["rank_future"]["spearman"]["value"] == pytest.approx(1.0)
+    assert pooled["rank_future"]["selection"]["2"]["hits"] == 4 and pooled["rank_future"]["selection"]["2"]["cells"] == 2
+    assert sorted(out["by_season"].origin.unique()) == [2020, 2021]
