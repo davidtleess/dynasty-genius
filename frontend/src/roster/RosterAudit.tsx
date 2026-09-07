@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import type { RosterAuditResponse } from "../lib/api";
 import { zRosterAuditResponse } from "../lib/api/zod.gen";
+import { MarketRankRoster, RankLoadingOrError } from "../market-ranks/MarketRanks";
+import { useMarketRanks } from "../market-ranks/MarketRanksContext";
 import { QbContextSection } from "./QbContextSection";
 import "./RosterAudit.css";
 import { type ControlsState, RosterAuditControls } from "./RosterAuditControls";
@@ -27,6 +29,13 @@ type State =
 // any other non-OK -> unavailable, parse failure -> parse-error. status="degraded"
 // stays in the table view (the header renders its degraded banner).
 export function RosterAudit() {
+  const ranks = useMarketRanks();
+  if (ranks.status === "available") return <MarketRankRoster data={ranks.data} />;
+  if (ranks.status !== "not_configured") return <RankLoadingOrError />;
+  return <LegacyRosterAudit />;
+}
+
+function LegacyRosterAudit() {
   const [state, setState] = useState<State>({ status: "loading" });
 
   useEffect(() => {

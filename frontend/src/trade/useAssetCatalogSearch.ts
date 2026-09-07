@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-
 import { zTradeAssetCatalogResponse } from "../lib/api/zod.gen";
+import { useMarketRanks } from "../market-ranks/MarketRanksContext";
 import type { CatalogEntry } from "./tradeState";
 
 // The read-only asset catalog search, extracted from AssetSearch (DG-110) so
@@ -36,7 +36,12 @@ export type CatalogSearchState =
 const IDLE: CatalogSearchState = { status: "idle", results: [] };
 const UNAVAILABLE: CatalogSearchState = { status: "unavailable", results: [] };
 
-export function useAssetCatalogSearch(query: string): CatalogSearchState {
+export function useAssetCatalogSearch(
+  query: string,
+  playerRanks = false,
+): CatalogSearchState {
+  const ranks = useMarketRanks();
+  const fromRanks = playerRanks && ranks.status !== "not_configured";
   const [state, setState] = useState<CatalogSearchState>(IDLE);
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
@@ -46,6 +51,7 @@ export function useAssetCatalogSearch(query: string): CatalogSearchState {
   }, [query]);
 
   useEffect(() => {
+    if (fromRanks) return;
     // Min-length guard mirrors the backend OOM guard; never query the universe
     // on an empty/short input.
     if (debouncedQuery.trim().length < MIN_QUERY_LENGTH) {
@@ -88,7 +94,27 @@ export function useAssetCatalogSearch(query: string): CatalogSearchState {
 
     void run();
     return () => controller.abort();
-  }, [debouncedQuery]);
+  }, [debouncedQuery, fromRanks]);
 
+  if (fromRanks) {
+    if (ranks.status === "error") return UNAVAILABLE;
+    if (ranks.status !== "available" || query.trim().length < MIN_QUERY_LENGTH)
+      return IDLE;
+    const needle = query.trim().toLocaleLowerCase();
+    return {
+      status: "ready",
+      results: ranks.data.rows
+        .filter((row) => row.name.toLocaleLowerCase().includes(needle))
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .slice(0, CATALOG_PAGE_SIZE)
+        .map((row) => ({
+          asset_id: row.sleeper_id,
+          sleeper_id: row.sleeper_id,
+          kind: "player",
+          label: row.name,
+          position: row.position,
+        })),
+    };
+  }
   return state;
 }

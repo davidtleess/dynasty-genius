@@ -1,0 +1,2 @@
+gsis_id,name,position,team,draft_season,pick,round,age_at_draft,coverage_status,p_qual_year1,p_qual_year2,p_qual_year3,p_qual_year4,p_qual_year5,p_qual_year6,e_ppg_given_qual_year1,e_ppg_given_qual_year2,e_ppg_given_qual_year3,e_ppg_given_qual_year4,e_ppg_given_qual_year5,e_ppg_given_qual_year6,model_version
+00-0041562,Fernando Mendoza,QB,LVR,2026,1,1,22.0,scored,0.893,0.953,0.856,0.866,0.850,0.80,14.0,16.0,17.0,17.0,16.5,16.0,dg165_rookie_capital_v2

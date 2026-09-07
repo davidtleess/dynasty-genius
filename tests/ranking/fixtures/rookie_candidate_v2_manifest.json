@@ -1,0 +1,8 @@
+{
+ "ticket": "DG-165",
+ "model_version": "dg165_rookie_capital_v2",
+ "status": "RESEARCH CANDIDATE — not served, not promoted, not merged",
+ "forecast_date": {"forecast_year": 2026, "season_clock": "pre-season 2026, after the NFL draft; rookie season = NFL season 1 = 2026", "last_completed_season": 2025},
+ "labels": "{'qualifying_season': \"finished at or above the bar rank for the position by regular-season PPR total; bar = {'QB': 37, 'RB': 45, 'WR': 71, 'TE': 21}; tie-robust N-th largest\", 'played_season': 'at least one weekly stat row in nflverse REG stats'}",
+ "units": {"ppg_denominator": "games with a weekly stat row in nflverse REG stats (NOT the served all-games denominator)"}
+}

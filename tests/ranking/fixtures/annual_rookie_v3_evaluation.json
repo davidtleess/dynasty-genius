@@ -1,0 +1,43 @@
+{
+ "annual": {
+  "1": {
+   "e_points_year": {
+    "n": 1662,
+    "rmse": 55.2,
+    "rmse_training_baseline": 70.8,
+    "bias": -11.7,
+    "by_position": {
+     "QB": {
+      "n": 247,
+      "rmse": 65.3,
+      "rmse_training_baseline": 87.4,
+      "bias": -18.7
+     },
+     "TE": {
+      "n": 302,
+      "rmse": 36.1,
+      "rmse_training_baseline": 45.5,
+      "bias": -8.2
+     }
+    }
+   }
+  },
+  "2": {
+   "e_points_year": {
+    "n": 1576,
+    "rmse": 68.2,
+    "rmse_training_baseline": 84.7,
+    "bias": -9.9,
+    "by_position": {
+     "QB": {
+      "n": 230,
+      "rmse": 90.0,
+      "rmse_training_baseline": 88.0,
+      "bias": -5.0
+     }
+    }
+   }
+  }
+ },
+ "policy_id": "fixture_arm"
+}

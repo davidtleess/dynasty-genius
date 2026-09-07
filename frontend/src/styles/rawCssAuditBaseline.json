@@ -43,6 +43,16 @@
       "non_token_font_families": 0
     },
     {
+      "path": "market-ranks/MarketRanks.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 11,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 0,
+      "non_token_font_families": 0
+    },
+    {
       "path": "model-scoreboard/ModelScoreboard.css",
       "raw_hex": 0,
       "raw_oklch": 0,
@@ -100,6 +110,36 @@
       "raw_spacing_values": 0,
       "raw_radius_values": 0,
       "raw_font_size_values": 5,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "research/AvailablePlayers.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 2,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 0,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "research/ResearchPreview.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 9,
+      "raw_radius_values": 2,
+      "raw_font_size_values": 0,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "research/RosterComparison.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 2,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 0,
       "non_token_font_families": 0
     },
     {
@@ -237,8 +277,8 @@
     "raw_hex": 0,
     "raw_oklch": 44,
     "raw_rgb": 0,
-    "raw_spacing_values": 84,
-    "raw_radius_values": 10,
+    "raw_spacing_values": 108,
+    "raw_radius_values": 12,
     "raw_font_size_values": 39,
     "non_token_font_families": 0
   }

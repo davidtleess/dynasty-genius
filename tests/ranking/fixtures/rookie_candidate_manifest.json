@@ -1,0 +1,7 @@
+{
+ "ticket": "DG-165",
+ "model_version": "dg165_rookie_capital_v1",
+ "status": "RESEARCH CANDIDATE — not served, not promoted, not merged",
+ "forecast_date": {"forecast_year": 2026, "season_clock": "pre-season 2026, after the NFL draft; rookie season = NFL season 1 = 2026", "last_completed_season": 2025},
+ "definitions": {"qualifying": "finished at or above the availability bar QB37/RB45/WR71/TE21 by regular-season PPR total, tie-robust N-th largest", "horizons": 5}
+}

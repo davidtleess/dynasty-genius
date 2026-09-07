@@ -23,6 +23,10 @@ export const SURFACE_SLUGS = {
   // Increment-0 evidence surface: URL-only (no rail button, no palette
   // command) — a developer capture target, not a David surface.
   "Asset Primitive Capture": "asset-primitive-capture",
+  // DG-178: local read-only research preview of the candidate two-year board.
+  // URL-only, no rail button, no palette command; reads a local run, never the
+  // live artifact.
+  "Research Preview": "research-preview",
 } as const;
 
 export type Surface = keyof typeof SURFACE_SLUGS;

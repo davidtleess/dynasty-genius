@@ -3,8 +3,9 @@
 // degraded state (honest degradation, never a raw or fabricated card).
 import { useEffect, useState } from "react";
 import type { z } from "zod";
-
 import { zPlayerDetailResponse } from "../lib/api/zod.gen";
+import { RankedPlayerPage } from "../market-ranks/MarketRanks";
+import { useMarketRanks } from "../market-ranks/MarketRanksContext";
 import { PlayerDetailCard } from "./PlayerDetailCard";
 
 type PlayerDetail = z.infer<typeof zPlayerDetailResponse>;
@@ -14,6 +15,13 @@ type PageState =
   | { status: "unavailable" };
 
 export function PlayerDetailPage({ sleeperId }: { sleeperId: string }) {
+  const ranks = useMarketRanks();
+  if (ranks.status !== "not_configured")
+    return <RankedPlayerPage sleeperId={sleeperId} />;
+  return <LegacyPlayerDetailPage key={sleeperId} sleeperId={sleeperId} />;
+}
+
+function LegacyPlayerDetailPage({ sleeperId }: { sleeperId: string }) {
   const [state, setState] = useState<PageState>({ status: "loading" });
 
   useEffect(() => {

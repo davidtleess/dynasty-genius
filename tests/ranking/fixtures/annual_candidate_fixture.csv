@@ -1,0 +1,8 @@
+player_id,sleeper_id,gsis_id,name,position,identity_status,p_appear_year1,e_points_year1_given_appear,e_games_year1_given_appear,e_points_year1,e_games_year1,p_appear_year2,e_points_year2_given_appear,e_games_year2_given_appear,e_points_year2,e_games_year2
+v1,101,00-01,Vet One,WR,resolved,0.9,200.0,16.0,180.0,14.4,0.8,180.0,15.0,144.0,12.0
+v2,102,00-02,Vet Two,WR,resolved,0.5,120.0,12.0,60.0,6.0,0.4,100.0,10.0,40.0,4.0
+fa1,201,00-03,Free Agent,WR,resolved,0.7,140.0,14.0,98.0,9.8,0.6,120.0,12.0,72.0,7.2
+fa2,202,00-04,Free Agent Two,WR,resolved,0.6,100.0,10.0,60.0,6.0,0.5,90.0,9.0,45.0,4.5
+u1,301,,Unresolved Guy,WR,unresolved,,,,,,,,,,
+q1,401,00-05,Some QB,QB,resolved,0.95,300.0,17.0,285.0,16.15,0.9,290.0,17.0,261.0,15.3
+fq,402,00-06,FA QB,QB,resolved,0.8,170.0,15.0,136.0,12.0,0.7,150.0,14.0,105.0,9.8

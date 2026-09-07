@@ -1,0 +1,27 @@
+{
+ "model_version": "dg165_rookie_capital_v3",
+ "status": "RESEARCH CANDIDATE \u2014 not served",
+ "forecast_date": {
+  "forecast_year": 2026,
+  "forecast_cutoff": "2026-09-06",
+  "label_window": "labels through 2025",
+  "season_clock": "pre-season 2026; rookie season = NFL season 1 = 2026"
+ },
+ "units": {
+  "scoring_scope": "REG",
+  "exposure_definition": "games with a weekly stat row in nflverse REG stats",
+  "ppg_denominator": "REG-season PPR points / games with a weekly nflverse stat row",
+  "scoring": "nflverse weekly fantasy_points_ppr"
+ },
+ "definitions": {
+  "qualifying_season": "finished at or above the bar rank ...",
+  "appearance": "A_j: appears in NFL season j = at least one weekly stat row in nflverse REG stats",
+  "season_points": "sum of fantasy_points_ppr over REG weekly stat rows in season j; exactly 0 when he does not appear",
+  "games": "count of REG weekly stat rows in season j; exactly 0 when he does not appear",
+  "identity_unresolved": "NaN in every forecast column"
+ },
+ "scoring_arm_id": "fixture_arm",
+ "outputs_sha256": {
+  "annual_rookie_v3_fixture.csv": "1dfbdf31891085de310b79d242669b77852492d0fdbb0139cf307f4b671e79a8"
+ }
+}

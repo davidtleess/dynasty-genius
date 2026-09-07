@@ -15,7 +15,7 @@ import { type ReactNode, useEffect, useRef } from "react";
 import "./PlayerCardDrawer.css";
 
 const FOCUSABLE =
-  'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  'summary,a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
 export function PlayerCardDrawer({
   onClose,
@@ -24,7 +24,7 @@ export function PlayerCardDrawer({
   onClose: () => void;
   children: ReactNode;
 }) {
-  const panelRef = useRef<HTMLElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   // Where focus was when the card opened, so closing puts it back on the name
   // that was pressed rather than dumping it at the top of the document.
@@ -99,7 +99,7 @@ export function PlayerCardDrawer({
           here for rules that never fired on it — `biome check` reported them as
           `suppressions/unused`, so they were suppressing nothing.) */}
       <div className="dg-player-drawer__scrim" aria-hidden="true" onClick={onClose} />
-      <aside
+      <div
         ref={panelRef}
         className="dg-player-drawer dg-motion-drawer-enter"
         role="dialog"
@@ -119,7 +119,7 @@ export function PlayerCardDrawer({
           </button>
         </div>
         <div className="dg-player-drawer__body">{children}</div>
-      </aside>
+      </div>
     </div>
   );
 }

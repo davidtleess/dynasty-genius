@@ -653,6 +653,50 @@ export const zMarketQuestion = z.object({
 });
 
 /**
+ * MarketRankBasis
+ */
+export const zMarketRankBasis = z.object({
+    market_proxy_note: z.string(),
+    scoring_note: z.string(),
+    season_weights: z.array(z.number()),
+    summary: z.string(),
+    years: z.array(z.int())
+});
+
+/**
+ * MarketRankCoverage
+ */
+export const zMarketRankCoverage = z.object({
+    common_players: z.int(),
+    market_picks: z.int(),
+    market_players: z.int(),
+    model_players: z.int(),
+    roster_common_players: z.int(),
+    roster_players: z.int(),
+    total_players: z.int()
+});
+
+/**
+ * MarketRankSource
+ */
+export const zMarketRankSource = z.object({
+    forecast_date: z.string(),
+    league_sha256: z.string(),
+    market_as_of: z.string(),
+    market_sha256: z.string(),
+    ownership_as_of: z.string(),
+    report_run: z.string(),
+    report_sha256: z.string()
+});
+
+/**
+ * MarketRanksNotConfigured
+ */
+export const zMarketRanksNotConfigured = z.object({
+    status: z.literal('not_configured')
+});
+
+/**
  * MarketRealismWarning
  */
 export const zMarketRealismWarning = z.object({
@@ -1004,6 +1048,73 @@ export const zQbContextCard = z.object({
     qb_context_annotations: z.array(z.string()).optional(),
     qb_context_caveats: z.array(z.string()).optional(),
     source_qb_context_annotations: z.string()
+});
+
+/**
+ * RankComparison
+ */
+export const zRankComparison = z.object({
+    direction: z.enum([
+        'higher',
+        'lower',
+        'same',
+        'overlap',
+        'unavailable'
+    ]),
+    gap_max: z.int().nullable(),
+    gap_min: z.int().nullable()
+});
+
+/**
+ * RankInterval
+ */
+export const zRankInterval = z.object({
+    end: z.int(),
+    start: z.int(),
+    total: z.int()
+});
+
+/**
+ * RankSeason
+ */
+export const zRankSeason = z.object({
+    advantage: z.number(),
+    season: z.int()
+});
+
+/**
+ * MarketRankPlayer
+ */
+export const zMarketRankPlayer = z.object({
+    comparison: zRankComparison,
+    league_ownership: z.string(),
+    market_rank: zRankInterval.nullable(),
+    market_rank_published: z.int().nullable(),
+    market_value: z.number().nullable(),
+    missing_reason: z.string().nullable(),
+    model_rank_all: zRankInterval.nullable(),
+    model_value: z.number().nullable(),
+    model_zero_tie: z.boolean(),
+    name: z.string(),
+    on_roster: z.boolean(),
+    our_rank: zRankInterval.nullable(),
+    position: z.string(),
+    reference_player: z.string().nullable(),
+    seasons: z.array(zRankSeason),
+    sleeper_id: z.string(),
+    taxi_or_reserve: z.boolean().nullable(),
+    team: z.string().nullable()
+});
+
+/**
+ * MarketRanksAvailable
+ */
+export const zMarketRanksAvailable = z.object({
+    basis: zMarketRankBasis,
+    coverage: zMarketRankCoverage,
+    rows: z.array(zMarketRankPlayer),
+    source: zMarketRankSource,
+    status: z.literal('available')
 });
 
 /**
@@ -2270,6 +2381,51 @@ export const zGetPlayerDetailApiPlayersSleeperIdGetResponse = zPlayerDetailRespo
  * Successful Response
  */
 export const zRealizedOutcomeScorecardApiRealizedOutcomeScorecardGetResponse = zRealizedOutcomeScorecardResponse;
+
+export const zResearchAvailableApiResearchAvailableGetQuery = z.object({
+    run: z.string().nullish(),
+    catalog: z.string().nullish()
+});
+
+/**
+ * Response Research Available Api Research Available Get
+ *
+ * Successful Response
+ */
+export const zResearchAvailableApiResearchAvailableGetResponse = z.record(z.string(), z.unknown());
+
+export const zResearchComparisonApiResearchComparisonGetQuery = z.object({
+    run: z.string().nullish(),
+    catalog: z.string().nullish()
+});
+
+/**
+ * Response Research Comparison Api Research Comparison Get
+ *
+ * Successful Response
+ */
+export const zResearchComparisonApiResearchComparisonGetResponse = z.record(z.string(), z.unknown());
+
+/**
+ * Response Market Ranks Api Research Market Ranks Get
+ *
+ * Successful Response
+ */
+export const zMarketRanksApiResearchMarketRanksGetResponse = z.union([
+    zMarketRanksAvailable,
+    zMarketRanksNotConfigured
+]);
+
+export const zResearchPreviewApiResearchPreviewGetQuery = z.object({
+    run: z.string().nullish()
+});
+
+/**
+ * Response Research Preview Api Research Preview Get
+ *
+ * Successful Response
+ */
+export const zResearchPreviewApiResearchPreviewGetResponse = z.record(z.string(), z.unknown());
 
 export const zScoreSingleApiRookiesScorePostBody = zProspectRequest;
 

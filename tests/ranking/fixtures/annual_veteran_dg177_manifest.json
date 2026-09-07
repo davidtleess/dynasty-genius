@@ -1,0 +1,32 @@
+{
+ "producer": "dg177_annual_forecasts",
+ "candidate_arm": "recent_production_3col",
+ "forecast_cutoff": {
+  "rule": "features observed through the feature season",
+  "feature_season": 2025,
+  "information_through": "end of the 2025 NFL season including postseason"
+ },
+ "last_complete_season": 2025,
+ "label_window": {
+  "year1": 1,
+  "year2": 2
+ },
+ "scoring_scope": {
+  "scope": "REG",
+  "scoring": "fantasy_points_ppr",
+  "season_types": [
+   "REG"
+  ]
+ },
+ "exposure_definition": "games: weeks with a weekly stat row in scope",
+ "event": "appeared: >= 1 stat-row game in the season",
+ "horizons_supported": [
+  1,
+  2
+ ],
+ "no_forecast_reason_for_absent_players": "no_feature_row",
+ "scoring_arm_id": "recent_production_3col",
+ "outputs_sha256": {
+  "annual_veteran_dg177_fixture.csv": "730ab9f0087b44205803d318e2d8fde1e904f0db331d92c85511c25107ffca89"
+ }
+}

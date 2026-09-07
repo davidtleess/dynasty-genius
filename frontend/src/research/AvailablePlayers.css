@@ -1,0 +1,104 @@
+/* DG-178 available players — the app's tokens only; no raw colours, no verdict hues. */
+.dg-avail {
+  display: grid;
+  gap: var(--dg-space-4, 1rem);
+}
+.dg-avail__dates {
+  margin: 0;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+.dg-avail__notice {
+  margin: 0;
+  font-size: var(--dg-text-sm);
+  border-left: 3px solid var(--dg-border-strong);
+  padding-left: var(--dg-space-3, 0.75rem);
+}
+.dg-avail__controls {
+  display: grid;
+  gap: var(--dg-space-3, 0.75rem);
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  align-items: start;
+}
+.dg-avail__controls > * {
+  min-width: 0;
+}
+.dg-avail__group {
+  margin: 0;
+  padding: var(--dg-space-2, 0.5rem) var(--dg-space-3, 0.75rem);
+  border: 1px solid var(--dg-border);
+  border-radius: var(--dg-radius-md, 0.5rem);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dg-space-2, 0.5rem) var(--dg-space-3, 0.75rem);
+  font-size: var(--dg-text-sm);
+}
+.dg-avail__group > legend {
+  padding-inline: var(--dg-space-1, 0.25rem);
+  color: var(--dg-text-muted);
+}
+.dg-avail__check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dg-space-1, 0.25rem);
+  white-space: nowrap;
+}
+.dg-avail__sort {
+  display: flex;
+  flex-basis: 100%;
+  align-items: center;
+  gap: var(--dg-space-2, 0.5rem);
+  min-width: 0;
+  white-space: normal;
+}
+.dg-avail__sort select {
+  font: inherit;
+  flex: 1 1 0;
+  min-width: 0;
+}
+.dg-avail__ignored {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--dg-text-muted);
+}
+.dg-avail__cell {
+  display: grid;
+  gap: var(--dg-space-1, 0.25rem);
+  min-width: 0;
+}
+.dg-avail__status {
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+.dg-avail__num {
+  white-space: nowrap;
+}
+.dg-avail__focal {
+  font-weight: 700;
+  font-size: var(--dg-text-lg);
+}
+.dg-avail__tie {
+  display: block;
+  font-weight: 400;
+  color: var(--dg-text-muted);
+}
+.dg-avail__reason {
+  text-align: left;
+  max-width: 36ch;
+}
+.dg-avail__actions {
+  white-space: nowrap;
+}
+
+/* An expanded explanation stays readable on a phone: the comparison columns keep scrolling
+   sideways, the prose sticks to the scroller's left edge and never exceeds the viewport. */
+.dg-avail__prose {
+  position: sticky;
+  left: 0;
+  box-sizing: border-box;
+  max-width: calc(100vw - 2 * var(--dg-space-4, 1rem) - 2 * var(--dg-space-3, 0.75rem));
+  text-align: left;
+}
+.dg-avail__prose p {
+  overflow-wrap: anywhere;
+}

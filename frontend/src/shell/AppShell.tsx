@@ -1,14 +1,15 @@
 import { useState } from "react";
-
 import { type Command, CommandPalette } from "../command/CommandPalette";
 import { AssetPrimitiveCapture } from "../dev/AssetPrimitiveCapture";
 import { LeaguePulse } from "../league-pulse/LeaguePulse";
+import { useMarketRanks } from "../market-ranks/MarketRanksContext";
 import { ModelScoreboard } from "../model-scoreboard/ModelScoreboard";
 import { PlayerCardDrawer } from "../player/PlayerCardDrawer";
 import { PlayerDetailPage } from "../player/PlayerDetailPage";
 import { PlayerSelectionProvider } from "../player/playerSelection";
 import { ProjectTracker } from "../project/ProjectTracker";
 import { RealizedOutcomeScorecard } from "../realized-outcome/RealizedOutcomeScorecard";
+import { ResearchPreview } from "../research/ResearchPreview";
 import { RosterAudit } from "../roster/RosterAudit";
 import { RosterCapacitySandbox } from "../roster-capacity/RosterCapacitySandbox";
 import { AssetSearch } from "../trade/AssetSearch";
@@ -83,7 +84,12 @@ export function AppShell() {
   const playerCard = usePlayerCard();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
-  const palettePlayers = useAssetCatalogSearch(paletteQuery);
+  const palettePlayers = useAssetCatalogSearch(paletteQuery, true);
+  const ranks = useMarketRanks();
+  const noPlayerMatch =
+    ranks.status === "available"
+      ? "No player in this comparison matches that."
+      : NO_ROSTERED_MATCH;
 
   // The active destination, or null when the surface was reached by URL alone
   // (the parked cards, the crew's Project Tracker, the capture target). In that
@@ -134,10 +140,8 @@ export function AppShell() {
     })),
   );
 
-  // Players typed into the palette come back from the same catalog the search
-  // box reads — rostered players only, so an unrostered player is not findable
-  // here at all. Position and rostering manager ride along when present; a row
-  // missing them shows fewer words, never an invented one.
+  // Both player finders use the configured comparison population when available;
+  // legacy mode uses the rostered asset catalog. Metadata is shown only when present.
   const playerCommands: Command[] = palettePlayers.results
     .filter(isOpenablePlayer)
     .map((entry) => {
@@ -173,7 +177,7 @@ export function AppShell() {
     // The catalog matched rows and the openable-player filter removed every one
     // of them — a different fact from "nothing matched", and the same sentence
     // the rail's box has been giving that case since DG-110.
-    return palettePlayers.results.length > 0 ? ONLY_PICKS_MATCH : NO_ROSTERED_MATCH;
+    return palettePlayers.results.length > 0 ? ONLY_PICKS_MATCH : noPlayerMatch;
   })();
 
   return (
@@ -187,6 +191,7 @@ export function AppShell() {
           <search className="dg-shell__search">
             <AssetSearch
               onSelect={selectPlayer}
+              playerRanks
               label="Find a player"
               placeholder="Find a player…"
               filter={isOpenablePlayer}
@@ -195,7 +200,7 @@ export function AppShell() {
               // track matches that" over it was false for every unrostered
               // player the product names elsewhere (League Pulse), and for
               // every pick the filter drops.
-              emptyNotice={NO_ROSTERED_MATCH}
+              emptyNotice={noPlayerMatch}
               filteredNotice={ONLY_PICKS_MATCH}
             />
           </search>
@@ -270,6 +275,7 @@ export function AppShell() {
           )}
           {isParked(activeSurface) && <ParkedSurfaceCard surface={activeSurface} />}
           {activeSurface === "Asset Primitive Capture" && <AssetPrimitiveCapture />}
+          {activeSurface === "Research Preview" && <ResearchPreview />}
           {activeSurface === "Roster Audit" && <RosterAudit />}
           {activeSurface === "Roster Capacity" && <RosterCapacitySandbox />}
           {activeSurface === "Daily What-Changed" && (

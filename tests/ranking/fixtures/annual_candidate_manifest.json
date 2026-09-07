@@ -1,0 +1,18 @@
+{
+ "model_version": "annual_fixture_v0",
+ "status": "RESEARCH CANDIDATE \u2014 not served",
+ "forecast_cutoff": "2026-09-06",
+ "forecast_year": 2026,
+ "label_window": "labels through 2025",
+ "scoring_scope": "REG",
+ "scoring": "PPR_nflverse_weekly",
+ "exposure_definition": "stat_row_games",
+ "event": "appearance",
+ "seasons": 2,
+ "scoring_arm_id": "fixture_arm",
+ "outputs_sha256": {
+  "annual_candidate_fixture.csv": "af88f5c6134e79e1258827ebf7cd455301d507e4f03c412df1d31899b5500c95",
+  "historical_predictions.csv": "08057c61043aef635fa2f1cbd7b452af28327f74cc553fb803fffaf414b6e006",
+  "annual_candidate_grading.json": "d10b91cd14a2604654db21d87c1e4d201b881b75fda2664d82f28e1f29b28a15"
+ }
+}

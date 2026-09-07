@@ -15,6 +15,9 @@ from app.api.routes import (
     morning_tape,
     players,
     realized_outcome_scorecard,
+    research_available,
+    research_market_ranks,
+    research_preview,
     rookies,
     roster,
     roster_capacity,
@@ -54,6 +57,10 @@ app.include_router(system_model_provenance.router, prefix="/api")
 app.include_router(system_capture_health.router, prefix="/api")
 app.include_router(system_tier_readiness.router, prefix="/api")
 app.include_router(system_health.router, prefix="/api")
+# DG-178: local read-only research preview of the candidate two-year board (runs/ only).
+app.include_router(research_preview.router, prefix="/api")
+app.include_router(research_available.router, prefix="/api")
+app.include_router(research_market_ranks.router, prefix="/api")
 
 
 # --- Increment-1 headshot cache mount (spec v3 §2; rebuildable, gitignored) ---

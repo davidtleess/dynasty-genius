@@ -2909,6 +2909,346 @@
         "title": "MarketQuestion",
         "type": "object"
       },
+      "MarketRankBasis": {
+        "properties": {
+          "market_proxy_note": {
+            "title": "Market Proxy Note",
+            "type": "string"
+          },
+          "scoring_note": {
+            "title": "Scoring Note",
+            "type": "string"
+          },
+          "season_weights": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Season Weights",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "years": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Years",
+            "type": "array"
+          }
+        },
+        "required": [
+          "years",
+          "season_weights",
+          "summary",
+          "market_proxy_note",
+          "scoring_note"
+        ],
+        "title": "MarketRankBasis",
+        "type": "object"
+      },
+      "MarketRankCoverage": {
+        "properties": {
+          "common_players": {
+            "title": "Common Players",
+            "type": "integer"
+          },
+          "market_picks": {
+            "title": "Market Picks",
+            "type": "integer"
+          },
+          "market_players": {
+            "title": "Market Players",
+            "type": "integer"
+          },
+          "model_players": {
+            "title": "Model Players",
+            "type": "integer"
+          },
+          "roster_common_players": {
+            "title": "Roster Common Players",
+            "type": "integer"
+          },
+          "roster_players": {
+            "title": "Roster Players",
+            "type": "integer"
+          },
+          "total_players": {
+            "title": "Total Players",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "model_players",
+          "market_players",
+          "market_picks",
+          "common_players",
+          "total_players",
+          "roster_players",
+          "roster_common_players"
+        ],
+        "title": "MarketRankCoverage",
+        "type": "object"
+      },
+      "MarketRankPlayer": {
+        "properties": {
+          "comparison": {
+            "$ref": "#/components/schemas/RankComparison"
+          },
+          "league_ownership": {
+            "title": "League Ownership",
+            "type": "string"
+          },
+          "market_rank": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RankInterval"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "market_rank_published": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Rank Published"
+          },
+          "market_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Value"
+          },
+          "missing_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing Reason"
+          },
+          "model_rank_all": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RankInterval"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Value"
+          },
+          "model_zero_tie": {
+            "title": "Model Zero Tie",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "on_roster": {
+            "title": "On Roster",
+            "type": "boolean"
+          },
+          "our_rank": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RankInterval"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position": {
+            "title": "Position",
+            "type": "string"
+          },
+          "reference_player": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Player"
+          },
+          "seasons": {
+            "items": {
+              "$ref": "#/components/schemas/RankSeason"
+            },
+            "title": "Seasons",
+            "type": "array"
+          },
+          "sleeper_id": {
+            "title": "Sleeper Id",
+            "type": "string"
+          },
+          "taxi_or_reserve": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxi Or Reserve"
+          },
+          "team": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team"
+          }
+        },
+        "required": [
+          "sleeper_id",
+          "name",
+          "position",
+          "team",
+          "on_roster",
+          "league_ownership",
+          "taxi_or_reserve",
+          "model_value",
+          "market_value",
+          "our_rank",
+          "market_rank",
+          "model_rank_all",
+          "market_rank_published",
+          "comparison",
+          "missing_reason",
+          "model_zero_tie",
+          "seasons",
+          "reference_player"
+        ],
+        "title": "MarketRankPlayer",
+        "type": "object"
+      },
+      "MarketRankSource": {
+        "properties": {
+          "forecast_date": {
+            "title": "Forecast Date",
+            "type": "string"
+          },
+          "league_sha256": {
+            "title": "League Sha256",
+            "type": "string"
+          },
+          "market_as_of": {
+            "title": "Market As Of",
+            "type": "string"
+          },
+          "market_sha256": {
+            "title": "Market Sha256",
+            "type": "string"
+          },
+          "ownership_as_of": {
+            "title": "Ownership As Of",
+            "type": "string"
+          },
+          "report_run": {
+            "title": "Report Run",
+            "type": "string"
+          },
+          "report_sha256": {
+            "title": "Report Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "report_run",
+          "report_sha256",
+          "market_sha256",
+          "league_sha256",
+          "forecast_date",
+          "market_as_of",
+          "ownership_as_of"
+        ],
+        "title": "MarketRankSource",
+        "type": "object"
+      },
+      "MarketRanksAvailable": {
+        "properties": {
+          "basis": {
+            "$ref": "#/components/schemas/MarketRankBasis"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/MarketRankCoverage"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/MarketRankPlayer"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "source": {
+            "$ref": "#/components/schemas/MarketRankSource"
+          },
+          "status": {
+            "const": "available",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "source",
+          "basis",
+          "coverage",
+          "rows"
+        ],
+        "title": "MarketRanksAvailable",
+        "type": "object"
+      },
+      "MarketRanksNotConfigured": {
+        "properties": {
+          "status": {
+            "const": "not_configured",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "MarketRanksNotConfigured",
+        "type": "object"
+      },
       "MarketRealismWarning": {
         "properties": {
           "caveats": {
@@ -4299,6 +4639,91 @@
           "source_qb_context_annotations"
         ],
         "title": "QBContextCard",
+        "type": "object"
+      },
+      "RankComparison": {
+        "properties": {
+          "direction": {
+            "enum": [
+              "higher",
+              "lower",
+              "same",
+              "overlap",
+              "unavailable"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "gap_max": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gap Max"
+          },
+          "gap_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gap Min"
+          }
+        },
+        "required": [
+          "direction",
+          "gap_min",
+          "gap_max"
+        ],
+        "title": "RankComparison",
+        "type": "object"
+      },
+      "RankInterval": {
+        "properties": {
+          "end": {
+            "title": "End",
+            "type": "integer"
+          },
+          "start": {
+            "title": "Start",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "total"
+        ],
+        "title": "RankInterval",
+        "type": "object"
+      },
+      "RankSeason": {
+        "properties": {
+          "advantage": {
+            "title": "Advantage",
+            "type": "number"
+          },
+          "season": {
+            "title": "Season",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "season",
+          "advantage"
+        ],
+        "title": "RankSeason",
         "type": "object"
       },
       "RankStat": {
@@ -9133,6 +9558,212 @@
         "summary": "Realized Outcome Scorecard",
         "tags": [
           "realized-outcome"
+        ]
+      }
+    },
+    "/api/research/available": {
+      "get": {
+        "operationId": "research_available_api_research_available_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "run",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Run"
+            }
+          },
+          {
+            "in": "query",
+            "name": "catalog",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Catalog"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Research Available Api Research Available Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Research Available"
+      }
+    },
+    "/api/research/comparison": {
+      "get": {
+        "description": "DG-182: the roster-spot comparison \u2014 David's roster from the served report's five-year view\nbeside the unowned rows of the catalog bound to that report. The catalog document is the one\n`_catalog_for` verified against its companion record; the report bytes are hashed and parsed\nby the adapter from one buffer and must match the sha256 the catalog binds, so a file that\nchanged between the two reads is refused rather than served.",
+        "operationId": "research_comparison_api_research_comparison_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "run",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Run"
+            }
+          },
+          {
+            "in": "query",
+            "name": "catalog",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Catalog"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Research Comparison Api Research Comparison Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Research Comparison"
+      }
+    },
+    "/api/research/market-ranks": {
+      "get": {
+        "operationId": "market_ranks_api_research_market_ranks_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/MarketRanksAvailable"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MarketRanksNotConfigured"
+                    }
+                  ],
+                  "title": "Response Market Ranks Api Research Market Ranks Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Market Ranks"
+      }
+    },
+    "/api/research/preview": {
+      "get": {
+        "operationId": "research_preview_api_research_preview_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "run",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Run"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Research Preview Api Research Preview Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Research Preview",
+        "tags": [
+          "research"
         ]
       }
     },

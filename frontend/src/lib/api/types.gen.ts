@@ -1653,6 +1653,193 @@ export type MarketQuestion = {
 };
 
 /**
+ * MarketRankBasis
+ */
+export type MarketRankBasis = {
+    /**
+     * Market Proxy Note
+     */
+    market_proxy_note: string;
+    /**
+     * Scoring Note
+     */
+    scoring_note: string;
+    /**
+     * Season Weights
+     */
+    season_weights: Array<number>;
+    /**
+     * Summary
+     */
+    summary: string;
+    /**
+     * Years
+     */
+    years: Array<number>;
+};
+
+/**
+ * MarketRankCoverage
+ */
+export type MarketRankCoverage = {
+    /**
+     * Common Players
+     */
+    common_players: number;
+    /**
+     * Market Picks
+     */
+    market_picks: number;
+    /**
+     * Market Players
+     */
+    market_players: number;
+    /**
+     * Model Players
+     */
+    model_players: number;
+    /**
+     * Roster Common Players
+     */
+    roster_common_players: number;
+    /**
+     * Roster Players
+     */
+    roster_players: number;
+    /**
+     * Total Players
+     */
+    total_players: number;
+};
+
+/**
+ * MarketRankPlayer
+ */
+export type MarketRankPlayer = {
+    comparison: RankComparison;
+    /**
+     * League Ownership
+     */
+    league_ownership: string;
+    market_rank: RankInterval | null;
+    /**
+     * Market Rank Published
+     */
+    market_rank_published: number | null;
+    /**
+     * Market Value
+     */
+    market_value: number | null;
+    /**
+     * Missing Reason
+     */
+    missing_reason: string | null;
+    model_rank_all: RankInterval | null;
+    /**
+     * Model Value
+     */
+    model_value: number | null;
+    /**
+     * Model Zero Tie
+     */
+    model_zero_tie: boolean;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * On Roster
+     */
+    on_roster: boolean;
+    our_rank: RankInterval | null;
+    /**
+     * Position
+     */
+    position: string;
+    /**
+     * Reference Player
+     */
+    reference_player: string | null;
+    /**
+     * Seasons
+     */
+    seasons: Array<RankSeason>;
+    /**
+     * Sleeper Id
+     */
+    sleeper_id: string;
+    /**
+     * Taxi Or Reserve
+     */
+    taxi_or_reserve: boolean | null;
+    /**
+     * Team
+     */
+    team: string | null;
+};
+
+/**
+ * MarketRankSource
+ */
+export type MarketRankSource = {
+    /**
+     * Forecast Date
+     */
+    forecast_date: string;
+    /**
+     * League Sha256
+     */
+    league_sha256: string;
+    /**
+     * Market As Of
+     */
+    market_as_of: string;
+    /**
+     * Market Sha256
+     */
+    market_sha256: string;
+    /**
+     * Ownership As Of
+     */
+    ownership_as_of: string;
+    /**
+     * Report Run
+     */
+    report_run: string;
+    /**
+     * Report Sha256
+     */
+    report_sha256: string;
+};
+
+/**
+ * MarketRanksAvailable
+ */
+export type MarketRanksAvailable = {
+    basis: MarketRankBasis;
+    coverage: MarketRankCoverage;
+    /**
+     * Rows
+     */
+    rows: Array<MarketRankPlayer>;
+    source: MarketRankSource;
+    /**
+     * Status
+     */
+    status: 'available';
+};
+
+/**
+ * MarketRanksNotConfigured
+ */
+export type MarketRanksNotConfigured = {
+    /**
+     * Status
+     */
+    status: 'not_configured';
+};
+
+/**
  * MarketRealismWarning
  */
 export type MarketRealismWarning = {
@@ -2363,6 +2550,56 @@ export type QbContextCard = {
      * Source Qb Context Annotations
      */
     source_qb_context_annotations: string;
+};
+
+/**
+ * RankComparison
+ */
+export type RankComparison = {
+    /**
+     * Direction
+     */
+    direction: 'higher' | 'lower' | 'same' | 'overlap' | 'unavailable';
+    /**
+     * Gap Max
+     */
+    gap_max: number | null;
+    /**
+     * Gap Min
+     */
+    gap_min: number | null;
+};
+
+/**
+ * RankInterval
+ */
+export type RankInterval = {
+    /**
+     * End
+     */
+    end: number;
+    /**
+     * Start
+     */
+    start: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * RankSeason
+ */
+export type RankSeason = {
+    /**
+     * Advantage
+     */
+    advantage: number;
+    /**
+     * Season
+     */
+    season: number;
 };
 
 /**
@@ -4980,6 +5217,134 @@ export type RealizedOutcomeScorecardApiRealizedOutcomeScorecardGetResponses = {
 };
 
 export type RealizedOutcomeScorecardApiRealizedOutcomeScorecardGetResponse = RealizedOutcomeScorecardApiRealizedOutcomeScorecardGetResponses[keyof RealizedOutcomeScorecardApiRealizedOutcomeScorecardGetResponses];
+
+export type ResearchAvailableApiResearchAvailableGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Run
+         */
+        run?: string | null;
+        /**
+         * Catalog
+         */
+        catalog?: string | null;
+    };
+    url: '/api/research/available';
+};
+
+export type ResearchAvailableApiResearchAvailableGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ResearchAvailableApiResearchAvailableGetError = ResearchAvailableApiResearchAvailableGetErrors[keyof ResearchAvailableApiResearchAvailableGetErrors];
+
+export type ResearchAvailableApiResearchAvailableGetResponses = {
+    /**
+     * Response Research Available Api Research Available Get
+     *
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type ResearchAvailableApiResearchAvailableGetResponse = ResearchAvailableApiResearchAvailableGetResponses[keyof ResearchAvailableApiResearchAvailableGetResponses];
+
+export type ResearchComparisonApiResearchComparisonGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Run
+         */
+        run?: string | null;
+        /**
+         * Catalog
+         */
+        catalog?: string | null;
+    };
+    url: '/api/research/comparison';
+};
+
+export type ResearchComparisonApiResearchComparisonGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ResearchComparisonApiResearchComparisonGetError = ResearchComparisonApiResearchComparisonGetErrors[keyof ResearchComparisonApiResearchComparisonGetErrors];
+
+export type ResearchComparisonApiResearchComparisonGetResponses = {
+    /**
+     * Response Research Comparison Api Research Comparison Get
+     *
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type ResearchComparisonApiResearchComparisonGetResponse = ResearchComparisonApiResearchComparisonGetResponses[keyof ResearchComparisonApiResearchComparisonGetResponses];
+
+export type MarketRanksApiResearchMarketRanksGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/research/market-ranks';
+};
+
+export type MarketRanksApiResearchMarketRanksGetResponses = {
+    /**
+     * Response Market Ranks Api Research Market Ranks Get
+     *
+     * Successful Response
+     */
+    200: MarketRanksAvailable | MarketRanksNotConfigured;
+};
+
+export type MarketRanksApiResearchMarketRanksGetResponse = MarketRanksApiResearchMarketRanksGetResponses[keyof MarketRanksApiResearchMarketRanksGetResponses];
+
+export type ResearchPreviewApiResearchPreviewGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Run
+         */
+        run?: string | null;
+    };
+    url: '/api/research/preview';
+};
+
+export type ResearchPreviewApiResearchPreviewGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ResearchPreviewApiResearchPreviewGetError = ResearchPreviewApiResearchPreviewGetErrors[keyof ResearchPreviewApiResearchPreviewGetErrors];
+
+export type ResearchPreviewApiResearchPreviewGetResponses = {
+    /**
+     * Response Research Preview Api Research Preview Get
+     *
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type ResearchPreviewApiResearchPreviewGetResponse = ResearchPreviewApiResearchPreviewGetResponses[keyof ResearchPreviewApiResearchPreviewGetResponses];
 
 export type ScoreSingleApiRookiesScorePostData = {
     body: ProspectRequest;

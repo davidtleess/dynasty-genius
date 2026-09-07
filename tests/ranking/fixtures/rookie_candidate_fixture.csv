@@ -1,0 +1,3 @@
+gsis_id,name,position,team,draft_season,pick,round,age_at_draft,coverage_status,p_qual_year1,p_qual_year2,p_qual_year3,p_qual_year4,p_qual_year5,p_played_h1,model_version
+00-0041562,Fernando Mendoza,QB,LVR,2026,1,1,22.0,scored,0.893,0.953,0.856,0.866,0.850,0.975,dg165_rookie_capital_v1
+00-0041999,Kenyon Sadiq,TE,XXX,2026,16,1,21.0,scored,0.30,0.45,0.50,0.48,0.44,0.95,dg165_rookie_capital_v1
