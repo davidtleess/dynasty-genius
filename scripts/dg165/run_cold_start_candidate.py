@@ -80,6 +80,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--draws", type=int, default=2000)
     ap.add_argument("--runs-root", default="runs")
     args = ap.parse_args(argv)
+    from datetime import datetime, timezone
+    launch_sha = git_sha()                                   # launch provenance, captured before any input is read
+    launched_utc = datetime.now(timezone.utc).isoformat()
     try:
         capture = Path(args.capture)
         season_files = assert_capture_coverage(capture, required_seasons=REQUIRED_SEASONS)
@@ -152,7 +155,7 @@ def main(argv: list[str] | None = None) -> int:
     }
     run_dir = create_run_dir(args.runs_root, name="dg165_cold_start_candidate")
     write_candidate_run(run_dir, population=population, support=support, evaluation=evaluation, paired_rows=paired_rows, sidecar=sidecar,
-                        unresolved=unresolved, inputs=inputs, git_sha=git_sha())
+                        unresolved=unresolved, inputs=inputs, git_sha=launch_sha, launched_utc=launched_utc)
     print(run_dir)
     return 0
 

@@ -136,9 +136,10 @@ def assert_capture_coverage(capture_dir: Path | str, *, required_seasons) -> dic
             continue
         by_season.setdefault(str(int(season)), []).append(str(path))
     if isinstance(files, dict):
+        by_season = {}
         for rel, meta in files.items():
             if isinstance(meta, dict) and meta.get("season") is not None:
-                by_season[str(int(meta["season"]))] = [rel]
+                by_season.setdefault(str(int(meta["season"])), []).append(rel)
     out = {}
     for s in required_seasons:
         got = by_season.get(str(int(s)), [])
@@ -205,6 +206,14 @@ def never_record_population(*, cohort: pd.DataFrame, first_reg: pd.Series, outco
         o[col] = vals
     if o.duplicated(["player_id", "season"]).any():
         raise ValueError("outcome artifact: duplicate (player_id, season) rows")
+    games_closed = o.loc[closed, "games"].to_numpy(float)
+    app_closed = o.loc[closed, "appeared"].to_numpy(bool)
+    pts_closed = o.loc[closed, "points"].to_numpy(float)
+    incoherent = (app_closed != (games_closed >= 1)) | ((pts_closed != 0.0) & ~app_closed) | (games_closed < 0) | (games_closed != np.floor(games_closed))
+    if incoherent.any():
+        sample = o.loc[closed].loc[incoherent, ["player_id", "season", "appeared", "points", "games"]].head(5).to_dict("records")
+        raise ValueError(f"outcome artifact: {int(incoherent.sum())} closed rows are incoherent (appeared must equal games >= 1; points "
+                         f"require an appearance; games integral and non-negative), e.g. {sample}")
     key = o.set_index(["player_id", o["season"].astype(int)])
     window_first = o.loc[o["appeared"].astype(bool)].groupby("player_id")["season"].min()
     wf = pop["gsis_id"].map(window_first)
@@ -276,11 +285,15 @@ SELECTION_RULE = ("per horizon, on the same paired supported rows: the candidate
 CAVEATS = {
     "selection": ("selecting a policy on this historical evaluation is retrospective model selection, NOT independent confirmation "
                   "of the selected policy; both arms are reported at every horizon"),
+    "bootstrap": ("the 90% intervals are player-cluster bootstraps conditional on the fixed fits and the realized origins 2012-2025; "
+                  "they carry no season or model-fit uncertainty and are not forecast intervals"),
     "population": ("a draft-population prior for drafted players with no rookie-year regular-season record; not conditioned on remaining "
                    "on a current roster; direction and size of this mismatch have not been measured"),
     "appearance": "P(appear) is the probability of at least one championship-window stat row; it is not a breakout or usefulness probability",
     "horizons": "each horizon is fitted, evaluated and selected independently; acceptance at one horizon never validates another",
     "labels": "a complete season with no artifact row is the producers' shared convention zero (tagged); seasons beyond 2025 are unknown",
+    "scoring": ("outcomes are the common research default PPR championship-window target (nflverse default scoring), not exact league "
+                "scoring; league_scoring_exact is false on the bound artifact"),
 }
 
 
@@ -566,6 +579,8 @@ def export_sidecar(candidates: pd.DataFrame, predictions: pd.DataFrame, *, selec
         raise ValueError(f"sidecar binding is incomplete: missing {missing_b}")
     if int(binding["origin_year"]) != int(origin_year):
         raise ValueError(f"origin year {origin_year} conflicts with the binding's origin_year {binding['origin_year']}")
+    if int(origin_year) != SIDECAR_CLASS_YEAR + 1:
+        raise ValueError(f"origin year must be exactly draft season + 1 = {SIDECAR_CLASS_YEAR + 1} (seasons {SIDECAR_CLASS_YEAR + 1}-{SIDECAR_CLASS_YEAR + 5}); got {origin_year}")
     c = candidates.copy()
     c["gsis_id"] = c["gsis_id"].astype(str)
     c["sleeper_id"] = c["sleeper_id"].astype(str)
@@ -579,6 +594,8 @@ def export_sidecar(candidates: pd.DataFrame, predictions: pd.DataFrame, *, selec
         raise ValueError(f"every candidate must be a {SIDECAR_CLASS_YEAR} draftee")
     if (~c["draft_position"].isin(SKILL_POSITIONS)).any():
         raise ValueError("every candidate must carry a skill draft position (QB/RB/WR/TE)")
+    if "draft_status" not in c.columns or (c["draft_status"].astype(str) != "drafted_verified").any():
+        raise ValueError("every candidate must be affirmatively drafted_verified")
     pred = predictions.copy()
     pred["gsis_id"] = pred["gsis_id"].astype(str)
     if pred["gsis_id"].duplicated().any():
@@ -611,23 +628,30 @@ def export_sidecar(candidates: pd.DataFrame, predictions: pd.DataFrame, *, selec
                     row[out_name] = np.nan
                 continue
             vals = {q: p.get(f"{arm}_{q}_{j}") for q in names}
-            for q in ("p_appear", "e_points", "e_games"):
+            cond_missing = [q for q in ("e_points_given_appear", "e_games_given_appear") if vals[q] is None or pd.isna(vals[q])]
+            if cond_missing and arm == "b1":
+                # a declared-unsupported baseline conditional cell: the horizon is explicitly unsupported, never a partial path
+                row[f"estimate_class_year{j}"] = "unsupported"
+                for out_name in names.values():
+                    row[out_name] = np.nan
+                continue
+            if cond_missing:
+                raise ValueError(f"{r['name']} ({pid}) horizon {j}: a supported {arm} carries no conditional value for {cond_missing}; the conditional is required")
+            for q in ("p_appear", "e_points", "e_games", "e_points_given_appear", "e_games_given_appear"):
                 v = vals[q]
                 if v is None or not np.isfinite(float(v)):
                     raise ValueError(f"{r['name']} ({pid}) horizon {j}: {arm} {q} is not finite")
             pv = float(vals["p_appear"])
             if not (0.0 <= pv <= 1.0):
                 raise ValueError(f"{r['name']} ({pid}) horizon {j}: probability {pv} outside [0, 1]")
-            for q in ("e_points_given_appear", "e_games_given_appear"):
-                v = vals[q]
-                if v is not None and pd.notna(v) and not np.isfinite(float(v)):
-                    raise ValueError(f"{r['name']} ({pid}) horizon {j}: {arm} {q} is not finite")
-            g = vals["e_games_given_appear"]
-            if g is not None and pd.notna(g) and not (GAMES_BOUND[0] <= float(g) <= GAMES_BOUND[1]):
+            g = float(vals["e_games_given_appear"])
+            if not (GAMES_BOUND[0] <= g <= GAMES_BOUND[1]):
                 raise ValueError(f"{r['name']} ({pid}) horizon {j}: conditional games {g} outside {GAMES_BOUND}")
-            cp = vals["e_points_given_appear"]
-            if cp is not None and pd.notna(cp) and abs(pv * float(cp) - float(vals["e_points"])) > 1e-6:
-                raise ValueError(f"{r['name']} ({pid}) horizon {j}: e_points {vals['e_points']} != P x conditional product {pv * float(cp)}")
+            if abs(pv * g - float(vals["e_games"])) > 1e-6 or not (0.0 <= float(vals["e_games"]) <= GAMES_BOUND[1]):
+                raise ValueError(f"{r['name']} ({pid}) horizon {j}: e_games {vals['e_games']} is not P x conditional games {pv * g} within bounds")
+            cp = float(vals["e_points_given_appear"])
+            if abs(pv * cp - float(vals["e_points"])) > 1e-6:
+                raise ValueError(f"{r['name']} ({pid}) horizon {j}: e_points {vals['e_points']} != P x conditional product {pv * cp}")
             for q, out_name in names.items():
                 v = vals[q]
                 row[out_name] = float(v) if (v is not None and pd.notna(v)) else np.nan
@@ -732,19 +756,26 @@ def render_candidate_report(evaluation: dict, support: pd.DataFrame, sidecar: pd
     lines += ["## Support (recorded before fitting)", "", f"{len(support)} origin × horizon cells; see support.csv for training rows, appearers, per-position counts and test rows.", ""]
     lines += ["## Sidecar", "", f"{len(sidecar)} candidate rows; estimate classes per horizon: "
               + "; ".join(f"year {j}: " + ", ".join(f"{k} {v}" for k, v in sidecar[f'estimate_class_year{j}'].value_counts().items()) for j in range(1, 6) if len(sidecar)), ""]
-    lines += ["## Unresolved", "", f"{len(unresolved)} players remain without a new estimate; see unresolved.csv for the reason and the smallest valid next experiment per player.", ""]
+    n_unres = int((unresolved["status"] == "unresolved").sum()) if "status" in unresolved.columns else int(len(unresolved))
+    n_rec = int((unresolved["status"] == "recovered_existing_forecast").sum()) if "status" in unresolved.columns else 0
+    lines += ["## Status partition", "", f"{len(sidecar)} new candidate rows; {n_unres} unresolved (no new estimate; see unresolved.csv for the reason and the "
+              f"smallest valid next experiment per player); {n_rec} recovered existing forecasts (delivered by the coverage run's recovery sidecar, "
+              "not re-estimated).", ""]
+    lines += ["## Scoring and interval conditions", "", "Outcomes are the common research default PPR championship-window target, not exact league scoring "
+              "(league_scoring_exact is false on the bound artifact). Intervals are conditional on the fixed fits and the realized origins; they carry "
+              "no season or model-fit uncertainty.", ""]
     lines += ["## Caveats", ""] + [f"- **{k}**: {v}" for k, v in cav.items()] + [""]
     return "\n".join(lines)
 
 
 def write_candidate_run(run_dir: Path, *, population: pd.DataFrame, support: pd.DataFrame, evaluation: dict, paired_rows: pd.DataFrame,
-                        sidecar: pd.DataFrame, unresolved: pd.DataFrame, inputs: dict, git_sha: str) -> dict:
+                        sidecar: pd.DataFrame, unresolved: pd.DataFrame, inputs: dict, git_sha: str, launched_utc: str | None = None) -> dict:
+    """``git_sha`` and ``launched_utc`` are the LAUNCH provenance captured before any work; written_utc is the write time."""
     from datetime import datetime, timezone
     run_dir = Path(run_dir)
     existing = [n for n in CANDIDATE_OUTPUTS if (run_dir / n).exists()]
     if existing:
         raise FileExistsError(f"refusing to overwrite existing candidate outputs in {run_dir}: {existing}")
-    started = datetime.now(timezone.utc).isoformat()
     ev = {k: v for k, v in evaluation.items() if k != "paired_rows_frame"}
     population.to_csv(run_dir / "population.csv", index=False)
     support.to_csv(run_dir / "support.csv", index=False)
@@ -755,8 +786,8 @@ def write_candidate_run(run_dir: Path, *, population: pd.DataFrame, support: pd.
     (run_dir / "REPORT.md").write_text(render_candidate_report(ev, support, sidecar, unresolved))
     names = [n for n in CANDIDATE_OUTPUTS if n != "manifest.json"]
     outputs = {n: _sha((run_dir / n).read_bytes()) for n in names}
-    manifest = {"schema_version": "dg165_cold_start_candidate_v1", "ticket": "DG-165", "git_sha": git_sha, "run_dir": str(run_dir),
-                "started_utc": started, "finished_utc": datetime.now(timezone.utc).isoformat(), "inputs": inputs,
+    manifest = {"schema_version": "dg165_cold_start_candidate_v1", "ticket": "DG-165", "launch_git_sha": git_sha, "git_sha": git_sha,
+                "launched_utc": launched_utc, "written_utc": datetime.now(timezone.utc).isoformat(), "run_dir": str(run_dir), "inputs": inputs,
                 "selection_rule": SELECTION_RULE, "caveats": CAVEATS, "support_floors": ev.get("support_floors"),
                 "feature_blocks": {"candidate_probability": list(PROB_BLOCK_CANDIDATE) + ["position dummies"], "conditional": list(COND_BLOCK) + ["position dummies"],
                                    "b2_probability": list(PROB_BLOCK_B2) + ["position dummies"]},
