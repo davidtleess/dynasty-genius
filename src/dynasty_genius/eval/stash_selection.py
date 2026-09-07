@@ -14,7 +14,7 @@ class StashSelectionError(ValueError):
     """A definitions, source or chronology condition under which the evaluator refuses."""
 
 
-DEFINITIONS_VERSION = "stash_selection_definitions_v2"
+DEFINITIONS_VERSION = "stash_selection_definitions_v3"
 REQUIRED_DEFINITION_KEYS = ("version", "frozen_before_first_result", "origins", "contribution_bars", "cohort_primary",
                             "cohort_exploratory", "primary_test", "immediate_help_test", "budgets", "uncertainty", "label_ledger",
                             "claims_not_made")
@@ -24,7 +24,7 @@ def load_definitions(path: Path) -> dict:
     raw = Path(path).read_bytes()
     d = json.loads(raw)
     if d.get("version") != DEFINITIONS_VERSION or d.get("frozen_before_first_result") is not True:
-        raise StashSelectionError(f"definitions must be the frozen v2 file ({DEFINITIONS_VERSION}); got {d.get('version')!r}")
+        raise StashSelectionError(f"definitions must be the frozen v3 file ({DEFINITIONS_VERSION}); got {d.get('version')!r}")
     missing = [k for k in REQUIRED_DEFINITION_KEYS if k not in d]
     if missing:
         raise StashSelectionError(f"definitions file lacks {missing}")
@@ -39,13 +39,56 @@ LABEL_ARTIFACT = "artifact_row"
 LABEL_NO_RECORD = "no_record_zero"
 
 
+_TRUE = {"true", "1", "1.0", "yes"}
+_FALSE = {"false", "0", "0.0", "no"}
+
+
+def parse_bool(value) -> bool:
+    """Strict: booleans, 0/1, and the strings true/false (case-insensitive). 'False' is False; anything else refuses."""
+    if isinstance(value, (bool, np.bool_)):
+        return bool(value)
+    if isinstance(value, (int, float, np.integer, np.floating)) and not (isinstance(value, float) and np.isnan(value)):
+        if float(value) in (0.0, 1.0):
+            return bool(float(value))
+        raise StashSelectionError(f"invalid boolean value {value!r}")
+    text = str(value).strip().lower()
+    if text in _TRUE:
+        return True
+    if text in _FALSE:
+        return False
+    raise StashSelectionError(f"invalid boolean value {value!r}")
+
+
+def validated_outcomes(outcomes: pd.DataFrame) -> pd.DataFrame:
+    """The DG-179 outcome rows as the evaluator reads them: unique (player_id, season), finite points, a
+    strict boolean `appeared`. A present row with an invalid value refuses; absence means a missing key."""
+    o = outcomes[["player_id", "season", "points", "games", "appeared"]].copy()
+    if o.duplicated(["player_id", "season"]).any():
+        n = int(o.duplicated(["player_id", "season"]).sum())
+        raise StashSelectionError(f"{n} duplicate outcome rows on (player_id, season); a conflict is never resolved by picking one")
+    pts = pd.to_numeric(o["points"], errors="coerce")
+    if not np.isfinite(pts.to_numpy(dtype=float)).all():
+        raise StashSelectionError("an outcome row carries non-finite points; an invalid value is not a missing key")
+    o["points"] = pts.astype(float)
+    o["season"] = pd.to_numeric(o["season"], errors="coerce")
+    if not np.isfinite(o["season"].to_numpy(dtype=float)).all() or (o["season"] != np.floor(o["season"])).any():
+        raise StashSelectionError("an outcome row carries a non-integral season")
+    o["season"] = o["season"].astype(int)
+    try:
+        o["appeared"] = o["appeared"].map(parse_bool)
+    except StashSelectionError as err:
+        raise StashSelectionError(f"invalid appeared flag in the outcomes: {err}") from err
+    return o
+
+
 def _window_points(frame: pd.DataFrame, outcomes: pd.DataFrame, season_col: str) -> tuple[pd.Series, pd.Series]:
-    """Realized DG-179 window points for (player_id, season_col) with the label source; an
-    identified player-season with no artifact row is zero under the artifact's own convention."""
-    o = outcomes[["player_id", "season", "points", "games", "appeared"]].drop_duplicates(["player_id", "season"])
-    m = frame[["player_id", season_col]].merge(o, left_on=["player_id", season_col], right_on=["player_id", "season"], how="left")
-    present = m["points"].notna()
-    points = pd.to_numeric(m["points"], errors="coerce").fillna(0.0).to_numpy()
+    """Realized DG-179 window points for (player_id, season_col) with the label source; an identified
+    player-season with no artifact row (a missing KEY) is zero under the artifact's own convention."""
+    o = validated_outcomes(outcomes)
+    m = frame[["player_id", season_col]].merge(o, left_on=["player_id", season_col], right_on=["player_id", "season"], how="left",
+                                               indicator=True)
+    present = (m["_merge"] == "both").to_numpy()
+    points = np.where(present, m["points"].to_numpy(dtype=float), 0.0)
     label = np.where(present, LABEL_ARTIFACT, LABEL_NO_RECORD)
     return pd.Series(points, index=frame.index), pd.Series(label, index=frame.index)
 
@@ -66,9 +109,9 @@ def starter_lines(cohort: pd.DataFrame, outcomes: pd.DataFrame, *, slots: dict, 
         deep = np.nan
         if deep_slots is not None and pos in deep_slots:
             dn = int(deep_slots[pos])
-            deep = 0.0 if len(pts) < dn else float(pts[dn - 1])
+            deep = np.nan if len(pts) < dn else float(pts[dn - 1])
         rows.append({"position": pos, "season": int(season), "slots": n, "rows_in_cell": int(len(pts)),
-                     "line_points": 0.0 if short else float(pts[n - 1]), "short_cell": bool(short), "deep_line_points": deep})
+                     "line_points": np.nan if short else float(pts[n - 1]), "short_cell": bool(short), "deep_line_points": deep})
     return pd.DataFrame(rows, columns=["position", "season", "slots", "rows_in_cell", "line_points", "short_cell", "deep_line_points"])
 
 
@@ -92,10 +135,7 @@ def candidates(cohort: pd.DataFrame, outcomes: pd.DataFrame, draft: pd.DataFrame
                                                                                           "short_cell": "origin_short_cell"}),
                 on=["position", "origin"], how="left")
     c["observed_history_seasons"] = pd.to_numeric(c["seasons_played"], errors="coerce")
-    d = draft.dropna(subset=["gsis_id"]).copy() if len(draft) else pd.DataFrame(columns=["gsis_id", "season", "round", "pick"])
-    d = d.sort_values(["gsis_id", "season"]).drop_duplicates("gsis_id", keep="first")
-    d = d.rename(columns={"gsis_id": "player_id", "season": "draft_season", "round": "draft_round", "pick": "draft_pick"})
-    c = c.merge(d[["player_id", "draft_season", "draft_round", "draft_pick"]], on="player_id", how="left")
+    c = c.merge(validated_draft(draft), on="player_id", how="left")
     visible = c["draft_season"].notna() & (c["draft_season"] <= c["origin"])
     c["draft_visible"] = visible
     for col in ("draft_season", "draft_round", "draft_pick"):
@@ -130,10 +170,10 @@ def attach_outcomes(cands: pd.DataFrame, outcomes: pd.DataFrame, lines: pd.DataF
             continue
         pts, label = _window_points(r, outcomes, "target_season")
         r["realized_points"], r["label_source"] = pts, label
-        o = outcomes[["player_id", "season", "games", "appeared"]].drop_duplicates(["player_id", "season"])
+        o = validated_outcomes(outcomes)[["player_id", "season", "games", "appeared"]]
         m = r.merge(o, left_on=["player_id", "target_season"], right_on=["player_id", "season"], how="left")
         r["realized_games"] = pd.to_numeric(m["games"], errors="coerce").fillna(0).astype(int).to_numpy()
-        r["appeared"] = m["appeared"].map(lambda v: bool(v) if not pd.isna(v) else False).to_numpy()
+        r["appeared"] = m["appeared"].map(lambda v: False if pd.isna(v) else parse_bool(v)).to_numpy()
         frames.append(r)
     out = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=["player_id", "origin", "position", "horizon", "target_season"])
     if len(out):
@@ -168,10 +208,12 @@ ORDERING_COLUMNS = ("rank_current", "rank_current_total", "rank_current_ppg", "r
 CELL = ["origin", "position", "horizon"]
 
 
-def attach_forecasts(rows: pd.DataFrame, history: pd.DataFrame) -> pd.DataFrame:
+def attach_forecasts(rows: pd.DataFrame, history: pd.DataFrame, *, on_missing: str = "refuse") -> pd.DataFrame:
     """Join the frozen producer's out-of-fold forecasts for (player, origin, horizon). A candidate-horizon
-    row without a history row is a chronology or source error and refuses; it is never a zero."""
+    row without a history row is never a zero: it refuses (default) or, for the sparse exploratory
+    horizons, is excluded and counted in `.attrs["excluded_missing_forecast"]`."""
     parts = []
+    excluded = 0
     for j, g in rows.groupby("horizon"):
         j = int(j)
         cols = {f"policy_e_points_year{j}": "future_points", f"policy_p_appear_year{j}": "future_appear",
@@ -179,12 +221,17 @@ def attach_forecasts(rows: pd.DataFrame, history: pd.DataFrame) -> pd.DataFrame:
         h = history[history["horizon"] == j][["player_id", "feature_season", *cols]].rename(columns=cols)
         h = h.rename(columns={"feature_season": "origin"}).drop_duplicates(["player_id", "origin"])
         m = g.merge(h, on=["player_id", "origin"], how="left", indicator=True)
-        missing = m[m["_merge"] != "both"]
-        if len(missing):
-            raise StashSelectionError(f"{len(missing)} candidate rows have no frozen history row at horizon {j} "
-                                      f"(e.g. {missing[['player_id', 'origin']].head(3).to_dict('records')})")
+        missing = m["_merge"] != "both"
+        if missing.any():
+            if on_missing != "exclude":
+                raise StashSelectionError(f"{int(missing.sum())} candidate rows have no frozen history row at horizon {j} "
+                                          f"(e.g. {m.loc[missing, ['player_id', 'origin']].head(3).to_dict('records')})")
+            excluded += int(missing.sum())
+            m = m[~missing]
         parts.append(m.drop(columns=["_merge"]))
-    return pd.concat(parts, ignore_index=True) if parts else rows.copy()
+    out = pd.concat(parts, ignore_index=True) if parts else rows.copy()
+    out.attrs["excluded_missing_forecast"] = excluded
+    return out
 
 
 def _rank_desc(frame: pd.DataFrame, col: str) -> pd.Series:
@@ -206,7 +253,8 @@ def orderings(rows: pd.DataFrame) -> pd.DataFrame:
     r["rank_future"] = _rank_desc(r, "future_points")
     r["rank_future_appear"] = _rank_desc(r, "future_appear")
     r["rank_future_candidate"] = _rank_desc(r, "future_candidate")
-    r["rank_null"] = _rank_desc(r, "null_reference")
+    r["rank_null"] = _rank_desc(r, "null_reference")            # legacy name; identical to rank_persistence
+    r["rank_persistence"] = r["rank_null"]
     return r
 
 
@@ -254,6 +302,27 @@ def auc_by_cell(rows: pd.DataFrame, rank_col: str, flag_col: str = "contributor"
     return pd.DataFrame(out, columns=[*CELL, "ordering", "n", "n_positive", "value"])
 
 
+def selection_weights(sorted_ranks: np.ndarray, budget: int) -> tuple[np.ndarray, int, bool]:
+    """Fractional selection weights for ranks sorted ascending: 1 for rows strictly better than the cutoff,
+    slots-left ÷ tied-rows for a tie straddling the boundary (disclosed), 0 beyond. One definition, shared by
+    the selection and its bounds."""
+    r = np.asarray(sorted_ranks, dtype=float)
+    n = len(r)
+    k = min(int(budget), n)
+    weight = np.zeros(n)
+    if not k:
+        return weight, 0, False
+    cutoff = r[k - 1]
+    better, tied = r < cutoff, r == cutoff
+    slots_left = k - int(better.sum())
+    weight[better] = 1.0
+    if tied.sum() > slots_left:
+        weight[tied] = slots_left / tied.sum()
+        return weight, int(tied.sum()), True
+    weight[tied] = 1.0
+    return weight, 0, False
+
+
 def select_at_budget(rows: pd.DataFrame, rank_col: str, budget: int, flag_col: str = "contributor",
                      points_col: str = "realized_points") -> pd.DataFrame:
     """Pick the `budget` best-ranked candidates in each cell. A tie straddling the boundary is
@@ -261,27 +330,12 @@ def select_at_budget(rows: pd.DataFrame, rank_col: str, budget: int, flag_col: s
     out = []
     for key, g in rows.groupby(CELL):
         g = g.sort_values(rank_col)
-        r = g[rank_col].to_numpy(dtype=float)
         flag = g[flag_col].astype(bool).to_numpy().astype(float)
         pts = g[points_col].to_numpy(dtype=float)
         bust = (~g["appeared"].astype(bool)).to_numpy().astype(float)
         n = len(g)
         k = min(int(budget), n)
-        weight = np.zeros(n)
-        if k:
-            cutoff = r[k - 1]
-            better = r < cutoff
-            tied = r == cutoff
-            slots_left = k - int(better.sum())
-            weight[better] = 1.0
-            if tied.sum() > slots_left:
-                weight[tied] = slots_left / tied.sum()
-                boundary, fractional = int(tied.sum()), True
-            else:
-                weight[tied] = 1.0
-                boundary, fractional = 0, False
-        else:
-            boundary, fractional = 0, False
+        weight, boundary, fractional = selection_weights(g[rank_col].to_numpy(dtype=float), budget)
         hits = float((weight * flag).sum())
         out.append({**dict(zip(CELL, key)), "ordering": rank_col, "budget": int(budget), "n": int(n), "picks": int(k),
                     "hits": hits, "points_captured": float((weight * pts).sum()), "misses": float(flag.sum() - hits),
@@ -324,6 +378,7 @@ EXCL_NO_DRAFT = "no_verified_draft_class"
 EXCL_DRAFT_YEAR = "draft_year_outside_1_3"
 EXCL_PRIOR = "prior_contribution"
 EXCL_IDENTITY = "unresolved_identity"
+EXCL_BAR = "bar_unavailable"
 
 
 def contribution_bars(cohort: pd.DataFrame, outcomes: pd.DataFrame, *, bars: dict) -> pd.DataFrame:
@@ -337,7 +392,7 @@ def contribution_bars(cohort: pd.DataFrame, outcomes: pd.DataFrame, *, bars: dic
         pts = np.sort(g["points"].to_numpy())[::-1]
         short = len(pts) < n
         rows.append({"position": pos, "season": int(season), "bar_count": n, "rows_in_panel": int(len(pts)),
-                     "bar_points": 0.0 if short else float(pts[n - 1]), "short_panel": bool(short)})
+                     "bar_points": np.nan if short else float(pts[n - 1]), "short_panel": bool(short)})   # short = unavailable, not zero
     return pd.DataFrame(rows, columns=["position", "season", "bar_count", "rows_in_panel", "bar_points", "short_panel"])
 
 
@@ -345,8 +400,19 @@ def contributor_flags(outcome_rows: pd.DataFrame, bars: pd.DataFrame, *, positio
     """appeared AND points >= bar of that season; a zero bar never creates a contributor from an absent record."""
     b = bars[bars["position"] == position].set_index("season")["bar_points"]
     bar = outcome_rows["season"].map(b)
-    appeared = outcome_rows["appeared"].map(lambda v: bool(v) if not pd.isna(v) else False)
+    appeared = outcome_rows["appeared"].map(lambda v: False if pd.isna(v) else parse_bool(v))
     return (appeared & (pd.to_numeric(outcome_rows["points"], errors="coerce") >= bar) & bar.notna()).astype(bool)
+
+
+def validated_draft(draft: pd.DataFrame) -> pd.DataFrame:
+    """One verified draft row per gsis id; two rows for one id with different facts refuse (never silently pick one)."""
+    if not len(draft):
+        return pd.DataFrame(columns=["player_id", "draft_season", "draft_round", "draft_pick"])
+    d = draft.dropna(subset=["gsis_id"])[["gsis_id", "season", "round", "pick"]].drop_duplicates()
+    if d.duplicated("gsis_id").any():
+        ids = sorted(d.loc[d.duplicated("gsis_id"), "gsis_id"].unique())[:3]
+        raise StashSelectionError(f"conflicting draft rows for the same gsis id (e.g. {ids}); a conflict is never resolved by picking one")
+    return d.rename(columns={"gsis_id": "player_id", "season": "draft_season", "round": "draft_round", "pick": "draft_pick"})
 
 
 def primary_cohort_ledger(cohort: pd.DataFrame, outcomes: pd.DataFrame, draft: pd.DataFrame, *, definitions: dict, bars: dict,
@@ -360,10 +426,7 @@ def primary_cohort_ledger(cohort: pd.DataFrame, outcomes: pd.DataFrame, draft: p
     c = cohort[(pd.to_numeric(cohort["feature_season"], errors="coerce") == int(origin)) & cohort["position"].isin(bars)].copy()
     c["origin"] = int(origin)
     c["origin_points"], c["origin_label_source"] = _window_points(c, outcomes, "feature_season")
-    d = draft.dropna(subset=["gsis_id"]).copy() if len(draft) else pd.DataFrame(columns=["gsis_id", "season", "round", "pick"])
-    d = d.sort_values(["gsis_id", "season"]).drop_duplicates("gsis_id", keep="first")
-    d = d.rename(columns={"gsis_id": "player_id", "season": "draft_season", "round": "draft_round", "pick": "draft_pick"})
-    c = c.merge(d[["player_id", "draft_season", "draft_round", "draft_pick"]], on="player_id", how="left")
+    c = c.merge(validated_draft(draft), on="player_id", how="left")
     visible = c["draft_season"].notna() & (c["draft_season"] <= c["origin"])
     c["draft_visible"] = visible
     for col in ("draft_season", "draft_round", "draft_pick"):
@@ -371,7 +434,7 @@ def primary_cohort_ledger(cohort: pd.DataFrame, outcomes: pd.DataFrame, draft: p
     c["nfl_years_since_draft"] = (c["origin"] - c["draft_season"] + 1).where(visible)
     c["observed_history_seasons"] = pd.to_numeric(c["seasons_played"], errors="coerce") if "seasons_played" in c else np.nan
     panel_bars = contribution_bars(cohort, outcomes, bars=bars)
-    o = outcomes[["player_id", "season", "points", "games", "appeared"]].drop_duplicates(["player_id", "season"])
+    o = validated_outcomes(outcomes)
     verdicts: list[tuple[str, int, int]] = []          # (exclusion_reason, prior_seasons_checked, prior_no_record_seasons)
     for _, r in c.iterrows():
         if "identity_status" in c and not pd.isna(r.get("identity_status")) and r["identity_status"] != "resolved":
@@ -382,6 +445,10 @@ def primary_cohort_ledger(cohort: pd.DataFrame, outcomes: pd.DataFrame, draft: p
             verdicts.append((EXCL_DRAFT_YEAR, 0, 0))
         else:
             seasons = list(range(int(r["draft_season"]), int(origin) + 1))
+            available = panel_bars[(panel_bars["position"] == r["position"]) & panel_bars["bar_points"].notna()]["season"]
+            if any(sn not in set(available.astype(int)) for sn in seasons):
+                verdicts.append((EXCL_BAR, len(seasons), 0))            # a prior season without an available bar cannot be verified
+                continue
             hist = pd.DataFrame({"player_id": r["player_id"], "season": seasons}).merge(o, on=["player_id", "season"], how="left")
             absent = hist["points"].isna()
             hist["points"] = hist["points"].fillna(0.0)                 # resolved absent row = explicit convention zero
@@ -409,45 +476,66 @@ V2_CELL = ["origin", "position"]
 
 
 def _history_pivot(history: pd.DataFrame, horizon: int) -> pd.DataFrame:
+    """Frozen forecasts at one horizon keyed by (player_id, position, feature_season). Ambiguous duplicate
+    identities refuse; forecast_season must equal feature_season + horizon with finite integral years."""
     j = int(horizon)
-    h = history[history["horizon"] == j].copy()
+    h = history[pd.to_numeric(history["horizon"], errors="coerce") == j].copy()
+    for col in ("feature_season", "forecast_season"):
+        vals = pd.to_numeric(h[col], errors="coerce")
+        if not np.isfinite(vals.to_numpy(dtype=float)).all() or (vals != np.floor(vals)).any():
+            raise StashSelectionError(f"history {col} must be finite integral years at horizon {j}")
+        h[col] = vals.astype(int)
     bad = h[h["forecast_season"] != h["feature_season"] + j]
     if len(bad):
         raise StashSelectionError(f"{len(bad)} history rows at horizon {j} have forecast_season != feature_season + horizon")
+    keys = ["player_id", "position", "feature_season"]
+    if h.duplicated(keys).any():
+        n = int(h.duplicated(keys).sum())
+        raise StashSelectionError(f"{n} duplicate forecast identities at horizon {j} on (player_id, position, feature_season)")
     cols = {f"policy_e_points_year{j}": f"policy_{j}", f"baseline_e_points_year{j}": f"persistence_{j}"}
-    return (h[["player_id", "feature_season", *cols]].rename(columns=cols).rename(columns={"feature_season": "origin"})
-            .drop_duplicates(["player_id", "origin"]))
+    return h[[*keys, *cols]].rename(columns=cols).rename(columns={"feature_season": "origin"})
 
 
 def summed_future_rows(cands: pd.DataFrame, history: pd.DataFrame, outcomes: pd.DataFrame, bars: pd.DataFrame, *,
-                       last_complete_season: int = 2025) -> pd.DataFrame:
-    """Per candidate: the frozen policy expected points for t+2 plus t+3 (both required finite; a missing one is a
-    counted exclusion, never zero), the year-1 expected points (help now), the persistence comparator, and the
-    realized t+2 + t+3 DG-179 points with per-season label sources; contributor_any = contributor in t+2 or t+3."""
-    exclusions = {"missing_forecast": 0, "open_season": 0}
+                       last_complete_season: int = 2025, horizons=(2, 3)) -> pd.DataFrame:
+    """Per candidate: the frozen policy expected points summed over `horizons` (each required finite; a missing
+    one is a counted exclusion, never zero), the year-1 expected points (help now), the persistence
+    comparator summed over the same horizons, and the realized DG-179 points over the same seasons with
+    per-season label sources; contributor_any = contributor (appeared AND >= bar) in any of those seasons.
+    A target season without a full-panel bar is a counted exclusion (missing_bar)."""
+    horizons = tuple(int(j) for j in horizons)
+    exclusions = {"missing_forecast": 0, "open_season": 0, "missing_bar": 0}
     c = cands.copy()
-    open_rows = (c["origin"] + 3) > last_complete_season
+    open_rows = (c["origin"] + max(horizons)) > last_complete_season
     exclusions["open_season"] = int(open_rows.sum())
     c = c[~open_rows]
-    for j in (1, 2, 3):
-        c = c.merge(_history_pivot(history, j), on=["player_id", "origin"], how="left")
-    need = ["policy_1", "policy_2", "policy_3", "persistence_2", "persistence_3"]
+    for j in dict.fromkeys((1, *horizons)):                   # year 1 (help now) plus the window, each joined once
+        c = c.merge(_history_pivot(history, j), on=["player_id", "position", "origin"], how="left")
+    need = list(dict.fromkeys(["policy_1", *[f"policy_{j}" for j in horizons], *[f"persistence_{j}" for j in horizons]]))
     finite = np.isfinite(c[need].to_numpy(dtype=float)).all(axis=1) if len(c) else np.array([], dtype=bool)
     exclusions["missing_forecast"] = int((~finite).sum())
     c = c[finite].copy()
-    c["future_sum"] = c["policy_2"] + c["policy_3"]
+    c["future_sum"] = c[[f"policy_{j}" for j in horizons]].sum(axis=1)
     c["future_year1"] = c["policy_1"]
-    c["persistence_sum"] = c["persistence_2"] + c["persistence_3"]
-    labels, realized, contrib, appeared_any, no_record_any = [], [], [], [], []
+    c["persistence_sum"] = c[[f"persistence_{j}" for j in horizons]].sum(axis=1)
+    bar_lookup = {(r.position, int(r.season)): float(r.bar_points) for r in bars.itertuples() if not pd.isna(r.bar_points)}
+    o = validated_outcomes(outcomes)
+    keep, labels, realized, contrib, appeared_any, no_record_any = [], [], [], [], [], []
     for _, r in c.iterrows():
-        seasons = [int(r["origin"]) + 2, int(r["origin"]) + 3]
+        seasons = [int(r["origin"]) + j for j in horizons]
+        if any((r["position"], s) not in bar_lookup for s in seasons):
+            exclusions["missing_bar"] += 1
+            keep.append(False)
+            for lst, val in ((labels, ""), (realized, np.nan), (contrib, False), (appeared_any, False), (no_record_any, False)):
+                lst.append(val)
+            continue
         t = pd.DataFrame({"player_id": r["player_id"], "target_season": seasons})
-        pts, lab = _window_points(t, outcomes, "target_season")
-        o = outcomes[["player_id", "season", "appeared"]].drop_duplicates(["player_id", "season"])
-        m = t.merge(o, left_on=["player_id", "target_season"], right_on=["player_id", "season"], how="left")
-        app = m["appeared"].map(lambda v: bool(v) if not pd.isna(v) else False)
+        pts, lab = _window_points(t, o, "target_season")
+        m = t.merge(o[["player_id", "season", "appeared"]], left_on=["player_id", "target_season"], right_on=["player_id", "season"], how="left")
+        app = m["appeared"].map(lambda v: False if pd.isna(v) else bool(v))
         flags = contributor_flags(pd.DataFrame({"season": seasons, "points": pts.to_numpy(), "appeared": app.to_numpy()}), bars,
                                   position=r["position"])
+        keep.append(True)
         labels.append("+".join(lab.tolist()))
         realized.append(float(pts.sum()))
         contrib.append(bool(flags.any()))
@@ -456,10 +544,13 @@ def summed_future_rows(cands: pd.DataFrame, history: pd.DataFrame, outcomes: pd.
     c["label_sources"] = labels
     c["realized_sum"] = realized
     c["contributor_any"] = contrib
-    c["appeared"] = appeared_any                      # any appearance in t+2 or t+3 (bust = neither)
+    c["appeared"] = appeared_any                      # any appearance in the window seasons (bust = none)
     c["any_no_record"] = no_record_any
-    c["horizon"] = 23                                 # a fixed pseudo-horizon so the cell helpers work unchanged
+    c = c[np.array(keep, dtype=bool)] if len(c) else c
+    c["horizon"] = int("".join(str(j) for j in horizons))   # pseudo-horizon (23, 2345) so the cell helpers work unchanged
     c["realized_points"] = c["realized_sum"]
+    if len(c) and not np.isfinite(c[["future_sum", "persistence_sum", "realized_sum"]].to_numpy(dtype=float)).all():
+        raise StashSelectionError("a summed quantity is not finite")
     c.attrs["exclusions"] = exclusions
     return c.reset_index(drop=True)
 
@@ -478,22 +569,23 @@ def v2_orderings(rows: pd.DataFrame) -> pd.DataFrame:
 
 
 def selection_bounds_no_record_unknown(rows: pd.DataFrame, rank_col: str, budget: int, flag_col: str = "contributor_any") -> dict:
-    """Sensitivity: treat no-record picks as UNKNOWN. Lower bound counts them as non-hits; the upper bound
-    drops them from the picks (hit rate among known picks); both are reported with the count."""
-    picked_hits_lower = picked_hits_upper = picks_known = no_record_picks = 0.0
-    for _, g in rows.groupby(V2_CELL + ["horizon"]):
+    """Sensitivity with the EXACT selection weights: treat a window that contains a no-record season as
+    unknown unless a known positive already exists. lower = Σ weight × known contributor; upper = lower +
+    Σ weight × (unknown window AND no known positive). A known positive is a hit for both bounds."""
+    lower = unknown_weight = 0.0
+    boundary_total = 0
+    for _, g in rows.groupby(CELL):
         g = g.sort_values(rank_col)
-        k = min(int(budget), len(g))
-        top = g.iloc[:k]
-        unknown = top["any_no_record"].astype(bool)
-        known = top[~unknown]
-        picked_hits_lower += float(known[flag_col].astype(bool).sum())
-        picked_hits_upper += float(known[flag_col].astype(bool).sum())
-        picks_known += float(len(known))
-        no_record_picks += float(unknown.sum())
-    return {"hits_lower": picked_hits_lower, "hits_upper": picked_hits_upper, "picks_known": picks_known,
-            "no_record_picks": no_record_picks,
-            "meaning": "lower: no-record picks count as non-hits over all picks; upper: hits over known picks only"}
+        weight, boundary, _ = selection_weights(g[rank_col].to_numpy(dtype=float), budget)
+        known_pos = g[flag_col].astype(bool).to_numpy()
+        unknown = g["any_no_record"].astype(bool).to_numpy() & ~known_pos
+        lower += float((weight * known_pos).sum())
+        unknown_weight += float((weight * unknown).sum())
+        boundary_total += int(boundary)
+    return {"hits_lower": lower, "hits_upper": lower + unknown_weight, "unknown_weight": unknown_weight,
+            "boundary_ties": boundary_total,
+            "meaning": "lower counts only known contributors; upper adds every selected weight whose window has a no-record season "
+                       "and no known positive; the same fractional weights as the selection"}
 
 
 # ── paired player-cluster bootstrap and per-season disclosure ────────────────────────────────
@@ -554,3 +646,31 @@ def season_table(rows: pd.DataFrame, ordering_cols, *, budget: int = 2, flag_col
                                                                           "boundary_ties"]]
         frames.append(sp.merge(auc, on=CELL).merge(sel, on=CELL))
     return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=CELL)
+
+
+# ── glue for the exploratory per-year horizons, and the manifest ─────────────────────────────
+
+def bars_as_lines(primary: pd.DataFrame, strict: pd.DataFrame) -> pd.DataFrame:
+    """The per-year machinery reads `line_points` (primary bar) and `deep_line_points` (strict bar)."""
+    p = primary.rename(columns={"bar_points": "line_points", "bar_count": "slots", "rows_in_panel": "rows_in_cell", "short_panel": "short_cell"})
+    s = strict.rename(columns={"bar_points": "deep_line_points"})[["position", "season", "deep_line_points"]]
+    return p.merge(s, on=["position", "season"], how="left")
+
+
+SCHEMA_VERSION = "dg177_stash_selection_v1"
+CLAIM = ("historical low-production candidate screen on frozen out-of-fold forecasts and DG-179 outcomes; not a waiver backtest "
+         "(no point-in-time ownership source); no breakout probability; budgets are declared scenarios")
+
+
+def build_manifest(*, definitions: dict, sources: dict, launch: dict, counts: dict, outputs: dict, bars_override_used: bool = False,
+                   origins_override: list | None = None) -> dict:
+    return {
+        "schema_version": SCHEMA_VERSION, "producer": "DG-177 stash-selection evaluation (report-only)",
+        "definitions": {"version": definitions["version"], **definitions["_file"]},
+        "sources": sources, "launch": launch, "counts": counts, "outputs": outputs, "claim": CLAIM,
+        "uncertainty_conditional_on": CONDITIONAL_ON, "not_an_untouched_confirmation": True,
+        "not_an_untouched_confirmation_meaning": "the selection policy was chosen historically on these folds; this is a retrospective "
+                                                 "frozen-policy evaluation, not an untouched confirmation",
+        "bars_override_used": bool(bars_override_used), "origins_override": origins_override,
+        "year5_disclosure": "the frozen year-5 horizon exists for origin 2020 only (one-origin evidence)",
+    }

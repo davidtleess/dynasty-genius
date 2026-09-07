@@ -9,21 +9,21 @@ import pytest
 
 from src.dynasty_genius.eval import stash_selection as ss
 
-DEFS = json.loads(Path("docs/experiments/stash_selection_definitions_v2.json").read_text())
+DEFS = json.loads(Path("docs/experiments/stash_selection_definitions_v3.json").read_text())
 
 
 # ── Task 1: frozen definitions ────────────────────────────────────────────────────────────────
 
 def test_definitions_file_is_frozen_complete_and_hashed():
-    d = ss.load_definitions(Path("docs/experiments/stash_selection_definitions_v2.json"))
+    d = ss.load_definitions(Path("docs/experiments/stash_selection_definitions_v3.json"))
     assert d["version"] == ss.DEFINITIONS_VERSION and d["frozen_before_first_result"] is True
     assert set(ss.REQUIRED_DEFINITION_KEYS) <= set(d)
     assert len(d["_file"]["sha256"]) == 64 and d["_file"]["bytes"] > 0
     assert d["contribution_bars"]["primary"] == {"QB": 37, "RB": 45, "WR": 71, "TE": 21}
     assert d["contribution_bars"]["strict_sensitivity"] == {"QB": 24, "RB": 36, "WR": 48, "TE": 12}
     assert d["budgets"]["primary_per_position_per_origin"] == 2 and d["budgets"]["sensitivity"] == [1, 3]
-    with pytest.raises(ss.StashSelectionError, match="v2"):
-        ss.load_definitions(Path("docs/experiments/stash_selection_definitions_v1.json"))
+    with pytest.raises(ss.StashSelectionError, match="v3"):
+        ss.load_definitions(Path("docs/experiments/stash_selection_definitions_v2.json"))
 
 
 def test_definitions_loader_refuses_a_file_missing_a_required_section(tmp_path):
@@ -70,7 +70,7 @@ def test_starter_line_is_the_nth_highest_window_points_with_absent_rows_as_zero(
 def test_cell_with_fewer_rows_than_slots_has_line_zero_and_is_disclosed():
     cohort = pd.DataFrame([cohort_row("P1", 2015)])
     lines = ss.starter_lines(cohort, pd.DataFrame([outcome_row("P1", 2015, 10.0)]), slots=SMALL_SLOTS)
-    assert lines.iloc[0].line_points == 0.0 and lines.iloc[0].rows_in_cell == 1 and bool(lines.iloc[0].short_cell) is True
+    assert pd.isna(lines.iloc[0].line_points) and lines.iloc[0].rows_in_cell == 1 and bool(lines.iloc[0].short_cell) is True
 
 
 def test_candidates_are_below_the_origin_line_and_within_the_observed_history_stratum():
@@ -357,7 +357,7 @@ def test_summed_future_rows_use_both_frozen_horizons_and_the_fixed_cohort_with_l
     assert r.loc["C1", "realized_sum"] == 320.0 and bool(r.loc["C1", "contributor_any"]) is True
     assert r.loc["C2", "realized_sum"] == 0.0 and bool(r.loc["C2", "contributor_any"]) is False and r.loc["C2", "label_sources"] == "artifact_row+artifact_row"
     assert r.loc["C4", "realized_sum"] == 0.0 and r.loc["C4", "label_sources"] == "no_record_zero+no_record_zero" and bool(r.loc["C4", "any_no_record"]) is True
-    assert rows.attrs["exclusions"] == {"missing_forecast": 0, "open_season": 0}
+    assert rows.attrs["exclusions"] == {"missing_forecast": 0, "open_season": 0, "missing_bar": 0}
 
 
 def test_summed_future_rows_count_missing_forecasts_and_open_seasons_as_exclusions_never_zero():
@@ -393,9 +393,9 @@ def test_v2_orderings_rank_the_summed_future_and_its_comparators_and_selection_r
     sel = ss.select_at_budget(rows, "rank_future_sum", budget=2, flag_col="contributor_any", points_col="realized_sum").iloc[0]
     assert sel.hits == 1 and sel.points_captured == 320.0 and sel.misses == 1 and sel.busts == 1     # C2 appeared in neither season
     b = ss.selection_bounds_no_record_unknown(rows, "rank_future_sum", budget=2, flag_col="contributor_any")
-    assert b["hits_lower"] == 1 and b["hits_upper"] == 1 and b["no_record_picks"] == 0
+    assert b["hits_lower"] == 1 and b["hits_upper"] == 1 and b["unknown_weight"] == 0
     b3 = ss.selection_bounds_no_record_unknown(rows, "rank_future_sum", budget=4, flag_col="contributor_any")
-    assert b3["no_record_picks"] == 1 and b3["hits_lower"] == 2 and b3["hits_upper"] == 2 and b3["picks_known"] == 3
+    assert b3["hits_lower"] == 2 and b3["hits_upper"] == 3 and b3["unknown_weight"] == 1     # C4's no-record window is unknown
 
 
 def test_a_zero_bar_never_makes_a_contributor_out_of_an_absent_record():
@@ -441,3 +441,193 @@ def test_hits_metric_at_budget_and_season_table_disclose_every_origin():
     tab = ss.season_table(rows, ["rank_future_sum", "rank_origin_points"], budget=2, flag_col="contributor_any")
     assert sorted(tab.origin.unique()) == [2014, 2015] and set(tab.ordering) == {"rank_future_sum", "rank_origin_points"}
     assert {"spearman", "auc", "hits", "points_captured", "misses", "busts", "n"} <= set(tab.columns)
+
+
+# ── Task 7: manifest and CLI, immutable run ─────────────────────────────────────────────────
+
+def _real_shaped_inputs(tmp_path):
+    cohort, outcomes, draft, hist = _v2_setup()
+    cohort = cohort.assign(identity_status="resolved", statline_position="WR", games_t_minus_1=0, ppg_t_minus_1=0.0)
+    cohort_p, out_p, draft_p, hist_p = tmp_path / "basic_cohort.csv.gz", tmp_path / "outcomes.csv", tmp_path / "draft.parquet", tmp_path / "hist.csv"
+    cohort.to_csv(cohort_p, index=False, compression="gzip")
+    outcomes.to_csv(out_p, index=False)
+    draft.to_parquet(draft_p)
+    hist.to_csv(hist_p, index=False)
+    return cohort_p, out_p, draft_p, hist_p
+
+
+def test_manifest_names_definitions_sources_claim_and_conditionality():
+    m = ss.build_manifest(definitions={"version": ss.DEFINITIONS_VERSION, "_file": {"sha256": "d" * 64, "bytes": 3, "path": "x"}},
+                          sources={"history": {"sha256": "a" * 64}}, launch={"git_head": "h"}, counts={"primary_candidates": 4},
+                          outputs={"metrics.json": "b" * 64})
+    assert m["schema_version"] == "dg177_stash_selection_v1" and m["definitions"]["sha256"] == "d" * 64
+    assert "historical low-production candidate screen" in m["claim"] and "not a waiver backtest" in m["claim"]
+    assert m["uncertainty_conditional_on"] == "realized origins and the fixed frozen fits"
+    assert m["not_an_untouched_confirmation"] is True
+
+
+def test_cli_writes_an_immutable_run_with_hashed_inputs_and_definitions_and_refuses_overwrite(tmp_path):
+    import subprocess
+    import sys
+    cohort_p, out_p, draft_p, hist_p = _real_shaped_inputs(tmp_path)
+    out_root = tmp_path / "runs"
+    cmd = [sys.executable, "scripts/dg177/run_stash_selection.py", "--history", str(hist_p), "--cohort", str(cohort_p),
+           "--outcomes", str(out_p), "--draft", str(draft_p), "--definitions", "docs/experiments/stash_selection_definitions_v3.json",
+           "--last-complete-season", "2018", "--bars-override", json.dumps(TINY_BARS), "--origins", "2015", "2015",
+           "--draws", "20", "--out-root", str(out_root), "--run-id", "20260101T000003Z"]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    assert res.returncode == 0, res.stderr
+    run = out_root / "20260101T000003Z" / "dg177_stash_selection"
+    m = json.loads((run / "manifest.json").read_text())
+    assert set(m["outputs"]) >= {"primary_candidates.csv", "cohort_ledger.csv", "summed_future_rows.csv", "metrics.json",
+                                 "season_table.csv", "selection.csv", "report.md"}
+    assert m["definitions"]["sha256"] == ss.load_definitions(Path("docs/experiments/stash_selection_definitions_v3.json"))["_file"]["sha256"]
+    assert m["sources"]["history"]["sha256"] and m["sources"]["cohort"]["sha256"] and m["launch"]["git_head"]
+    assert m["counts"]["primary_candidates"] == 4 and m["counts"]["exclusions"]["missing_forecast"] == 0
+    assert m["bars_override_used"] is True                                   # a fixture bar is disclosed, never silent
+    metrics = json.loads((run / "metrics.json").read_text())
+    assert "rank_future_sum" in metrics["primary"]["pooled"] and metrics["primary"]["bootstrap"]["rank_future_sum_minus_rank_origin_points"]["draws"] == 20
+    second = subprocess.run(cmd, capture_output=True, text=True)
+    assert second.returncode == 1 and "exists" in second.stderr
+
+
+def test_cli_refuses_without_the_frozen_definitions_file(tmp_path):
+    import subprocess
+    import sys
+    cohort_p, out_p, draft_p, hist_p = _real_shaped_inputs(tmp_path)
+    cmd = [sys.executable, "scripts/dg177/run_stash_selection.py", "--history", str(hist_p), "--cohort", str(cohort_p),
+           "--outcomes", str(out_p), "--draft", str(draft_p), "--definitions", str(tmp_path / "missing.json"),
+           "--out-root", str(tmp_path / "runs"), "--run-id", "20260101T000004Z"]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    assert res.returncode == 1 and "definitions" in res.stderr
+
+
+def test_attach_forecasts_can_count_missing_history_rows_as_exclusions_for_the_sparse_exploratory_horizons():
+    hist = pd.DataFrame([hist_row("P1", 2020, 1, policy_points=80.0), hist_row("P2", 2020, 1, policy_points=30.0),
+                         hist_row("P4", 2020, 1, policy_points=50.0)])
+    rows = ss.attach_forecasts(_rows(), hist, on_missing="exclude")
+    assert sorted(rows.player_id) == ["P1", "P2", "P4"] and rows.attrs["excluded_missing_forecast"] == 1
+
+
+def test_bars_as_lines_maps_primary_and_strict_bars_onto_the_line_columns():
+    cohort, outcomes, _, _ = _v2_setup()
+    primary = ss.contribution_bars(cohort, outcomes, bars=TINY_BARS)
+    strict = ss.contribution_bars(cohort, outcomes, bars={"WR": 1, "RB": 1, "QB": 1, "TE": 1})
+    lines = ss.bars_as_lines(primary, strict).set_index(["position", "season"])
+    assert lines.loc[("WR", 2015), "line_points"] == 150.0 and lines.loc[("WR", 2015), "deep_line_points"] == 200.0
+
+
+# ── root's implementation safeguards (RED first) ─────────────────────────────────────────────
+
+def test_forecast_pivot_keeps_position_and_refuses_ambiguous_duplicate_identities_and_bad_years():
+    cohort, outcomes, draft, hist = _v2_setup()
+    cands = ss.primary_candidates(cohort, outcomes, draft, definitions=DEFS, bars=TINY_BARS, origin=2015)
+    bars = ss.contribution_bars(cohort, outcomes, bars=TINY_BARS)
+    dup = pd.concat([hist, hist[(hist.player_id == "C1") & (hist.horizon == 2)].assign(policy_e_points_year2=999.0)], ignore_index=True)
+    with pytest.raises(ss.StashSelectionError, match="duplicate"):
+        ss.summed_future_rows(cands, dup, outcomes, bars, last_complete_season=2018)
+    other_pos = hist.copy()
+    other_pos.loc[(other_pos.player_id == "C1") & (other_pos.horizon == 2), "position"] = "RB"      # same player, other position row
+    rows = ss.summed_future_rows(cands, other_pos, outcomes, bars, last_complete_season=2018)
+    assert "C1" not in set(rows.player_id) and rows.attrs["exclusions"]["missing_forecast"] == 1  # WR candidate has no WR year-2 row
+    frac = hist.copy()
+    frac["feature_season"] = frac["feature_season"].astype(float)
+    frac.loc[(frac.player_id == "C1") & (frac.horizon == 3), "feature_season"] = 2015.5
+    with pytest.raises(ss.StashSelectionError, match="integral"):
+        ss.summed_future_rows(cands, frac, outcomes, bars, last_complete_season=2018)
+
+
+def test_conflicting_duplicate_draft_or_outcome_rows_refuse():
+    cohort, outcomes, draft, hist = _v2_setup()
+    bad_draft = pd.concat([draft, pd.DataFrame([draft_row("C1", 2013, 1, 1)])], ignore_index=True)
+    with pytest.raises(ss.StashSelectionError, match="draft"):
+        ss.primary_cohort_ledger(cohort, outcomes, bad_draft, definitions=DEFS, bars=TINY_BARS, origin=2015)
+    bad_out = pd.concat([outcomes, pd.DataFrame([outcome_row("C1", 2017, 1.0)])], ignore_index=True)
+    with pytest.raises(ss.StashSelectionError, match="outcome"):
+        ss.contribution_bars(cohort, bad_out, bars=TINY_BARS)
+
+
+def test_an_artifact_row_with_invalid_points_or_appeared_refuses_and_is_never_no_record_zero():
+    cohort, outcomes, draft, hist = _v2_setup()
+    nan_pts = outcomes.copy()
+    nan_pts.loc[(nan_pts.player_id == "C1") & (nan_pts.season == 2017), "points"] = float("nan")
+    with pytest.raises(ss.StashSelectionError, match="points"):
+        ss.contribution_bars(cohort, nan_pts, bars=TINY_BARS)
+    bad_flag = outcomes.copy()
+    bad_flag["appeared"] = bad_flag["appeared"].astype(object)
+    bad_flag.loc[(bad_flag.player_id == "C1") & (bad_flag.season == 2017), "appeared"] = "maybe"
+    with pytest.raises(ss.StashSelectionError, match="appeared"):
+        ss.contribution_bars(cohort, bad_flag, bars=TINY_BARS)
+
+
+def test_boolean_strings_are_parsed_strictly_so_false_is_false():
+    assert ss.parse_bool("False") is False and ss.parse_bool("true") is True and ss.parse_bool(0) is False and ss.parse_bool(True) is True
+    with pytest.raises(ss.StashSelectionError):
+        ss.parse_bool("maybe")
+    cohort, outcomes, draft, hist = _v2_setup()
+    strs = outcomes.copy()
+    strs["appeared"] = strs["appeared"].map(lambda v: "True" if v else "False")
+    bars = ss.contribution_bars(cohort, strs, bars=TINY_BARS)
+    cands = ss.primary_candidates(cohort, strs, draft, definitions=DEFS, bars=TINY_BARS, origin=2015)
+    r = ss.summed_future_rows(cands, hist, strs, bars, last_complete_season=2018).set_index("player_id")
+    assert bool(r.loc["C2", "appeared"]) is False                                   # "False" rows never became appearances
+
+
+def test_missing_full_panel_bar_is_a_counted_exclusion_not_a_silent_non_contributor():
+    cohort, outcomes, draft, hist = _v2_setup()
+    cands = ss.primary_candidates(cohort, outcomes, draft, definitions=DEFS, bars=TINY_BARS, origin=2015)
+    bars = ss.contribution_bars(cohort, outcomes, bars=TINY_BARS)
+    bars = bars[bars.season != 2018]
+    rows = ss.summed_future_rows(cands, hist, outcomes, bars, last_complete_season=2018)
+    assert len(rows) == 0 and rows.attrs["exclusions"]["missing_bar"] == 4
+
+
+def test_summed_window_can_cover_years_two_to_five_for_the_exploratory_secondary():
+    cohort, outcomes, draft, hist = _v2_setup()
+    hist45 = pd.concat([hist] + [pd.DataFrame([hist_row(p, 2015, j, policy_points=1.0 * j) for p in ("C1", "C2", "C3", "C4")]) for j in (4, 5)],
+                       ignore_index=True)
+    outs = pd.concat([outcomes, pd.DataFrame([outcome_row("C1", 2019, 100.0), outcome_row("C1", 2020, 100.0)])], ignore_index=True)
+    cohort2 = pd.concat([cohort] + [pd.DataFrame([cohort_row(p, s) for p in ("A1", "A2", "C1")]) for s in (2019, 2020)], ignore_index=True)
+    outs = pd.concat([outs, pd.DataFrame([outcome_row(p, s, 50.0) for p in ("A1", "A2") for s in (2019, 2020)])], ignore_index=True)
+    cands = ss.primary_candidates(cohort2, outs, draft, definitions=DEFS, bars=TINY_BARS, origin=2015)
+    bars = ss.contribution_bars(cohort2, outs, bars=TINY_BARS)
+    rows = ss.summed_future_rows(cands, hist45, outs, bars, last_complete_season=2020, horizons=(2, 3, 4, 5)).set_index("player_id")
+    assert rows.loc["C1", "future_sum"] == 40.0 * 2 + 40.0 * 3 + 4.0 + 5.0 and rows.loc["C1", "realized_sum"] == 160.0 + 160.0 + 100.0 + 100.0
+    assert rows.loc["C1", "horizon"] == 2345
+
+
+# ── independent method reviewer: fixed-selection bounds must reuse the exact fractional weights ─
+
+def _bounds_rows():
+    base = {"origin": 2015, "position": "WR", "horizon": 23, "draft_visible": True, "future_year1": 1.0, "persistence_sum": 1.0,
+            "origin_points": 1.0, "realized_sum": 0.0, "realized_points": 0.0}
+    return pd.DataFrame([
+        {**base, "player_id": "K1", "future_sum": 50.0, "draft_pick": 1, "contributor_any": True, "any_no_record": True, "appeared": True},   # known positive + one no-record year
+        {**base, "player_id": "K2", "future_sum": 40.0, "draft_pick": 2, "contributor_any": False, "any_no_record": True, "appeared": False},  # unknown, no known positive
+        {**base, "player_id": "K3", "future_sum": 40.0, "draft_pick": 3, "contributor_any": True, "any_no_record": False, "appeared": True},   # known positive
+        {**base, "player_id": "K4", "future_sum": 10.0, "draft_pick": 4, "contributor_any": False, "any_no_record": False, "appeared": True},  # known negative
+    ])
+
+
+def test_bounds_use_the_same_fractional_weights_as_the_selection_and_treat_unknowns_correctly():
+    rows = ss.v2_orderings(_bounds_rows())
+    sel = ss.select_at_budget(rows, "rank_future_sum", budget=2, flag_col="contributor_any").iloc[0]
+    assert sel.boundary_ties == 2 and sel.hits == pytest.approx(1.0 + 0.5)              # K1 full, K2/K3 tied for one slot
+    b = ss.selection_bounds_no_record_unknown(rows, "rank_future_sum", budget=2, flag_col="contributor_any")
+    assert b["hits_lower"] == pytest.approx(1.5)                                           # K1 (known positive despite a no-record year) + 0.5 K3
+    assert b["hits_upper"] == pytest.approx(1.5 + 0.5)                                     # + 0.5 K2 (unknown, no known positive)
+    assert b["unknown_weight"] == pytest.approx(0.5) and b["boundary_ties"] == 2
+    b1 = ss.selection_bounds_no_record_unknown(rows, "rank_future_sum", budget=1, flag_col="contributor_any")
+    assert b1["hits_lower"] == 1.0 and b1["hits_upper"] == 1.0                             # a known positive is a hit for both bounds
+
+
+def test_a_short_panel_bar_is_unavailable_and_becomes_a_counted_exclusion_never_a_false_contributor():
+    cohort, outcomes, draft, hist = _v2_setup()
+    small = cohort[cohort.feature_season <= 2016]
+    bars = ss.contribution_bars(small, outcomes, bars={"WR": 99, "RB": 99, "QB": 99, "TE": 99})
+    assert bars.short_panel.all() and bars.bar_points.isna().all()
+    cands = ss.primary_candidates(cohort, outcomes, draft, definitions=DEFS, bars=TINY_BARS, origin=2015)
+    rows = ss.summed_future_rows(cands, hist, outcomes, bars, last_complete_season=2018)
+    assert len(rows) == 0 and rows.attrs["exclusions"]["missing_bar"] == 4
+    ledger = ss.primary_cohort_ledger(cohort, outcomes, draft, definitions=DEFS, bars={"WR": 99, "RB": 99, "QB": 99, "TE": 99}, origin=2015)
+    assert set(ledger[ledger.player_id.isin(["C1", "C2", "C3", "C4"])].exclusion_reason) == {"bar_unavailable"}
