@@ -494,3 +494,63 @@ def selection_bounds_no_record_unknown(rows: pd.DataFrame, rank_col: str, budget
     return {"hits_lower": picked_hits_lower, "hits_upper": picked_hits_upper, "picks_known": picks_known,
             "no_record_picks": no_record_picks,
             "meaning": "lower: no-record picks count as non-hits over all picks; upper: hits over known picks only"}
+
+
+# ── paired player-cluster bootstrap and per-season disclosure ────────────────────────────────
+
+CONDITIONAL_ON = "realized origins and the fixed frozen fits"
+
+
+def metric_fn(name: str, *, budget: int = 2, flag_col: str = "contributor_any", points_col: str = "realized_points"):
+    """A pooled metric of one ordering over a rows frame: n-weighted Spearman or AUC over cells, or the
+    total hits / points captured of a fixed-budget selection."""
+    if name == "spearman":
+        return lambda rows, col: _pooled(spearman_by_cell(rows, col))["value"]
+    if name == "auc":
+        return lambda rows, col: _pooled(auc_by_cell(rows, col, flag_col))["value"]
+    if name == "hits_at_budget":
+        return lambda rows, col: float(select_at_budget(rows, col, budget, flag_col, points_col)["hits"].sum())
+    if name == "points_at_budget":
+        return lambda rows, col: float(select_at_budget(rows, col, budget, flag_col, points_col)["points_captured"].sum())
+    raise StashSelectionError(f"unknown metric {name!r}")
+
+
+def paired_difference_bootstrap(rows: pd.DataFrame, metric, ordering_a: str, ordering_b: str, *, draws: int, seed: int) -> dict:
+    """metric(b) − metric(a) on identical rows, resampling PLAYERS: every origin and horizon of a drawn player
+    moves as one block, drawn from the union of both arms' rows (the same rows, because the comparison is
+    paired). Conditional on the realized origins and the fixed frozen fits; no future-season or
+    model-selection uncertainty is claimed."""
+    def delta(frame: pd.DataFrame) -> float:
+        return float(metric(frame, ordering_b) - metric(frame, ordering_a))
+
+    point = delta(rows)
+    players = rows["player_id"].to_numpy()
+    keys = np.array(sorted(set(players)), dtype=object)
+    members = {k: rows.index[players == k].to_numpy() for k in keys}
+    counts = rows.groupby("player_id")["origin"].nunique()
+    rng = np.random.default_rng(seed)
+    samples = []
+    for _ in range(int(draws)):
+        picked = rng.choice(keys, size=len(keys), replace=True)
+        idx = np.concatenate([members[k] for k in picked])
+        samples.append(delta(rows.loc[idx]))
+    arr = np.asarray(samples, dtype=float)
+    arr = arr[np.isfinite(arr)]
+    lo, hi = (float(v) for v in np.percentile(arr, [5, 95])) if arr.size else (float("nan"), float("nan"))
+    return {"point": point, "ci90": [lo, hi], "draws": int(draws), "seed": int(seed), "rows": int(len(rows)),
+            "clusters": int(len(keys)), "repeated_players": int((counts > 1).sum()), "conditional_on": CONDITIONAL_ON,
+            "ordering_a": ordering_a, "ordering_b": ordering_b}
+
+
+def season_table(rows: pd.DataFrame, ordering_cols, *, budget: int = 2, flag_col: str = "contributor_any",
+                 points_col: str = "realized_points") -> pd.DataFrame:
+    """Per origin season, position and ordering: n, Spearman, AUC and the fixed-budget selection, so the
+    season clustering is visible instead of pooled away."""
+    frames = []
+    for col in ordering_cols:
+        sp = spearman_by_cell(rows, col).rename(columns={"value": "spearman"})
+        auc = auc_by_cell(rows, col, flag_col).rename(columns={"value": "auc"})[[*CELL, "n_positive", "auc"]]
+        sel = select_at_budget(rows, col, budget, flag_col, points_col)[[*CELL, "picks", "hits", "points_captured", "misses", "busts",
+                                                                          "boundary_ties"]]
+        frames.append(sp.merge(auc, on=CELL).merge(sel, on=CELL))
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=CELL)

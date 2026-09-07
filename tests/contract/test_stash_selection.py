@@ -391,7 +391,7 @@ def test_v2_orderings_rank_the_summed_future_and_its_comparators_and_selection_r
     assert r.loc["C1", "rank_origin_points"] == 1 and r.loc["C1", "rank_draft"] == 1 and r.loc["C1", "rank_persistence"] == 1
     assert set(ss.V2_ORDERINGS) == {"rank_future_sum", "rank_future_year1", "rank_origin_points", "rank_draft", "rank_persistence"}
     sel = ss.select_at_budget(rows, "rank_future_sum", budget=2, flag_col="contributor_any", points_col="realized_sum").iloc[0]
-    assert sel.hits == 1 and sel.points_captured == 320.0 and sel.misses == 1 and sel.busts == 0
+    assert sel.hits == 1 and sel.points_captured == 320.0 and sel.misses == 1 and sel.busts == 1     # C2 appeared in neither season
     b = ss.selection_bounds_no_record_unknown(rows, "rank_future_sum", budget=2, flag_col="contributor_any")
     assert b["hits_lower"] == 1 and b["hits_upper"] == 1 and b["no_record_picks"] == 0
     b3 = ss.selection_bounds_no_record_unknown(rows, "rank_future_sum", budget=4, flag_col="contributor_any")
@@ -407,3 +407,37 @@ def test_a_zero_bar_never_makes_a_contributor_out_of_an_absent_record():
     r = rows.iloc[0]
     assert r.label_source == "no_record_zero" and bool(r.appeared) is False
     assert bool(r.contributor) is False and bool(r.contributor_deep) is False
+
+
+# ── Task 6: paired player-cluster bootstrap and per-season disclosure ─────────────────────────
+
+def _two_seasons():
+    cohort, outcomes, draft, hist = _v2_setup()
+    frames = []
+    for origin in (2015,):
+        cands = ss.primary_candidates(cohort, outcomes, draft, definitions=DEFS, bars=TINY_BARS, origin=origin)
+        bars = ss.contribution_bars(cohort, outcomes, bars=TINY_BARS)
+        frames.append(ss.v2_orderings(ss.summed_future_rows(cands, hist, outcomes, bars, last_complete_season=2018)))
+    rows = pd.concat(frames, ignore_index=True)
+    other = rows.copy()
+    other["origin"] = 2014                       # the same players at a second origin: they must move as one block
+    return pd.concat([rows, other], ignore_index=True)
+
+
+def test_paired_bootstrap_of_identical_orderings_is_zero_and_reproducible_and_counts_clusters():
+    rows = _two_seasons()
+    metric = ss.metric_fn("spearman")
+    b = ss.paired_difference_bootstrap(rows, metric, "rank_future_sum", "rank_future_sum", draws=50, seed=1)
+    assert b["point"] == 0.0 and b["ci90"] == [0.0, 0.0] and b["clusters"] == 4 and b["rows"] == 8 and b["repeated_players"] == 4
+    b1 = ss.paired_difference_bootstrap(rows, metric, "rank_future_sum", "rank_origin_points", draws=50, seed=7)
+    b2 = ss.paired_difference_bootstrap(rows, metric, "rank_future_sum", "rank_origin_points", draws=50, seed=7)
+    assert b1["ci90"] == b2["ci90"] and b1["draws"] == 50 and b1["conditional_on"] == "realized origins and the fixed frozen fits"
+
+
+def test_hits_metric_at_budget_and_season_table_disclose_every_origin():
+    rows = _two_seasons()
+    hits = ss.metric_fn("hits_at_budget", budget=2, flag_col="contributor_any")
+    assert hits(rows[rows.origin == 2015], "rank_future_sum") == 1.0
+    tab = ss.season_table(rows, ["rank_future_sum", "rank_origin_points"], budget=2, flag_col="contributor_any")
+    assert sorted(tab.origin.unique()) == [2014, 2015] and set(tab.ordering) == {"rank_future_sum", "rank_origin_points"}
+    assert {"spearman", "auc", "hits", "points_captured", "misses", "busts", "n"} <= set(tab.columns)
