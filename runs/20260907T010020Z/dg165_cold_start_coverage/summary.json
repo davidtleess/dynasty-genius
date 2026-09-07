@@ -1,0 +1,78 @@
+{
+  "by_availability_class": {
+    "active": 20,
+    "injured_reserve": 14,
+    "practice_squad": 50
+  },
+  "by_draft_status": {
+    "drafted_verified": 19,
+    "no_draft_record_1_source": 3,
+    "no_draft_record_2_sources": 34,
+    "no_draft_record_3_sources": 28
+  },
+  "by_full_nfl_source_reason": {
+    "left_cohort_two_absent_seasons": 12,
+    "no_nfl_history": 68,
+    "not_in_dg177_universe": 4
+  },
+  "by_position": {
+    "QB": 15,
+    "RB": 21,
+    "TE": 15,
+    "WR": 33
+  },
+  "by_route": {
+    "dormant_drafted": 6,
+    "dormant_no_draft_record": 5,
+    "existing_forecast_join_failure": 4,
+    "never_appeared_drafted": 11,
+    "never_appeared_no_draft_record": 58
+  },
+  "by_route_and_draft_status": {
+    "dormant_drafted|drafted_verified": 6,
+    "dormant_no_draft_record|no_draft_record_3_sources": 5,
+    "existing_forecast_join_failure|drafted_verified": 2,
+    "existing_forecast_join_failure|no_draft_record_3_sources": 2,
+    "never_appeared_drafted|drafted_verified": 11,
+    "never_appeared_no_draft_record|no_draft_record_1_source": 3,
+    "never_appeared_no_draft_record|no_draft_record_2_sources": 34,
+    "never_appeared_no_draft_record|no_draft_record_3_sources": 21
+  },
+  "definitions": {
+    "full_nfl_source_reason": "DG-177's own reason from its universe reconciliation (any REG stat line, e.g. week 18) \u2014 kept beside the window view, never merged",
+    "never_appeared": "no championship-window stat row in the common outcome artifact; not observed zero production",
+    "no_draft_record": "no positive draft record in the sources that know the id; a statement about the sources, never a claim that the player was passed over in the draft"
+  },
+  "join_failures": [
+    {
+      "gsis_id": "00-0035125",
+      "name": "Alec Ingold",
+      "sleeper_id": "6109"
+    },
+    {
+      "gsis_id": "00-0029892",
+      "name": "Kyle Juszczyk",
+      "sleeper_id": "1379"
+    },
+    {
+      "gsis_id": "00-0031595",
+      "name": "Michael Burton",
+      "sleeper_id": "2471"
+    },
+    {
+      "gsis_id": "00-0036727",
+      "name": "Adam Prentice",
+      "sleeper_id": "8025"
+    }
+  ],
+  "never_appeared_entry_seasons": {
+    "2019": 1,
+    "2021": 1,
+    "2022": 1,
+    "2023": 3,
+    "2024": 3,
+    "2025": 22,
+    "2026": 38
+  },
+  "rows": 84
+}

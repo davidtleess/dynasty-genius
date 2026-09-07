@@ -1,0 +1,59 @@
+{
+  "finished_utc": "2026-09-07T01:00:20.556326+00:00",
+  "frozen_inputs_untouched": true,
+  "git_sha": "84b0ea06002e9f9965942a7ceba6a55d9f367cfd",
+  "inputs": {
+    "accepted_report": {
+      "path": "/Users/davidleess/dg-wt/DG-178/runs/20260906T214512Z/dg178_audit/report.json",
+      "sha256": "19e032a4067dff1759199a84720c0f879bb61f792fd3b2703808b55485a7af37"
+    },
+    "census_run": {
+      "census_csv_sha256": "3e836b21beade9cc05d4026c49ddb302833d4a06571c3ead6760e90f23760be3",
+      "report_sha256": "ae59cbef3268174ff6a48cbafe68a9ed32b9e880305597725ccf984e34433927",
+      "run_dir": "/Users/davidleess/dg-wt/DG-178/runs/20260906T202057Z/dg178_current_census"
+    },
+    "current_roster_capture": {
+      "path": "/Users/davidleess/dg-wt/DG-178/runs/20260906T191548Z/dg178_nfl_roster_capture/roster_2026.csv",
+      "sha256": "5ec59c5228198f57ba577cfe06d52a789259b92d9c5c98c152b206e8ab80ab55",
+      "use": "CURRENT 2026 entry/draft evidence only; never historical cohort selection"
+    },
+    "outcome_artifact": {
+      "path": "/Users/davidleess/dg-wt/DG-179/runs/20260906T194819Z/league_season_outcomes/outcomes.csv",
+      "sha256": "199a48beb96a25f5dad50758b3f72b40a5d7d0cf2000f7cdaf2f411873c6ecb8"
+    },
+    "rookie_run": {
+      "manifest_sha256": "b863c3cf34d87254ec154a39caeec954e3ae804e88fb7e864f7d43e5e19609e5",
+      "players_parquet_sha256": "58ad30108bacf89e0f391f86b911cbbf6f26c9889f06aa7ab29018e803e45a07",
+      "players_rosters_bytes_verified": true,
+      "rookie_scores_sha256": "db96647dea6c6a9f8cbdf1e2938d7eca84f5d50b220a875bb31ce44f4a1ae9b5",
+      "rosters_parquet_sha256": "17553d565d763b4810ec9665fd609ab6686a6b4bcdd068acc520ba0618c8c13d",
+      "run_dir": "runs/20260906T195904Z/dg165_rookie_capital",
+      "verified": {
+        "cohort.csv": "d96b93b444d99ca073591cddfb45b43d61d3ba5c105623869167d6348c7a5afc",
+        "inputs/nflverse_draft_picks.parquet": "68940f7b20f4e776f86bf27d38b9975ba5bc3f17f7a6f345bdd87c8bd72c097f",
+        "out_of_time_predictions.csv": "d44620f699ae58b88d4b589a2e6b289be2be6648f38b8f7fb7e191476fa76361",
+        "outcomes.csv": "199a48beb96a25f5dad50758b3f72b40a5d7d0cf2000f7cdaf2f411873c6ecb8"
+      }
+    },
+    "veteran_run": {
+      "basic_cohort_sha256": "46e1fc01380b4ad768058dbe84ccdf807be056b451b9a46105cda8eab745d25e",
+      "basic_forecasts_sha256": "a43f3126e05f7118e965c85fb8a4237ef34ee9896a15f9d9d01a179d9f0400be",
+      "corrected_manifest_sha256": "b73027d06792d788dafc48a77731314b7e3ab0739fadeb2eaf83df5a61297430",
+      "manifest_sha256": "253d546158fb68f5b9fa22b1cc7f744f0b2bf13007d02b90c6e36b52f930a002",
+      "run_dir": "/Users/davidleess/dg-wt/DG-177/runs/20260906T195728Z/dg177_basic_horizons",
+      "universe_reconciliation_sha256": "45b0898cb3b1ce7f7a6750bfcb36de8380ed88f318ddeeb1ebda7612d0cd1a30"
+    }
+  },
+  "not": "a coverage ledger; no estimate is produced here and no accepted forecast is altered",
+  "outputs_sha256": {
+    "REPORT.md": "795aef9278ef8da798aa3faf6a22368a45485e4a2e78e1847d1e9a34d8b42d60",
+    "ledger.csv": "6ad45bcbd0e2aa4faf6ae9c9dd508f20598309bbdfe37c8e2f13059aa4c0cf33",
+    "recovery_sidecar.csv": "b1825f27da7d7e11139a702197fcc5679689dc5db977bfc3baa35bb8323a7660",
+    "summary.json": "c171712cfa63cfd6cb2ec989e5ebe9b5d82efab444d90bf27d37f203dfd91784"
+  },
+  "rows": 84,
+  "run_dir": "runs/20260907T010020Z/dg165_cold_start_coverage",
+  "schema_version": "dg165_cold_start_coverage_v1",
+  "started_utc": "2026-09-07T01:00:20.552871+00:00",
+  "ticket": "DG-165"
+}
