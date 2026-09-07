@@ -153,3 +153,122 @@ def test_frozen_real_population_counts_match_root():
     assert test_rows == [210, 199, 187, 179, 172]
     seven = pop.loc[pop["draft_season"] == 2025, "name"]
     assert {"Graham Mertz", "Kurtis Rourke", "Kyle McCord", "Will Howard", "Caleb Lohner", "Gavin Bartholomew", "Ricky White"} <= set(seven)
+
+
+# ---------------------------------------------------------------- Task 6: candidate, baselines, paired evaluation, sidecar (root-frozen rules)
+
+def _synthetic_population(seed=3, n_per_class=30, classes=range(2004, 2025)):
+    """A never-record population whose appearance depends on pick and position, so the candidate has something to learn."""
+    rng = np.random.default_rng(seed)
+    rows = []
+    for c in classes:
+        for i in range(n_per_class):
+            pos = ["QB", "RB", "WR", "TE"][i % 4]
+            pick = int(rng.integers(1, 260))
+            age = float(rng.normal(22.5, 0.8))
+            row = {"gsis_id": f"{c}-{i}", "name": f"P{c}-{i}", "draft_season": c, "origin_year": c + 1, "draft_position": pos, "pick": pick,
+                   "round": min(7, 1 + pick // 32), "log_pick": np.log(pick), "birth_date": None, "age_at_origin": age if i % 9 else np.nan,
+                   "first_full_reg_season": None, "window_absent_through_draft_season": True}
+            base = -0.5 - 0.6 * (np.log(pick) - 4.5) + (0.3 if pos == "WR" else 0.0)
+            for h in range(1, 6):
+                season = c + h
+                if season > 2025:
+                    row.update({f"appear_{h}": np.nan, f"points_{h}": np.nan, f"games_{h}": np.nan, f"label_source_{h}": "unknown"})
+                    continue
+                p = 1 / (1 + np.exp(-(base - 0.15 * (h - 1))))
+                app = rng.random() < p
+                pts = float(max(0.0, rng.normal(60 - 8 * (np.log(pick) - 4.5), 25))) if app else 0.0
+                row.update({f"appear_{h}": float(app), f"points_{h}": pts, f"games_{h}": float(rng.integers(1, 17)) if app else 0.0,
+                            f"label_source_{h}": "artifact" if app else "convention_zero"})
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def test_fit_arms_uses_training_rows_only_and_gates_on_support():
+    from src.dynasty_genius.rookie.cold_start_model import fit_arms, predict_arms
+    pop = _synthetic_population()
+    T, h = 2016, 1
+    train = pop.loc[(pop["draft_season"] + h < T) & pop[f"appear_{h}"].notna()]
+    fit = fit_arms(train, horizon=h, origin=T)
+    assert fit["candidate"]["supported"] and fit["candidate"]["n_train"] == len(train) and fit["candidate"]["n_appearers"] == int(train["appear_1"].sum())
+    # the age median is the TRAINING position median (fold-only), never a pooled or test statistic
+    qb_median = float(train.loc[train["draft_position"] == "QB", "age_at_origin"].median())
+    assert fit["candidate"]["age_median_by_position"]["QB"] == pytest.approx(qb_median)
+    test = pop.loc[pop["draft_season"] == T - 1].copy()
+    pred = predict_arms(fit, test)
+    assert set(pred.columns) >= {"candidate_p_appear", "candidate_e_points", "candidate_e_points_given_appear", "candidate_e_games", "candidate_supported",
+                                 "b1_p_appear", "b1_e_points", "b1_e_points_given_appear", "b1_supported", "b2_p_appear", "b2_e_points", "b2_supported"}
+    assert pred["candidate_p_appear"].between(0, 1).all() and np.isfinite(pred["candidate_e_points"]).all()
+    # unsupported: too few training rows -> no numbers at all
+    tiny = fit_arms(train.head(30), horizon=h, origin=T)
+    assert not tiny["candidate"]["supported"] and "60" in tiny["candidate"]["reason"]
+    pt = predict_arms(tiny, test)
+    assert pt["candidate_p_appear"].isna().all() and (~pt["candidate_supported"]).all()
+    # one appearance class only -> unsupported, even with many rows
+    one_class = train.assign(**{"appear_1": 0.0, "points_1": 0.0})
+    assert not fit_arms(one_class, horizon=h, origin=T)["candidate"]["supported"]
+
+
+def test_b1_reports_per_position_denominators_and_never_zero_fills():
+    from src.dynasty_genius.rookie.cold_start_model import fit_arms, predict_arms
+    pop = _synthetic_population()
+    train = pop.loc[(pop["draft_season"] + 1 < 2016) & pop["appear_1"].notna()].copy()
+    train = train.loc[~((train["draft_position"] == "TE") & (train["appear_1"] == 1.0))]  # TE: rows but zero appearers
+    train = pd.concat([train.loc[train["draft_position"] != "QB"], train.loc[train["draft_position"] == "QB"].head(5)])  # QB: only 5 rows
+    fit = fit_arms(train, horizon=1, origin=2016)
+    cells = fit["b1"]["cells"]
+    assert cells["TE"]["n"] >= 10 and cells["TE"]["appearers"] == 0 and cells["TE"]["supported"] and cells["TE"]["conditional_supported"] is False
+    assert cells["TE"]["p_appear"] == 0.0 and cells["TE"]["e_points"] == 0.0 and cells["TE"]["e_points_given_appear"] is None
+    assert cells["QB"]["n"] == 5 and cells["QB"]["supported"] is False and "10" in cells["QB"]["reason"]
+    test = pd.DataFrame({"gsis_id": ["x", "y", "z"], "draft_position": ["TE", "QB", "WR"], "log_pick": [3.0, 3.0, 3.0], "round": [2, 2, 2],
+                         "age_at_origin": [22.0, 22.0, 22.0]})
+    pred = predict_arms(fit, test).set_index("gsis_id")
+    assert pred.loc["x", "b1_p_appear"] == 0.0 and pd.isna(pred.loc["x", "b1_e_points_given_appear"]) and bool(pred.loc["x", "b1_supported"])
+    assert pd.isna(pred.loc["y", "b1_p_appear"]) and not bool(pred.loc["y", "b1_supported"])  # unseen/under-supported position: no number
+    assert bool(pred.loc["z", "b1_supported"]) and 0 < pred.loc["z", "b1_p_appear"] < 1
+    # B2 carries no age: identical predictions when age changes
+    a = predict_arms(fit, test.assign(age_at_origin=[22.0, 22.0, 22.0]))
+    b = predict_arms(fit, test.assign(age_at_origin=[30.0, 30.0, 30.0]))
+    assert np.allclose(a["b2_p_appear"].fillna(-1), b["b2_p_appear"].fillna(-1))
+    assert not np.allclose(a["candidate_p_appear"].fillna(-1), b["candidate_p_appear"].fillna(-1))
+
+
+def test_evaluate_uses_the_same_paired_rows_selects_per_horizon_and_is_deterministic():
+    from src.dynasty_genius.rookie.cold_start_model import evaluate_candidate
+    pop = _synthetic_population()
+    ev = evaluate_candidate(pop, origins=range(2012, 2026), horizons=(1, 2), seed=11, draws=60)
+    ev2 = evaluate_candidate(pop, origins=range(2012, 2026), horizons=(1, 2), seed=11, draws=60)
+    assert json.dumps(ev["horizons"], sort_keys=True) == json.dumps(ev2["horizons"], sort_keys=True)
+    h1 = ev["horizons"]["1"]
+    assert h1["paired_rows"] > 0 and h1["paired_rows"] == h1["arms"]["candidate"]["n"] == h1["arms"]["b1"]["n"] == h1["arms"]["b2"]["n"]
+    assert set(h1["arms"]["candidate"]) >= {"brier", "rmse_points", "mae_points", "bias_points", "n"}
+    d = h1["paired_vs_b1"]
+    assert set(d) >= {"brier_diff", "rmse_points_diff"} and set(d["brier_diff"]) >= {"point", "lo", "hi"}
+    assert h1["selection"] in {"cold_start_candidate", "baseline_research_candidate"}
+    rule = (d["brier_diff"]["hi"] < 0) and (d["rmse_points_diff"]["hi"] < 0)
+    assert h1["selection"] == ("cold_start_candidate" if rule else "baseline_research_candidate")
+    assert "retrospective" in ev["caveats"]["selection"] and "not conditioned on remaining on a current roster" in ev["caveats"]["population"]
+    assert len(h1["by_origin"]) >= 5 and "QB" in h1["by_position"] and "reliability" in h1["calibration"]["candidate"]
+    assert h1["support"]["excluded_rows_unsupported"] >= 0
+
+
+def test_sidecar_exports_per_horizon_classes_seasons_and_refuses_unknown_players(tmp_path):
+    from src.dynasty_genius.rookie.cold_start_model import export_sidecar
+    seven = pd.DataFrame({"sleeper_id": ["1", "2"], "gsis_id": ["g1", "g2"], "name": ["A", "B"], "draft_position": ["QB", "WR"],
+                          "route": ["never_appeared_drafted"] * 2, "draft_status": ["drafted_verified"] * 2})
+    preds = pd.DataFrame({"gsis_id": ["g1", "g2"], **{f"candidate_p_appear_{h}": [0.3, 0.4] for h in range(1, 6)},
+                          **{f"candidate_e_points_given_appear_{h}": [50.0, 60.0] for h in range(1, 6)},
+                          **{f"candidate_e_points_{h}": [15.0, 24.0] for h in range(1, 6)}, **{f"candidate_e_games_{h}": [3.0, 4.0] for h in range(1, 6)},
+                          **{f"b1_p_appear_{h}": [0.2, 0.25] for h in range(1, 6)}, **{f"b1_e_points_given_appear_{h}": [40.0, np.nan] for h in range(1, 6)},
+                          **{f"b1_e_points_{h}": [8.0, 10.0] for h in range(1, 6)}, **{f"b1_e_games_{h}": [2.0, 2.5] for h in range(1, 6)},
+                          **{f"candidate_supported_{h}": [True, True] for h in range(1, 6)}, **{f"b1_supported_{h}": [True, True] for h in range(1, 6)}})
+    selected = {1: "cold_start_candidate", 2: "baseline_research_candidate", 3: "baseline_research_candidate", 4: "unsupported", 5: "unsupported"}
+    side = export_sidecar(seven, preds, selected_per_horizon=selected, origin_year=2026)
+    by = side.set_index("gsis_id")
+    assert by.loc["g1", "estimate_class_year1"] == "cold_start_candidate" and by.loc["g1", "p_appear_year1"] == 0.3 and by.loc["g1", "e_points_year1"] == 15.0
+    assert by.loc["g1", "estimate_class_year2"] == "baseline_research_candidate" and by.loc["g1", "p_appear_year2"] == 0.2 and by.loc["g1", "e_points_year2"] == 8.0
+    assert pd.isna(by.loc["g2", "e_points_year2_given_appear"])  # B1 conditional unsupported for g2's cell stays NaN, never 0
+    assert by.loc["g1", "estimate_class_year4"] == "unsupported" and pd.isna(by.loc["g1", "p_appear_year4"]) and pd.isna(by.loc["g1", "e_points_year4"])
+    assert [int(by.loc["g1", f"season_year{j}"]) for j in range(1, 6)] == [2026, 2027, 2028, 2029, 2030]
+    with pytest.raises(ValueError, match="prediction"):
+        export_sidecar(seven.assign(gsis_id=["g1", "g9"]), preds, selected_per_horizon=selected, origin_year=2026)
