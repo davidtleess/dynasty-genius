@@ -69,6 +69,7 @@ class CensusRun:
     uncovered: pd.DataFrame
     census_sha256: str
     report_sha256: str
+    uncovered_sha256: str | None
 
 
 @dataclass(frozen=True)
@@ -86,13 +87,19 @@ def load_census_run(run_dir: Path | str) -> CensusRun:
     report_bytes = (run_dir / "report.json").read_bytes()
     report = json.loads(report_bytes)
     census_raw = _read_verified(run_dir / "census.csv", report.get("census_csv_sha256"), "census run")
-    uncovered_raw = _read_verified(run_dir / "uncovered.csv", report.get("uncovered_csv_sha256"), "census run")
     census = pd.read_csv(io.BytesIO(census_raw), dtype={"sleeper_id": str, "nfl_gsis_id": str, "sleeper_gsis_id": str})
-    uncovered = pd.read_csv(io.BytesIO(uncovered_raw), dtype={"sleeper_id": str})
     if census["sleeper_id"].duplicated().any():
         dup = census.loc[census["sleeper_id"].duplicated(keep=False), "sleeper_id"].head(5).tolist()
         raise ValueError(f"census run: sleeper_id is not unique, e.g. {dup}")
-    return CensusRun(run_dir, report, census, uncovered, report["census_csv_sha256"], _sha(report_bytes))
+    # The census run's own report carries the uncovered rows inline and declares only the census hash; the
+    # uncovered.csv hash is declared by the ACCEPTED report (checked in missing_default_pool). Here the file is
+    # hashed as bytes and its declaration, when the run's report has one, is enforced.
+    uncovered_path = run_dir / "uncovered.csv"
+    uncovered_sha = _sha(uncovered_path.read_bytes()) if uncovered_path.exists() else None
+    if report.get("uncovered_csv_sha256") and report["uncovered_csv_sha256"] != uncovered_sha:
+        raise ValueError("census run: sha256 mismatch for uncovered.csv against the run's own declaration")
+    uncovered = pd.read_csv(uncovered_path, dtype={"sleeper_id": str}) if uncovered_path.exists() else pd.DataFrame()
+    return CensusRun(run_dir, report, census, uncovered, report["census_csv_sha256"], _sha(report_bytes), uncovered_sha)
 
 
 def load_accepted_report(path: Path | str) -> AcceptedReport:
@@ -126,9 +133,13 @@ def missing_default_pool(census: CensusRun, accepted: AcceptedReport) -> pd.Data
     disagreement refuses, so the tool can never quietly audit a different population than the
     board describes.
     """
-    declared_census = (accepted.report.get("current_census") or {}).get("census_csv_sha256")
+    cc = accepted.report.get("current_census") or {}
+    declared_census = cc.get("census_csv_sha256")
     if declared_census != census.census_sha256:
         raise ValueError(f"accepted report describes census {str(declared_census)[:12]}…, not the loaded census {census.census_sha256[:12]}…")
+    declared_uncovered = cc.get("uncovered_csv_sha256")
+    if declared_uncovered and declared_uncovered != census.uncovered_sha256:
+        raise ValueError(f"accepted report declares uncovered.csv {str(declared_uncovered)[:12]}…, loaded file hashes to {str(census.uncovered_sha256)[:12]}…")
     c = census.census
     unowned = c.loc[~c["league_owned"].astype(bool)].copy()
     unowned["has_forecast"] = unowned["sleeper_id"].astype(str).isin(accepted.forecast_sleeper_ids)

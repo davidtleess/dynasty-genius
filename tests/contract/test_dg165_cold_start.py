@@ -43,7 +43,9 @@ def make_census_run(root: Path, *, census: pd.DataFrame | None = None) -> Path:
     ub = uncovered.to_csv(index=False).encode()
     (run / "census.csv").write_bytes(cb)
     (run / "uncovered.csv").write_bytes(ub)
-    report = {"run": "20260906T000000Z", "season": 2026, "census_csv_sha256": _sha(cb), "uncovered_csv_sha256": _sha(ub),
+    # the real census report declares ONLY census_csv_sha256 and carries the uncovered rows inline; the accepted
+    # report declares uncovered_csv_sha256 (see make_accepted_report)
+    report = {"run": "20260906T000000Z", "season": 2026, "census_csv_sha256": _sha(cb), "uncovered": uncovered.to_dict("records"),
               "counts": {"members": len(census)}, "sources": {}}
     (run / "report.json").write_text(json.dumps(report, sort_keys=True))
     return run
@@ -54,6 +56,7 @@ def make_accepted_report(root: Path, census_dir: Path, *, coverage: dict | None 
             {"player_id": "00-D", "sleeper_id": "4", "name": "IR HasFc", "position": "TE", "producer": "vet"},
             {"player_id": "00-F", "sleeper_id": "6", "name": "Active HasFc", "position": "WR", "producer": "vet"}]
     census_sha = json.loads((census_dir / "report.json").read_text())["census_csv_sha256"]
+    uncovered_sha = _sha((census_dir / "uncovered.csv").read_bytes())
     # the real report's coverage block: listed_unowned.by_position[position][class]{with_forecast, without_forecast}
     if coverage is None:
         coverage = {"listed_unowned": {"by_position": {
@@ -63,7 +66,7 @@ def make_accepted_report(root: Path, census_dir: Path, *, coverage: dict | None 
             "WR": {"active": {"with_forecast": 1, "without_forecast": 0}, "cut": {"with_forecast": 0, "without_forecast": 1}},
         }}}
     report = {"run": "20260906T000001Z", "comparable_board": {"all_inspectable": rows},
-              "current_census": {"census_csv_sha256": census_sha, "coverage": coverage}}
+              "current_census": {"census_csv_sha256": census_sha, "uncovered_csv_sha256": uncovered_sha, "coverage": coverage}}
     root.mkdir(parents=True, exist_ok=True)
     path = root / "accepted_report.json"
     path.write_text(json.dumps(report, sort_keys=True))
@@ -114,6 +117,19 @@ def test_accepted_report_must_describe_the_same_census(tmp_path):
     accepted = load_accepted_report(make_accepted_report(tmp_path / "x", other))  # written against a different census
     with pytest.raises(ValueError, match="census"):
         missing_default_pool(census, accepted)
+
+
+def test_uncovered_file_is_verified_against_the_accepted_reports_declaration(tmp_path):
+    from src.dynasty_genius.rookie.cold_start import (
+        load_accepted_report,
+        load_census_run,
+        missing_default_pool,
+    )
+    run = make_census_run(tmp_path)
+    accepted = load_accepted_report(make_accepted_report(tmp_path, run))
+    (run / "uncovered.csv").write_text((run / "uncovered.csv").read_text().replace("Nobody", "Somebody"))
+    with pytest.raises(ValueError, match="uncovered"):
+        missing_default_pool(load_census_run(run), accepted)
 
 
 # ---------------------------------------------------------------- Task 2: three-source draft evidence, positively labelled
