@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -474,19 +475,22 @@ def test_cli_writes_an_immutable_run_with_hashed_inputs_and_definitions_and_refu
     cmd = [sys.executable, "scripts/dg177/run_stash_selection.py", "--history", str(hist_p), "--cohort", str(cohort_p),
            "--outcomes", str(out_p), "--draft", str(draft_p), "--definitions", "docs/experiments/stash_selection_definitions_v3.json",
            "--last-complete-season", "2018", "--bars-override", json.dumps(TINY_BARS), "--origins", "2015", "2015",
-           "--draws", "20", "--out-root", str(out_root), "--run-id", "20260101T000003Z"]
+           "--draws", "20", "--nonproduction", "--out-root", str(out_root), "--run-id", "20260101T000003Z"]
     res = subprocess.run(cmd, capture_output=True, text=True)
     assert res.returncode == 0, res.stderr
     run = out_root / "20260101T000003Z" / "dg177_stash_selection"
     m = json.loads((run / "manifest.json").read_text())
-    assert set(m["outputs"]) >= {"primary_candidates.csv", "cohort_ledger.csv", "summed_future_rows.csv", "metrics.json",
-                                 "season_table.csv", "selection.csv", "report.md"}
+    assert m["nonproduction"] is True and m["nonproduction_reasons"]
+    assert set(m["outputs"]) >= {"primary_candidates.csv", "cohort_ledger.csv", "summed_future_rows.csv", "summed_future_rows_strict.csv",
+                                 "bars_primary.csv", "bars_strict.csv", "metrics.json", "season_table.csv", "selection.csv", "report.md"}
     assert m["definitions"]["sha256"] == ss.load_definitions(Path("docs/experiments/stash_selection_definitions_v3.json"))["_file"]["sha256"]
     assert m["sources"]["history"]["sha256"] and m["sources"]["cohort"]["sha256"] and m["launch"]["git_head"]
     assert m["counts"]["primary_candidates"] == 4 and m["counts"]["exclusions"]["missing_forecast"] == 0
     assert m["bars_override_used"] is True                                   # a fixture bar is disclosed, never silent
     metrics = json.loads((run / "metrics.json").read_text())
-    assert "rank_future_sum" in metrics["primary"]["pooled"] and metrics["primary"]["bootstrap"]["rank_future_sum_minus_rank_origin_points"]["draws"] == 20
+    boot = metrics["primary"]["bootstrap"]["rank_future_sum_minus_rank_origin_points"]
+    assert "rank_future_sum" in metrics["primary"]["pooled"] and boot["selection"]["draws_requested"] == 20 and boot["rank"]["spearman"]["draws_requested"] == 20
+    assert metrics["primary"]["pooled"]["rank_future_sum"]["selection"]["2"]["points_per_slot"] is not None
     second = subprocess.run(cmd, capture_output=True, text=True)
     assert second.returncode == 1 and "exists" in second.stderr
 
@@ -497,7 +501,7 @@ def test_cli_refuses_without_the_frozen_definitions_file(tmp_path):
     cohort_p, out_p, draft_p, hist_p = _real_shaped_inputs(tmp_path)
     cmd = [sys.executable, "scripts/dg177/run_stash_selection.py", "--history", str(hist_p), "--cohort", str(cohort_p),
            "--outcomes", str(out_p), "--draft", str(draft_p), "--definitions", str(tmp_path / "missing.json"),
-           "--out-root", str(tmp_path / "runs"), "--run-id", "20260101T000004Z"]
+           "--nonproduction", "--out-root", str(tmp_path / "runs"), "--run-id", "20260101T000004Z"]
     res = subprocess.run(cmd, capture_output=True, text=True)
     assert res.returncode == 1 and "definitions" in res.stderr
 
@@ -537,11 +541,15 @@ def test_forecast_pivot_keeps_position_and_refuses_ambiguous_duplicate_identitie
         ss.summed_future_rows(cands, frac, outcomes, bars, last_complete_season=2018)
 
 
-def test_conflicting_duplicate_draft_or_outcome_rows_refuse():
+def test_conflicting_or_invalid_draft_rows_exclude_that_player_with_a_reason_and_never_pick_one():
     cohort, outcomes, draft, hist = _v2_setup()
-    bad_draft = pd.concat([draft, pd.DataFrame([draft_row("C1", 2013, 1, 1)])], ignore_index=True)
-    with pytest.raises(ss.StashSelectionError, match="draft"):
-        ss.primary_cohort_ledger(cohort, outcomes, bad_draft, definitions=DEFS, bars=TINY_BARS, origin=2015)
+    bad_draft = pd.concat([draft, pd.DataFrame([draft_row("C1", 2013, 1, 1), draft_row("JAC631960", 2014, 1, 2)])], ignore_index=True)
+    ledger = ss.primary_cohort_ledger(cohort, outcomes, bad_draft, definitions=DEFS, bars=TINY_BARS, origin=2015).set_index("player_id")
+    assert ledger.loc["C1", "exclusion_reason"] == "draft_conflict" and ledger.loc["C2", "exclusion_reason"] == ""
+    v = ss.validated_draft(bad_draft, id_pattern=None)
+    assert set(v.attrs["conflicting_ids"]) == {"C1"} and v.attrs["invalid_ids"] == 0
+    shaped = pd.DataFrame([draft_row("00-0000001", 2013, 1, 1), draft_row("JAC631960", 2014, 1, 2)])
+    assert ss.validated_draft(shaped).attrs["invalid_ids"] == 1 and ss.validated_draft(shaped).player_id.tolist() == ["00-0000001"]
     bad_out = pd.concat([outcomes, pd.DataFrame([outcome_row("C1", 2017, 1.0)])], ignore_index=True)
     with pytest.raises(ss.StashSelectionError, match="outcome"):
         ss.contribution_bars(cohort, bad_out, bars=TINY_BARS)
@@ -631,3 +639,96 @@ def test_a_short_panel_bar_is_unavailable_and_becomes_a_counted_exclusion_never_
     assert len(rows) == 0 and rows.attrs["exclusions"]["missing_bar"] == 4
     ledger = ss.primary_cohort_ledger(cohort, outcomes, draft, definitions=DEFS, bars={"WR": 99, "RB": 99, "QB": 99, "TE": 99}, origin=2015)
     assert set(ledger[ledger.player_id.isin(["C1", "C2", "C3", "C4"])].exclusion_reason) == {"bar_unavailable"}
+
+
+def test_a_horizon_absent_from_the_history_columns_is_a_counted_exclusion_not_an_error():
+    cohort, outcomes, draft, hist = _v2_setup()
+    cands = ss.primary_candidates(cohort, outcomes, draft, definitions=DEFS, bars=TINY_BARS, origin=2015)
+    bars = ss.contribution_bars(cohort, outcomes, bars=TINY_BARS)
+    rows = ss.summed_future_rows(cands, hist, outcomes, bars, last_complete_season=2020, horizons=(2, 3, 4, 5))
+    assert len(rows) == 0 and rows.attrs["exclusions"]["missing_forecast"] == 4
+
+
+# ── root's bootstrap review: joint support, frozen selection contributions, positional clusters ──
+
+def _cells_fixture():
+    # origin 2020: A defined, B defined; origin 2021: A undefined (all tied), B defined
+    rows = []
+    for origin, a_ranks in ((2020, [1, 2, 3, 4]), (2021, [1, 1, 1, 1])):
+        for i, (p, pts, flag) in enumerate((("P1", 150.0, True), ("P2", 110.0, True), ("P3", 20.0, False), ("P4", 0.0, False))):
+            rows.append({"player_id": p, "origin": origin, "position": "WR", "horizon": 23, "realized_points": pts, "realized_sum": pts,
+                         "contributor_any": flag, "appeared": pts > 0, "any_no_record": False,
+                         "rank_a": a_ranks[i], "rank_b": [4, 3, 2, 1][i]})
+    return pd.DataFrame(rows)
+
+
+def test_paired_rank_metric_uses_joint_finite_support_and_discloses_excluded_cells():
+    rows = _cells_fixture()
+    d = ss.paired_pooled_difference(rows, "spearman", "rank_a", "rank_b")
+    assert d["cells_joint"] == 1 and d["cells_excluded"] == 1 and d["players_excluded"] == 4
+    assert d["value_a"] == pytest.approx(1.0) and d["value_b"] == pytest.approx(-1.0) and d["difference"] == pytest.approx(-2.0)
+
+
+def test_frozen_selection_contributions_never_reselect_and_a_repeated_player_moves_as_one_block():
+    rows = _cells_fixture()
+    contrib = ss.frozen_selection_contributions(rows, "rank_a", "rank_b", budget=2, flag_col="contributor_any")
+    per = contrib.set_index("player_id")
+    assert per.loc["P1", "hits_b"] == 0.0 and per.loc["P1", "hits_a"] == 1.5                    # 1 at 2020 + 0.5 in the all-tied 2021 cell
+    assert per.loc["P4", "hits_b"] == 0.0 and per.loc["P3", "hits_b"] == 0.0
+    b = ss.paired_selection_bootstrap(rows, "rank_a", "rank_b", budget=2, flag_col="contributor_any", draws=30, seed=3)
+    assert b["point"]["hits"] == pytest.approx(-3.0) and b["draws_requested"] == 30 and b["draws_finite"] == 30 and b["draws_rejected"] == 0
+    assert b["clusters"] == 4 and b["repeated_players"] == 4 and b["estimand"].startswith("frozen fixed-budget selection")
+    same = ss.paired_selection_bootstrap(rows, "rank_a", "rank_a", budget=2, flag_col="contributor_any", draws=30, seed=3)
+    assert same["point"]["hits"] == 0.0 and same["ci90"]["hits"] == [0.0, 0.0]
+
+
+def test_boundary_ties_keep_fractional_weights_inside_the_frozen_contributions():
+    rows = _cells_fixture()
+    rows.loc[(rows.origin == 2020) & (rows.player_id.isin(["P2", "P3"])), "rank_a"] = 2      # P2/P3 tied at the boundary of budget 2
+    contrib = ss.frozen_selection_contributions(rows[rows.origin == 2020], "rank_a", "rank_b", budget=2, flag_col="contributor_any")
+    per = contrib.set_index("player_id")
+    assert per.loc["P2", "hits_a"] == 0.5 and per.loc["P3", "hits_a"] == 0.0 and per.loc["P1", "hits_a"] == 1.0
+
+
+def test_cluster_extraction_is_positional_so_duplicate_index_labels_cannot_inflate_blocks():
+    rows = _cells_fixture()
+    rows.index = [0, 0, 1, 1, 2, 2, 3, 3]                                                      # duplicate labels
+    b = ss.paired_selection_bootstrap(rows, "rank_a", "rank_b", budget=2, flag_col="contributor_any", draws=20, seed=5)
+    assert b["rows"] == 8 and b["clusters"] == 4
+    r = ss.paired_rank_bootstrap(rows, "auc", "rank_a", "rank_b", draws=20, seed=5)
+    assert r["rows"] == 8 and r["clusters"] == 4 and r["draws_requested"] == 20 and "cells_joint" in r
+
+
+# ── root's CLI evidence checks: semantic bindings, finite JSON, run-id validity, nonproduction marks ──
+
+def test_json_conversion_turns_undefined_statistics_into_null_and_refuses_infinite_core_values():
+    out = ss.to_jsonable({"a": float("nan"), "b": {"c": [1.0, float("nan")]}, "d": np.float64(2.5), "e": np.int64(3)})
+    assert out == {"a": None, "b": {"c": [1.0, None]}, "d": 2.5, "e": 3}
+    json.dumps(out, allow_nan=False)
+    with pytest.raises(ss.StashSelectionError, match="infinite"):
+        ss.to_jsonable({"x": float("inf")})
+
+
+def test_run_id_must_be_a_bounded_timestamp_component():
+    assert ss.valid_run_id("20260101T000003Z") is True
+    for bad in ("../x", "20260101", "20260101T000003Z/extra", "latest"):
+        assert ss.valid_run_id(bad) is False
+
+
+def test_bindings_are_checked_semantically_not_just_hashed(tmp_path):
+    import subprocess
+    import sys
+    cohort_p, out_p, draft_p, hist_p = _real_shaped_inputs(tmp_path)
+    bindings = tmp_path / "bindings.json"
+    bindings.write_text(json.dumps({"history_sha256": "0" * 64, "cohort_sha256": "0" * 64, "outcomes_sha256": "0" * 64,
+                                    "target_identity": "0" * 64, "last_complete_season": 2025}))
+    manifest = tmp_path / "outcomes_manifest.json"
+    manifest.write_text(json.dumps({"target_identity": "1" * 64, "last_complete_season": 2025}))
+    cmd = [sys.executable, "scripts/dg177/run_stash_selection.py", "--history", str(hist_p), "--cohort", str(cohort_p),
+           "--outcomes", str(out_p), "--outcomes-manifest", str(manifest), "--draft", str(draft_p),
+           "--definitions", "docs/experiments/stash_selection_definitions_v3.json", "--bindings", str(bindings),
+           "--out-root", str(tmp_path / "runs"), "--run-id", "20260101T000005Z"]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    assert res.returncode == 1 and "binding" in res.stderr and not (tmp_path / "runs" / "20260101T000005Z").exists()
+    bad_id = subprocess.run([*cmd[:-1], "not-a-run-id", "--nonproduction"], capture_output=True, text=True)
+    assert bad_id.returncode == 1 and "run id" in bad_id.stderr

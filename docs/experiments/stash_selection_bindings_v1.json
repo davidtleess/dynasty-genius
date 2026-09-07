@@ -1,0 +1,11 @@
+{
+  "meaning": "semantic bindings of the stash-selection inputs to the ACCEPTED producers; the CLI refuses a production run whose captured bytes or target/cutoff do not match",
+  "history_sha256": "f4fe6644d3dd6e347b89d573eb05730b3bbda522355f648f7f0087eaf66aa1f1",
+  "history_source": "runs/20260906T195728Z/dg177_basic_horizons/historical_predictions.csv (accepted producer; corrected companion b73027d0\u2026)",
+  "cohort_sha256": "46e1fc01380b4ad768058dbe84ccdf807be056b451b9a46105cda8eab745d25e",
+  "outcomes_sha256": "199a48beb96a25f5dad50758b3f72b40a5d7d0cf2000f7cdaf2f411873c6ecb8",
+  "outcomes_manifest_sha256": "d3812d0d56b50971e98552fed4f791d3132eeffa7c242601e7c609285863ba18",
+  "target_identity": "049d2229c4ba06eececba66a083a777142f85ff0f459b0499912f49fa0ca3c6a",
+  "last_complete_season": 2025,
+  "draft_source_note": "draft_picks_full.parquet is declared by its own hash in the manifest; it has no accepted-producer binding"
+}

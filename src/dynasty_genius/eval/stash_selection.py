@@ -135,7 +135,7 @@ def candidates(cohort: pd.DataFrame, outcomes: pd.DataFrame, draft: pd.DataFrame
                                                                                           "short_cell": "origin_short_cell"}),
                 on=["position", "origin"], how="left")
     c["observed_history_seasons"] = pd.to_numeric(c["seasons_played"], errors="coerce")
-    c = c.merge(validated_draft(draft), on="player_id", how="left")
+    c = c.merge(validated_draft(draft, id_pattern=None), on="player_id", how="left")
     visible = c["draft_season"].notna() & (c["draft_season"] <= c["origin"])
     c["draft_visible"] = visible
     for col in ("draft_season", "draft_round", "draft_pick"):
@@ -337,11 +337,13 @@ def select_at_budget(rows: pd.DataFrame, rank_col: str, budget: int, flag_col: s
         k = min(int(budget), n)
         weight, boundary, fractional = selection_weights(g[rank_col].to_numpy(dtype=float), budget)
         hits = float((weight * flag).sum())
+        captured = float((weight * pts).sum())
         out.append({**dict(zip(CELL, key)), "ordering": rank_col, "budget": int(budget), "n": int(n), "picks": int(k),
-                    "hits": hits, "points_captured": float((weight * pts).sum()), "misses": float(flag.sum() - hits),
-                    "busts": float((weight * bust).sum()), "boundary_ties": boundary, "fractional_credit_applied": fractional})
-    return pd.DataFrame(out, columns=[*CELL, "ordering", "budget", "n", "picks", "hits", "points_captured", "misses", "busts",
-                                      "boundary_ties", "fractional_credit_applied"])
+                    "hits": hits, "points_captured": captured, "points_per_slot": captured / k if k else float("nan"),
+                    "misses": float(flag.sum() - hits), "busts": float((weight * bust).sum()), "boundary_ties": boundary,
+                    "fractional_credit_applied": fractional})
+    return pd.DataFrame(out, columns=[*CELL, "ordering", "budget", "n", "picks", "hits", "points_captured", "points_per_slot", "misses",
+                                      "busts", "boundary_ties", "fractional_credit_applied"])
 
 
 def _pooled(cells: pd.DataFrame) -> dict:
@@ -359,7 +361,9 @@ def compare_orderings(rows: pd.DataFrame, ordering_cols, budgets=(2, 4, 8), flag
         sel = {str(b): select_at_budget(rows, col, b, flag_col) for b in budgets}
         pooled[col] = {"spearman": _pooled(sp), "auc": _pooled(auc),
                        "selection": {b: {"cells": int(len(s)), "picks": int(s["picks"].sum()), "hits": float(s["hits"].sum()),
-                                         "points_captured": float(s["points_captured"].sum()), "misses": float(s["misses"].sum()),
+                                         "points_captured": float(s["points_captured"].sum()),
+                                         "points_per_slot": float(s["points_captured"].sum() / s["picks"].sum()) if s["picks"].sum() else float("nan"),
+                                         "misses": float(s["misses"].sum()),
                                          "busts": float(s["busts"].sum()), "boundary_ties": int(s["boundary_ties"].sum()),
                                          "cells_with_fractional_credit": int(s["fractional_credit_applied"].sum())}
                                      for b, s in sel.items()}}
@@ -404,15 +408,31 @@ def contributor_flags(outcome_rows: pd.DataFrame, bars: pd.DataFrame, *, positio
     return (appeared & (pd.to_numeric(outcome_rows["points"], errors="coerce") >= bar) & bar.notna()).astype(bool)
 
 
-def validated_draft(draft: pd.DataFrame) -> pd.DataFrame:
-    """One verified draft row per gsis id; two rows for one id with different facts refuse (never silently pick one)."""
+GSIS_PATTERN = r"^00-00\d{5}$"
+EXCL_DRAFT_CONFLICT = "draft_conflict"
+
+
+def validated_draft(draft: pd.DataFrame, *, id_pattern: str | None = GSIS_PATTERN) -> pd.DataFrame:
+    """One verified draft row per gsis id. An id with two different draft facts is never resolved by picking
+    one: it is dropped here and listed in `.attrs["conflicting_ids"]` so the ledger can exclude that player
+    with a reason. With `id_pattern`, rows whose id does not have that shape are dropped and counted in
+    `.attrs["invalid_ids"]` (the source carries foreign ids in the gsis column); the ledger joins on the
+    cohort's own ids and passes None."""
+    empty = pd.DataFrame(columns=["player_id", "draft_season", "draft_round", "draft_pick"])
     if not len(draft):
-        return pd.DataFrame(columns=["player_id", "draft_season", "draft_round", "draft_pick"])
-    d = draft.dropna(subset=["gsis_id"])[["gsis_id", "season", "round", "pick"]].drop_duplicates()
-    if d.duplicated("gsis_id").any():
-        ids = sorted(d.loc[d.duplicated("gsis_id"), "gsis_id"].unique())[:3]
-        raise StashSelectionError(f"conflicting draft rows for the same gsis id (e.g. {ids}); a conflict is never resolved by picking one")
-    return d.rename(columns={"gsis_id": "player_id", "season": "draft_season", "round": "draft_round", "pick": "draft_pick"})
+        empty.attrs.update({"conflicting_ids": [], "invalid_ids": 0})
+        return empty
+    d = draft.dropna(subset=["gsis_id"])[["gsis_id", "season", "round", "pick"]].copy()
+    d["gsis_id"] = d["gsis_id"].astype(str)
+    valid = d["gsis_id"].str.match(id_pattern) if id_pattern else pd.Series(True, index=d.index)
+    invalid = int((~valid).sum())
+    d = d[valid].drop_duplicates()
+    dup = d["gsis_id"].duplicated(keep=False)
+    conflicting = sorted(d.loc[dup, "gsis_id"].unique())
+    out = d[~dup].rename(columns={"gsis_id": "player_id", "season": "draft_season", "round": "draft_round", "pick": "draft_pick"})
+    out = out.reset_index(drop=True)
+    out.attrs.update({"conflicting_ids": conflicting, "invalid_ids": invalid})
+    return out
 
 
 def primary_cohort_ledger(cohort: pd.DataFrame, outcomes: pd.DataFrame, draft: pd.DataFrame, *, definitions: dict, bars: dict,
@@ -426,7 +446,9 @@ def primary_cohort_ledger(cohort: pd.DataFrame, outcomes: pd.DataFrame, draft: p
     c = cohort[(pd.to_numeric(cohort["feature_season"], errors="coerce") == int(origin)) & cohort["position"].isin(bars)].copy()
     c["origin"] = int(origin)
     c["origin_points"], c["origin_label_source"] = _window_points(c, outcomes, "feature_season")
-    c = c.merge(validated_draft(draft), on="player_id", how="left")
+    vd = validated_draft(draft, id_pattern=None)
+    conflicting = set(vd.attrs.get("conflicting_ids", []))
+    c = c.merge(vd, on="player_id", how="left")
     visible = c["draft_season"].notna() & (c["draft_season"] <= c["origin"])
     c["draft_visible"] = visible
     for col in ("draft_season", "draft_round", "draft_pick"):
@@ -439,6 +461,8 @@ def primary_cohort_ledger(cohort: pd.DataFrame, outcomes: pd.DataFrame, draft: p
     for _, r in c.iterrows():
         if "identity_status" in c and not pd.isna(r.get("identity_status")) and r["identity_status"] != "resolved":
             verdicts.append((EXCL_IDENTITY, 0, 0))
+        elif r["player_id"] in conflicting:
+            verdicts.append((EXCL_DRAFT_CONFLICT, 0, 0))
         elif not bool(r["draft_visible"]):
             verdicts.append((EXCL_NO_DRAFT, 0, 0))
         elif not (1 <= int(r["nfl_years_since_draft"]) <= 3):
@@ -479,6 +503,9 @@ def _history_pivot(history: pd.DataFrame, horizon: int) -> pd.DataFrame:
     """Frozen forecasts at one horizon keyed by (player_id, position, feature_season). Ambiguous duplicate
     identities refuse; forecast_season must equal feature_season + horizon with finite integral years."""
     j = int(horizon)
+    cols = {f"policy_e_points_year{j}": f"policy_{j}", f"baseline_e_points_year{j}": f"persistence_{j}"}
+    if any(c not in history.columns for c in cols):
+        return pd.DataFrame(columns=["player_id", "position", "origin", *cols.values()])
     h = history[pd.to_numeric(history["horizon"], errors="coerce") == j].copy()
     for col in ("feature_season", "forecast_season"):
         vals = pd.to_numeric(h[col], errors="coerce")
@@ -492,7 +519,6 @@ def _history_pivot(history: pd.DataFrame, horizon: int) -> pd.DataFrame:
     if h.duplicated(keys).any():
         n = int(h.duplicated(keys).sum())
         raise StashSelectionError(f"{n} duplicate forecast identities at horizon {j} on (player_id, position, feature_season)")
-    cols = {f"policy_e_points_year{j}": f"policy_{j}", f"baseline_e_points_year{j}": f"persistence_{j}"}
     return h[[*keys, *cols]].rename(columns=cols).rename(columns={"feature_season": "origin"})
 
 
@@ -674,3 +700,148 @@ def build_manifest(*, definitions: dict, sources: dict, launch: dict, counts: di
         "bars_override_used": bool(bars_override_used), "origins_override": origins_override,
         "year5_disclosure": "the frozen year-5 horizon exists for origin 2020 only (one-origin evidence)",
     }
+
+
+# ── root's bootstrap review: joint support, frozen selection contributions, positional clusters ─
+
+def _cell_values(rows: pd.DataFrame, metric: str, col: str, flag_col: str) -> pd.DataFrame:
+    if metric == "spearman":
+        return spearman_by_cell(rows, col)[[*CELL, "n", "value"]]
+    if metric == "auc":
+        return auc_by_cell(rows, col, flag_col)[[*CELL, "n", "value"]]
+    raise StashSelectionError(f"unknown rank metric {metric!r}")
+
+
+def paired_pooled_difference(rows: pd.DataFrame, metric: str, ordering_a: str, ordering_b: str, flag_col: str = "contributor_any") -> dict:
+    """Cell statistics for both orderings on the JOINT finite support (cells where both are defined), then
+    n-weighted pooling and the difference b − a. Excluded cells and their players are disclosed."""
+    a = _cell_values(rows, metric, ordering_a, flag_col).rename(columns={"value": "value_a"})
+    b = _cell_values(rows, metric, ordering_b, flag_col).rename(columns={"value": "value_b"})
+    m = a.merge(b[[*CELL, "value_b"]], on=CELL, how="inner")
+    joint = m[np.isfinite(m["value_a"].to_numpy(dtype=float)) & np.isfinite(m["value_b"].to_numpy(dtype=float))]
+    excluded = m[~m.index.isin(joint.index)]
+    n = float(joint["n"].sum())
+    va = float((joint["value_a"] * joint["n"]).sum() / n) if n else float("nan")
+    vb = float((joint["value_b"] * joint["n"]).sum() / n) if n else float("nan")
+    players_excluded = int(rows.merge(excluded[CELL], on=CELL)["player_id"].nunique()) if len(excluded) else 0
+    return {"metric": metric, "ordering_a": ordering_a, "ordering_b": ordering_b, "cells_joint": int(len(joint)),
+            "cells_excluded": int(len(excluded)), "players_excluded": players_excluded, "rows_joint": int(n),
+            "value_a": va, "value_b": vb, "difference": vb - va if n else float("nan")}
+
+
+def _clusters(rows: pd.DataFrame) -> tuple[pd.DataFrame, np.ndarray, dict]:
+    """Positional cluster membership: duplicate index labels can never inflate a block."""
+    r = rows.reset_index(drop=True)
+    players = r["player_id"].to_numpy()
+    keys = np.array(sorted(set(players)), dtype=object)
+    members = {k: np.flatnonzero(players == k) for k in keys}
+    return r, keys, members
+
+
+def paired_rank_bootstrap(rows: pd.DataFrame, metric: str, ordering_a: str, ordering_b: str, *, draws: int, seed: int,
+                          flag_col: str = "contributor_any") -> dict:
+    """Player-cluster bootstrap of the joint-support pooled difference (cell statistics are recomputed on
+    each resample, always on the joint support of that resample). Draw counts are reported as requested,
+    finite and rejected (non-finite)."""
+    r, keys, members = _clusters(rows)
+    point = paired_pooled_difference(r, metric, ordering_a, ordering_b, flag_col)
+    rng = np.random.default_rng(seed)
+    samples = []
+    for _ in range(int(draws)):
+        picked = rng.choice(keys, size=len(keys), replace=True)
+        idx = np.concatenate([members[k] for k in picked])
+        samples.append(paired_pooled_difference(r.iloc[idx].reset_index(drop=True), metric, ordering_a, ordering_b, flag_col)["difference"])
+    arr = np.asarray(samples, dtype=float)
+    finite = arr[np.isfinite(arr)]
+    lo, hi = (float(v) for v in np.percentile(finite, [5, 95])) if finite.size else (float("nan"), float("nan"))
+    counts = r.groupby("player_id")["origin"].nunique()
+    return {**point, "point": point["difference"], "ci90": [lo, hi], "draws_requested": int(draws), "draws_finite": int(finite.size),
+            "draws_rejected": int(len(arr) - finite.size), "seed": int(seed), "rows": int(len(r)), "clusters": int(len(keys)),
+            "repeated_players": int((counts > 1).sum()), "conditional_on": CONDITIONAL_ON,
+            "estimand": "joint-support pooled rank statistic difference under player resampling"}
+
+
+def frozen_selection_contributions(rows: pd.DataFrame, ordering_a: str, ordering_b: str, *, budget: int,
+                                   flag_col: str = "contributor_any", points_col: str = "realized_points") -> pd.DataFrame:
+    """Freeze each strategy's fractional selection weights on the ORIGINAL cells, then sum every player's
+    paired contributions (weighted hits, points and pick weight) across the origins he appears in."""
+    r = rows.reset_index(drop=True)
+    r["_w_a"] = 0.0
+    r["_w_b"] = 0.0
+    for _, g in r.groupby(CELL):
+        for col, name in ((ordering_a, "_w_a"), (ordering_b, "_w_b")):
+            gs = g.sort_values(col)
+            w, _, _ = selection_weights(gs[col].to_numpy(dtype=float), budget)
+            r.loc[gs.index, name] = w
+    flag = r[flag_col].astype(bool).astype(float)
+    pts = pd.to_numeric(r[points_col], errors="coerce")
+    per = pd.DataFrame({"player_id": r["player_id"], "hits_a": r["_w_a"] * flag, "hits_b": r["_w_b"] * flag,
+                        "points_a": r["_w_a"] * pts, "points_b": r["_w_b"] * pts, "picks_a": r["_w_a"], "picks_b": r["_w_b"],
+                        "origins": 1})
+    return per.groupby("player_id", as_index=False).sum()
+
+
+def paired_selection_bootstrap(rows: pd.DataFrame, ordering_a: str, ordering_b: str, *, budget: int, flag_col: str = "contributor_any",
+                               points_col: str = "realized_points", draws: int, seed: int) -> dict:
+    """Uncertainty of the realized fixed-budget shortlist difference b − a: selections are frozen on the original
+    cells (never re-selected on a resample, so a duplicated player can never spend two slots), and the paired
+    per-player contributions are player-cluster bootstrapped. Each draw sums as many clusters as the original,
+    so totals stay on the original scale; the point estimate is the original selection's difference."""
+    per = frozen_selection_contributions(rows, ordering_a, ordering_b, budget=budget, flag_col=flag_col, points_col=points_col)
+    d_hits = (per["hits_b"] - per["hits_a"]).to_numpy(dtype=float)
+    d_pts = (per["points_b"] - per["points_a"]).to_numpy(dtype=float)
+    if not (np.isfinite(d_hits).all() and np.isfinite(d_pts).all()):
+        raise StashSelectionError("a frozen selection contribution is not finite")
+    n = len(per)
+    rng = np.random.default_rng(seed)
+    hits_s, pts_s = [], []
+    for _ in range(int(draws)):
+        idx = rng.integers(0, n, size=n) if n else np.array([], dtype=int)
+        hits_s.append(float(d_hits[idx].sum()))
+        pts_s.append(float(d_pts[idx].sum()))
+    def ci(vals):
+        arr = np.asarray(vals, dtype=float)
+        fin = arr[np.isfinite(arr)]
+        return ([float(v) for v in np.percentile(fin, [5, 95])] if fin.size else [float("nan"), float("nan")]), int(fin.size)
+    ci_h, fin_h = ci(hits_s)
+    ci_p, fin_p = ci(pts_s)
+    return {"point": {"hits": float(d_hits.sum()), "points": float(d_pts.sum())}, "ci90": {"hits": ci_h, "points": ci_p},
+            "draws_requested": int(draws), "draws_finite": min(fin_h, fin_p), "draws_rejected": int(draws) - min(fin_h, fin_p),
+            "seed": int(seed), "rows": int(len(rows)), "clusters": int(n), "repeated_players": int((per["origins"] > 1).sum()),
+            "budget": int(budget), "conditional_on": CONDITIONAL_ON,
+            "estimand": "frozen fixed-budget selection on the original cells; player-cluster bootstrap of paired per-player "
+                        "contributions; each draw sums the original number of clusters so totals are on the original scale",
+            "not_claimed": "ranking-selection, future-season or model-fit uncertainty"}
+
+
+# ── finite JSON and run ids ──────────────────────────────────────────────────────────────────
+
+def to_jsonable(obj):
+    """Recursive conversion: NaN → null (an undefined statistic; its support fields sit beside it), numpy
+    scalars → Python, infinite core values refuse."""
+    if isinstance(obj, dict):
+        return {str(k): to_jsonable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [to_jsonable(v) for v in obj]
+    if isinstance(obj, (np.integer,)):
+        return int(obj)
+    if isinstance(obj, (float, np.floating)):
+        f = float(obj)
+        if np.isnan(f):
+            return None
+        if np.isinf(f):
+            raise StashSelectionError("an infinite core value cannot be serialized; it is a refusal, not a missing value")
+        return f
+    if isinstance(obj, (np.bool_,)):
+        return bool(obj)
+    if isinstance(obj, pd.DataFrame):
+        return to_jsonable(obj.to_dict("records"))
+    return obj
+
+
+RUN_ID_PATTERN = r"^\d{8}T\d{6}Z$"
+
+
+def valid_run_id(run_id: str) -> bool:
+    import re
+    return bool(re.match(RUN_ID_PATTERN, str(run_id)))
