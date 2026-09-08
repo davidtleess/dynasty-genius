@@ -271,13 +271,73 @@
       "raw_radius_values": 0,
       "raw_font_size_values": 0,
       "non_token_font_families": 0
+    },
+    {
+      "path": "workspace/Workspace.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 19,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 0,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "workspace/WorkspaceBoard.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 12,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 0,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "workspace/WorkspaceCompare.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 4,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 0,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "workspace/WorkspaceFrame.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 17,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 0,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "workspace/WorkspaceHistory.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 9,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 0,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "workspace/WorkspacePlayerPanel.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 4,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 0,
+      "non_token_font_families": 0
     }
   ],
   "totals": {
     "raw_hex": 0,
     "raw_oklch": 44,
     "raw_rgb": 0,
-    "raw_spacing_values": 108,
+    "raw_spacing_values": 173,
     "raw_radius_values": 12,
     "raw_font_size_values": 39,
     "non_token_font_families": 0

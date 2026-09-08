@@ -251,14 +251,68 @@
       "elevation_consumers": 0,
       "row_treatment_selectors": 11,
       "card_treatment_selectors": 5
+    },
+    {
+      "path": "workspace/Workspace.css",
+      "focus_visible_selectors": 0,
+      "focus_token_consumers": 0,
+      "hover_selectors": 0,
+      "elevation_consumers": 0,
+      "row_treatment_selectors": 0,
+      "card_treatment_selectors": 0
+    },
+    {
+      "path": "workspace/WorkspaceBoard.css",
+      "focus_visible_selectors": 1,
+      "focus_token_consumers": 1,
+      "hover_selectors": 1,
+      "elevation_consumers": 0,
+      "row_treatment_selectors": 10,
+      "card_treatment_selectors": 0
+    },
+    {
+      "path": "workspace/WorkspaceCompare.css",
+      "focus_visible_selectors": 0,
+      "focus_token_consumers": 0,
+      "hover_selectors": 0,
+      "elevation_consumers": 0,
+      "row_treatment_selectors": 0,
+      "card_treatment_selectors": 0
+    },
+    {
+      "path": "workspace/WorkspaceFrame.css",
+      "focus_visible_selectors": 2,
+      "focus_token_consumers": 1,
+      "hover_selectors": 0,
+      "elevation_consumers": 0,
+      "row_treatment_selectors": 3,
+      "card_treatment_selectors": 0
+    },
+    {
+      "path": "workspace/WorkspaceHistory.css",
+      "focus_visible_selectors": 0,
+      "focus_token_consumers": 0,
+      "hover_selectors": 0,
+      "elevation_consumers": 0,
+      "row_treatment_selectors": 0,
+      "card_treatment_selectors": 0
+    },
+    {
+      "path": "workspace/WorkspacePlayerPanel.css",
+      "focus_visible_selectors": 2,
+      "focus_token_consumers": 2,
+      "hover_selectors": 1,
+      "elevation_consumers": 0,
+      "row_treatment_selectors": 0,
+      "card_treatment_selectors": 0
     }
   ],
   "totals": {
-    "focus_visible_selectors": 21,
-    "focus_token_consumers": 18,
-    "hover_selectors": 10,
+    "focus_visible_selectors": 26,
+    "focus_token_consumers": 22,
+    "hover_selectors": 12,
     "elevation_consumers": 0,
-    "row_treatment_selectors": 59,
+    "row_treatment_selectors": 72,
     "card_treatment_selectors": 31
   }
 }

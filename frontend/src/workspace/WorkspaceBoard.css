@@ -1,0 +1,271 @@
+/* DG-188 — the workspace board. Dense rows on the desk, two-line cards on a phone.
+ *
+ * The two rank columns wear their own lane hue (model blue, market amber) so the eye can tell whose opinion it is
+ * reading, and the header carries each label exactly once. Colour is never the only channel: every row button's
+ * accessible name spells out both ranks and the direction in words. */
+
+.dg-workspace-board {
+  background: var(--dg-surface);
+  border: 1px solid var(--dg-border);
+  border-radius: var(--dg-radius-card);
+  color: var(--dg-text);
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* --- the column strip ------------------------------------------------------------------------ */
+
+.dg-workspace-board__head,
+.dg-workspace-board__row {
+  align-items: center;
+  display: grid;
+  gap: var(--dg-space-3);
+  grid-template-areas: "player ours market gap";
+  grid-template-columns: minmax(186px, 1fr) 8rem 8rem 7rem;
+}
+
+.dg-workspace-board__head {
+  background: var(--dg-chrome-surface);
+  border-bottom: 1px solid var(--dg-border-strong);
+  color: var(--dg-text-muted);
+  font-family: var(--dg-font-sans);
+  font-size: var(--dg-text-sm);
+  font-weight: var(--dg-weight-semibold);
+  letter-spacing: 0.05em;
+  padding: var(--dg-space-2) var(--dg-space-3);
+  text-transform: uppercase;
+}
+
+.dg-workspace-board__head-ours {
+  color: var(--dg-model);
+  grid-area: ours;
+}
+
+.dg-workspace-board__head-player {
+  grid-area: player;
+}
+
+.dg-workspace-board__head-market {
+  color: var(--dg-market);
+  grid-area: market;
+  text-align: right;
+}
+
+.dg-workspace-board__head-gap {
+  grid-area: gap;
+  text-align: right;
+}
+
+/* --- the rows --------------------------------------------------------------------------------- */
+
+.dg-workspace-board__rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dg-workspace-board__item {
+  border-bottom: 1px solid var(--dg-border);
+  display: grid;
+}
+
+.dg-workspace-board__item:last-child {
+  border-bottom: 0;
+}
+
+.dg-workspace-board__row {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  min-height: var(--dg-space-6);
+  padding: var(--dg-space-2) var(--dg-space-3);
+  text-align: left;
+  transition: background var(--dg-duration-fast-02) var(--dg-ease-productive-standard);
+}
+
+.dg-workspace-board__row:hover,
+.dg-workspace-board__row[aria-expanded="true"] {
+  background: var(--dg-surface-raised);
+}
+
+.dg-workspace-board__row:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}
+
+.dg-workspace-board__player {
+  grid-area: player;
+  min-width: 0;
+}
+
+.dg-workspace-board__ours,
+.dg-workspace-board__market,
+.dg-workspace-board__gap {
+  font-family: var(--dg-font-mono);
+  font-size: var(--dg-text-base);
+  font-variant-numeric: tabular-nums;
+}
+
+.dg-workspace-board__ours {
+  color: var(--dg-model);
+  font-weight: var(--dg-weight-semibold);
+  grid-area: ours;
+}
+
+.dg-workspace-board__market {
+  color: var(--dg-market);
+  grid-area: market;
+  text-align: right;
+}
+
+.dg-workspace-board__gap {
+  font-weight: var(--dg-weight-semibold);
+  grid-area: gap;
+  text-align: right;
+}
+
+/* A price the capture did not carry. Hatched and dashed so it never reads as a number, let alone as a zero. */
+.dg-workspace-board__no-price {
+  border: 1px dashed var(--dg-border-strong);
+  border-radius: var(--dg-radius-control);
+  color: var(--dg-text-muted);
+  font-family: var(--dg-font-sans);
+  font-size: var(--dg-text-sm);
+  padding: var(--dg-space-1) var(--dg-space-2);
+  white-space: nowrap;
+}
+
+/* --- the designed empty state ------------------------------------------------------------------ */
+
+.dg-workspace-board--empty {
+  display: grid;
+  gap: var(--dg-space-2);
+  padding: var(--dg-space-5);
+}
+
+.dg-workspace-board__empty-title {
+  font-family: var(--dg-font-sans);
+  font-size: var(--dg-text-lg);
+  font-weight: var(--dg-weight-semibold);
+  margin: 0;
+}
+
+.dg-workspace-board__empty-note {
+  color: var(--dg-text-muted);
+  margin: 0;
+}
+
+/* --- the phone: two-line cards, no sideways scrolling ------------------------------------------- */
+
+@media (max-width: 640px) {
+  .dg-workspace-board__head {
+    display: none;
+  }
+
+  .dg-workspace-board__row {
+    grid-template-areas:
+      "player player player"
+      "ours market gap";
+    grid-template-columns: auto auto 1fr;
+    row-gap: var(--dg-space-2);
+  }
+
+  .dg-workspace-board__market {
+    text-align: left;
+  }
+
+  /* The strip is gone, so each number reintroduces its own label. Generated content, because the row button's
+     accessible name already carries the same words for assistive technology. */
+  .dg-workspace-board__ours::before,
+  .dg-workspace-board__market::before {
+    font-family: var(--dg-font-sans);
+    font-size: var(--dg-text-sm);
+    font-weight: var(--dg-weight-semibold);
+    letter-spacing: 0.05em;
+  }
+
+  .dg-workspace-board__ours::before {
+    content: "Ours ";
+  }
+
+  .dg-workspace-board__market::before {
+    content: "Market ";
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dg-workspace-board__row {
+    transition: none;
+  }
+}
+
+.dg-workspace-board__head-ours,
+.dg-workspace-board__ours {
+  text-align: right;
+}
+@media (max-width: 640px) {
+  .dg-workspace-board {
+    background: transparent;
+    border: 0;
+  }
+  .dg-workspace-board__rows {
+    display: grid;
+    gap: 10px;
+  }
+  .dg-workspace-board__item {
+    border: 1px solid var(--dg-border);
+    border-radius: var(--dg-radius-card);
+    background: var(--dg-surface);
+    overflow: hidden;
+  }
+  .dg-workspace-board__item:last-child {
+    border-bottom: 1px solid var(--dg-border);
+  }
+  .dg-workspace-board__row {
+    grid-template-areas: "player player" "ours market" "gap gap";
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 12px;
+    gap: 10px;
+  }
+  .dg-workspace-board__ours,
+  .dg-workspace-board__market {
+    text-align: left;
+    padding: 8px 10px;
+    border-left: 3px solid var(--dg-model);
+    background: var(--dg-bg);
+    font-size: var(--dg-text-lg);
+  }
+  .dg-workspace-board__market {
+    border-left-color: var(--dg-market);
+  }
+  .dg-workspace-board__ours::before,
+  .dg-workspace-board__market::before {
+    display: block;
+    margin-bottom: 3px;
+  }
+  .dg-workspace-board__ours::before {
+    content: "Our rank";
+  }
+  .dg-workspace-board__market::before {
+    content: "Market rank";
+  }
+  .dg-workspace-board__gap {
+    text-align: left;
+    font-size: var(--dg-text-sm);
+  }
+  .dg-workspace-board__gap::before {
+    content: "Gap in places ";
+    color: var(--dg-text-muted);
+    font-family: var(--dg-font-sans);
+  }
+}
+
+.dg-workspace-board__forecast {
+  display: block;
+  margin-top: 4px;
+  font: 400 var(--dg-text-sm) / 1.4 var(--dg-font-sans);
+  color: var(--dg-text-muted);
+}

@@ -1,0 +1,95 @@
+import type { MarketRankPlayer, MarketRanksAvailable } from "../lib/api";
+import type {
+  ComparisonPayload,
+  ComparisonPlayer,
+} from "../research/comparisonHelpers";
+export const rankRow = (id: string, owned = false): MarketRankPlayer => ({
+  sleeper_id: id,
+  name: `Player ${id}`,
+  position: "QB",
+  team: "MIN",
+  on_roster: owned,
+  league_ownership: owned ? "Your roster" : "Rostered in your league",
+  taxi_or_reserve: false,
+  model_value: 0,
+  market_value: 20,
+  our_rank: { start: 2, end: 3, total: 3 },
+  market_rank: { start: 2, end: 2, total: 3 },
+  model_rank_all: { start: 2, end: 3, total: 3 },
+  market_rank_published: 2,
+  comparison: { direction: "overlap", gap_min: -1, gap_max: 0 },
+  missing_reason: null,
+  model_zero_tie: true,
+  seasons: [],
+  reference_player: null,
+});
+export const ranks: MarketRanksAvailable = {
+  status: "available",
+  source: {
+    report_run: "run",
+    report_sha256: "hash",
+    market_sha256: "market",
+    league_sha256: "league",
+    forecast_date: "2026-09-06",
+    market_as_of: "2026-09-06T13:00:00Z",
+    ownership_as_of: "2026-09-06T13:01:00Z",
+  },
+  basis: {
+    years: [2026, 2027],
+    season_weights: [1, 1],
+    summary: "Two seasons above replacement",
+    market_proxy_note: "FantasyCalc is the broad market.",
+    scoring_note: "Full PPR",
+  },
+  coverage: {
+    model_players: 3,
+    market_players: 3,
+    market_picks: 0,
+    common_players: 3,
+    total_players: 3,
+    roster_players: 1,
+    roster_common_players: 1,
+  },
+  rows: [rankRow("owned", true), rankRow("other-manager"), rankRow("free")],
+};
+export const forecast = (id: string, population = "default"): ComparisonPlayer => ({
+  sleeper_id: id,
+  name: `Player ${id}`,
+  position: "QB",
+  team: "MIN",
+  population,
+  status: "active",
+  now_points: 0,
+  future_points: 0,
+  seasons: [
+    { season: 2026, points: 0, estimate_class: null },
+    { season: 2027, points: 0, estimate_class: null },
+  ],
+  starting_estimate: false,
+  missing_reason: null,
+  evidence_note: "Accepted forecast",
+});
+export const comparison: ComparisonPayload = {
+  source: {
+    report_run: "run",
+    report_sha256: "hash",
+    catalog_run: "catalog",
+    ownership_as_of: ranks.source.ownership_as_of,
+    nfl_status_as_of: "2026-09-06",
+  },
+  forecast_years: [2026, 2027],
+  future_years: [2027],
+  scoring_note: "Full PPR",
+  roster: [forecast("owned", "owned")],
+  available: [
+    forecast("free"),
+    forecast("cut", "cut"),
+    {
+      ...forecast("missing"),
+      now_points: null,
+      future_points: null,
+      seasons: [],
+      missing_reason: "No forecast",
+    },
+  ],
+};

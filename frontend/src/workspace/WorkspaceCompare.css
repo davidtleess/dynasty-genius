@@ -1,0 +1,150 @@
+/* DG-187 workspace compare — the app's tokens only; no raw colours, no verdict hues.
+   The lane hues say whose number a rank is (ours blue, the market's amber) and carry no judgement.
+   Phone-first: the pickers stack, the two players stack, and nothing pans sideways. */
+.dg-workspace-compare {
+  display: grid;
+  gap: var(--dg-space-4, 1rem);
+  min-width: 0;
+}
+.dg-workspace-compare > * {
+  min-width: 0;
+}
+.dg-workspace-compare__head {
+  display: grid;
+  gap: var(--dg-space-1, 0.25rem);
+}
+.dg-workspace-compare__title {
+  margin: 0;
+  font-family: var(--dg-font-display);
+  font-size: var(--dg-text-2xl);
+  font-weight: var(--dg-weight-semibold);
+  line-height: var(--dg-leading-tight);
+}
+.dg-workspace-compare__lede {
+  margin: 0;
+  max-width: 76ch;
+  color: var(--dg-text-muted);
+  line-height: var(--dg-leading-normal);
+}
+
+.dg-workspace-compare__pickers {
+  display: grid;
+  gap: var(--dg-space-3, 0.75rem);
+  grid-template-columns: minmax(0, 1fr);
+}
+.dg-workspace-compare__picker {
+  display: grid;
+  gap: var(--dg-space-1, 0.25rem);
+  min-width: 0;
+}
+.dg-workspace-compare__picker-label,
+.dg-workspace-compare__rank-label,
+.dg-workspace-compare__total-label,
+.dg-workspace-compare__meta,
+.dg-workspace-compare__note,
+.dg-workspace-compare__caveat,
+.dg-workspace-compare__verdict-title {
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+.dg-workspace-compare__select {
+  font: inherit;
+  width: 100%;
+  min-width: 0;
+  padding: var(--dg-space-1, 0.25rem) var(--dg-space-2, 0.5rem);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: var(--dg-radius-control);
+  background: var(--dg-surface);
+  color: inherit;
+}
+
+.dg-workspace-compare__sides,
+.dg-workspace-compare__verdicts {
+  display: grid;
+  gap: var(--dg-space-3, 0.75rem);
+  grid-template-columns: minmax(0, 1fr);
+}
+.dg-workspace-compare__side,
+.dg-workspace-compare__verdict {
+  display: grid;
+  gap: var(--dg-space-2, 0.5rem);
+  align-content: start;
+  padding: var(--dg-space-3, 0.75rem);
+  border: 1px solid var(--dg-border);
+  border-radius: var(--dg-radius-card);
+  background: var(--dg-surface);
+  min-width: 0;
+}
+.dg-workspace-compare__who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--dg-space-1, 0.25rem) var(--dg-space-2, 0.5rem);
+  min-width: 0;
+}
+.dg-workspace-compare__name {
+  font-weight: var(--dg-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.dg-workspace-compare__ranks,
+.dg-workspace-compare__totals {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--dg-space-2, 0.5rem);
+}
+.dg-workspace-compare__rank,
+.dg-workspace-compare__total {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+.dg-workspace-compare__rank-value {
+  font-family: var(--dg-font-display);
+  font-size: var(--dg-text-xl);
+  font-weight: var(--dg-weight-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--dg-leading-tight);
+}
+.dg-workspace-compare__total-value {
+  font-family: var(--dg-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+/* Whose reading this is — identity of the lane, never a judgement about the player. */
+.dg-workspace-compare__rank[data-lane="model"] .dg-workspace-compare__rank-label {
+  color: var(--dg-model-emphasis);
+}
+.dg-workspace-compare__rank[data-lane="market"] .dg-workspace-compare__rank-label {
+  color: var(--dg-market-emphasis);
+}
+.dg-workspace-compare__disagreement {
+  margin: 0;
+  font-weight: var(--dg-weight-medium);
+  overflow-wrap: anywhere;
+}
+.dg-workspace-compare__note,
+.dg-workspace-compare__caveat,
+.dg-workspace-compare__verdict-body {
+  margin: 0;
+  line-height: var(--dg-leading-normal);
+  overflow-wrap: anywhere;
+}
+.dg-workspace-compare__verdict-title {
+  font-weight: var(--dg-weight-semibold);
+}
+.dg-workspace-compare__notice {
+  margin: 0;
+  border-inline-start: 3px solid var(--dg-border-strong);
+  padding-inline-start: var(--dg-space-3, 0.75rem);
+  line-height: var(--dg-leading-normal);
+  max-width: 76ch;
+}
+
+/* Desktop: the pickers sit side by side, and so do the two players and the two verdicts. */
+@media (min-width: 48rem) {
+  .dg-workspace-compare__pickers,
+  .dg-workspace-compare__sides,
+  .dg-workspace-compare__verdicts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

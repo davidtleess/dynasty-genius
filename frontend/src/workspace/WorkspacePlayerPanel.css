@@ -1,0 +1,283 @@
+/* DG-188 — the expanded player panel.
+ *
+ * The one graphic here places each rank INTERVAL on its own population's axis. It is not a score bar: a wide mark
+ * means a wide tie, which is a fact about how little the model separates those players, and a price difference is
+ * never drawn because our number and the market's are not in the same units.
+ *
+ * The four ideas are hairline-separated columns rather than four identical cards — the panel is already a surface,
+ * and boxing four boxes inside it would be the card-grid reflex the design system rejects. */
+
+.dg-workspace-panel {
+  background: var(--dg-surface-raised);
+  border-top: 1px solid var(--dg-border-strong);
+  color: var(--dg-text);
+  display: grid;
+  gap: var(--dg-space-4);
+  padding: var(--dg-space-4);
+}
+
+.dg-workspace-panel p {
+  line-height: var(--dg-leading-normal);
+  margin: 0;
+  max-width: 68ch;
+}
+
+/* --- the answer, first ------------------------------------------------------------------------- */
+
+.dg-workspace-panel__answer {
+  display: grid;
+  gap: var(--dg-space-2);
+}
+
+.dg-workspace-panel__lanes {
+  display: grid;
+  gap: var(--dg-space-2);
+}
+
+.dg-workspace-panel__lane {
+  align-items: center;
+  display: grid;
+  gap: var(--dg-space-3);
+  grid-template-columns: 4.5rem minmax(0, 1fr) 7rem;
+}
+
+.dg-workspace-panel__lane-label {
+  font-family: var(--dg-font-sans);
+  font-size: var(--dg-text-sm);
+  font-weight: var(--dg-weight-semibold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.dg-workspace-panel__lane-rank {
+  font-family: var(--dg-font-mono);
+  font-size: var(--dg-text-lg);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.dg-workspace-panel__lane--ours .dg-workspace-panel__lane-label,
+.dg-workspace-panel__lane--ours .dg-workspace-panel__lane-rank {
+  color: var(--dg-model);
+}
+
+.dg-workspace-panel__lane--market .dg-workspace-panel__lane-label,
+.dg-workspace-panel__lane--market .dg-workspace-panel__lane-rank {
+  color: var(--dg-market);
+}
+
+/* The axis: the whole cohort, best rank on the left. */
+.dg-workspace-panel__track {
+  background: var(--dg-chrome-surface);
+  border-radius: var(--dg-radius-round);
+  display: block;
+  height: var(--dg-space-2);
+  overflow: hidden;
+  position: relative;
+}
+
+/* min-width keeps a single rank from vanishing at 0.258% of the axis. It changes the pixels, never the width the
+   component computes, so a wide tie still reads as visibly wider than a lone player. */
+.dg-workspace-panel__mark {
+  background: currentcolor;
+  border-radius: var(--dg-radius-round);
+  bottom: 0;
+  display: block;
+  min-width: var(--dg-space-1);
+  position: absolute;
+  top: 0;
+}
+
+.dg-workspace-panel__lane--ours .dg-workspace-panel__mark {
+  color: var(--dg-model);
+}
+
+.dg-workspace-panel__lane--market .dg-workspace-panel__mark {
+  color: var(--dg-market);
+}
+
+.dg-workspace-panel__lane-empty {
+  border: 1px dashed var(--dg-border-strong);
+  border-radius: var(--dg-radius-control);
+  color: var(--dg-text-muted);
+  font-size: var(--dg-text-sm);
+  padding: var(--dg-space-1) var(--dg-space-2);
+}
+
+.dg-workspace-panel__verdict {
+  font-family: var(--dg-font-sans);
+  font-size: var(--dg-text-lg);
+  font-weight: var(--dg-weight-semibold);
+  line-height: var(--dg-leading-snug);
+}
+
+.dg-workspace-panel__axis,
+.dg-workspace-panel__cohort,
+.dg-workspace-panel__units {
+  color: var(--dg-text-muted);
+  font-size: var(--dg-text-sm);
+}
+
+/* --- the four ideas, hairline-separated -------------------------------------------------------- */
+
+.dg-workspace-panel__ideas {
+  background: var(--dg-border);
+  border: 1px solid var(--dg-border);
+  border-radius: var(--dg-radius-card);
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  list-style: none;
+  margin: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.dg-workspace-panel__idea {
+  background: var(--dg-surface);
+  display: grid;
+  gap: var(--dg-space-1);
+  padding: var(--dg-space-3);
+}
+
+.dg-workspace-panel__idea-title {
+  font-family: var(--dg-font-sans);
+  font-size: var(--dg-text-sm);
+  font-weight: var(--dg-weight-semibold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.dg-workspace-panel__idea-question,
+.dg-workspace-panel__idea-note {
+  color: var(--dg-text-muted);
+  font-size: var(--dg-text-sm);
+  line-height: var(--dg-leading-snug);
+}
+
+.dg-workspace-panel__idea-value {
+  font-family: var(--dg-font-mono);
+  font-size: var(--dg-text-xl);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--dg-leading-tight);
+}
+
+/* --- this season versus later ------------------------------------------------------------------ */
+
+.dg-workspace-panel__horizon {
+  display: grid;
+  gap: var(--dg-space-4);
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+.dg-workspace-panel__period {
+  border-top: 1px solid var(--dg-border);
+  display: grid;
+  gap: var(--dg-space-1);
+  padding-top: var(--dg-space-2);
+}
+
+.dg-workspace-panel__period-label {
+  font-family: var(--dg-font-sans);
+  font-size: var(--dg-text-sm);
+  font-weight: var(--dg-weight-semibold);
+}
+
+.dg-workspace-panel__period-value {
+  font-family: var(--dg-font-mono);
+  font-size: var(--dg-text-2xl);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--dg-leading-tight);
+}
+
+.dg-workspace-panel__period-note {
+  color: var(--dg-text-muted);
+  font-size: var(--dg-text-sm);
+}
+
+/* --- what limits the read ----------------------------------------------------------------------- */
+
+.dg-workspace-panel__limits {
+  color: var(--dg-text-muted);
+  display: grid;
+  font-size: var(--dg-text-sm);
+  gap: var(--dg-space-1);
+  line-height: var(--dg-leading-snug);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* A leading marker rather than a coloured side stripe: the caveat hue marks the point, it does not fence the text. */
+.dg-workspace-panel__limits li {
+  display: grid;
+  gap: var(--dg-space-2);
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.dg-workspace-panel__limits li::before {
+  background: var(--dg-caveat);
+  border-radius: var(--dg-radius-round);
+  content: "";
+  height: var(--dg-space-1);
+  margin-top: var(--dg-space-1);
+  width: var(--dg-space-1);
+}
+
+/* --- sources, one layer down --------------------------------------------------------------------- */
+
+.dg-workspace-panel__sources summary {
+  cursor: pointer;
+  font-family: var(--dg-font-sans);
+  font-size: var(--dg-text-sm);
+  font-weight: var(--dg-weight-semibold);
+}
+
+.dg-workspace-panel__sources summary:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}
+
+.dg-workspace-panel__source-body {
+  color: var(--dg-text-muted);
+  display: grid;
+  font-size: var(--dg-text-sm);
+  gap: var(--dg-space-2);
+  padding-top: var(--dg-space-2);
+}
+
+/* --- the actions ---------------------------------------------------------------------------------- */
+
+.dg-workspace-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dg-space-2);
+}
+
+.dg-workspace-panel__action {
+  background: var(--dg-surface);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: var(--dg-radius-control);
+  color: var(--dg-text);
+  cursor: pointer;
+  font-family: var(--dg-font-sans);
+  font-size: var(--dg-text-base);
+  font-weight: var(--dg-weight-medium);
+  padding: var(--dg-space-2) var(--dg-space-3);
+  transition: border-color var(--dg-duration-fast-02) var(--dg-ease-productive-standard);
+}
+
+.dg-workspace-panel__action:hover {
+  border-color: var(--dg-chrome-strong);
+}
+
+.dg-workspace-panel__action:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dg-workspace-panel__action {
+    transition: none;
+  }
+}
