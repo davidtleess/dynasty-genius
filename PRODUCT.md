@@ -1,3 +1,5 @@
+> **Interface direction — David, September 8, 2026:** The existing Lovable Dynasty Genius project is the primary interface. Retain and connect the verified backend forecasts, independent valuations, league data and historical evidence. The custom frontend is retained as a reference and rollback; further interface features target Lovable.
+
 # Product
 
 > Distilled from the product design corpus and the foundation-redo synthesis

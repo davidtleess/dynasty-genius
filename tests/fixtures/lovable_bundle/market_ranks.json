@@ -1,0 +1,286 @@
+{
+  "status": "available",
+  "source": {
+    "report_run": "20260906T214512Z",
+    "report_sha256": "19e032a4067dff1759199a84720c0f879bb61f792fd3b2703808b55485a7af37",
+    "market_sha256": "05bce6dd9d76198ecca2a2f0f1493b4e99f02da1f4dd9a5c1b5b85ec8e01a339",
+    "league_sha256": "ece82e24a66d50882345733971a8e1c66d1c0bae020496c2f48a8ff8a8ad8a35",
+    "forecast_date": "2026-09-06",
+    "market_as_of": "2026-09-06T13:00:02.542329+00:00",
+    "ownership_as_of": "2026-09-06T13:00:52.635970+00:00"
+  },
+  "basis": {
+    "years": [
+      2026,
+      2027,
+      2028,
+      2029,
+      2030
+    ],
+    "season_weights": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "summary": "Our rank sums projected advantage above an available replacement at each position over five equally weighted seasons, 2026\u20132030. The same replacement reference is assumed in future years; future waiver access is not guaranteed.",
+    "market_proxy_note": "FantasyCalc represents the broader market, not what a specific manager in your league would pay.",
+    "scoring_note": "12-team Superflex, full PPR, no TE premium; championship through Week 17. Forecasts use research PPR scoring, not every custom league rule. This is an exploratory valuation, not a proven trading edge or your lineup improvement."
+  },
+  "coverage": {
+    "model_players": 825,
+    "market_players": 399,
+    "market_picks": 24,
+    "common_players": 388,
+    "total_players": 836,
+    "roster_players": 27,
+    "roster_common_players": 26
+  },
+  "rows": [
+    {
+      "sleeper_id": "10218",
+      "name": "Xavier Hutchinson",
+      "position": "WR",
+      "team": "HOU",
+      "on_roster": false,
+      "league_ownership": "League free agent",
+      "taxi_or_reserve": null,
+      "model_value": 0.0,
+      "market_value": 276.0,
+      "our_rank": {
+        "start": 230,
+        "end": 388,
+        "total": 388
+      },
+      "market_rank": {
+        "start": 292,
+        "end": 292,
+        "total": 388
+      },
+      "model_rank_all": {
+        "start": 255,
+        "end": 825,
+        "total": 825
+      },
+      "market_rank_published": 296,
+      "comparison": {
+        "direction": "overlap",
+        "gap_min": -96,
+        "gap_max": 62
+      },
+      "missing_reason": null,
+      "model_zero_tie": true,
+      "seasons": [
+        {
+          "season": 2026,
+          "advantage": 0.0
+        },
+        {
+          "season": 2027,
+          "advantage": 0.0
+        },
+        {
+          "season": 2028,
+          "advantage": 0.0
+        },
+        {
+          "season": 2029,
+          "advantage": 0.0
+        },
+        {
+          "season": 2030,
+          "advantage": 0.0
+        }
+      ],
+      "reference_player": "Marvin Mims"
+    },
+    {
+      "sleeper_id": "10210",
+      "name": "Cameron Latu",
+      "position": "TE",
+      "team": "NE",
+      "on_roster": false,
+      "league_ownership": "League free agent",
+      "taxi_or_reserve": null,
+      "model_value": 0.0,
+      "market_value": null,
+      "our_rank": null,
+      "market_rank": null,
+      "model_rank_all": {
+        "start": 255,
+        "end": 825,
+        "total": 825
+      },
+      "market_rank_published": null,
+      "comparison": {
+        "direction": "unavailable",
+        "gap_min": null,
+        "gap_max": null
+      },
+      "missing_reason": "No saved FantasyCalc price for this player.",
+      "model_zero_tie": true,
+      "seasons": [
+        {
+          "season": 2026,
+          "advantage": 0.0
+        },
+        {
+          "season": 2027,
+          "advantage": 0.0
+        },
+        {
+          "season": 2028,
+          "advantage": 0.0
+        },
+        {
+          "season": 2029,
+          "advantage": 0.0
+        },
+        {
+          "season": 2030,
+          "advantage": 0.0
+        }
+      ],
+      "reference_player": "Colby Parkinson"
+    },
+    {
+      "sleeper_id": "11565",
+      "name": "J.J. McCarthy",
+      "position": "QB",
+      "team": "MIN",
+      "on_roster": true,
+      "league_ownership": "Your roster",
+      "taxi_or_reserve": false,
+      "model_value": 192.46643788231657,
+      "market_value": 1233.0,
+      "our_rank": {
+        "start": 83,
+        "end": 83,
+        "total": 388
+      },
+      "market_rank": {
+        "start": 193,
+        "end": 194,
+        "total": 388
+      },
+      "model_rank_all": {
+        "start": 83,
+        "end": 83,
+        "total": 825
+      },
+      "market_rank_published": 193,
+      "comparison": {
+        "direction": "higher",
+        "gap_min": 110,
+        "gap_max": 111
+      },
+      "missing_reason": null,
+      "model_zero_tie": false,
+      "seasons": [
+        {
+          "season": 2026,
+          "advantage": 0.0
+        },
+        {
+          "season": 2027,
+          "advantage": 12.848557384333802
+        },
+        {
+          "season": 2028,
+          "advantage": 48.62145323820008
+        },
+        {
+          "season": 2029,
+          "advantage": 60.41020979991474
+        },
+        {
+          "season": 2030,
+          "advantage": 70.58621745986794
+        }
+      ],
+      "reference_player": "Joe Flacco"
+    },
+    {
+      "sleeper_id": "10213",
+      "name": "Tre Tucker",
+      "position": "WR",
+      "team": "LV",
+      "on_roster": false,
+      "league_ownership": "Rostered in your league",
+      "taxi_or_reserve": null,
+      "model_value": 45.405702789742776,
+      "market_value": 1247.0,
+      "our_rank": {
+        "start": 171,
+        "end": 171,
+        "total": 388
+      },
+      "market_rank": {
+        "start": 191,
+        "end": 191,
+        "total": 388
+      },
+      "model_rank_all": {
+        "start": 172,
+        "end": 172,
+        "total": 825
+      },
+      "market_rank_published": 191,
+      "comparison": {
+        "direction": "higher",
+        "gap_min": 20,
+        "gap_max": 20
+      },
+      "missing_reason": null,
+      "model_zero_tie": false,
+      "seasons": [
+        {
+          "season": 2026,
+          "advantage": 17.48146703565547
+        },
+        {
+          "season": 2027,
+          "advantage": 14.780298166906732
+        },
+        {
+          "season": 2028,
+          "advantage": 9.864869654203545
+        },
+        {
+          "season": 2029,
+          "advantage": 2.931163882682185
+        },
+        {
+          "season": 2030,
+          "advantage": 0.3479040502948436
+        }
+      ],
+      "reference_player": "Marvin Mims"
+    },
+    {
+      "sleeper_id": "12494",
+      "name": "Kyle McCord",
+      "position": "QB",
+      "team": "MIA",
+      "on_roster": false,
+      "league_ownership": "League free agent",
+      "taxi_or_reserve": null,
+      "model_value": null,
+      "market_value": 71.0,
+      "our_rank": null,
+      "market_rank": null,
+      "model_rank_all": null,
+      "market_rank_published": 364,
+      "comparison": {
+        "direction": "unavailable",
+        "gap_min": null,
+        "gap_max": null
+      },
+      "missing_reason": "No accepted five-year valuation. Starting estimates on other pages are not included in this ranking.",
+      "model_zero_tie": false,
+      "seasons": [],
+      "reference_player": null
+    }
+  ]
+}
