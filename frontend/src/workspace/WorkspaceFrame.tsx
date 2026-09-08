@@ -62,6 +62,7 @@ export function WorkspaceFrame({
   counts,
   source,
   children,
+  sourceActions,
 }: WorkspaceFrameProps) {
   return (
     <div className="dg-workspace">
@@ -147,6 +148,7 @@ export function WorkspaceFrame({
                 </li>
               </ul>
             )}
+            {sourceActions}
           </details>
 
           <div className="dg-workspace__search">

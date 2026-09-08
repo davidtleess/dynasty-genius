@@ -1,0 +1,81 @@
+/* DG-191 saved snapshots — the app's tokens only; no raw colours, no verdict hues.
+   An archive is furniture, not a reading: nothing here wears a model or market lane hue, and no
+   state is signalled by colour alone. Phone-first, and every entry wraps rather than pans. */
+.dg-workspace-snapshots {
+  display: grid;
+  gap: var(--dg-space-2, 0.5rem);
+  min-width: 0;
+}
+.dg-workspace-snapshots > * {
+  min-width: 0;
+}
+.dg-workspace-snapshots__title {
+  margin: 0;
+  font-size: var(--dg-text-lg);
+}
+.dg-workspace-snapshots p {
+  margin: 0;
+  max-width: 76ch;
+  line-height: var(--dg-leading-normal);
+}
+.dg-workspace-snapshots__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--dg-space-2, 0.5rem);
+}
+.dg-workspace-snapshots__entry {
+  display: grid;
+  gap: var(--dg-space-1, 0.25rem);
+  padding: var(--dg-space-2, 0.5rem) var(--dg-space-3, 0.75rem);
+  border: 1px solid var(--dg-border);
+  border-radius: var(--dg-radius-card);
+  background: var(--dg-surface);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.dg-workspace-snapshots__archived {
+  font-weight: var(--dg-weight-semibold);
+}
+.dg-workspace-snapshots__dates,
+.dg-workspace-snapshots__created,
+.dg-workspace-snapshots__more,
+.dg-workspace-snapshots__counts,
+.dg-workspace-snapshots__ungraded,
+.dg-workspace-snapshots__standing,
+.dg-workspace-snapshots__note {
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+
+/* The save control sits inside the existing source details, so it stays compact and wraps. */
+.dg-workspace-snapshots__save {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--dg-space-1, 0.25rem) var(--dg-space-2, 0.5rem);
+  min-width: 0;
+}
+.dg-workspace-snapshots__button {
+  font: inherit;
+  padding: var(--dg-space-1, 0.25rem) var(--dg-space-2, 0.5rem);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: var(--dg-radius-control);
+  background: var(--dg-surface-raised);
+  color: inherit;
+  cursor: pointer;
+}
+.dg-workspace-snapshots__button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.dg-workspace-snapshots__note {
+  margin: 0;
+  max-width: 76ch;
+  line-height: var(--dg-leading-normal);
+  overflow-wrap: anywhere;
+}
+.dg-workspace-snapshots__more > summary {
+  cursor: pointer;
+}

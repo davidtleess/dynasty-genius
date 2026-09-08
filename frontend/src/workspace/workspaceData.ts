@@ -31,6 +31,10 @@ const schema = z.object({
     report_run: z.string(),
     report_sha256: z.string(),
     catalog_run: z.string(),
+    catalog_content_sha256: z
+      .string()
+      .regex(/^[0-9a-f]{64}$/)
+      .optional(),
     ownership_as_of: z.string().nullable(),
     nfl_status_as_of: z.string().nullable(),
   }),

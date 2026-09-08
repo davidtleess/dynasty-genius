@@ -10,8 +10,10 @@ vi.mock("./WorkspaceFrame", () => ({
     children,
     onNavigate,
     onQuery,
+    sourceActions,
   }: {
     children: React.ReactNode;
+    sourceActions?: React.ReactNode;
     onNavigate: (view: string) => void;
     onQuery: (q: string) => void;
   }) => (
@@ -26,6 +28,7 @@ vi.mock("./WorkspaceFrame", () => ({
         )}
       </nav>
       <input aria-label="Find a player" onChange={(e) => onQuery(e.target.value)} />
+      {sourceActions}
       {children}
     </div>
   ),
@@ -120,4 +123,50 @@ it("refuses incompatible discovery data while preserving the rank roster", async
   fireEvent.click(screen.getByRole("button", { name: "available" }));
   await screen.findByText(/Available players and forecasts could not be matched/);
   expect(screen.queryByText("Player free")).toBeNull();
+});
+
+it("hands the exact joined source tuple to the save control and exposes archive history", async () => {
+  const sourced = {
+    ...comparison,
+    source: { ...comparison.source, catalog_content_sha256: "a".repeat(64) },
+  };
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url) => ({
+      ok: true,
+      json: async () =>
+        url === "/api/research/comparison"
+          ? sourced
+          : { status: "available", snapshots: [] },
+    })),
+  );
+  mount();
+  await waitFor(() =>
+    expect(
+      screen
+        .getByRole("button", { name: "Save this snapshot" })
+        .hasAttribute("disabled"),
+    ).toBe(false),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Save this snapshot" }));
+  await waitFor(() =>
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/research/snapshots",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          expected: {
+            report_run: ranks.source.report_run,
+            report_sha256: ranks.source.report_sha256,
+            market_sha256: ranks.source.market_sha256,
+            league_sha256: ranks.source.league_sha256,
+            catalog_run: comparison.source.catalog_run,
+            catalog_content_sha256: "a".repeat(64),
+          },
+        }),
+      }),
+    ),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "history" }));
+  expect(screen.getByRole("heading", { name: "Saved snapshots" })).toBeTruthy();
 });

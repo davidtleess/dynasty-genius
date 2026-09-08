@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "plan_id": "workspace-production-2026-v1",
+  "declared_at": "2026-09-08T01:37:23Z",
+  "status": "declared_not_graded",
+  "purpose": "Evaluate football production, market movement and decision quality separately. This archive alone establishes none of these advantages.",
+  "forecast_origin": "Use the original source dates and producer identities in each archive. The first actual saved_at is the freeze cutoff; do not backdate it to a nominal forecast date.",
+  "eligible_population": "All players in the archived report and catalog, including noncontributors, uncovered players and starting estimates. Report coverage separately; production errors require an archived numeric forecast.",
+  "primary_production": {
+    "season": 2026,
+    "window": "NFL regular-season weeks 1 through 17 inclusive, matching the league championship window.",
+    "outcome": "Total fantasy points for the EXACT archived board_target scoring and window (currently PPR_nflverse_default, championship_week17). Sum verified weekly records. Verified no qualifying appearance is zero; unresolved identities and incomplete feeds remain missing. This measures the research forecast target, not exact Sleeper league points: preserve outcome_artifact.league_scoring_exact and disclosed scoring gaps.",
+    "metrics": [
+      "Primary: equal-position mean absolute error difference against each baseline",
+      "Descriptive: mean absolute error by position",
+      "Descriptive: root mean squared error by position"
+    ],
+    "baselines": [
+      "Prior-season points under the SAME archived research scoring preset and week window; zero only for verified nonparticipants, missing if records are incomplete.",
+      "Prior-season position median among that prior season\u2019s qualifying participants in the SAME research scoring and window, applied to every eligible player of that position, including rookies."
+    ],
+    "baseline_rule": "Baseline formulas are declared here; baseline values and source hashes are NOT captured by this increment. Freeze independently reconstructed cutoff-valid baseline inputs before comparative grading. Label any reconstruction as retrospective, never equivalent to a contemporaneous frozen baseline.",
+    "comparisons": "Compare each archived forecast producer separately with each baseline on identical eligible players with complete verified outcomes and available predictions. Publish excluded counts and all misses. Report original forecasts, recovered forecasts and starting estimates separately.",
+    "uncertainty": "Stratified paired player-level bootstrap within position, 10000 resamples, fixed seed 189. Recompute equal-position MAE difference in every resample; percentile 95% interval separately for each baseline. Position intervals are descriptive. Player dependence and one-season scope prevent a repeatable-edge claim.",
+    "primary_metric": "Forecast minus baseline equal-position mean absolute error, computed separately against each baseline. Negative means lower forecast error. All four positions must be evaluable for the aggregate; otherwise aggregate is unavailable and position results remain descriptive.",
+    "decision_rule": "Say the forecast beat a named baseline in this season only if the paired 95% interval on that baseline\u2019s primary MAE difference lies entirely below zero. Show both baseline results regardless of direction; no blanket edge claim or repeatability claim from one season. Other selections or metrics are exploratory.",
+    "outcome_source": "nflverse weekly player statistics using the archived outcome_artifact scoring preset and identity-resolution recipe. The grading run must freeze the actual outcome input bytes, source URLs/capture times, SHA256 hashes and scoring-code identity. Missing required scoring fields block grading rather than changing the target."
+  },
+  "future_horizons": "Evaluate each named future season only after weeks 1\u201317 complete. Evaluate the full five-year total only when all five target seasons are complete. A one- or two-year result does not validate the five-year value framework. Production-error evaluations use unfloored season forecasts. Clipped valuation ties remain ties; alphabetical order is never a prediction. Rank statistics and valuation discrimination require a separate declared evaluation and cannot infer ordering inside tied groups.",
+  "market_movement": {
+    "status": "not_registered_for_grading",
+    "rule": "The archived FantasyCalc price and rank are comparison data. Register an exact future capture window, matching rules, baselines and market-wide adjustment before examining movement outcomes; do not substitute football error for market-price performance."
+  },
+  "decision_quality": {
+    "status": "not_registered_for_grading",
+    "rule": "Requires an explicit contemporaneous action, available alternative including doing nothing, objective and evaluation window. Snapshot counts and rank disagreements are not decisions or demonstrated gains."
+  },
+  "valuation_assumptions": "Preserve source replacement levels, annual weights and producer-specific forecasts exactly. No sensitivity results or trade-value calibration are claimed.",
+  "revision_rule": "Any amendment creates a new plan version and retains the prior declaration. Never tune a declared evaluation after inspecting its outcomes without identifying the result as exploratory."
+}

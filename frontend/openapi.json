@@ -1162,6 +1162,45 @@
         "title": "EvidenceListField",
         "type": "object"
       },
+      "ExpectedSource": {
+        "additionalProperties": false,
+        "properties": {
+          "catalog_content_sha256": {
+            "title": "Catalog Content Sha256",
+            "type": "string"
+          },
+          "catalog_run": {
+            "title": "Catalog Run",
+            "type": "string"
+          },
+          "league_sha256": {
+            "title": "League Sha256",
+            "type": "string"
+          },
+          "market_sha256": {
+            "title": "Market Sha256",
+            "type": "string"
+          },
+          "report_run": {
+            "title": "Report Run",
+            "type": "string"
+          },
+          "report_sha256": {
+            "title": "Report Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "report_run",
+          "report_sha256",
+          "market_sha256",
+          "league_sha256",
+          "catalog_run",
+          "catalog_content_sha256"
+        ],
+        "title": "ExpectedSource",
+        "type": "object"
+      },
       "FoldResult": {
         "properties": {
           "calibration_by_decile": {
@@ -5816,6 +5855,19 @@
         "title": "RosterPenaltySummary",
         "type": "object"
       },
+      "SaveRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expected": {
+            "$ref": "#/components/schemas/ExpectedSource"
+          }
+        },
+        "required": [
+          "expected"
+        ],
+        "title": "SaveRequest",
+        "type": "object"
+      },
       "ScenarioResult": {
         "description": "The descriptive consequences of one cut hypothesis \u2014 no verdict.\n\n`cumulative_value_at_risk` is depletion-aware (NOT N x a single-player gap):\nthe wire depletes as you claim players, so the bound is summed per position\nfrom N-deep pool slices. Orientation is pinned `(best_case, worst_case)` and\ncannot invert; negatives are left UNCLAMPED (a cut that is a net upgrade\nreads negative). `pool_deficits` records, per position, how many cut spots\nhave NO replacement candidate \u2014 a fact, never a do-not-cut verdict.\n`marginal_next_candidate_cost` is the value-at-risk RANGE of the next\ncapacity-ordered candidate not in the cut set; it carries NO player\nidentifier (it nominates no target).",
         "properties": {
@@ -9765,6 +9817,93 @@
         "tags": [
           "research"
         ]
+      }
+    },
+    "/api/research/snapshots": {
+      "get": {
+        "operationId": "snapshots_api_research_snapshots_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Snapshots"
+      },
+      "post": {
+        "operationId": "capture_api_research_snapshots_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Capture"
+      }
+    },
+    "/api/research/snapshots/{snapshot_id}": {
+      "get": {
+        "operationId": "snapshot_api_research_snapshots__snapshot_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshot_id",
+            "required": true,
+            "schema": {
+              "title": "Snapshot Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Snapshot"
       }
     },
     "/api/rookies/score": {
