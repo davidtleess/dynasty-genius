@@ -1,0 +1,249 @@
+/* DG-187 workspace shell — the app's tokens only; no raw colours, no verdict hues.
+   The rail is chrome: near-achromatic by contract, never a model or market lane hue, because the
+   shell is furniture and a hue here would read as a data lane.
+   Phone-first: the rail becomes a horizontal strip above the content and nothing pans sideways. */
+.dg-workspace {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100dvh;
+  background: var(--dg-bg);
+  color: var(--dg-text);
+}
+
+/* Visible only when focused: the first stop for a keyboard, and out of the way otherwise. */
+.dg-workspace__skip {
+  position: absolute;
+  inset-inline-start: var(--dg-space-2, 0.5rem);
+  inset-block-start: var(--dg-space-2, 0.5rem);
+  z-index: 40;
+  padding: var(--dg-space-1, 0.25rem) var(--dg-space-2, 0.5rem);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: var(--dg-radius-control);
+  background: var(--dg-surface-raised);
+  color: var(--dg-text);
+  transform: translateY(-200%);
+}
+.dg-workspace__skip:focus-visible {
+  transform: translateY(0);
+}
+
+.dg-workspace__topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--dg-space-3, 0.75rem);
+  padding: var(--dg-space-2, 0.5rem) var(--dg-space-4, 1rem);
+  border-block-end: 1px solid var(--dg-border);
+  background: var(--dg-surface);
+  min-height: 61px;
+  box-sizing: border-box;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.dg-workspace__wordmark {
+  font-family: var(--dg-font-display);
+  font-weight: var(--dg-weight-bold);
+  font-size: var(--dg-text-base);
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: var(--dg-chrome-strong);
+}
+
+.dg-workspace__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+.dg-workspace__rail {
+  border-block-end: 1px solid var(--dg-border);
+  padding: var(--dg-space-2, 0.5rem) var(--dg-space-4, 1rem);
+  background: var(--dg-surface);
+  min-width: 0;
+}
+.dg-workspace__rail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dg-space-1, 0.25rem);
+  min-width: 0;
+}
+.dg-workspace__nav {
+  font: inherit;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--dg-space-2, 0.5rem);
+  padding: var(--dg-space-1, 0.25rem) var(--dg-space-2, 0.5rem);
+  border: 1px solid transparent;
+  border-radius: var(--dg-radius-control);
+  background: none;
+  color: var(--dg-chrome);
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: 44px;
+}
+.dg-workspace__nav[aria-current="page"] {
+  background: var(--dg-chrome-surface);
+  border-color: var(--dg-border-strong);
+  color: var(--dg-chrome-strong);
+  font-weight: var(--dg-weight-semibold);
+}
+.dg-workspace__count {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+.dg-workspace__league {
+  display: none;
+}
+.dg-workspace__league-name {
+  font-weight: var(--dg-weight-semibold);
+}
+.dg-workspace__league-rules,
+.dg-workspace__count,
+.dg-workspace__source,
+.dg-workspace__search-label {
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+
+.dg-workspace__main {
+  display: grid;
+  align-content: start;
+  gap: var(--dg-space-3, 0.75rem);
+  padding: 0;
+  min-width: 0;
+}
+.dg-workspace__main > * {
+  min-width: 0;
+}
+.dg-workspace__main:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}
+
+.dg-workspace__source-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dg-space-1, 0.25rem) var(--dg-space-3, 0.75rem);
+  cursor: pointer;
+  list-style: none;
+  padding: 9px 22px;
+  background: var(--dg-chrome-surface);
+  border-bottom: 1px solid var(--dg-border);
+  font-family: var(--dg-font-mono);
+}
+.dg-workspace__source-strip::-webkit-details-marker {
+  display: none;
+}
+.dg-workspace__source-facts {
+  margin: var(--dg-space-1, 0.25rem) 0 0;
+  padding-left: var(--dg-space-4, 1rem);
+  display: grid;
+  gap: var(--dg-space-1, 0.25rem);
+  line-height: var(--dg-leading-normal);
+  max-width: 76ch;
+}
+
+.dg-workspace__search {
+  display: grid;
+  gap: var(--dg-space-1, 0.25rem);
+  margin: 0 22px;
+  min-width: 0;
+}
+.dg-workspace__search-input {
+  font: inherit;
+  padding: var(--dg-space-1, 0.25rem) var(--dg-space-2, 0.5rem);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: var(--dg-radius-control);
+  color: inherit;
+  min-height: 42px;
+  background: var(--dg-surface-raised);
+}
+.dg-workspace__search-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* Desktop: the rail becomes the neutral 216px column of the imported composition. */
+@media (min-width: 61rem) {
+  .dg-workspace__body {
+    grid-template-columns: 216px minmax(0, 1fr);
+  }
+  .dg-workspace__rail {
+    display: flex;
+    flex-direction: column;
+    gap: var(--dg-space-4, 1rem);
+    border-block-end: 0;
+    border-inline-end: 1px solid var(--dg-border);
+    padding: var(--dg-space-4, 1rem);
+    position: sticky;
+    top: 61px;
+    height: calc(100dvh - 61px);
+  }
+  .dg-workspace__rail-list {
+    display: grid;
+    gap: var(--dg-space-1, 0.25rem);
+  }
+  .dg-workspace__nav {
+    justify-content: space-between;
+    width: 100%;
+  }
+  .dg-workspace__league {
+    display: grid;
+    gap: var(--dg-space-1, 0.25rem);
+    line-height: var(--dg-leading-snug);
+    margin-top: auto;
+    border-top: 1px solid var(--dg-border);
+    padding-top: var(--dg-space-4);
+  }
+  .dg-workspace__main {
+    padding: 0;
+  }
+}
+
+@media (max-width: 60.999rem) {
+  .dg-workspace__rail {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 20;
+    border-top: 1px solid var(--dg-border-strong);
+    padding: 4px 8px max(4px, env(safe-area-inset-bottom));
+  }
+  .dg-workspace__rail-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+  }
+  .dg-workspace__nav {
+    width: 100%;
+    justify-content: center;
+    font-size: var(--dg-text-sm);
+  }
+  .dg-workspace__search {
+    margin-inline: 16px;
+  }
+  .dg-workspace__source-strip {
+    padding: 9px 16px;
+  }
+  .dg-workspace__source-strip > span:first-child,
+  .dg-workspace__source-strip > span:last-child {
+    display: none;
+  }
+  .dg-workspace__source-strip::after {
+    content: "Details";
+    margin-left: auto;
+  }
+  .dg-workspace__source-facts {
+    padding-inline: 32px 16px;
+  }
+  .dg-workspace__source-strip > span:only-child {
+    display: inline;
+  }
+}
