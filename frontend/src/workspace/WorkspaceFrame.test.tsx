@@ -172,3 +172,77 @@ describe("WorkspaceFrame — search and landmarks", () => {
     expect(findings, formatRawCopyFindings(findings)).toEqual([]);
   });
 });
+
+// DG-197 — the frame shared by all three imported Directions. David authorized implementing the
+// Directions file on 2026-09-08; the MAIN composition is still his choice, so nothing below assumes
+// one: no route is renamed and no initial route is picked.
+describe("WorkspaceFrame — the compact header", () => {
+  it("carries the one search inside the header, still controlled and still labelled the same", () => {
+    const { props } = renderFrame({ query: "jean" });
+    const input = screen.getByLabelText("Find a player") as HTMLInputElement;
+    expect(input.closest("header")).not.toBeNull();
+    expect(input.closest("main")).toBeNull();
+    expect(input.value).toBe("jean");
+    expect(input.getAttribute("placeholder")).toBe("Name, team, or position");
+    fireEvent.change(input, { target: { value: "kraft" } });
+    expect(props.onQuery).toHaveBeenCalledWith("kraft");
+    // still exactly one search on the screen
+    expect(screen.getAllByRole("searchbox")).toHaveLength(1);
+  });
+
+  it("offers a watchlist shortcut in the header with the real count, and navigates by view key", () => {
+    const { props } = renderFrame({
+      counts: { roster: 27, available: 433, watchlist: 4 },
+    });
+    const shortcut = screen.getByRole("button", { name: "Open watchlist" });
+    expect(shortcut.closest("header")).not.toBeNull();
+    expect(shortcut.textContent).toContain("4");
+    fireEvent.click(shortcut);
+    expect(props.onNavigate).toHaveBeenCalledWith("watchlist");
+  });
+
+  // The rule half of this lives in WorkspaceFrame.css.test.js: a `?raw` CSS import resolves to the
+  // EMPTY STRING under Vitest, so every assertion made against one passes without reading anything.
+  it("writes the wordmark in title case, not shouted", () => {
+    const { container } = renderFrame();
+    const wordmark = container.querySelector(".dg-workspace__wordmark") as HTMLElement;
+    expect(wordmark.textContent).toBe("Dynasty Genius");
+  });
+});
+
+describe("WorkspaceFrame — the search shortcut", () => {
+  it("focuses the search on the platform shortcut, without swallowing ordinary typing", () => {
+    renderFrame();
+    const input = screen.getByLabelText("Find a player");
+    expect(document.activeElement).not.toBe(input);
+
+    fireEvent.keyDown(document, { key: "k", metaKey: true });
+    expect(document.activeElement).toBe(input);
+
+    (document.activeElement as HTMLElement).blur();
+    fireEvent.keyDown(document, { key: "k", ctrlKey: true });
+    expect(document.activeElement).toBe(input);
+
+    // a bare k is someone typing a name, and must reach the page untouched
+    (document.activeElement as HTMLElement).blur();
+    fireEvent.keyDown(document, { key: "k" });
+    expect(document.activeElement).not.toBe(input);
+    fireEvent.keyDown(document, { key: "k", shiftKey: true });
+    expect(document.activeElement).not.toBe(input);
+  });
+
+  it("removes its key listener when the frame goes away", () => {
+    const add = vi.spyOn(document, "addEventListener");
+    const remove = vi.spyOn(document, "removeEventListener");
+    const { unmount } = renderFrame();
+    const registered = add.mock.calls.filter(([type]) => type === "keydown");
+    expect(registered.length).toBeGreaterThan(0);
+    unmount();
+    const released = remove.mock.calls.filter(([type]) => type === "keydown");
+    expect(released.map(([, fn]) => fn)).toEqual(
+      expect.arrayContaining(registered.map(([, fn]) => fn)),
+    );
+    add.mockRestore();
+    remove.mockRestore();
+  });
+});

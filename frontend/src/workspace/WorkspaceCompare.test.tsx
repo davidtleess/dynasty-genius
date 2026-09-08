@@ -550,3 +550,41 @@ describe("WorkspaceCompare — reading it", () => {
     expect(findings, formatRawCopyFindings(findings)).toEqual([]);
   });
 });
+
+// DG-194 (David, 2026-09-08: "we need headshots for all players") — both chosen cards carry the
+// man's face beside his name, and a photo that fails on one card must not blank the next player
+// who lands in that same card.
+describe("WorkspaceCompare — headshots", () => {
+  it("shows each chosen player's headshot beside his name on both cards", () => {
+    render(<Harness initial={{ availableId: "19", rosterId: "11565" }} />);
+    const theirs = within(sideFor("Joe Flacco")).getByAltText("Joe Flacco");
+    expect(theirs.getAttribute("src")).toBe("/assets/headshots/19.jpg");
+    expect(theirs.getAttribute("loading")).toBe("lazy");
+    const mine = within(sideFor("J.J. McCarthy")).getByAltText("J.J. McCarthy");
+    expect(mine.getAttribute("src")).toBe("/assets/headshots/11565.jpg");
+    // the readings are untouched
+    expect(within(sideFor("J.J. McCarthy")).getByText("#83")).toBeTruthy();
+  });
+
+  it("falls back to initials on the card whose photo failed, and leaves the other card alone", () => {
+    render(<Harness initial={{ availableId: "19", rosterId: "11565" }} />);
+    fireEvent.error(within(sideFor("Joe Flacco")).getByAltText("Joe Flacco"));
+    expect(
+      within(sideFor("Joe Flacco")).getByLabelText("Joe Flacco headshot unavailable"),
+    ).toBeTruthy();
+    expect(within(sideFor("J.J. McCarthy")).getByAltText("J.J. McCarthy")).toBeTruthy();
+  });
+
+  it("gives the next player his own photo after the previous one failed in the same card", () => {
+    render(<Harness initial={{ availableId: "19", rosterId: "11565" }} />);
+    fireEvent.error(within(sideFor("Joe Flacco")).getByAltText("Joe Flacco"));
+    fireEvent.change(availableSelect(), { target: { value: "12477" } });
+    const next = within(sideFor("Kurtis Rourke")).getByAltText("Kurtis Rourke");
+    expect(next.getAttribute("src")).toBe("/assets/headshots/12477.jpg");
+    expect(
+      within(sideFor("Kurtis Rourke")).queryByLabelText(
+        "Kurtis Rourke headshot unavailable",
+      ),
+    ).toBeNull();
+  });
+});

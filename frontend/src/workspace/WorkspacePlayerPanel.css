@@ -1,11 +1,5 @@
-/* DG-188 — the expanded player panel.
- *
- * The one graphic here places each rank INTERVAL on its own population's axis. It is not a score bar: a wide mark
- * means a wide tie, which is a fact about how little the model separates those players, and a price difference is
- * never drawn because our number and the market's are not in the same units.
- *
- * The four ideas are hairline-separated columns rather than four identical cards — the panel is already a surface,
- * and boxing four boxes inside it would be the card-grid reflex the design system rejects. */
+/* Player detail layout. The shared rank graphic owns its geometry in WorkspaceRankScale.css.
+   Football forecasts, dynasty valuation, market prices and roster context retain separate units. */
 
 .dg-workspace-panel {
   background: var(--dg-surface-raised);
@@ -29,81 +23,6 @@
   gap: var(--dg-space-2);
 }
 
-.dg-workspace-panel__lanes {
-  display: grid;
-  gap: var(--dg-space-2);
-}
-
-.dg-workspace-panel__lane {
-  align-items: center;
-  display: grid;
-  gap: var(--dg-space-3);
-  grid-template-columns: 4.5rem minmax(0, 1fr) 7rem;
-}
-
-.dg-workspace-panel__lane-label {
-  font-family: var(--dg-font-sans);
-  font-size: var(--dg-text-sm);
-  font-weight: var(--dg-weight-semibold);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.dg-workspace-panel__lane-rank {
-  font-family: var(--dg-font-mono);
-  font-size: var(--dg-text-lg);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
-.dg-workspace-panel__lane--ours .dg-workspace-panel__lane-label,
-.dg-workspace-panel__lane--ours .dg-workspace-panel__lane-rank {
-  color: var(--dg-model);
-}
-
-.dg-workspace-panel__lane--market .dg-workspace-panel__lane-label,
-.dg-workspace-panel__lane--market .dg-workspace-panel__lane-rank {
-  color: var(--dg-market);
-}
-
-/* The axis: the whole cohort, best rank on the left. */
-.dg-workspace-panel__track {
-  background: var(--dg-chrome-surface);
-  border-radius: var(--dg-radius-round);
-  display: block;
-  height: var(--dg-space-2);
-  overflow: hidden;
-  position: relative;
-}
-
-/* min-width keeps a single rank from vanishing at 0.258% of the axis. It changes the pixels, never the width the
-   component computes, so a wide tie still reads as visibly wider than a lone player. */
-.dg-workspace-panel__mark {
-  background: currentcolor;
-  border-radius: var(--dg-radius-round);
-  bottom: 0;
-  display: block;
-  min-width: var(--dg-space-1);
-  position: absolute;
-  top: 0;
-}
-
-.dg-workspace-panel__lane--ours .dg-workspace-panel__mark {
-  color: var(--dg-model);
-}
-
-.dg-workspace-panel__lane--market .dg-workspace-panel__mark {
-  color: var(--dg-market);
-}
-
-.dg-workspace-panel__lane-empty {
-  border: 1px dashed var(--dg-border-strong);
-  border-radius: var(--dg-radius-control);
-  color: var(--dg-text-muted);
-  font-size: var(--dg-text-sm);
-  padding: var(--dg-space-1) var(--dg-space-2);
-}
-
 .dg-workspace-panel__verdict {
   font-family: var(--dg-font-sans);
   font-size: var(--dg-text-lg);
@@ -111,7 +30,6 @@
   line-height: var(--dg-leading-snug);
 }
 
-.dg-workspace-panel__axis,
 .dg-workspace-panel__cohort,
 .dg-workspace-panel__units {
   color: var(--dg-text-muted);
@@ -280,4 +198,39 @@
   .dg-workspace-panel__action {
     transition: none;
   }
+}
+
+/* DG-194 — the identity header: the face beside the name, above the readings. Wraps rather than
+   pans on a phone; the photo's own box is reserved by the shared primitive. */
+.dg-workspace-panel__identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--dg-space-2, 0.5rem);
+  min-width: 0;
+}
+
+/* The imported WhyBlock becomes factual basis rows inside the existing disclosure. */
+.dg-workspace-panel__basis {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--dg-border);
+  border-radius: var(--dg-radius-control);
+  overflow: hidden;
+}
+.dg-workspace-panel__basis li {
+  display: grid;
+  gap: var(--dg-space-1);
+  padding: var(--dg-space-2) var(--dg-space-3);
+  background: var(--dg-surface);
+}
+.dg-workspace-panel__basis li + li {
+  border-top: 1px solid var(--dg-border);
+}
+.dg-workspace-panel__basis-label {
+  color: var(--dg-text);
+  font-family: var(--dg-font-sans);
+  font-weight: var(--dg-weight-semibold);
 }

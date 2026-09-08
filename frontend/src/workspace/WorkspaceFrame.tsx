@@ -11,6 +11,8 @@
 // all rather than as a zero, because "we do not know yet" and "none" are different facts.
 //
 // The frame renders NO h1: the view it frames owns the heading, so a screen has exactly one.
+import { useEffect, useRef } from "react";
+
 import "./WorkspaceFrame.css";
 import { humanizeDate } from "../research/comparisonHelpers";
 import type { WorkspaceFrameProps, WorkspaceView } from "./types";
@@ -64,14 +66,66 @@ export function WorkspaceFrame({
   children,
   sourceActions,
 }: WorkspaceFrameProps) {
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // DG-197: the header shows the shortcut, so the shortcut has to work. It fires ONLY with the
+  // platform modifier, which is what keeps ordinary typing — a bare "k" while searching a name —
+  // reaching the page untouched, and the listener is released when the frame unmounts.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (!(event.metaKey || event.ctrlKey)) return;
+      if (event.key.toLowerCase() !== "k") return;
+      event.preventDefault();
+      searchRef.current?.focus();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   return (
     <div className="dg-workspace">
       <a className="dg-workspace__skip" href="#dg-workspace-main">
         Skip to main content
       </a>
 
+      {/* One compact row: who this is, the single search, and the way to your watchlist. The
+          imported Directions header is the same in all three options, which is why it can be built
+          before David picks the main composition. */}
       <header className="dg-workspace__topbar">
         <span className="dg-workspace__wordmark">Dynasty Genius</span>
+
+        <div className="dg-workspace__search-group">
+          {/* The label stays a real label — visually hidden here, so the accessible name is
+              exactly what it was when this input sat in the main column. */}
+          <label className="dg-workspace__search-label" htmlFor="dg-workspace-search">
+            Find a player
+          </label>
+          <input
+            id="dg-workspace-search"
+            ref={searchRef}
+            className="dg-workspace__search-input"
+            type="search"
+            value={query}
+            placeholder="Name, team, or position"
+            autoComplete="off"
+            onChange={(event) => onQuery(event.target.value)}
+          />
+          <span className="dg-workspace__shortcut" aria-hidden="true">
+            ⌘K
+          </span>
+        </div>
+
+        {/* The count is visible here and is also spoken by the rail's own Watchlist item, so this
+            shortcut can carry the short accessible name the contract asks for. */}
+        <button
+          type="button"
+          className="dg-workspace__watch"
+          aria-label="Open watchlist"
+          onClick={() => onNavigate("watchlist")}
+        >
+          <span>Watchlist</span>{" "}
+          <span className="dg-workspace__count">{counts.watchlist}</span>
+        </button>
       </header>
 
       <div className="dg-workspace__body">
@@ -150,21 +204,6 @@ export function WorkspaceFrame({
             )}
             {sourceActions}
           </details>
-
-          <div className="dg-workspace__search">
-            <label className="dg-workspace__search-label" htmlFor="dg-workspace-search">
-              Find a player
-            </label>
-            <input
-              id="dg-workspace-search"
-              className="dg-workspace__search-input"
-              type="search"
-              value={query}
-              placeholder="Name, team, or position"
-              autoComplete="off"
-              onChange={(event) => onQuery(event.target.value)}
-            />
-          </div>
 
           {children}
         </main>

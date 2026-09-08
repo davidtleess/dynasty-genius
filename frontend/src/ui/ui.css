@@ -419,6 +419,7 @@
   height: 32px;
   border-radius: var(--dg-radius-round);
   object-fit: cover;
+  object-position: center top;
   flex: none;
 }
 

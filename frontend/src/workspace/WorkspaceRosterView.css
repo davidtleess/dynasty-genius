@@ -1,0 +1,250 @@
+/* Roster-first composition: position groups are the main reading; a selected player stays beside
+   them on desktop and opens in a native modal sheet on smaller screens. */
+.dg-roster-view {
+  min-width: 0;
+  color: var(--dg-text);
+}
+.dg-roster-view__board {
+  min-width: 0;
+}
+.dg-roster-view__intro {
+  display: grid;
+  gap: var(--dg-space-2);
+  padding: var(--dg-space-4) var(--dg-space-4) var(--dg-space-3);
+  border-bottom: 1px solid var(--dg-border);
+}
+:where(.dg-roster-view) h1,
+:where(.dg-roster-view) h2,
+:where(.dg-roster-view) p {
+  margin: 0;
+}
+:where(.dg-roster-view) h1 {
+  font-family: var(--dg-font-display);
+  font-size: var(--dg-text-2xl);
+  font-weight: var(--dg-weight-bold);
+  line-height: var(--dg-leading-tight);
+}
+:where(.dg-roster-view) h2 {
+  font-family: var(--dg-font-display);
+  font-size: var(--dg-text-lg);
+  line-height: var(--dg-leading-snug);
+}
+:where(.dg-roster-view) p {
+  line-height: var(--dg-leading-normal);
+}
+.dg-roster-view__note {
+  color: var(--dg-text-muted);
+  font-size: var(--dg-text-sm);
+}
+.dg-roster-view__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dg-space-3);
+  padding-top: var(--dg-space-1);
+}
+:where(.dg-roster-view) label {
+  display: grid;
+  gap: var(--dg-space-1);
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+  min-width: 0;
+}
+:where(.dg-roster-view) select,
+:where(.dg-roster-view) input,
+:where(.dg-roster-view) button {
+  font: inherit;
+  color: var(--dg-text);
+}
+:where(.dg-roster-view) select,
+:where(.dg-roster-view) input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: var(--dg-space-2);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: var(--dg-radius-control);
+  background: var(--dg-surface);
+}
+.dg-roster-view__filters label {
+  flex: 1 1 9rem;
+}
+:where(.dg-roster-view) button {
+  cursor: pointer;
+}
+:where(.dg-roster-view) button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.dg-roster-view :is(button, input, select, summary):focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}
+.dg-roster-view__method {
+  margin: var(--dg-space-4);
+  padding-bottom: 110px;
+  color: var(--dg-text-muted);
+  font-size: var(--dg-text-sm);
+}
+.dg-roster-view__method summary {
+  padding-block: var(--dg-space-2);
+  cursor: pointer;
+}
+.dg-roster-view__method p + p {
+  margin-top: var(--dg-space-2);
+}
+.dg-roster-view__notice {
+  padding: var(--dg-space-4);
+}
+.dg-roster-view__inspector {
+  min-width: 0;
+  background: var(--dg-surface);
+  border-left: 1px solid var(--dg-border);
+}
+.dg-roster-view__empty {
+  display: grid;
+  gap: var(--dg-space-3);
+  padding: var(--dg-space-4);
+}
+.dg-roster-view__close,
+.dg-roster-view__text-action {
+  background: none;
+  border: 0;
+  padding: var(--dg-space-2) var(--dg-space-4);
+  text-align: left;
+  min-height: 44px;
+  color: var(--dg-text-muted);
+  font-size: var(--dg-text-sm);
+}
+.dg-roster-view__dialog {
+  position: fixed;
+  inset: auto 0 0;
+  margin: 0 auto;
+  box-sizing: border-box;
+  width: min(100%, 42rem);
+  max-width: 100%;
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  padding: 0 0 env(safe-area-inset-bottom);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: var(--dg-radius-card) var(--dg-radius-card) 0 0;
+  background: var(--dg-surface);
+  color: var(--dg-text);
+}
+.dg-roster-view__dialog::backdrop {
+  background: color-mix(in srgb, var(--dg-bg) 75%, transparent);
+}
+.dg-roster-view__dialog-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--dg-space-1) var(--dg-space-3);
+  border-bottom: 1px solid var(--dg-border);
+  background: var(--dg-surface);
+  color: var(--dg-text-muted);
+  font-size: var(--dg-text-sm);
+}
+.dg-roster-view__dialog-head button {
+  min-height: 44px;
+  padding: var(--dg-space-2) var(--dg-space-3);
+  background: var(--dg-chrome-surface);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: var(--dg-radius-control);
+}
+.dg-roster-alternatives {
+  display: grid;
+  gap: var(--dg-space-3);
+  padding: var(--dg-space-4);
+}
+.dg-roster-alternatives > p {
+  font-size: var(--dg-text-sm);
+}
+.dg-roster-alternatives > .dg-roster-view__text-action {
+  padding-inline: 0;
+}
+.dg-roster-alternatives__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.dg-roster-alternatives__list > li {
+  display: grid;
+  gap: var(--dg-space-2);
+  padding-block: var(--dg-space-3);
+  border-top: 1px solid var(--dg-border);
+}
+.dg-roster-alternatives__ranks,
+.dg-roster-alternatives__points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dg-space-2) var(--dg-space-3);
+  font-size: var(--dg-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+.dg-roster-alternatives__ranks > span:first-child {
+  color: var(--dg-model);
+}
+.dg-roster-alternatives__ranks > span:last-child {
+  color: var(--dg-market-emphasis);
+}
+.dg-roster-alternatives__points {
+  color: var(--dg-text-muted);
+}
+.dg-roster-alternatives__actions {
+  display: flex;
+  gap: var(--dg-space-2);
+}
+.dg-roster-alternatives__actions button {
+  min-height: 44px;
+  padding: var(--dg-space-2) var(--dg-space-3);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: var(--dg-radius-control);
+  background: var(--dg-chrome-surface);
+}
+@media (min-width: 85rem) {
+  .dg-roster-view {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    align-items: start;
+  }
+  .dg-roster-view__intro {
+    padding: var(--dg-space-4) var(--dg-space-5);
+  }
+  .dg-roster-view__inspector {
+    position: sticky;
+    top: 48px;
+    box-sizing: border-box;
+    height: calc(100dvh - 84px);
+    overflow-y: auto;
+  }
+  .dg-roster-view__filters label {
+    flex: 0 1 auto;
+  }
+  .dg-roster-view__filters select {
+    min-height: 32px;
+    padding-block: var(--dg-space-1);
+  }
+  .dg-roster-view__method {
+    padding-bottom: var(--dg-space-4);
+  }
+}
+
+.dg-roster-alternatives__incumbent {
+  display: grid;
+  gap: var(--dg-space-2);
+  padding: var(--dg-space-3);
+  background: var(--dg-chrome-surface);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: var(--dg-radius-card);
+}
+
+/* Mix the lane color with body ink so rank text retains contrast on either canvas. */
+.dg-roster-view {
+  --dg-market-emphasis: color-mix(in srgb, var(--dg-market) 45%, var(--dg-text));
+}
+.dg-roster-view .dg-rank-scale__lane[data-side="market"] .dg-rank-scale__side {
+  color: inherit;
+}

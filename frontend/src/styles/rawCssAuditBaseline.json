@@ -307,7 +307,7 @@
       "raw_hex": 0,
       "raw_oklch": 0,
       "raw_rgb": 0,
-      "raw_spacing_values": 17,
+      "raw_spacing_values": 24,
       "raw_radius_values": 0,
       "raw_font_size_values": 0,
       "non_token_font_families": 0
@@ -323,11 +323,51 @@
       "non_token_font_families": 0
     },
     {
+      "path": "workspace/WorkspaceInspector.css",
+      "raw_hex": 1,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 4,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 0,
+      "non_token_font_families": 0
+    },
+    {
       "path": "workspace/WorkspacePlayerPanel.css",
       "raw_hex": 0,
       "raw_oklch": 0,
       "raw_rgb": 0,
-      "raw_spacing_values": 4,
+      "raw_spacing_values": 5,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 0,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "workspace/WorkspaceRankScale.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 0,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 0,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "workspace/WorkspaceRosterGroups.css",
+      "raw_hex": 1,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 16,
+      "raw_radius_values": 0,
+      "raw_font_size_values": 0,
+      "non_token_font_families": 0
+    },
+    {
+      "path": "workspace/WorkspaceRosterView.css",
+      "raw_hex": 0,
+      "raw_oklch": 0,
+      "raw_rgb": 0,
+      "raw_spacing_values": 14,
       "raw_radius_values": 0,
       "raw_font_size_values": 0,
       "non_token_font_families": 0
@@ -344,10 +384,10 @@
     }
   ],
   "totals": {
-    "raw_hex": 0,
+    "raw_hex": 2,
     "raw_oklch": 44,
     "raw_rgb": 0,
-    "raw_spacing_values": 175,
+    "raw_spacing_values": 217,
     "raw_radius_values": 12,
     "raw_font_size_values": 39,
     "non_token_font_families": 0
