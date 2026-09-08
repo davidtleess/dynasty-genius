@@ -1,0 +1,151 @@
+{
+  "source": {
+    "report_run": "20260906T214512Z",
+    "catalog_run": "20260907T013635Z",
+    "report_sha256": "19e032a4067dff1759199a84720c0f879bb61f792fd3b2703808b55485a7af37",
+    "catalog_content_sha256": "d47c4a408d54c072a7d75dcce05dbfb10f58705a3f523b364eb7f14af04b7cea",
+    "ownership_as_of": "2026-09-06T13:00:52.635970+00:00",
+    "nfl_status_as_of": "Sun, 06 Sep 2026 11:28:11 GMT"
+  },
+  "forecast_years": [
+    2026,
+    2027,
+    2028,
+    2029,
+    2030
+  ],
+  "future_years": [
+    2027,
+    2028,
+    2029,
+    2030
+  ],
+  "scoring_note": "Points are expected season fantasy points under the research scoring (nflverse default full-PPR, the championship window through NFL week 17); this is not your league's exact scoring, so compare players on this shared basis rather than reading them as lineup points.",
+  "available": [
+    {
+      "sleeper_id": "10210",
+      "name": "Cameron Latu",
+      "position": "TE",
+      "team": "NE",
+      "population": "default",
+      "status": "active",
+      "now_points": 11.736274634770968,
+      "future_points": 43.43309275813696,
+      "seasons": [
+        {
+          "season": 2026,
+          "points": 11.736274634770968,
+          "estimate_class": null
+        },
+        {
+          "season": 2027,
+          "points": 14.342370536000315,
+          "estimate_class": null
+        },
+        {
+          "season": 2028,
+          "points": 11.308179397835946,
+          "estimate_class": null
+        },
+        {
+          "season": 2029,
+          "points": 8.693500263897786,
+          "estimate_class": null
+        },
+        {
+          "season": 2030,
+          "points": 9.089042560402909,
+          "estimate_class": null
+        }
+      ],
+      "starting_estimate": false,
+      "missing_reason": null,
+      "evidence_note": "Accepted research forecast from the veteran annual forecast; expected season points under the research scoring, not exact league scoring.",
+      "taxi_or_reserve": null
+    },
+    {
+      "sleeper_id": "10218",
+      "name": "Xavier Hutchinson",
+      "position": "WR",
+      "team": "HOU",
+      "population": "default",
+      "status": "active",
+      "now_points": 76.89627472728978,
+      "future_points": 206.20460262425232,
+      "seasons": [
+        {
+          "season": 2026,
+          "points": 76.89627472728978,
+          "estimate_class": null
+        },
+        {
+          "season": 2027,
+          "points": 68.30567876445141,
+          "estimate_class": null
+        },
+        {
+          "season": 2028,
+          "points": 58.6001057956013,
+          "estimate_class": null
+        },
+        {
+          "season": 2029,
+          "points": 45.74343406577085,
+          "estimate_class": null
+        },
+        {
+          "season": 2030,
+          "points": 33.55538399842876,
+          "estimate_class": null
+        }
+      ],
+      "starting_estimate": false,
+      "missing_reason": null,
+      "evidence_note": "Accepted research forecast from the veteran annual forecast; expected season points under the research scoring, not exact league scoring.",
+      "taxi_or_reserve": null
+    }
+  ],
+  "roster": [
+    {
+      "sleeper_id": "11565",
+      "name": "J.J. McCarthy",
+      "position": "QB",
+      "team": "MIN",
+      "population": "owned",
+      "status": "active",
+      "now_points": 112.00667587080359,
+      "future_points": 371.90823157669075,
+      "seasons": [
+        {
+          "season": 2026,
+          "points": 112.00667587080359,
+          "estimate_class": null
+        },
+        {
+          "season": 2027,
+          "points": 98.75148024586076,
+          "estimate_class": null
+        },
+        {
+          "season": 2028,
+          "points": 93.10886417734311,
+          "estimate_class": null
+        },
+        {
+          "season": 2029,
+          "points": 91.87798027279723,
+          "estimate_class": null
+        },
+        {
+          "season": 2030,
+          "points": 88.16990688068964,
+          "estimate_class": null
+        }
+      ],
+      "starting_estimate": false,
+      "missing_reason": null,
+      "evidence_note": "Accepted research forecast from the veteran annual forecast on your research board; each season is the board's signed margin plus that season's Joe Flacco reference, at full precision; research scoring, not exact league scoring.",
+      "taxi_or_reserve": false
+    }
+  ]
+}

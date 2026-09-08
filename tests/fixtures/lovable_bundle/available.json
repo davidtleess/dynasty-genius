@@ -1,0 +1,895 @@
+{
+  "source": {
+    "kind": "local_research_catalog",
+    "catalog_run": "20260907T013635Z",
+    "report_run": "20260906T214512Z",
+    "pinned": true,
+    "census_run_id": "20260906T202057Z",
+    "report_sha256": "19e032a4067dff1759199a84720c0f879bb61f792fd3b2703808b55485a7af37",
+    "integrity": "catalog bytes verified against the companion record; report_sha256 verified against the served report bytes",
+    "provenance": {
+      "git_head": "74dc624de7ee4e0879d0af9b19ba6640241ec8d8",
+      "git_dirty": false,
+      "git_state": {
+        "dirty": false,
+        "tracked_modified": [],
+        "untracked": []
+      },
+      "argv": [
+        "--report",
+        "runs/20260906T214512Z/dg178_audit/report.json",
+        "--census-dir",
+        "runs/20260906T202057Z/dg178_current_census",
+        "--snapshot",
+        "/Users/davidleess/dynasty-genius-product/app/data/league_runtime/runs/league-20260906T130052Z/snapshot.json",
+        "--producer-csv",
+        "/Users/davidleess/dg-wt/DG-177/runs/20260906T195728Z/dg177_basic_horizons/basic_forecasts.csv",
+        "--producer-csv",
+        "/Users/davidleess/dg-wt/DG-165/runs/20260906T195904Z/dg165_rookie_capital/rookie_scores_2026.csv",
+        "--cold-start-dir",
+        "/Users/davidleess/dg-wt/DG-165/runs/20260907T012231Z/dg165_cold_start_candidate",
+        "--cold-start-manifest-sha256",
+        "2d4594863649c042fb10dad54d986e82aaf1d38cca986d52791fa76db2f13b98",
+        "--cold-start-estimates-sha256",
+        "93bc11aaf6781fb98f678ed52ce47417a04945c3b9b4b62363eef105dcc4eff7"
+      ],
+      "script": "scripts/dg178/build_available_catalog.py",
+      "generated_at": "2026-09-07T01:36:35.993872+00:00"
+    }
+  },
+  "freshness": {
+    "ownership_as_of": "2026-09-06T13:00:52.635970+00:00",
+    "nfl_status_as_of": "Sun, 06 Sep 2026 11:28:11 GMT",
+    "caveat": "Ownership is as of the league snapshot captured 2026-09-06T13:00:52.635970+00:00; NFL roster status is as of the roster capture dated Sun, 06 Sep 2026 11:28:11 GMT. Both may have changed since; nothing here is live."
+  },
+  "populations": {
+    "default": {
+      "total": 433,
+      "with_forecast": 360,
+      "without_forecast": 73,
+      "with_now": 360,
+      "with_future_total": 360,
+      "incomplete_path": 0,
+      "starting_estimates": 7,
+      "recovered": 4,
+      "by_class": {
+        "active": 242,
+        "practice_squad": 135,
+        "injured_reserve": 56
+      },
+      "by_position": {
+        "QB": {
+          "with_forecast": 48,
+          "without_forecast": 11
+        },
+        "RB": {
+          "with_forecast": 75,
+          "without_forecast": 17
+        },
+        "TE": {
+          "with_forecast": 101,
+          "without_forecast": 13
+        },
+        "WR": {
+          "with_forecast": 136,
+          "without_forecast": 32
+        }
+      }
+    },
+    "cut": {
+      "total": 68,
+      "with_forecast": 28,
+      "without_forecast": 40,
+      "with_now": 28,
+      "with_future_total": 28,
+      "incomplete_path": 0,
+      "starting_estimates": 0,
+      "recovered": 0,
+      "by_class": {
+        "cut": 68
+      },
+      "by_position": {
+        "QB": {
+          "with_forecast": 3,
+          "without_forecast": 4
+        },
+        "RB": {
+          "with_forecast": 7,
+          "without_forecast": 10
+        },
+        "TE": {
+          "with_forecast": 2,
+          "without_forecast": 4
+        },
+        "WR": {
+          "with_forecast": 16,
+          "without_forecast": 22
+        }
+      }
+    },
+    "retired": {
+      "total": 6,
+      "with_forecast": 4,
+      "without_forecast": 2,
+      "with_now": 4,
+      "with_future_total": 4,
+      "incomplete_path": 0,
+      "starting_estimates": 0,
+      "recovered": 0,
+      "by_class": {
+        "retired": 6
+      },
+      "by_position": {
+        "QB": {
+          "with_forecast": 1,
+          "without_forecast": 1
+        },
+        "RB": {
+          "with_forecast": 0,
+          "without_forecast": 1
+        },
+        "WR": {
+          "with_forecast": 3,
+          "without_forecast": 0
+        }
+      }
+    },
+    "unknown": {
+      "total": 3,
+      "with_forecast": 1,
+      "without_forecast": 2,
+      "with_now": 1,
+      "with_future_total": 1,
+      "incomplete_path": 0,
+      "starting_estimates": 0,
+      "recovered": 0,
+      "by_class": {
+        "unknown": 3
+      },
+      "by_position": {
+        "TE": {
+          "with_forecast": 1,
+          "without_forecast": 2
+        }
+      }
+    },
+    "owned": {
+      "total": 274,
+      "with_forecast": 0,
+      "without_forecast": 274,
+      "with_now": 0,
+      "with_future_total": 0,
+      "incomplete_path": 0,
+      "starting_estimates": 0,
+      "recovered": 0,
+      "by_class": {
+        "active": 256,
+        "injured_reserve": 12,
+        "no_verified_join_to_2026_roster": 3,
+        "practice_squad": 2,
+        "exempt": 1
+      },
+      "by_position": {
+        "QB": {
+          "with_forecast": 0,
+          "without_forecast": 44
+        },
+        "RB": {
+          "with_forecast": 0,
+          "without_forecast": 82
+        },
+        "TE": {
+          "with_forecast": 0,
+          "without_forecast": 41
+        },
+        "WR": {
+          "with_forecast": 0,
+          "without_forecast": 107
+        }
+      }
+    }
+  },
+  "populations_note": "default = unowned census members with a verified NFL join in {active, practice squad, injured reserve}; cut, retired and unknown-identity members are separate; ownership filters availability only and never changes a forecast",
+  "disclosures": {
+    "uncovered_sleeper_ids": 3373,
+    "unmatched_nfl_records": 141,
+    "contested_nfl_records": 1,
+    "archive_unforecast_by_position": {
+      "QB": 368,
+      "WR": 1457,
+      "RB": 726,
+      "TE": 667
+    },
+    "note": "uncovered Sleeper ids (no verified join to the captured roster) and NFL records without a Sleeper identity are shown as counts only; neither is a fantasy pickup candidate here"
+  },
+  "forecast_note": "values are the producers' own expected season points (nflverse default PPR, championship window) with their appearance probabilities; not the impact number, not weekly start advice, not cross-position dynasty value",
+  "recovered": {
+    "count": 4,
+    "rows": [
+      {
+        "sleeper_id": "8025",
+        "gsis": "00-0036727",
+        "producer": "DG-177 veteran annual forecast candidate (report-only):basic_cohort_3col_plus_lags"
+      },
+      {
+        "sleeper_id": "6109",
+        "gsis": "00-0035125",
+        "producer": "DG-177 veteran annual forecast candidate (report-only):basic_cohort_3col_plus_lags"
+      },
+      {
+        "sleeper_id": "1379",
+        "gsis": "00-0029892",
+        "producer": "DG-177 veteran annual forecast candidate (report-only):basic_cohort_3col_plus_lags"
+      },
+      {
+        "sleeper_id": "2471",
+        "gsis": "00-0031595",
+        "producer": "DG-177 veteran annual forecast candidate (report-only):basic_cohort_3col_plus_lags"
+      }
+    ],
+    "note": "frozen producer forecasts joined by verified census identity; not among the accepted 825 rows; exact original values"
+  },
+  "starting_estimates": {
+    "count": 7,
+    "rows": [
+      {
+        "sleeper_id": "12477",
+        "gsis": "00-0040589",
+        "classes": {
+          "2026": "cold_start_candidate",
+          "2027": "baseline_research_candidate",
+          "2028": "baseline_research_candidate",
+          "2029": "baseline_research_candidate",
+          "2030": "baseline_research_candidate"
+        }
+      },
+      {
+        "sleeper_id": "12494",
+        "gsis": "00-0040014",
+        "classes": {
+          "2026": "cold_start_candidate",
+          "2027": "baseline_research_candidate",
+          "2028": "baseline_research_candidate",
+          "2029": "baseline_research_candidate",
+          "2030": "baseline_research_candidate"
+        }
+      },
+      {
+        "sleeper_id": "12511",
+        "gsis": "00-0040203",
+        "classes": {
+          "2026": "cold_start_candidate",
+          "2027": "baseline_research_candidate",
+          "2028": "baseline_research_candidate",
+          "2029": "baseline_research_candidate",
+          "2030": "baseline_research_candidate"
+        }
+      },
+      {
+        "sleeper_id": "12700",
+        "gsis": "00-0040215",
+        "classes": {
+          "2026": "cold_start_candidate",
+          "2027": "baseline_research_candidate",
+          "2028": "baseline_research_candidate",
+          "2029": "baseline_research_candidate",
+          "2030": "baseline_research_candidate"
+        }
+      },
+      {
+        "sleeper_id": "12705",
+        "gsis": "00-0040211",
+        "classes": {
+          "2026": "cold_start_candidate",
+          "2027": "baseline_research_candidate",
+          "2028": "baseline_research_candidate",
+          "2029": "baseline_research_candidate",
+          "2030": "baseline_research_candidate"
+        }
+      },
+      {
+        "sleeper_id": "12735",
+        "gsis": "00-0040240",
+        "classes": {
+          "2026": "cold_start_candidate",
+          "2027": "baseline_research_candidate",
+          "2028": "baseline_research_candidate",
+          "2029": "baseline_research_candidate",
+          "2030": "baseline_research_candidate"
+        }
+      },
+      {
+        "sleeper_id": "12475",
+        "gsis": "00-0040653",
+        "classes": {
+          "2026": "cold_start_candidate",
+          "2027": "baseline_research_candidate",
+          "2028": "baseline_research_candidate",
+          "2029": "baseline_research_candidate",
+          "2030": "baseline_research_candidate"
+        }
+      }
+    ],
+    "source": {
+      "run_dir": "/Users/davidleess/dg-wt/DG-165/runs/20260907T012231Z/dg165_cold_start_candidate",
+      "manifest_sha256": "2d4594863649c042fb10dad54d986e82aaf1d38cca986d52791fa76db2f13b98",
+      "estimates_sha256": "93bc11aaf6781fb98f678ed52ce47417a04945c3b9b4b62363eef105dcc4eff7",
+      "schema_version": "dg165_cold_start_candidate_v1",
+      "producer": "DG-165 cold-start research candidate (starting estimate):dg165_cold_start_candidate_v1",
+      "ticket": "DG-165",
+      "coverage_run": {
+        "ledger_sha256": "6ad45bcbd0e2aa4faf6ae9c9dd508f20598309bbdfe37c8e2f13059aa4c0cf33",
+        "manifest_sha256": "071bc6d90bae6e79a1f05700db8bad02d91557c8cd15f397382f14901191ab60",
+        "run_dir": "runs/20260907T010020Z/dg165_cold_start_coverage"
+      },
+      "partition": {
+        "candidates": 7,
+        "ledger_rows": 84,
+        "recovered_existing_forecast": 4,
+        "unresolved": 73
+      },
+      "git_sha": "0e2db9e1e2ef0fe823e061f45c3cf1c4a949e06f"
+    },
+    "evidence": {
+      "selected_per_horizon": {
+        "1": "cold_start_candidate",
+        "2": "baseline_research_candidate",
+        "3": "baseline_research_candidate",
+        "4": "baseline_research_candidate",
+        "5": "baseline_research_candidate"
+      },
+      "horizons": {
+        "1": {
+          "b1": {
+            "appear_rate": 0.4142857142857143,
+            "bias_points": -1.9261146832528684,
+            "brier": 0.24738141431604796,
+            "mae_points": 14.988851553761595,
+            "n": 210,
+            "rmse_points": 28.18661388602356
+          },
+          "candidate": {
+            "appear_rate": 0.4142857142857143,
+            "bias_points": -2.3957519476652482,
+            "brier": 0.22928437771242585,
+            "mae_points": 12.717693479009883,
+            "n": 210,
+            "rmse_points": 24.499577207097655
+          }
+        },
+        "2": {
+          "b1": {
+            "appear_rate": 0.33668341708542715,
+            "bias_points": 1.0146855597176099,
+            "brier": 0.2267010457654976,
+            "mae_points": 19.320619080438966,
+            "n": 199,
+            "rmse_points": 35.11720186567145
+          },
+          "candidate": {
+            "appear_rate": 0.33668341708542715,
+            "bias_points": 0.3582453481338657,
+            "brier": 0.22003047519619653,
+            "mae_points": 18.732620879447555,
+            "n": 199,
+            "rmse_points": 36.71452418095528
+          }
+        },
+        "3": {
+          "b1": {
+            "appear_rate": 0.25133689839572193,
+            "bias_points": 0.4415709323813586,
+            "brier": 0.19118640272727538,
+            "mae_points": 19.855976090182136,
+            "n": 187,
+            "rmse_points": 37.96726280469623
+          },
+          "candidate": {
+            "appear_rate": 0.25133689839572193,
+            "bias_points": 0.025429885262909048,
+            "brier": 0.19033235411655058,
+            "mae_points": 18.14032296641933,
+            "n": 187,
+            "rmse_points": 38.20636789329375
+          }
+        },
+        "4": {
+          "b1": {
+            "appear_rate": 0.17318435754189945,
+            "bias_points": -0.034444488828911414,
+            "brier": 0.15036322770890903,
+            "mae_points": 18.812135919885122,
+            "n": 179,
+            "rmse_points": 38.98041803073521
+          },
+          "candidate": {
+            "appear_rate": 0.17318435754189945,
+            "bias_points": -0.9901703962177388,
+            "brier": 0.15098894556560666,
+            "mae_points": 15.888869040580342,
+            "n": 179,
+            "rmse_points": 36.79658358959909
+          }
+        },
+        "5": {
+          "b1": {
+            "appear_rate": 0.14534883720930233,
+            "bias_points": 0.442244986109031,
+            "brier": 0.12763533253221768,
+            "mae_points": 13.429346910578303,
+            "n": 172,
+            "rmse_points": 33.73921554764182
+          },
+          "candidate": {
+            "appear_rate": 0.14534883720930233,
+            "bias_points": 0.656365560246061,
+            "brier": 0.13088158141161196,
+            "mae_points": 12.807103505432261,
+            "n": 172,
+            "rmse_points": 32.9666849368863
+          }
+        }
+      },
+      "caveats": {
+        "appearance": "P(appear) is the probability of at least one championship-window stat row; it is not a breakout or usefulness probability",
+        "bootstrap": "the 90% intervals are player-cluster bootstraps conditional on the fixed fits and the realized origins 2012-2025; they carry no season or model-fit uncertainty and are not forecast intervals",
+        "horizons": "each horizon is fitted, evaluated and selected independently; acceptance at one horizon never validates another",
+        "labels": "a complete season with no artifact row is the producers' shared convention zero (tagged); seasons beyond 2025 are unknown",
+        "population": "a draft-population prior for drafted players with no rookie-year regular-season record; not conditioned on remaining on a current roster; direction and size of this mismatch have not been measured",
+        "scoring": "outcomes are the common research default PPR championship-window target (nflverse default scoring), not exact league scoring; league_scoring_exact is false on the bound artifact",
+        "selection": "selecting a policy on this historical evaluation is retrospective model selection, NOT independent confirmation of the selected policy; both arms are reported at every horizon"
+      },
+      "selection_rule": "per horizon, on the same paired supported rows: the candidate is selected only if BOTH the paired Brier(appear) difference and the paired RMSE(unconditional points) difference vs B1 have 90% player-cluster bootstrap intervals entirely below zero; otherwise B1's estimate is a baseline_research_candidate with its measured out-of-time error and support; a horizon whose arms are unsupported at the final origin is unsupported",
+      "meaning": "retrospective policy selection on the producer's historical population; not independent confirmation, not a per-player certainty, not a breakout probability; a baseline year means the candidate was not clearly better there"
+    },
+    "note": "root-accepted cold-start research candidate, new-only: a starting estimate for a drafted player with no rookie-season record; year classes are the producer's own selection; not conditioned on remaining on a current roster; no impact number is fabricated"
+  },
+  "forecast_years": [
+    2026,
+    2027,
+    2028,
+    2029,
+    2030
+  ],
+  "future_years": [
+    2027,
+    2028,
+    2029,
+    2030
+  ],
+  "notes": {
+    "ownership": "Ownership filters availability only: it never changes a player's forecast. Unowned means nobody in David's league owned him in the dated snapshot; it is not the same as being an NFL free agent.",
+    "now": "Now = the 2026 projected points over the championship window (NFL weeks 1\u201317), the producer's own expected season points; not weekly start advice.",
+    "future": "Future = the projected points for 2027\u20132030 summed, named years only; undefined when any of those years has no forecast \u2014 never zero, never a partial total; not a breakout probability.",
+    "appearance": "P(appears) is the producer's probability of at least one stat record in the window; it is not P(becomes useful).",
+    "sorting": "Sorting states its basis beside the control; raw points are not cross-position dynasty value and no overall rank is claimed.",
+    "watchlist": "The watchlist is David's own shortlist saved in this browser; it is not a model nomination.",
+    "starting_estimate": "A starting estimate is a research candidate for a drafted player with no rookie-season record: year 1 from a draft-capital model where the producer's paired evaluation selected it, later years from the position's historical baseline; not conditioned on remaining on a current roster, not a breakout probability, no impact number."
+  },
+  "rows": [
+    {
+      "sleeper_id": "10866",
+      "player_id": "10866",
+      "name": "Aidan O'Connell",
+      "league_position": "QB",
+      "fantasy_positions": "QB",
+      "availability_class": "active",
+      "population": "default",
+      "nfl_team": "LV",
+      "nfl_status_raw": "ACT",
+      "join_basis": "sleeper_id",
+      "identity_conflict": null,
+      "now_points": 16.34909843352283,
+      "future_points": 54.47980236069462,
+      "future_years": [
+        2027,
+        2028,
+        2029,
+        2030
+      ],
+      "future_reason": null,
+      "missing_reason": null,
+      "impact": {
+        "h2": 0.0,
+        "h5": 0.0
+      },
+      "readiness": "comparable",
+      "owned_now": false,
+      "roster_id": null,
+      "recovered": false,
+      "forecast_path": {
+        "status": "complete",
+        "years_present": [
+          2026,
+          2027,
+          2028,
+          2029,
+          2030
+        ]
+      },
+      "starting_estimate": false,
+      "estimate_classes": null,
+      "forecast": {
+        "producer": "DG-177 veteran annual forecast candidate (report-only):basic_cohort_3col_plus_lags",
+        "source_csv": "/Users/davidleess/dg-wt/DG-177/runs/20260906T195728Z/dg177_basic_horizons/basic_forecasts.csv",
+        "source_csv_sha256": "a43f3126e05f7118e965c85fb8a4237ef34ee9896a15f9d9d01a179d9f0400be",
+        "join_basis": "census_nfl_gsis",
+        "join_id": "00-0038579",
+        "seasons": [
+          {
+            "season": 2026,
+            "e_points": 16.34909843352283,
+            "p_appear": 0.597745972517733,
+            "e_points_given_appear": 27.35124816426565,
+            "e_games": 2.6510295215636464
+          },
+          {
+            "season": 2027,
+            "e_points": 15.091121291932481,
+            "p_appear": 0.5295204108680363,
+            "e_points_given_appear": 28.499602625692546,
+            "e_games": 2.514202314709705
+          },
+          {
+            "season": 2028,
+            "e_points": 16.75169766644617,
+            "p_appear": 0.429054714272837,
+            "e_points_given_appear": 39.04326676572472,
+            "e_games": 2.1538972541802783
+          },
+          {
+            "season": 2029,
+            "e_points": 12.254729316517627,
+            "p_appear": 0.3262305572881547,
+            "e_points_given_appear": 37.56462735553372,
+            "e_games": 1.6713338892136678
+          },
+          {
+            "season": 2030,
+            "e_points": 10.382254085798346,
+            "p_appear": 0.2956584880586621,
+            "e_points_given_appear": 35.11569768880908,
+            "e_games": 1.4207305342642547
+          }
+        ]
+      }
+    },
+    {
+      "sleeper_id": "829",
+      "player_id": "00-0027973",
+      "name": "Andy Dalton",
+      "league_position": "QB",
+      "fantasy_positions": "QB",
+      "availability_class": "active",
+      "population": "default",
+      "nfl_team": "PHI",
+      "nfl_status_raw": "ACT",
+      "join_basis": "sleeper_id",
+      "identity_conflict": null,
+      "now_points": 12.11727862833891,
+      "future_points": 14.996717549138864,
+      "future_years": [
+        2027,
+        2028,
+        2029,
+        2030
+      ],
+      "future_reason": null,
+      "missing_reason": null,
+      "impact": {
+        "h2": 0.0,
+        "h5": 0.0
+      },
+      "readiness": "comparable",
+      "owned_now": false,
+      "roster_id": null,
+      "recovered": false,
+      "forecast_path": {
+        "status": "complete",
+        "years_present": [
+          2026,
+          2027,
+          2028,
+          2029,
+          2030
+        ]
+      },
+      "starting_estimate": false,
+      "estimate_classes": null,
+      "forecast": {
+        "producer": "DG-177 veteran annual forecast candidate (report-only):basic_cohort_3col_plus_lags",
+        "source_csv": "/Users/davidleess/dg-wt/DG-177/runs/20260906T195728Z/dg177_basic_horizons/basic_forecasts.csv",
+        "source_csv_sha256": "a43f3126e05f7118e965c85fb8a4237ef34ee9896a15f9d9d01a179d9f0400be",
+        "join_basis": "report_gsis",
+        "join_id": "00-0027973",
+        "seasons": [
+          {
+            "season": 2026,
+            "e_points": 12.11727862833891,
+            "p_appear": 0.4939021375239337,
+            "e_points_given_appear": 24.533764298097875,
+            "e_games": 2.022663342183687
+          },
+          {
+            "season": 2027,
+            "e_points": 8.056590685382062,
+            "p_appear": 0.3585651066380081,
+            "e_points_given_appear": 22.46897574870733,
+            "e_games": 1.364744874746996
+          },
+          {
+            "season": 2028,
+            "e_points": 3.7590342384947535,
+            "p_appear": 0.16300716180975278,
+            "e_points_given_appear": 23.060546522992396,
+            "e_games": 0.6580783664419256
+          },
+          {
+            "season": 2029,
+            "e_points": 2.0015571218229478,
+            "p_appear": 0.11473681446413206,
+            "e_points_given_appear": 17.44476810839694,
+            "e_games": 0.4193635699951808
+          },
+          {
+            "season": 2030,
+            "e_points": 1.1795355034391009,
+            "p_appear": 0.07423281896954297,
+            "e_points_given_appear": 15.889676827752606,
+            "e_games": 0.280543525747944
+          }
+        ]
+      }
+    },
+    {
+      "sleeper_id": "13557",
+      "player_id": "athan_kaliakmanis_qb",
+      "name": "Athan Kaliakmanis",
+      "league_position": "QB",
+      "fantasy_positions": "QB",
+      "availability_class": "active",
+      "population": "default",
+      "nfl_team": "WAS",
+      "nfl_status_raw": "ACT",
+      "join_basis": "sleeper_id",
+      "identity_conflict": null,
+      "now_points": 10.412330771940667,
+      "future_points": 34.49751458980739,
+      "future_years": [
+        2027,
+        2028,
+        2029,
+        2030
+      ],
+      "future_reason": null,
+      "missing_reason": null,
+      "impact": {
+        "h2": 0.0,
+        "h5": 0.0
+      },
+      "readiness": "comparable",
+      "owned_now": false,
+      "roster_id": null,
+      "recovered": false,
+      "forecast_path": {
+        "status": "complete",
+        "years_present": [
+          2026,
+          2027,
+          2028,
+          2029,
+          2030
+        ]
+      },
+      "starting_estimate": false,
+      "estimate_classes": null,
+      "forecast": {
+        "producer": "dg165_rookie_capital_v3_chain",
+        "source_csv": "/Users/davidleess/dg-wt/DG-165/runs/20260906T195904Z/dg165_rookie_capital/rookie_scores_2026.csv",
+        "source_csv_sha256": "db96647dea6c6a9f8cbdf1e2938d7eca84f5d50b220a875bb31ce44f4a1ae9b5",
+        "join_basis": "census_nfl_gsis",
+        "join_id": "00-0041117",
+        "seasons": [
+          {
+            "season": 2026,
+            "e_points": 10.412330771940667,
+            "p_appear": 0.30772063401729216,
+            "e_points_given_appear": 33.836959959453196,
+            "e_games": 1.1191998333559636
+          },
+          {
+            "season": 2027,
+            "e_points": 12.47185681506279,
+            "p_appear": 0.32402288605661,
+            "e_points_given_appear": 38.490666405840955,
+            "e_games": 1.3862612072334417
+          },
+          {
+            "season": 2028,
+            "e_points": 5.259808618914375,
+            "p_appear": 0.23776573069690732,
+            "e_points_given_appear": 22.12181126143588,
+            "e_games": 0.7445148441750642
+          },
+          {
+            "season": 2029,
+            "e_points": 9.27690500604596,
+            "p_appear": 0.22492943817735783,
+            "e_points_given_appear": 41.24362325011046,
+            "e_games": 0.8941762893471857
+          },
+          {
+            "season": 2030,
+            "e_points": 7.488944149784264,
+            "p_appear": 0.16574788219967548,
+            "e_points_given_appear": 45.18274411954403,
+            "e_games": 0.8310177094020897
+          }
+        ]
+      }
+    },
+    {
+      "sleeper_id": "96",
+      "player_id": "00-0023459",
+      "name": "Aaron Rodgers",
+      "league_position": "QB",
+      "fantasy_positions": "QB",
+      "availability_class": "active",
+      "population": "owned",
+      "nfl_team": "PIT",
+      "nfl_status_raw": "ACT",
+      "join_basis": "sleeper_id",
+      "identity_conflict": null,
+      "now_points": null,
+      "future_points": null,
+      "future_years": [
+        2027,
+        2028,
+        2029,
+        2030
+      ],
+      "future_reason": null,
+      "missing_reason": "owned in your league; forecasts are shown on the research board",
+      "impact": {
+        "h2": 124.19140519196789,
+        "h5": 257.0590880783788
+      },
+      "readiness": "comparable",
+      "owned_now": true,
+      "roster_id": 4,
+      "recovered": false,
+      "forecast_path": {
+        "status": "not_carried",
+        "years_present": []
+      },
+      "starting_estimate": false,
+      "estimate_classes": null,
+      "forecast": null
+    },
+    {
+      "sleeper_id": "9229",
+      "player_id": "9229",
+      "name": "Anthony Richardson",
+      "league_position": "QB",
+      "fantasy_positions": "QB",
+      "availability_class": "active",
+      "population": "owned",
+      "nfl_team": "IND",
+      "nfl_status_raw": "ACT",
+      "join_basis": "sleeper_id",
+      "identity_conflict": null,
+      "now_points": null,
+      "future_points": null,
+      "future_years": [
+        2027,
+        2028,
+        2029,
+        2030
+      ],
+      "future_reason": null,
+      "missing_reason": "owned in your league; forecasts are shown on the research board",
+      "impact": {
+        "h2": 0.0,
+        "h5": 12.222589752547837
+      },
+      "readiness": "comparable",
+      "owned_now": true,
+      "roster_id": 6,
+      "recovered": false,
+      "forecast_path": {
+        "status": "not_carried",
+        "years_present": []
+      },
+      "starting_estimate": false,
+      "estimate_classes": null,
+      "forecast": null
+    },
+    {
+      "sleeper_id": "11065",
+      "player_id": "11065",
+      "name": "Adrian Martinez",
+      "league_position": "QB",
+      "fantasy_positions": "QB",
+      "availability_class": "cut",
+      "population": "cut",
+      "nfl_team": "SF",
+      "nfl_status_raw": "CUT",
+      "join_basis": "sleeper_id",
+      "identity_conflict": null,
+      "now_points": 3.4162459189407786,
+      "future_points": 20.206926277737594,
+      "future_years": [
+        2027,
+        2028,
+        2029,
+        2030
+      ],
+      "future_reason": null,
+      "missing_reason": null,
+      "impact": {
+        "h2": 0.0,
+        "h5": 0.0
+      },
+      "readiness": "comparable",
+      "owned_now": false,
+      "roster_id": null,
+      "recovered": false,
+      "forecast_path": {
+        "status": "complete",
+        "years_present": [
+          2026,
+          2027,
+          2028,
+          2029,
+          2030
+        ]
+      },
+      "starting_estimate": false,
+      "estimate_classes": null,
+      "forecast": {
+        "producer": "DG-177 veteran annual forecast candidate (report-only):basic_cohort_3col_plus_lags",
+        "source_csv": "/Users/davidleess/dg-wt/DG-177/runs/20260906T195728Z/dg177_basic_horizons/basic_forecasts.csv",
+        "source_csv_sha256": "a43f3126e05f7118e965c85fb8a4237ef34ee9896a15f9d9d01a179d9f0400be",
+        "join_basis": "census_nfl_gsis",
+        "join_id": "00-0038658",
+        "seasons": [
+          {
+            "season": 2026,
+            "e_points": 3.4162459189407786,
+            "p_appear": 0.42678371474584537,
+            "e_points_given_appear": 8.004630450754647,
+            "e_games": 1.5439270458451793
+          },
+          {
+            "season": 2027,
+            "e_points": 1.7798945893140405,
+            "p_appear": 0.4157233366942738,
+            "e_points_given_appear": 4.281440160341513,
+            "e_games": 1.3309208042342755
+          },
+          {
+            "season": 2028,
+            "e_points": 5.8041545795711045,
+            "p_appear": 0.30169428936974263,
+            "e_points_given_appear": 19.238529810081356,
+            "e_games": 1.2152967654486777
+          },
+          {
+            "season": 2029,
+            "e_points": 5.65630358247742,
+            "p_appear": 0.26164879261393603,
+            "e_points_given_appear": 21.61792349954896,
+            "e_games": 1.0866768900364483
+          },
+          {
+            "season": 2030,
+            "e_points": 6.966573526375029,
+            "p_appear": 0.24377039054652508,
+            "e_points_given_appear": 28.578423781314065,
+            "e_games": 1.1549301107040097
+          }
+        ]
+      }
+    }
+  ]
+}
