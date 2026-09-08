@@ -30,6 +30,7 @@ from app.api.routes import (
     trust_surface,
     workspace_snapshots,
 )
+from app.services.headshot_assets import mount_headshots
 
 load_dotenv()
 
@@ -65,17 +66,8 @@ app.include_router(research_market_ranks.router, prefix="/api")
 app.include_router(workspace_snapshots.router, prefix="/api")
 
 
-# --- Increment-1 headshot cache mount (spec v3 §2; rebuildable, gitignored) ---
-# Registered BEFORE the /assets bundle mount so the longer prefix wins. CONDITIONAL
-# on the local cache existing: a fresh checkout/CI has no cache and simply 404s —
-# the frontend's onError fallback chain renders initials, never a broken image.
-_HEADSHOT_CACHE = Path("app/data/assets/headshots")
-if _HEADSHOT_CACHE.is_dir():
-    app.mount(
-        "/assets/headshots",
-        StaticFiles(directory=_HEADSHOT_CACHE),
-        name="headshot-assets",
-    )
+# Player photos mount before the broader frontend assets route.
+mount_headshots(app, repo_root=Path(__file__).resolve().parents[1])
 
 # --- Frontend SPA static mount (Phase-12 surface 1; spec 2026-06-03-frontend-design-spec) ---
 # Serve the built Stack-A bundle (`frontend/dist/`) as a SCOPED fallback, registered LAST so it

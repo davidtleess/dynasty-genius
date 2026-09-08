@@ -1,18 +1,13 @@
-// DG-188 — the expanded player panel.
-//
-// David asked for four ideas to stay recognizable: what might he produce, what is that worth over time here, what
-// does the broad market pay, and how does he fit your roster. This renders exactly those, each number carrying its
-// own unit, and nothing the payload does not contain.
-//
-// Two things the imported design does are deliberately not reproduced, because they would be false here:
-//   * its closing line — "Our score is published in the market's own units so the two are subtractable" — is the
-//     opposite of the truth. Our number is five-year points above replacement; the market's is a FantasyCalc price.
-//     The RANKS are the comparable reading, and this panel says so.
-//   * its position-rank chips and lineup-slot label describe data that does not exist in the payload. A slot is not
-//     inferred from ownership, and a position rank is not invented from an overall one.
-import { comparisonText, rankText } from "../market-ranks/MarketRanks";
+// Player details keep the football forecast, dynasty valuation, market price and roster context
+// separate. DG195 replaces the original separate rank tracks with the shared axis imported from
+// Directions, preserving true intervals on both sides and the completed DG192 headshots.
+// The design's illustrative causal explanations, position ranks and lineup roles are not data;
+// only the actual forecast, valuation basis and captured ownership appear here.
+import { comparisonText } from "../market-ranks/MarketRanks";
 import { formatAvailablePoints } from "../research/availableHelpers";
+import { headshotSrc, PlayerIdentity } from "../ui/PlayerIdentity";
 import type { WorkspacePlayer, WorkspacePlayerPanelProps } from "./types";
+import { WorkspaceRankScale } from "./WorkspaceRankScale";
 import "./WorkspacePlayerPanel.css";
 
 /** The panel's DOM id, derived from the player so the row control can point at it without threading a prop. */
@@ -41,21 +36,6 @@ function dayLabel(iso: string): string {
   });
 }
 
-/** Where an inclusive rank interval sits on its own population, as a percentage span. Best rank on the left.
- *
- *  The width is the interval's TRUE share of the axis and is never padded: one player of 388 is 0.258% and the
- *  159-wide zero tie is 40.979%, and the difference between those two is the whole point of drawing it. A single
- *  rank stays visible through a CSS minimum width, with its position clamped inside the right edge.
- *  The printed rank bounds remain exact; very narrow ties can share the same visible width. */
-function span(interval: { start: number; end: number; total: number }) {
-  const left = ((interval.start - 1) / interval.total) * 100;
-  const width = ((interval.end - interval.start + 1) / interval.total) * 100;
-  return {
-    left: `min(${left.toFixed(3)}%, calc(100% - var(--dg-space-1)))`,
-    width: `${width.toFixed(3)}%`,
-  };
-}
-
 function ownershipLabel(player: WorkspacePlayer): string {
   if (player.rank?.league_ownership) return player.rank.league_ownership;
   const spoken: Record<WorkspacePlayer["ownership"], string> = {
@@ -72,32 +52,6 @@ function ownershipLabel(player: WorkspacePlayer): string {
  *  — you can still weigh an unpriced player against a spot — but a player another team owns is neither side. */
 function canCompare(player: WorkspacePlayer): boolean {
   return player.ownership === "available" || player.ownership === "roster";
-}
-
-function RankLane({
-  lane,
-  label,
-  interval,
-  emptyNote,
-}: {
-  lane: "ours" | "market";
-  label: string;
-  interval: { start: number; end: number; total: number } | null;
-  emptyNote?: string;
-}) {
-  return (
-    <div className={`dg-workspace-panel__lane dg-workspace-panel__lane--${lane}`}>
-      <span className="dg-workspace-panel__lane-label">{label}</span>
-      {interval === null ? (
-        <span className="dg-workspace-panel__lane-empty">{emptyNote}</span>
-      ) : (
-        <span className="dg-workspace-panel__track">
-          <span className="dg-workspace-panel__mark" style={span(interval)} />
-        </span>
-      )}
-      <strong className="dg-workspace-panel__lane-rank">{rankText(interval)}</strong>
-    </div>
-  );
 }
 
 function Idea({
@@ -151,25 +105,30 @@ export function WorkspacePlayerPanel({
       aria-label={panelLabel(player.name)}
       id={panelDomId(player.id)}
     >
+      {/* DG-194: the face beside the name. The detail previously opened straight into the rank
+          lanes with no identity at all, so a reader who arrived from search had to trust the
+          heading. A missing photo degrades to initials; nothing else about the panel changes. */}
+      <div className="dg-workspace-panel__identity">
+        <PlayerIdentity
+          name={player.name}
+          team={player.team ?? ""}
+          position={player.position}
+          imageStatus="available"
+          imageSrc={headshotSrc(player.id)}
+        />
+      </div>
+
       <div className="dg-workspace-panel__answer">
-        <div className="dg-workspace-panel__lanes">
-          <RankLane
-            lane="ours"
-            label="Ours"
-            interval={rank?.our_rank ?? null}
-            emptyNote="No comparable ranking — he is outside the players both sides cover."
-          />
-          <RankLane
-            lane="market"
-            label="Market"
-            interval={rank?.market_rank ?? null}
-            emptyNote={
-              rank !== null && rank.market_value === null
-                ? "No price carried in this capture — missing, not zero."
-                : "No comparable ranking — he is outside the players both sides cover."
-            }
-          />
-        </div>
+        <WorkspaceRankScale
+          ourRank={rank?.our_rank ?? null}
+          marketRank={rank?.market_rank ?? null}
+          playerName={player.name}
+        />
+        {rank !== null && rank.market_value === null && (
+          <p className="dg-workspace-panel__cohort">
+            No price carried in this capture — missing, not zero.
+          </p>
+        )}
 
         <p className="dg-workspace-panel__verdict">
           {rank === null
@@ -180,9 +139,6 @@ export function WorkspacePlayerPanel({
           {paired
             ? `Both ranks cover the same ${cohort.toLocaleString("en-US")} players.`
             : `Primary paired ranks cover the ${cohort.toLocaleString("en-US")} players both sides carry, and he is not one of them. Our own board ranks ${data.coverage.model_players.toLocaleString("en-US")}.`}
-        </p>
-        <p className="dg-workspace-panel__axis">
-          {`Best rank at the left: #1 through #${(rank?.our_rank?.total ?? rank?.market_rank?.total ?? cohort).toLocaleString("en-US")}. A lower number is better. Marks show rank position and ties. Narrow ranges share a minimum visible width; read the printed ranks for exact bounds.`}
         </p>
         <p className="dg-workspace-panel__units">
           The underlying model points and market prices are in different units —
@@ -272,8 +228,30 @@ export function WorkspacePlayerPanel({
         <details>
           <summary>How these numbers were made</summary>
           <div className="dg-workspace-panel__source-body">
-            <p>{data.basis.summary}</p>
-            <p>{data.basis.market_proxy_note}</p>
+            <ul
+              className="dg-workspace-panel__basis"
+              aria-label="Basis of this comparison"
+            >
+              <li>
+                <span className="dg-workspace-panel__basis-label">Forecast basis</span>
+                <p>
+                  {forecast?.evidence_note?.trim() ||
+                    "A forecast explanation is not available in this snapshot."}
+                </p>
+              </li>
+              <li>
+                <span className="dg-workspace-panel__basis-label">Valuation basis</span>
+                <p>{data.basis.summary}</p>
+              </li>
+              <li>
+                <span className="dg-workspace-panel__basis-label">Market context</span>
+                <p>{data.basis.market_proxy_note}</p>
+              </li>
+            </ul>
+            <p>
+              These describe the forecast and valuation assumptions. This snapshot does
+              not include player-specific reasons for the rank difference.
+            </p>
             <p>{data.basis.scoring_note}</p>
             <p>
               Forecast dated {dayLabel(data.source.forecast_date)}, market prices

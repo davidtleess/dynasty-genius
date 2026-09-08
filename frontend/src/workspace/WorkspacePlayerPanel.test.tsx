@@ -231,7 +231,7 @@ it("shows neither a position rank nor a completeness or age-cliff claim, because
   renderPanel();
   const text = screen.getByRole("region", { name: /Alpha Adams/ }).textContent ?? "";
   expect(text).not.toMatch(/QB\d|RB\d|WR\d|TE\d/);
-  expect(text).not.toMatch(/age cliff|completeness|confidence/i);
+  expect(text).not.toMatch(/age cliff|completeness|confidence score/i);
 });
 
 // --- this season versus later, and the limits ------------------------------------------------------
@@ -362,33 +362,33 @@ it("still watches a player the sources could not cover at all", () => {
   expect(screen.queryByRole("button", { name: /^Compare/ })).toBeNull();
 });
 
-// --- root's DG-186 review, 2026-09-07: the axis must not flatter a lone player into a wide tie ------
-
-it("draws each rank interval at its true share of the axis, never padded to a visible minimum", () => {
+// DG195: both sides use the imported shared axis, with ranks and ties supplied unchanged.
+it("uses one shared rank scale and preserves a market tie", () => {
   const { container } = renderPanel({
     player: player({
-      rank: rankRow({ our_rank: interval(83), market_rank: interval(230, 388) }),
+      rank: rankRow({ our_rank: interval(1, 1, 5), market_rank: interval(3, 5, 5) }),
     }),
   });
-  const marks = [
-    ...container.querySelectorAll(".dg-workspace-panel__mark"),
-  ] as HTMLElement[];
-  expect(marks).toHaveLength(2);
-  expect(marks[0]?.style.width).toBe("0.258%"); // one player of 388
-  expect(marks[0]?.style.left).toContain("21.134%");
-  expect(marks[1]?.style.width).toBe("40.979%"); // the 159-wide zero tie, ~159x wider on screen
-  expect(marks[1]?.style.left).toContain("59.021%");
-  for (const mark of marks) expect(mark.style.width).not.toBe("50.000%");
+  const scale = container.querySelector(".dg-rank-scale");
+  expect(scale).not.toBeNull();
+  expect(scale?.textContent).toMatch(/5-player/);
+  expect(scale?.textContent).toMatch(/#3–5/);
+  expect(container.querySelector(".dg-workspace-panel__track")).toBeNull();
 });
 
-it("captions the axis so a mark's position and width can be read at all", () => {
-  renderPanel();
-  const text = screen.getByRole("region", { name: /Alpha Adams/ }).textContent ?? "";
-  expect(text).toMatch(/Best rank at the left/);
-  expect(text).toMatch(/#1 through #388/);
-  expect(text).toMatch(/lower number is better/i);
-  expect(text).toMatch(/minimum visible width/i);
-  expect(text).toMatch(/printed ranks/i);
+it("keeps missing-price information and draws no comparable axis when a side is absent", () => {
+  const { container } = renderPanel({
+    player: player({
+      rank: rankRow({
+        market_value: null,
+        market_rank: null,
+        comparison: { direction: "unavailable", gap_min: null, gap_max: null },
+      }),
+    }),
+  });
+  expect(container.querySelector(".dg-rank-scale")).not.toBeNull();
+  expect(container.querySelector(".dg-rank-scale__rail")).toBeNull();
+  expect(container.textContent).toMatch(/No price carried/);
 });
 
 it("keeps a player we forecast but the market does not price on our own board", () => {
@@ -419,4 +419,60 @@ it("never prints a small positive total as a zero", () => {
   );
   expect((ideas[0] as HTMLElement).textContent).toMatch(/0\.2/); // a real, tiny forecast
   expect((ideas[1] as HTMLElement).textContent).toMatch(/0\.0/); // a real, exact zero
+});
+
+// DG-194 (David, 2026-09-08: "we need headshots for all players") — the expanded detail opened
+// straight into the rank lanes with no visible identity at all. The face belongs beside the name.
+it("shows the player's headshot beside his name in the expanded detail", () => {
+  renderPanel();
+  const panel = screen.getByRole("region", {
+    name: "Alpha Adams — our view versus the market",
+  });
+  const img = within(panel).getByAltText("Alpha Adams") as HTMLImageElement;
+  expect(img.getAttribute("src")).toBe("/assets/headshots/1.jpg");
+  expect(img.getAttribute("loading")).toBe("lazy");
+  // the name is still on screen beside it, and the panel's accessible name is untouched
+  expect(within(panel).getAllByText("Alpha Adams").length).toBeGreaterThan(0);
+});
+
+it("falls back to initials in the detail when the cache has no photo for him, without a broken image", () => {
+  renderPanel();
+  const panel = screen.getByRole("region", {
+    name: "Alpha Adams — our view versus the market",
+  });
+  fireEvent.error(within(panel).getByAltText("Alpha Adams"));
+  expect(within(panel).queryByAltText("Alpha Adams")).toBeNull();
+  expect(within(panel).getByLabelText("Alpha Adams headshot unavailable")).toBeTruthy();
+  // the readings are untouched by a missing photo
+  expect(within(panel).getByText("#83")).toBeTruthy();
+  expect(within(panel).getByText("#193–194")).toBeTruthy();
+});
+
+// Directions' WhyBlock carries illustrative factors. Production substitutes source-backed basis
+// statements, with an explicit limit on what those statements explain about an individual player.
+it("adapts the explanation block from actual source statements without inventing player drivers", () => {
+  renderPanel();
+  const basis = screen.getByRole("list", {
+    name: "Basis of this comparison",
+    hidden: true,
+  });
+  expect(basis.textContent).toContain(
+    "Accepted research forecast from the veteran annual forecast.",
+  );
+  expect(basis.textContent).toContain(data.basis.summary);
+  expect(basis.textContent).toContain(data.basis.market_proxy_note);
+  expect(basis.textContent).not.toMatch(
+    /pushes up|pushes down|rushing floor|age cliff/i,
+  );
+});
+
+it("does not turn a missing forecast explanation into an invented reason", () => {
+  renderPanel({ player: player({ forecast: null }) });
+  const basis = screen.getByRole("list", {
+    name: "Basis of this comparison",
+    hidden: true,
+  });
+  expect(basis.textContent).toContain(
+    "A forecast explanation is not available in this snapshot.",
+  );
 });

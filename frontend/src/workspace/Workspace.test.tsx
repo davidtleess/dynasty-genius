@@ -58,9 +58,35 @@ vi.mock("./WorkspaceBoard", () => ({
     </ul>
   ),
 }));
+vi.mock("./WorkspaceRosterView", () => ({
+  WorkspaceRosterView: ({
+    roster,
+    onComparePair,
+  }: {
+    roster: { id: string; name: string }[];
+    onComparePair: (rosterId: string, availableId: string) => void;
+  }) => (
+    <div>
+      <h1>Your roster</h1>
+      {roster.map((p) => (
+        <p key={p.id}>{p.name}</p>
+      ))}
+      <button type="button" onClick={() => onComparePair("owned", "free")}>
+        Compare chosen alternative
+      </button>
+    </div>
+  ),
+}));
 vi.mock("./WorkspaceCompare", () => ({
-  WorkspaceCompare: ({ selection }: { selection: { availableId: string | null } }) => (
-    <p>Comparing {selection.availableId ?? "nobody"}</p>
+  WorkspaceCompare: ({
+    selection,
+  }: {
+    selection: { availableId: string | null; rosterId: string | null };
+  }) => (
+    <>
+      <p>Comparing {selection.availableId ?? "nobody"}</p>
+      <p>Roster spot {selection.rosterId ?? "nobody"}</p>
+    </>
   ),
 }));
 
@@ -169,4 +195,19 @@ it("hands the exact joined source tuple to the save control and exposes archive 
   );
   fireEvent.click(screen.getByRole("button", { name: "history" }));
   expect(screen.getByRole("heading", { name: "Saved snapshots" })).toBeTruthy();
+});
+
+it("opens the approved roster-first workspace when no view is specified", () => {
+  window.history.replaceState(null, "", "/?surface=workspace");
+  mount();
+  expect(screen.getByRole("heading", { name: "Your roster" })).toBeTruthy();
+  expect(screen.queryByText("Where we disagree most on players you own")).toBeNull();
+});
+it("opens comparison with both the selected roster spot and available player", async () => {
+  mount();
+  await waitFor(() => expect(fetch).toHaveBeenCalled());
+  fireEvent.click(screen.getByRole("button", { name: "Compare chosen alternative" }));
+  expect(screen.getByText("Comparing free")).toBeTruthy();
+  expect(screen.getByText("Roster spot owned")).toBeTruthy();
+  expect(window.location.search).toContain("view=compare");
 });

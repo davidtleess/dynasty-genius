@@ -281,8 +281,8 @@
     },
     {
       "path": "workspace/WorkspaceFrame.css",
-      "focus_visible_selectors": 2,
-      "focus_token_consumers": 1,
+      "focus_visible_selectors": 3,
+      "focus_token_consumers": 2,
       "hover_selectors": 0,
       "elevation_consumers": 0,
       "row_treatment_selectors": 3,
@@ -298,12 +298,48 @@
       "card_treatment_selectors": 0
     },
     {
+      "path": "workspace/WorkspaceInspector.css",
+      "focus_visible_selectors": 2,
+      "focus_token_consumers": 2,
+      "hover_selectors": 1,
+      "elevation_consumers": 0,
+      "row_treatment_selectors": 0,
+      "card_treatment_selectors": 0
+    },
+    {
       "path": "workspace/WorkspacePlayerPanel.css",
       "focus_visible_selectors": 2,
       "focus_token_consumers": 2,
       "hover_selectors": 1,
       "elevation_consumers": 0,
       "row_treatment_selectors": 0,
+      "card_treatment_selectors": 0
+    },
+    {
+      "path": "workspace/WorkspaceRankScale.css",
+      "focus_visible_selectors": 0,
+      "focus_token_consumers": 0,
+      "hover_selectors": 0,
+      "elevation_consumers": 0,
+      "row_treatment_selectors": 3,
+      "card_treatment_selectors": 0
+    },
+    {
+      "path": "workspace/WorkspaceRosterGroups.css",
+      "focus_visible_selectors": 5,
+      "focus_token_consumers": 5,
+      "hover_selectors": 0,
+      "elevation_consumers": 0,
+      "row_treatment_selectors": 17,
+      "card_treatment_selectors": 7
+    },
+    {
+      "path": "workspace/WorkspaceRosterView.css",
+      "focus_visible_selectors": 1,
+      "focus_token_consumers": 1,
+      "hover_selectors": 0,
+      "elevation_consumers": 0,
+      "row_treatment_selectors": 2,
       "card_treatment_selectors": 0
     },
     {
@@ -317,11 +353,11 @@
     }
   ],
   "totals": {
-    "focus_visible_selectors": 26,
-    "focus_token_consumers": 22,
-    "hover_selectors": 12,
+    "focus_visible_selectors": 35,
+    "focus_token_consumers": 31,
+    "hover_selectors": 13,
     "elevation_consumers": 0,
-    "row_treatment_selectors": 73,
-    "card_treatment_selectors": 31
+    "row_treatment_selectors": 95,
+    "card_treatment_selectors": 38
   }
 }

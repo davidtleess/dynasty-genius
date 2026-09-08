@@ -27,14 +27,17 @@
   transform: translateY(0);
 }
 
+/* DG-197: one compact row — wordmark, the single search, the watchlist shortcut. It wraps on a
+   phone so the search takes its own line instead of squeezing every control. */
 .dg-workspace__topbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--dg-space-3, 0.75rem);
-  padding: var(--dg-space-2, 0.5rem) var(--dg-space-4, 1rem);
+  gap: var(--dg-space-2, 0.5rem) var(--dg-space-3, 0.75rem);
+  padding: var(--dg-space-2, 0.5rem) var(--dg-space-3, 0.75rem);
   border-block-end: 1px solid var(--dg-border);
   background: var(--dg-surface);
-  min-height: 61px;
+  min-height: 48px;
   box-sizing: border-box;
   position: sticky;
   top: 0;
@@ -44,9 +47,51 @@
   font-family: var(--dg-font-display);
   font-weight: var(--dg-weight-bold);
   font-size: var(--dg-text-base);
-  text-transform: uppercase;
-  letter-spacing: 0.13em;
   color: var(--dg-chrome-strong);
+  white-space: nowrap;
+}
+
+/* The search sits in the header now: one bordered group holding the input and its hint. */
+/* Phone first: the search takes its own full-width row at a thumb-sized height. The desktop block
+   below narrows it and shrinks it to the source's compact control. The BORDER LIVES HERE and the
+   input inside is borderless, so there is exactly one box, not one nested in another. */
+.dg-workspace__search-group {
+  display: flex;
+  align-items: center;
+  gap: var(--dg-space-2, 0.5rem);
+  order: 3;
+  flex: 1 1 100%;
+  min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding-inline: var(--dg-space-2, 0.5rem);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: var(--dg-radius-control);
+  background: var(--dg-surface-raised);
+}
+.dg-workspace__search-group:focus-within {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}
+.dg-workspace__shortcut {
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+  white-space: nowrap;
+}
+.dg-workspace__watch {
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  box-sizing: border-box;
+  gap: var(--dg-space-1, 0.25rem);
+  padding: var(--dg-space-1, 0.25rem) var(--dg-space-3, 0.75rem);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: var(--dg-radius-control);
+  background: none;
+  color: var(--dg-chrome);
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 .dg-workspace__body {
@@ -147,20 +192,19 @@
   max-width: 76ch;
 }
 
-.dg-workspace__search {
-  display: grid;
-  gap: var(--dg-space-1, 0.25rem);
-  margin: 0 22px;
-  min-width: 0;
-}
+/* No border, no background and NO min-height: the group owns the box. The old 42px minimum here
+   is exactly what kept the desktop header at ~61px despite its 48px rule. */
 .dg-workspace__search-input {
   font: inherit;
-  padding: var(--dg-space-1, 0.25rem) var(--dg-space-2, 0.5rem);
-  border: 1px solid var(--dg-border-strong);
-  border-radius: var(--dg-radius-control);
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
   color: inherit;
-  min-height: 42px;
-  background: var(--dg-surface-raised);
+}
+.dg-workspace__search-input:focus-visible {
+  outline: none;
 }
 .dg-workspace__search-label {
   position: absolute;
@@ -170,10 +214,27 @@
   clip-path: inset(50%);
 }
 
-/* Desktop: the rail becomes the neutral 216px column of the imported composition. */
+/* Desktop: the neutral 188px rail and the compact 48px header of the imported composition. */
 @media (min-width: 61rem) {
+  .dg-workspace__topbar {
+    flex-wrap: nowrap;
+    height: 48px;
+    min-height: 48px;
+    padding-block: 0;
+  }
+  .dg-workspace__search-group {
+    order: 0;
+    flex: 0 1 420px;
+    max-width: 420px;
+    min-height: 30px;
+  }
+  /* The shortcut sits at the far end of the row. */
+  .dg-workspace__watch {
+    margin-inline-start: auto;
+    min-height: 30px;
+  }
   .dg-workspace__body {
-    grid-template-columns: 216px minmax(0, 1fr);
+    grid-template-columns: 188px minmax(0, 1fr);
   }
   .dg-workspace__rail {
     display: flex;
@@ -183,8 +244,9 @@
     border-inline-end: 1px solid var(--dg-border);
     padding: var(--dg-space-4, 1rem);
     position: sticky;
-    top: 61px;
-    height: calc(100dvh - 61px);
+    top: 48px;
+    box-sizing: border-box;
+    height: calc(100dvh - 48px);
   }
   .dg-workspace__rail-list {
     display: grid;
@@ -207,7 +269,9 @@
   }
 }
 
-@media (max-width: 60.999rem) {
+/* The exact complement of the desktop query above: `not all and (min-width: 61rem)` leaves no band
+   of viewport widths — not even a fractional one under zoom — where neither block applies. */
+@media not all and (min-width: 61rem) {
   .dg-workspace__rail {
     position: fixed;
     inset-inline: 0;
@@ -225,9 +289,6 @@
     width: 100%;
     justify-content: center;
     font-size: var(--dg-text-sm);
-  }
-  .dg-workspace__search {
-    margin-inline: 16px;
   }
   .dg-workspace__source-strip {
     padding: 9px 16px;

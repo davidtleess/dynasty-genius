@@ -19,6 +19,7 @@ import {
   type Period,
   periodsFor,
 } from "../research/comparisonHelpers";
+import { headshotSrc, PlayerIdentity } from "../ui/PlayerIdentity";
 import type { WorkspaceCompareProps, WorkspacePlayer } from "./types";
 
 type Side = "available" | "roster";
@@ -101,13 +102,17 @@ function SideCard({
       role="group"
       aria-label={`Compare: ${player.name}`}
     >
+      {/* DG-194: the face beside the name, from the shared identity primitive so the fallback
+          chain and the local URL contract are the same here as everywhere else. The pickers keep
+          their own plain-text option labels — a <select> cannot carry an image. */}
       <div className="dg-workspace-compare__who">
-        <span className="dg-workspace-compare__name" data-user-text="">
-          {player.name}
-        </span>
-        <span className="dg-workspace-compare__meta" data-user-text="">
-          {whoLine(player)}
-        </span>
+        <PlayerIdentity
+          name={player.name}
+          team={player.team ?? ""}
+          position={player.position}
+          imageStatus="available"
+          imageSrc={headshotSrc(player.id)}
+        />
       </div>
 
       <div className="dg-workspace-compare__ranks">

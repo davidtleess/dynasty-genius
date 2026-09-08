@@ -1,0 +1,205 @@
+/* DG-196 workspace rank scale — the imported Directions drawing, in the app's tokens only.
+   The lane hues say WHOSE number a rank is (ours blue, the market's amber) and carry no judgement.
+   Every dimension is a custom property so the raw-value census stays at zero; the few real pixel
+   sizes a graphic needs are declared once, at the top, where they can be read and changed.
+   The minimum visible width of a mark lives HERE and never in the geometry: DG-188 shipped a 0.5
+   meant as 0.5% that behaved as a 50% floor, and every exact rank then filled half the axis. */
+.dg-rank-scale {
+  --dg-rank-scale-hair: 1px;
+  --dg-rank-scale-rail: 2px;
+  --dg-rank-scale-mark: 3px;
+  --dg-rank-scale-band: 0.875rem;
+  --dg-rank-scale-lane: 1.3125rem;
+  --dg-rank-scale-axis: 1.75rem;
+  --dg-rank-scale-strip: 0.9375rem;
+  --dg-rank-scale-measure: 76ch;
+  --dg-rank-scale-full: 100%;
+  display: grid;
+  gap: var(--dg-space-1);
+  margin: 0;
+  min-width: 0;
+}
+
+/* --- the label lanes, above and below the axis --- */
+.dg-rank-scale__lane {
+  position: relative;
+  height: var(--dg-rank-scale-lane);
+}
+/* The label is placed by its own box, not by its coordinate alone, so it cannot leave the axis on a
+   narrow column. clamp() falls back to its minimum when the container is narrower than the label,
+   which pins the text inside the left edge rather than hiding it. */
+.dg-rank-scale__tag,
+.dg-rank-scale__tick {
+  left: clamp(
+    0%,
+    calc(var(--dg-rank-scale-at) - var(--dg-rank-scale-box) / 2),
+    calc(100% - var(--dg-rank-scale-box))
+  );
+  max-width: var(--dg-rank-scale-full);
+}
+.dg-rank-scale__tag {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dg-space-1);
+  white-space: nowrap;
+  font-family: var(--dg-font-mono);
+  font-size: var(--dg-text-sm);
+  font-weight: var(--dg-weight-semibold);
+}
+.dg-rank-scale__lane[data-side="ours"] .dg-rank-scale__tag {
+  bottom: 0;
+  color: var(--dg-model-emphasis);
+}
+.dg-rank-scale__lane[data-side="market"] .dg-rank-scale__tag {
+  top: 0;
+  color: var(--dg-market-emphasis);
+}
+/* The design shouts these two words. The copy rule forbids four or more capitals reaching the DOM,
+   so the shout is typography and the text stays ordinary prose. */
+.dg-rank-scale__side {
+  font-family: var(--dg-font-sans);
+  font-size: var(--dg-text-sm);
+  font-weight: var(--dg-weight-semibold);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.dg-rank-scale__lane[data-side="ours"] .dg-rank-scale__side {
+  color: var(--dg-model);
+}
+.dg-rank-scale__lane[data-side="market"] .dg-rank-scale__side {
+  color: var(--dg-market);
+}
+
+/* --- the shared axis --- */
+.dg-rank-scale__axis {
+  position: relative;
+  height: var(--dg-rank-scale-axis);
+}
+.dg-rank-scale__rail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(50% - var(--dg-rank-scale-rail) / 2);
+  height: var(--dg-rank-scale-rail);
+  background: var(--dg-border);
+  border-radius: var(--dg-radius-round);
+}
+/* The neutral hull spans from the leftmost to the rightmost mark. It is deliberately colourless:
+   it says where the two readings live, and never which of them is right. */
+.dg-rank-scale__hull {
+  position: absolute;
+  top: calc(50% - var(--dg-rank-scale-rail) * 1.5);
+  height: calc(var(--dg-rank-scale-rail) * 3);
+  min-width: var(--dg-rank-scale-mark);
+  background: var(--dg-border-strong);
+  border-radius: var(--dg-radius-round);
+}
+/* Ours sits above the shared rail and the market below it. Without this the two draw on the same
+   pixels, and a player we and the market rank identically shows one amber mark with our blue one
+   hidden underneath it — the case where agreement is the story and the picture tells none of it. */
+.dg-rank-scale__row {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+.dg-rank-scale__row[data-side="ours"] {
+  top: 0;
+  bottom: calc(50% + var(--dg-rank-scale-rail) / 2);
+}
+.dg-rank-scale__row[data-side="market"] {
+  top: calc(50% + var(--dg-rank-scale-rail) / 2);
+  bottom: 0;
+}
+.dg-rank-scale__mark {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--dg-rank-scale-mark);
+  margin-left: calc(var(--dg-rank-scale-mark) / -2);
+  border-radius: var(--dg-radius-round);
+}
+.dg-rank-scale__band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: var(--dg-rank-scale-mark);
+  border-style: solid;
+  border-width: var(--dg-rank-scale-rail);
+  border-radius: var(--dg-radius-control);
+  background: var(--dg-surface-raised);
+  box-sizing: border-box;
+}
+.dg-rank-scale__mark[data-side="ours"] {
+  background: var(--dg-model-emphasis);
+}
+.dg-rank-scale__mark[data-side="market"] {
+  background: var(--dg-market-emphasis);
+}
+.dg-rank-scale__band[data-side="ours"] {
+  border-color: var(--dg-model);
+}
+.dg-rank-scale__band[data-side="market"] {
+  border-color: var(--dg-market);
+}
+
+/* --- the tick strip --- */
+.dg-rank-scale__ticks {
+  position: relative;
+  height: var(--dg-rank-scale-strip);
+  border-top: var(--dg-rank-scale-hair) solid var(--dg-border);
+}
+.dg-rank-scale__tick {
+  position: absolute;
+  top: 0;
+  font-family: var(--dg-font-mono);
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+
+/* --- the caption carries the whole reading, so nothing depends on the picture --- */
+.dg-rank-scale__caption {
+  margin: 0;
+  max-width: var(--dg-rank-scale-measure);
+  font-family: var(--dg-font-sans);
+  font-size: var(--dg-text-sm);
+  line-height: var(--dg-leading-normal);
+  color: var(--dg-text-muted);
+}
+.dg-rank-scale--refused .dg-rank-scale__caption,
+.dg-rank-scale--partial .dg-rank-scale__caption {
+  padding: var(--dg-space-3);
+  border: var(--dg-rank-scale-hair) dashed var(--dg-border);
+  border-radius: var(--dg-radius-control);
+}
+
+/* --- the magnified local window --- */
+.dg-rank-scale__zoom {
+  display: grid;
+  gap: var(--dg-space-1);
+  padding-top: var(--dg-space-3);
+  border-top: var(--dg-rank-scale-hair) dashed var(--dg-border);
+}
+.dg-rank-scale__zoom-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--dg-space-2);
+  margin: 0;
+}
+.dg-rank-scale__zoom-title {
+  font-family: var(--dg-font-sans);
+  font-size: var(--dg-text-sm);
+  font-weight: var(--dg-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dg-chrome);
+}
+.dg-rank-scale__zoom-extent {
+  font-family: var(--dg-font-mono);
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+
+/* Keep each label on one line at every width. Its own bounded box already handles narrow
+   inspectors; stacking it would require taller lanes and would crowd the next tick strip. */

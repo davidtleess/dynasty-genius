@@ -1,0 +1,217 @@
+/* DG-199 — the Roster-first inspector.
+   Tokens only: the raw-CSS audit bans colour and radius literals in product files. The lane rule is the
+   design system's: blue frames our reading, amber frames the market's, and neither hue touches anything
+   that is not that lane's object. Nothing here is a verdict colour. */
+
+.dg-inspector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-4);
+  padding: var(--dg-space-4);
+  /* The frame is root's. This is only the floor the content must survive: a 260px inner column on a
+     phone. Everything below wraps rather than scrolls sideways. */
+  min-width: 0;
+  font-family: var(--dg-font-sans);
+  color: var(--dg-text);
+}
+
+/* --- identity --- */
+.dg-inspector__identity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-1);
+  min-width: 0;
+}
+.dg-inspector__ownership {
+  margin: 0;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+/* A stated limit, never a warning colour: these sentences are facts about the reading, not alarms. */
+.dg-inspector__flag {
+  margin: 0;
+  font-size: var(--dg-text-sm);
+  line-height: var(--dg-leading-normal);
+  color: var(--dg-text-muted);
+}
+
+/* --- the two ranks, side by side, ours always first --- */
+.dg-inspector__ranks {
+  display: grid;
+  /* Two columns while they fit, one when they do not. No media query: the column this sits in is root's
+     and its width is not knowable from here. */
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: var(--dg-space-2);
+}
+.dg-inspector__rank {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dg-space-1);
+  min-width: 0;
+  padding: var(--dg-space-2);
+  border: 1px solid var(--dg-border);
+  border-radius: var(--dg-radius-card);
+  background: var(--dg-surface);
+}
+.dg-inspector__rank[data-side="ours"] {
+  border-color: var(--dg-model);
+}
+.dg-inspector__rank[data-side="market"] {
+  border-color: var(--dg-market);
+}
+.dg-inspector__rank-label {
+  font-size: var(--dg-text-sm);
+  font-weight: var(--dg-weight-semibold);
+  color: var(--dg-text-muted);
+}
+/* Mono is for numeric values only — the label above stays sans. */
+.dg-inspector__rank-value {
+  font-family: var(--dg-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--dg-text-lg);
+  font-weight: var(--dg-weight-semibold);
+  /* A long tie like #230–388 must shrink rather than push the card wide. */
+  overflow-wrap: anywhere;
+}
+.dg-inspector__rank[data-side="ours"] .dg-inspector__rank-value {
+  color: var(--dg-model-emphasis);
+}
+.dg-inspector__rank[data-side="market"] .dg-inspector__rank-value {
+  color: var(--dg-market-emphasis);
+}
+
+.dg-inspector__gap {
+  margin: 0;
+  font-size: var(--dg-text-base);
+  font-weight: var(--dg-weight-medium);
+  line-height: var(--dg-leading-snug);
+}
+.dg-inspector__population,
+.dg-inspector__units,
+.dg-inspector__evidence {
+  margin: 0;
+  font-size: var(--dg-text-sm);
+  line-height: var(--dg-leading-normal);
+  color: var(--dg-text-muted);
+}
+
+/* --- the three readings --- */
+.dg-inspector__readings {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--dg-border);
+  border: 1px solid var(--dg-border);
+  border-radius: var(--dg-radius-card);
+  overflow: hidden;
+}
+.dg-inspector__reading {
+  display: flex;
+  align-items: baseline;
+  gap: var(--dg-space-2);
+  min-width: 0;
+  padding: var(--dg-space-2);
+  background: var(--dg-surface);
+}
+.dg-inspector__reading-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+.dg-inspector__reading-value {
+  flex: 0 0 auto;
+  font-family: var(--dg-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--dg-text-base);
+  font-weight: var(--dg-weight-semibold);
+  color: var(--dg-text);
+}
+/* Missing is words, not a number, so it must not wear the numeric face and read as a reading. */
+.dg-inspector__reading-value--absent {
+  font-family: var(--dg-font-sans);
+  font-weight: var(--dg-weight-medium);
+  color: var(--dg-text-muted);
+}
+/* The unit is carried on every row rather than in a column header, because this column is narrow enough
+   that a header can scroll out of sight above the number it governs. */
+.dg-inspector__reading-unit {
+  flex: 0 0 auto;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+
+/* --- actions --- */
+.dg-inspector__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dg-space-2);
+}
+.dg-inspector__action {
+  flex: 1 1 auto;
+  /* A touch target that survives the phone column. */
+  min-height: 2.75rem;
+  min-width: 0;
+  padding: var(--dg-space-2) var(--dg-space-3);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: var(--dg-radius-control);
+  background: var(--dg-surface-raised);
+  color: var(--dg-text);
+  font-family: var(--dg-font-sans);
+  font-size: var(--dg-text-sm);
+  font-weight: var(--dg-weight-semibold);
+  cursor: pointer;
+}
+.dg-inspector__action--wide {
+  flex-basis: 100%;
+}
+.dg-inspector__action:hover {
+  border-color: var(--dg-chrome);
+}
+.dg-inspector__action:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}
+
+/* --- the one expansion --- */
+.dg-inspector__detail > summary {
+  padding: var(--dg-space-2) 0;
+  font-size: var(--dg-text-sm);
+  font-weight: var(--dg-weight-semibold);
+  color: var(--dg-text-muted);
+  cursor: pointer;
+}
+.dg-inspector__detail > summary:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}
+
+.dg-inspector__identity > .dg-ui-player-id {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: var(--dg-space-1) var(--dg-space-3);
+}
+.dg-inspector__identity .dg-ui-player-id__headshot {
+  grid-row: 1 / 3;
+  width: 64px;
+  height: 64px;
+}
+.dg-inspector__identity .dg-ui-player-id__name {
+  grid-column: 2 / 4;
+  font-family: var(--dg-font-display);
+  font-size: var(--dg-text-xl);
+  white-space: normal;
+}
+.dg-inspector__identity .dg-ui-player-id__team {
+  grid-row: 2;
+  grid-column: 2;
+  justify-self: start;
+}
+.dg-inspector__identity .dg-ui-player-id__position {
+  grid-row: 2;
+  grid-column: 3;
+}
+.dg-inspector__comparison {
+  display: grid;
+  gap: var(--dg-space-2);
+}

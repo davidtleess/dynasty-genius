@@ -1,0 +1,433 @@
+/* DG-198 — the roster board grouped by position (direction B).
+   Lane hues identify WHOSE number a column holds and never carry a verdict: --dg-model is our
+   reading, --dg-market is the market's, and the gap between them stays neutral ink so it cannot be
+   read as good or bad news. Colour is never the only carrier — every reading is named in words,
+   because a hue does not survive a colour-blind reader.
+   Phone first: rows stack into an identity above a wrapping set of readings, and the season columns
+   appear only where there is room for them. */
+.dg-roster-groups {
+  display: grid;
+  gap: var(--dg-space-2, 0.5rem);
+  min-width: 0;
+}
+
+.dg-roster-groups__empty-title {
+  margin: 0 0 var(--dg-space-1, 0.25rem);
+  font-weight: var(--dg-weight-semibold);
+  color: var(--dg-text);
+}
+.dg-roster-groups__empty-note {
+  margin: 0;
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+}
+.dg-roster-groups--empty {
+  padding: var(--dg-space-6, 2rem) var(--dg-space-4, 1rem);
+  text-align: center;
+}
+
+/* No column strip on a phone: there is no room for one, which is exactly why each row names its own
+   readings instead. */
+.dg-roster-groups__head {
+  display: none;
+}
+
+.dg-roster-groups__group {
+  min-width: 0;
+}
+.dg-roster-groups__group-heading {
+  margin: 0;
+  font: inherit;
+}
+.dg-roster-groups__group-toggle {
+  font: inherit;
+  display: flex;
+  align-items: center;
+  gap: var(--dg-space-2, 0.5rem);
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 48px;
+  padding: var(--dg-space-2, 0.5rem) var(--dg-space-3, 0.75rem);
+  border: 0;
+  border-block-end: 1px solid var(--dg-border);
+  background: var(--dg-surface);
+  color: var(--dg-chrome-strong);
+  cursor: pointer;
+  text-align: start;
+}
+.dg-roster-groups__group-toggle:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}
+.dg-roster-groups__group-label {
+  font-family: var(--dg-font-display);
+  font-weight: var(--dg-weight-semibold);
+  white-space: nowrap;
+}
+.dg-roster-groups__group-summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--dg-text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--dg-text-muted);
+}
+.dg-roster-groups__group-chevron {
+  flex: none;
+  color: var(--dg-chrome);
+}
+
+.dg-roster-groups__rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+/* The row and its watch button are siblings in one flex line. The column strip below repeats this
+   shape exactly, so a label can never drift from the number it names. */
+.dg-roster-groups__item {
+  display: flex;
+  align-items: stretch;
+  gap: var(--dg-space-1, 0.25rem);
+  border-block-end: 1px solid var(--dg-border);
+  min-width: 0;
+}
+
+.dg-roster-groups__row {
+  font: inherit;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--dg-space-1, 0.25rem) var(--dg-space-2, 0.5rem);
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: var(--dg-space-1, 0.25rem) var(--dg-space-3, 0.75rem);
+  border: 0;
+  background: none;
+  color: var(--dg-text);
+  cursor: pointer;
+  text-align: start;
+}
+.dg-roster-groups__row:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: -2px;
+}
+.dg-roster-groups__row[aria-pressed="true"] {
+  background: var(--dg-chrome-surface);
+}
+
+.dg-roster-groups__player {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+/* A long name must give way rather than push the row past the viewport — the shared identity
+   primitive lays its parts out in one line and does not shrink on its own. Scoped to this board;
+   the primitive itself is untouched. */
+.dg-roster-groups__player .dg-ui-player-id {
+  min-width: 0;
+  max-width: 100%;
+}
+.dg-roster-groups__player .dg-ui-player-id__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dg-roster-groups__chevron {
+  grid-column: 2;
+  grid-row: 1;
+  color: var(--dg-chrome);
+}
+
+/* One wrapper that WRAPS on a phone and dissolves into the row's grid on a desktop. Fixed margins
+   were the first attempt and a wide tie range like #230–388 would have run straight through them. */
+.dg-roster-groups__readings {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--dg-space-1, 0.25rem) var(--dg-space-3, 0.75rem);
+  min-width: 0;
+}
+.dg-roster-groups__ours,
+.dg-roster-groups__market,
+.dg-roster-groups__gap,
+.dg-roster-groups__now,
+.dg-roster-groups__future {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--dg-space-1, 0.25rem);
+  font-family: var(--dg-font-mono);
+  font-size: var(--dg-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+.dg-roster-groups__reading-label {
+  font-family: var(--dg-font-sans);
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+  white-space: nowrap;
+}
+.dg-roster-groups__ours {
+  color: var(--dg-model-emphasis);
+}
+.dg-roster-groups__market {
+  color: var(--dg-market-emphasis);
+}
+.dg-roster-groups__gap {
+  color: var(--dg-text-muted);
+}
+.dg-roster-groups__no-price {
+  font-family: var(--dg-font-sans);
+  color: var(--dg-text-muted);
+}
+/* The season columns are named in every row's accessible name and shown again in the inspector, so
+   a phone drops them for width rather than shrinking every number past reading. */
+.dg-roster-groups__now,
+.dg-roster-groups__future {
+  display: none;
+  color: var(--dg-text);
+}
+
+.dg-roster-groups__watch {
+  font: inherit;
+  flex: none;
+  align-self: center;
+  width: 44px;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: var(--dg-radius-control);
+  background: none;
+  color: var(--dg-chrome);
+  cursor: pointer;
+}
+.dg-roster-groups__watch:focus-visible {
+  outline: 2px solid var(--dg-focus);
+  outline-offset: 2px;
+}
+.dg-roster-groups__watch[aria-pressed="true"] {
+  color: var(--dg-chrome-strong);
+  border-color: var(--dg-border-strong);
+}
+
+.dg-roster-groups__missing-label {
+  padding: var(--dg-space-2, 0.5rem) var(--dg-space-3, 0.75rem);
+  font-size: var(--dg-text-sm);
+  color: var(--dg-text-muted);
+  background: var(--dg-surface);
+}
+
+.dg-roster-groups__basis {
+  margin: 0;
+  padding: var(--dg-space-3, 0.75rem);
+  font-size: var(--dg-text-sm);
+  line-height: var(--dg-leading-normal);
+  color: var(--dg-text-muted);
+  max-width: 76ch;
+}
+
+/* The depth section repeats the first group on a phone, so it appears only where it adds something:
+   a desktop reading of every owned quarterback at once. */
+.dg-roster-groups__depth {
+  display: none;
+}
+
+@media (min-width: 61rem) {
+  .dg-roster-groups__depth {
+    display: grid;
+    gap: var(--dg-space-3, 0.75rem);
+    padding: var(--dg-space-3, 0.75rem);
+    border-block-end: 1px solid var(--dg-border);
+    background: var(--dg-surface);
+  }
+  .dg-roster-groups__depth-head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--dg-space-2, 0.5rem);
+  }
+  .dg-roster-groups__depth-title {
+    margin: 0;
+    font-family: var(--dg-font-display);
+    font-size: var(--dg-text-base);
+    font-weight: var(--dg-weight-semibold);
+    color: var(--dg-text);
+  }
+  .dg-roster-groups__depth-badge {
+    font-size: var(--dg-text-sm);
+    color: var(--dg-chrome-strong);
+    background: var(--dg-chrome-surface);
+    border-radius: var(--dg-radius-control);
+    padding: 2px var(--dg-space-2, 0.5rem);
+  }
+  .dg-roster-groups__depth-cards {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--dg-space-2, 0.5rem);
+  }
+  .dg-roster-groups__depth-card {
+    font: inherit;
+    display: grid;
+    gap: var(--dg-space-1, 0.25rem);
+    min-width: 11rem;
+    min-height: 44px;
+    padding: var(--dg-space-2, 0.5rem);
+    border: 1px solid var(--dg-border);
+    border-radius: var(--dg-radius-card);
+    background: var(--dg-bg);
+    color: var(--dg-text);
+    cursor: pointer;
+    text-align: start;
+  }
+  .dg-roster-groups__depth-card:focus-visible {
+    outline: 2px solid var(--dg-focus);
+    outline-offset: 2px;
+  }
+  .dg-roster-groups__depth-card[aria-pressed="true"] {
+    border-color: var(--dg-border-strong);
+    background: var(--dg-chrome-surface);
+  }
+  /* A depth card sits under no column strip, so it keeps its own labels and its season reading. */
+  .dg-roster-groups__depth-numbers {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--dg-space-1, 0.25rem) var(--dg-space-3, 0.75rem);
+  }
+  .dg-roster-groups__depth-numbers .dg-roster-groups__now {
+    display: inline-flex;
+    color: var(--dg-text-muted);
+  }
+  .dg-roster-groups__depth-foot {
+    display: flex;
+    align-items: center;
+    gap: var(--dg-space-3, 0.75rem);
+    flex-wrap: wrap;
+    border-block-start: 1px solid var(--dg-border);
+    padding-block-start: var(--dg-space-3, 0.75rem);
+  }
+  .dg-roster-groups__depth-note {
+    margin: 0;
+    flex: 1 1 24rem;
+    font-size: var(--dg-text-sm);
+    line-height: var(--dg-leading-normal);
+    color: var(--dg-text);
+  }
+  .dg-roster-groups__depth-action {
+    font: inherit;
+    flex: none;
+    min-height: 44px;
+    padding-inline: var(--dg-space-3, 0.75rem);
+    border: 1px solid var(--dg-model);
+    border-radius: var(--dg-radius-control);
+    background: none;
+    color: var(--dg-model-emphasis);
+    cursor: pointer;
+  }
+  .dg-roster-groups__depth-action:focus-visible {
+    outline: 2px solid var(--dg-focus);
+    outline-offset: 2px;
+  }
+
+  /* The strip repeats a row's own shape — the same grid inside the same flex line, beside the same
+     44px cell. A full-width strip over a row that reserves 48px for its watch button would put
+     every label 48px off the numbers it names. */
+  .dg-roster-groups__head {
+    display: flex;
+    align-items: center;
+    gap: var(--dg-space-1, 0.25rem);
+    min-height: 32px;
+    border-block-end: 1px solid var(--dg-border-strong);
+    background: var(--dg-bg);
+    font-size: var(--dg-text-sm);
+    color: var(--dg-text-muted);
+  }
+  .dg-roster-groups__head-watch {
+    flex: none;
+    width: 44px;
+    text-align: center;
+  }
+  .dg-roster-groups__head-grid,
+  .dg-roster-groups__row {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr) 4.5rem 4.5rem 5rem 5rem;
+    align-items: center;
+    gap: var(--dg-space-3, 0.75rem);
+    padding-inline: var(--dg-space-3, 0.75rem);
+  }
+  .dg-roster-groups__head-grid {
+    flex: 1 1 auto;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  .dg-roster-groups__head-ours,
+  .dg-roster-groups__head-market,
+  .dg-roster-groups__head-gap,
+  .dg-roster-groups__head-now,
+  .dg-roster-groups__head-future {
+    text-align: end;
+  }
+  .dg-roster-groups__group-toggle {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  /* The wrapper dissolves so its readings become cells of the row's own grid. */
+  .dg-roster-groups__readings {
+    display: contents;
+  }
+  /* The column strip names them once here, so the per-row labels stand down. They stay in the DOM
+     for the phone layout and inside every depth card. */
+  .dg-roster-groups__row .dg-roster-groups__reading-label {
+    display: none;
+  }
+  .dg-roster-groups__row .dg-roster-groups__ours,
+  .dg-roster-groups__row .dg-roster-groups__market,
+  .dg-roster-groups__row .dg-roster-groups__gap,
+  .dg-roster-groups__row .dg-roster-groups__now,
+  .dg-roster-groups__row .dg-roster-groups__future {
+    grid-row: 1;
+    display: block;
+    text-align: end;
+  }
+  .dg-roster-groups__row .dg-roster-groups__ours {
+    grid-column: 1;
+  }
+  .dg-roster-groups__row .dg-roster-groups__player {
+    grid-column: 2;
+  }
+  .dg-roster-groups__row .dg-roster-groups__market {
+    grid-column: 3;
+  }
+  .dg-roster-groups__row .dg-roster-groups__gap {
+    grid-column: 4;
+  }
+  .dg-roster-groups__row .dg-roster-groups__now {
+    grid-column: 5;
+  }
+  .dg-roster-groups__row .dg-roster-groups__future {
+    grid-column: 6;
+  }
+  .dg-roster-groups__chevron {
+    display: none;
+  }
+}
+
+@media (min-width: 61rem) {
+  .dg-roster-groups__depth-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  }
+  .dg-roster-groups__depth-cards > li {
+    min-width: 0;
+  }
+  .dg-roster-groups__depth-card {
+    min-width: 0;
+    width: 100%;
+  }
+}
