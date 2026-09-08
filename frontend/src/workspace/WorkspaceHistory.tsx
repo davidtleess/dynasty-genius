@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { z } from "zod";
 import type { WorkspacePlayer } from "./types";
 import "./WorkspaceHistory.css";
@@ -35,7 +35,13 @@ function date(s: string) {
   });
 }
 
-export function WorkspaceHistory({ players }: { players: WorkspacePlayer[] }) {
+export function WorkspaceHistory({
+  players,
+  snapshots,
+}: {
+  players: WorkspacePlayer[];
+  snapshots?: ReactNode;
+}) {
   const [market, setMarket] = useState<History | null>(null);
   const [error, setError] = useState(false);
   useEffect(() => {
@@ -70,8 +76,12 @@ export function WorkspaceHistory({ players }: { players: WorkspacePlayer[] }) {
     ) ?? [];
   return (
     <div className="dg-workspace-history">
-      <p>Dated market captures and your saved watchlist additions.</p>
-      <section aria-label="Market price history">
+      <p>Saved forecasts, dated market captures and your watchlist additions.</p>
+      {snapshots}
+      <section
+        className="dg-workspace-history__market"
+        aria-label="Market price history"
+      >
         <h2>Market prices we captured</h2>
         {market ? (
           <>

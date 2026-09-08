@@ -28,6 +28,7 @@ from app.api.routes import (
     trade,
     trade_market,
     trust_surface,
+    workspace_snapshots,
 )
 
 load_dotenv()
@@ -61,6 +62,7 @@ app.include_router(system_health.router, prefix="/api")
 app.include_router(research_preview.router, prefix="/api")
 app.include_router(research_available.router, prefix="/api")
 app.include_router(research_market_ranks.router, prefix="/api")
+app.include_router(workspace_snapshots.router, prefix="/api")
 
 
 # --- Increment-1 headshot cache mount (spec v3 §2; rebuildable, gitignored) ---

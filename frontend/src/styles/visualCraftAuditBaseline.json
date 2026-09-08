@@ -305,6 +305,15 @@
       "elevation_consumers": 0,
       "row_treatment_selectors": 0,
       "card_treatment_selectors": 0
+    },
+    {
+      "path": "workspace/WorkspaceSnapshots.css",
+      "focus_visible_selectors": 0,
+      "focus_token_consumers": 0,
+      "hover_selectors": 0,
+      "elevation_consumers": 0,
+      "row_treatment_selectors": 1,
+      "card_treatment_selectors": 0
     }
   ],
   "totals": {
@@ -312,7 +321,7 @@
     "focus_token_consumers": 22,
     "hover_selectors": 12,
     "elevation_consumers": 0,
-    "row_treatment_selectors": 72,
+    "row_treatment_selectors": 73,
     "card_treatment_selectors": 31
   }
 }

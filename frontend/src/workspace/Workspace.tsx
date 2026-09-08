@@ -10,6 +10,12 @@ import { WorkspaceCompare } from "./WorkspaceCompare";
 import { WorkspaceFrame } from "./WorkspaceFrame";
 import { WorkspaceHistory } from "./WorkspaceHistory";
 import {
+  type SnapshotExpected,
+  SnapshotHistory,
+  SnapshotSaveControl,
+  WorkspaceSnapshotProvider,
+} from "./WorkspaceSnapshots";
+import {
   joinWorkspacePlayers,
   matchesWorkspacePlayer,
   minimumGap,
@@ -162,221 +168,242 @@ export function Workspace() {
   const forecastNotice = forecastError
     ? "Available players and forecasts could not be matched to this ranking snapshot. Your roster ranks remain available. Reload to try again."
     : "Loading available players and forecasts…";
+  const snapshotExpected: SnapshotExpected | null =
+    data && comparison?.source.catalog_content_sha256
+      ? {
+          report_run: data.source.report_run,
+          report_sha256: data.source.report_sha256,
+          market_sha256: data.source.market_sha256,
+          league_sha256: data.source.league_sha256,
+          catalog_run: comparison.source.catalog_run,
+          catalog_content_sha256: comparison.source.catalog_content_sha256,
+        }
+      : null;
   return (
-    <WorkspaceFrame
-      view={view}
-      onNavigate={navigate}
-      query={query}
-      onQuery={setQuery}
-      counts={{
-        roster: data?.coverage.roster_players ?? null,
-        available: comparison ? available.length : null,
-        watchlist: watchlist.entries.size,
-      }}
-      source={
-        data
-          ? {
-              forecastDate: data.source.forecast_date,
-              marketDate: data.source.market_as_of,
-              ownershipDate: data.source.ownership_as_of,
-              commonPlayers: data.coverage.common_players,
-            }
-          : null
-      }
-    >
-      <section className="dg-workspace-content">
-        <h1>{searching ? "Search results" : labels[view]}</h1>
-        {!data ? (
-          <p role={ranks.status === "loading" ? "status" : "alert"}>
-            {ranks.status === "loading"
-              ? "Loading your workspace…"
-              : "Our ranks and the market are unavailable. Reload to try again."}
-          </p>
-        ) : (
-          <>
-            {watchlist.notice && <p role="status">{watchlist.notice}</p>}
-            {searching ? (
-              <p>
-                {filtered.length} matching players across the full player list.
-                Ownership is shown on each player.
-              </p>
-            ) : view === "today" ? (
-              <>
-                <p className="dg-workspace-content__lede">
-                  Your {owned.length} players, in perspective:{" "}
-                  {data.coverage.roster_common_players} have both our rank and a market
-                  rank.
-                </p>
-                <h2>Where we disagree most on players you own</h2>
+    <WorkspaceSnapshotProvider expected={snapshotExpected}>
+      <WorkspaceFrame
+        sourceActions={<SnapshotSaveControl />}
+        view={view}
+        onNavigate={navigate}
+        query={query}
+        onQuery={setQuery}
+        counts={{
+          roster: data?.coverage.roster_players ?? null,
+          available: comparison ? available.length : null,
+          watchlist: watchlist.entries.size,
+        }}
+        source={
+          data
+            ? {
+                forecastDate: data.source.forecast_date,
+                marketDate: data.source.market_as_of,
+                ownershipDate: data.source.ownership_as_of,
+                commonPlayers: data.coverage.common_players,
+              }
+            : null
+        }
+      >
+        <section className="dg-workspace-content">
+          <h1>{searching ? "Search results" : labels[view]}</h1>
+          {!data ? (
+            <p role={ranks.status === "loading" ? "status" : "alert"}>
+              {ranks.status === "loading"
+                ? "Loading your workspace…"
+                : "Our ranks and the market are unavailable. Reload to try again."}
+            </p>
+          ) : (
+            <>
+              {watchlist.notice && <p role="status">{watchlist.notice}</p>}
+              {searching ? (
                 <p>
-                  Largest minimum rank gap first. A disagreement is a reason to look,
-                  not proof of an opportunity.
+                  {filtered.length} matching players across the full player list.
+                  Ownership is shown on each player.
                 </p>
-              </>
-            ) : view === "roster" ? (
-              <p>
-                Every player you own. Our view and FantasyCalc, ranked among the same{" "}
-                {data.coverage.common_players} players.
-              </p>
-            ) : view === "available" ? (
-              <p>
-                Players unowned in your saved league snapshot. Current-season and future
-                forecasts stay separate; players without forecasts stay visible.
-              </p>
-            ) : view === "watchlist" ? (
-              <p>
-                Your own shortlist, saved in this browser. Watched players stay here if
-                they become owned or leave the available pool.
-              </p>
-            ) : null}
-            {(searching || ["roster", "available", "watchlist"].includes(view)) && (
-              <>
-                <div className="dg-workspace-content__controls">
-                  <label className="dg-workspace-content__mobile-order">
-                    Order by
-                    <select
-                      value={order}
-                      onChange={(e) => setOrder(e.target.value as WorkspaceOrder)}
+              ) : view === "today" ? (
+                <>
+                  <p className="dg-workspace-content__lede">
+                    Your {owned.length} players, in perspective:{" "}
+                    {data.coverage.roster_common_players} have both our rank and a
+                    market rank.
+                  </p>
+                  <h2>Where we disagree most on players you own</h2>
+                  <p>
+                    Largest minimum rank gap first. A disagreement is a reason to look,
+                    not proof of an opportunity.
+                  </p>
+                </>
+              ) : view === "roster" ? (
+                <p>
+                  Every player you own. Our view and FantasyCalc, ranked among the same{" "}
+                  {data.coverage.common_players} players.
+                </p>
+              ) : view === "available" ? (
+                <p>
+                  Players unowned in your saved league snapshot. Current-season and
+                  future forecasts stay separate; players without forecasts stay
+                  visible.
+                </p>
+              ) : view === "watchlist" ? (
+                <p>
+                  Your own shortlist, saved in this browser. Watched players stay here
+                  if they become owned or leave the available pool.
+                </p>
+              ) : null}
+              {(searching || ["roster", "available", "watchlist"].includes(view)) && (
+                <>
+                  <div className="dg-workspace-content__controls">
+                    <label className="dg-workspace-content__mobile-order">
+                      Order by
+                      <select
+                        value={order}
+                        onChange={(e) => setOrder(e.target.value as WorkspaceOrder)}
+                      >
+                        {(Object.keys(orderLabels) as WorkspaceOrder[]).map((key) => (
+                          <option key={key} value={key}>
+                            {orderLabels[key]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <fieldset
+                      className="dg-workspace-content__orders"
+                      aria-label="Order players"
                     >
+                      <span>Order by</span>
                       {(Object.keys(orderLabels) as WorkspaceOrder[]).map((key) => (
-                        <option key={key} value={key}>
+                        <button
+                          type="button"
+                          key={key}
+                          aria-pressed={order === key}
+                          onClick={() => setOrder(key)}
+                        >
                           {orderLabels[key]}
-                        </option>
+                        </button>
                       ))}
-                    </select>
-                  </label>
-                  <fieldset
-                    className="dg-workspace-content__orders"
-                    aria-label="Order players"
-                  >
-                    <span>Order by</span>
-                    {(Object.keys(orderLabels) as WorkspaceOrder[]).map((key) => (
+                    </fieldset>
+                    <label>
+                      Position
+                      <select
+                        value={position}
+                        onChange={(e) => setPosition(e.target.value)}
+                      >
+                        <option value="all">All positions</option>
+                        {["QB", "RB", "WR", "TE"].map((p) => (
+                          <option key={p}>{p}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <p className="dg-workspace-content__caption">
+                    {actualOrder === "now"
+                      ? `${periods.now.label} expected season points, highest first.`
+                      : actualOrder === "future"
+                        ? `${periods.future.label} expected points added together, highest first.`
+                        : actualOrder === "gap"
+                          ? "Largest minimum rank gap first; overlapping ties have no clear preference."
+                          : actualOrder === "name"
+                            ? "Alphabetical by name."
+                            : "Overall ranks on the shared player set; lower is better. Equal values stay tied."}{" "}
+                    {filtered.length} players shown.
+                  </p>
+                </>
+              )}
+              {!searching && ["available", "compare"].includes(view) && !comparison ? (
+                <p role={forecastError ? "alert" : "status"}>{forecastNotice}</p>
+              ) : !searching && view === "compare" && comparison ? (
+                <WorkspaceCompare
+                  players={players}
+                  data={data}
+                  comparison={comparison}
+                  selection={selection}
+                  onSelect={setSelection}
+                />
+              ) : !searching && view === "history" ? (
+                <WorkspaceHistory
+                  players={players}
+                  snapshots={<SnapshotHistory action={<SnapshotSaveControl />} />}
+                />
+              ) : (
+                board && (
+                  <>
+                    {shown.length > 0 && (
+                      <WorkspaceBoard
+                        key={`${view}-${actualOrder}-ranked`}
+                        rows={shown}
+                        {...board}
+                      />
+                    )}
+                    {view !== "today" || searching ? (
+                      <>
+                        {sorted.missing.length > 0 && (
+                          <section
+                            className="dg-workspace-content__missing"
+                            aria-label="Outside this ordering"
+                          >
+                            <h2>No number for this ordering</h2>
+                            <p>
+                              These players are outside the numeric order. Missing
+                              information is not zero. Open a player for what we do
+                              know.
+                            </p>
+                            <WorkspaceBoard
+                              key={`${view}-${actualOrder}-missing`}
+                              rows={sorted.missing}
+                              {...board}
+                            />
+                          </section>
+                        )}
+                        {filtered.length === 0 && (
+                          <p role="status">
+                            {view === "watchlist" && !searching
+                              ? "Your watchlist is empty. Open a player and choose Watch to save him here."
+                              : "No players match this search and position filter."}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      shown.length === 0 && (
+                        <p>
+                          No clear rank disagreement on the paired players in your
+                          roster.
+                        </p>
+                      )
+                    )}
+                    {view === "today" && !searching && (
                       <button
                         type="button"
-                        key={key}
-                        aria-pressed={order === key}
-                        onClick={() => setOrder(key)}
+                        className="dg-workspace-content__link"
+                        onClick={() => navigate("roster")}
                       >
-                        {orderLabels[key]}
+                        See your full roster
                       </button>
-                    ))}
-                  </fieldset>
-                  <label>
-                    Position
-                    <select
-                      value={position}
-                      onChange={(e) => setPosition(e.target.value)}
-                    >
-                      <option value="all">All positions</option>
-                      {["QB", "RB", "WR", "TE"].map((p) => (
-                        <option key={p}>{p}</option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                <p className="dg-workspace-content__caption">
-                  {actualOrder === "now"
-                    ? `${periods.now.label} expected season points, highest first.`
-                    : actualOrder === "future"
-                      ? `${periods.future.label} expected points added together, highest first.`
-                      : actualOrder === "gap"
-                        ? "Largest minimum rank gap first; overlapping ties have no clear preference."
-                        : actualOrder === "name"
-                          ? "Alphabetical by name."
-                          : "Overall ranks on the shared player set; lower is better. Equal values stay tied."}{" "}
-                  {filtered.length} players shown.
+                    )}
+                    {!comparison && (view !== "available" || searching) && (
+                      <p role={forecastError ? "alert" : "status"}>{forecastNotice}</p>
+                    )}
+                  </>
+                )
+              )}
+              <details className="dg-workspace-content__method">
+                <summary>How to read our comparison</summary>
+                <p>{data.basis.summary}</p>
+                <p>{data.basis.scoring_note}</p>
+                <p>{data.basis.market_proxy_note}</p>
+                <p>
+                  Both primary ranks use the same {data.coverage.common_players}{" "}
+                  players. Tied values share a rank range; ranges are ties, not
+                  confidence bands. Rank gaps are places, not price differences. Our
+                  model points and FantasyCalc Market Value use different units.
                 </p>
-              </>
-            )}
-            {!searching && ["available", "compare"].includes(view) && !comparison ? (
-              <p role={forecastError ? "alert" : "status"}>{forecastNotice}</p>
-            ) : !searching && view === "compare" && comparison ? (
-              <WorkspaceCompare
-                players={players}
-                data={data}
-                comparison={comparison}
-                selection={selection}
-                onSelect={setSelection}
-              />
-            ) : !searching && view === "history" ? (
-              <WorkspaceHistory players={players} />
-            ) : (
-              board && (
-                <>
-                  {shown.length > 0 && (
-                    <WorkspaceBoard
-                      key={`${view}-${actualOrder}-ranked`}
-                      rows={shown}
-                      {...board}
-                    />
-                  )}
-                  {view !== "today" || searching ? (
-                    <>
-                      {sorted.missing.length > 0 && (
-                        <section
-                          className="dg-workspace-content__missing"
-                          aria-label="Outside this ordering"
-                        >
-                          <h2>No number for this ordering</h2>
-                          <p>
-                            These players are outside the numeric order. Missing
-                            information is not zero. Open a player for what we do know.
-                          </p>
-                          <WorkspaceBoard
-                            key={`${view}-${actualOrder}-missing`}
-                            rows={sorted.missing}
-                            {...board}
-                          />
-                        </section>
-                      )}
-                      {filtered.length === 0 && (
-                        <p role="status">
-                          {view === "watchlist" && !searching
-                            ? "Your watchlist is empty. Open a player and choose Watch to save him here."
-                            : "No players match this search and position filter."}
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    shown.length === 0 && (
-                      <p>
-                        No clear rank disagreement on the paired players in your roster.
-                      </p>
-                    )
-                  )}
-                  {view === "today" && !searching && (
-                    <button
-                      type="button"
-                      className="dg-workspace-content__link"
-                      onClick={() => navigate("roster")}
-                    >
-                      See your full roster
-                    </button>
-                  )}
-                  {!comparison && (view !== "available" || searching) && (
-                    <p role={forecastError ? "alert" : "status"}>{forecastNotice}</p>
-                  )}
-                </>
-              )
-            )}
-            <details className="dg-workspace-content__method">
-              <summary>How to read our comparison</summary>
-              <p>{data.basis.summary}</p>
-              <p>{data.basis.scoring_note}</p>
-              <p>{data.basis.market_proxy_note}</p>
-              <p>
-                Both primary ranks use the same {data.coverage.common_players} players.
-                Tied values share a rank range; ranges are ties, not confidence bands.
-                Rank gaps are places, not price differences. Our model points and
-                FantasyCalc Market Value use different units.
-              </p>
-              <p>
-                Alphabetical ordering within an exact tie does not express a preference.
-              </p>
-            </details>
-          </>
-        )}
-      </section>
-    </WorkspaceFrame>
+                <p>
+                  Alphabetical ordering within an exact tie does not express a
+                  preference.
+                </p>
+              </details>
+            </>
+          )}
+        </section>
+      </WorkspaceFrame>
+    </WorkspaceSnapshotProvider>
   );
 }

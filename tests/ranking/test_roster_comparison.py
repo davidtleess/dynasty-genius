@@ -169,7 +169,8 @@ def test_the_payload_binds_both_sources_and_names_the_window_and_the_scoring() -
     out = _build(report_bytes, catalog)
     assert out["source"]["report_run"] == "20260906T214512Z" and out["source"]["catalog_run"] == "20260907T013635Z"
     assert out["source"]["report_sha256"] == hashlib.sha256(report_bytes).hexdigest()
-    assert set(out["source"]) == {"report_run", "catalog_run", "report_sha256", "ownership_as_of", "nfl_status_as_of"}
+    assert set(out["source"]) == {"report_run", "catalog_run", "report_sha256", "ownership_as_of", "nfl_status_as_of", "catalog_content_sha256"}
+    assert out["source"]["catalog_content_sha256"] == hashlib.sha256(json.dumps(catalog, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
     assert out["source"]["ownership_as_of"] == "2026-09-06T13:00:52.635970+00:00"
     assert out["source"]["nfl_status_as_of"] == "Sun, 06 Sep 2026 11:28:11 GMT"
     assert out["forecast_years"] == YEARS and out["future_years"] == [2027, 2028, 2029, 2030]

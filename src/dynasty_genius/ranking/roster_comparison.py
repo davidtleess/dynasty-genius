@@ -453,6 +453,7 @@ def build_comparison(report_bytes: bytes, catalog: dict, *, report_run: str, cat
 
     return {
         "source": {"report_run": report_run, "catalog_run": catalog_run, "report_sha256": report_sha,
+                   "catalog_content_sha256": hashlib.sha256(json.dumps(catalog, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False).encode()).hexdigest(),
                    "ownership_as_of": catalog.get("ownership_as_of"), "nfl_status_as_of": catalog.get("nfl_status_as_of")},
         "forecast_years": years, "future_years": years[1:],
         "scoring_note": _scoring_note(report),

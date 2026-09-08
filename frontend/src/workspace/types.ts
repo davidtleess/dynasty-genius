@@ -37,6 +37,7 @@ export type WorkspaceFrameProps = {
     commonPlayers: number;
   } | null;
   children: ReactNode;
+  sourceActions?: ReactNode;
 };
 export type WorkspaceBoardProps = {
   rows: WorkspacePlayer[];

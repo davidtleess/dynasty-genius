@@ -30,6 +30,7 @@ export type ComparisonPlayer = {
 export type ComparisonSource = {
   report_run: string;
   catalog_run: string;
+  catalog_content_sha256?: string | undefined;
   report_sha256: string;
   ownership_as_of: string | null;
   nfl_status_as_of: string | null;
