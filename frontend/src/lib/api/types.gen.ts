@@ -669,6 +669,36 @@ export type EvidenceListField = {
 };
 
 /**
+ * ExpectedSource
+ */
+export type ExpectedSource = {
+    /**
+     * Catalog Content Sha256
+     */
+    catalog_content_sha256: string;
+    /**
+     * Catalog Run
+     */
+    catalog_run: string;
+    /**
+     * League Sha256
+     */
+    league_sha256: string;
+    /**
+     * Market Sha256
+     */
+    market_sha256: string;
+    /**
+     * Report Run
+     */
+    report_run: string;
+    /**
+     * Report Sha256
+     */
+    report_sha256: string;
+};
+
+/**
  * FoldResult
  */
 export type FoldResult = {
@@ -3205,6 +3235,13 @@ export type RosterPenaltySummary = {
 };
 
 /**
+ * SaveRequest
+ */
+export type SaveRequest = {
+    expected: ExpectedSource;
+};
+
+/**
  * ScenarioResult
  *
  * The descriptive consequences of one cut hypothesis — no verdict.
@@ -5345,6 +5382,122 @@ export type ResearchPreviewApiResearchPreviewGetResponses = {
 };
 
 export type ResearchPreviewApiResearchPreviewGetResponse = ResearchPreviewApiResearchPreviewGetResponses[keyof ResearchPreviewApiResearchPreviewGetResponses];
+
+export type SnapshotsApiResearchSnapshotsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/research/snapshots';
+};
+
+export type SnapshotsApiResearchSnapshotsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type CaptureApiResearchSnapshotsPostData = {
+    body: SaveRequest;
+    path?: never;
+    query?: never;
+    url: '/api/research/snapshots';
+};
+
+export type CaptureApiResearchSnapshotsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CaptureApiResearchSnapshotsPostError = CaptureApiResearchSnapshotsPostErrors[keyof CaptureApiResearchSnapshotsPostErrors];
+
+export type CaptureApiResearchSnapshotsPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type SnapshotApiResearchSnapshotsSnapshotIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Snapshot Id
+         */
+        snapshot_id: string;
+    };
+    query?: never;
+    url: '/api/research/snapshots/{snapshot_id}';
+};
+
+export type SnapshotApiResearchSnapshotsSnapshotIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SnapshotApiResearchSnapshotsSnapshotIdGetError = SnapshotApiResearchSnapshotsSnapshotIdGetErrors[keyof SnapshotApiResearchSnapshotsSnapshotIdGetErrors];
+
+export type SnapshotApiResearchSnapshotsSnapshotIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type TrackRecordApiResearchTrackRecordGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Snapshot Id
+         */
+        snapshot_id?: string | null;
+    };
+    url: '/api/research/track-record';
+};
+
+export type TrackRecordApiResearchTrackRecordGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type TrackRecordApiResearchTrackRecordGetError = TrackRecordApiResearchTrackRecordGetErrors[keyof TrackRecordApiResearchTrackRecordGetErrors];
+
+export type TrackRecordApiResearchTrackRecordGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type CaptureApiResearchTrackRecordCapturePostData = {
+    body: SaveRequest;
+    path?: never;
+    query?: never;
+    url: '/api/research/track-record/capture';
+};
+
+export type CaptureApiResearchTrackRecordCapturePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CaptureApiResearchTrackRecordCapturePostError = CaptureApiResearchTrackRecordCapturePostErrors[keyof CaptureApiResearchTrackRecordCapturePostErrors];
+
+export type CaptureApiResearchTrackRecordCapturePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type ScoreSingleApiRookiesScorePostData = {
     body: ProspectRequest;

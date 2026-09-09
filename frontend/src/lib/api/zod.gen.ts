@@ -316,6 +316,18 @@ export const zEvidenceListField = z.object({
 });
 
 /**
+ * ExpectedSource
+ */
+export const zExpectedSource = z.object({
+    catalog_content_sha256: z.string(),
+    catalog_run: z.string(),
+    league_sha256: z.string(),
+    market_sha256: z.string(),
+    report_run: z.string(),
+    report_sha256: z.string()
+});
+
+/**
  * FrozenPredictionCoverage
  */
 export const zFrozenPredictionCoverage = z.object({
@@ -1355,6 +1367,13 @@ export const zRosterPenaltySummary = z.object({
     pool_deficits: z.record(z.string(), z.int()).optional().default({}),
     post_trade_overflow: z.int(),
     post_trade_total_players: z.int()
+});
+
+/**
+ * SaveRequest
+ */
+export const zSaveRequest = z.object({
+    expected: zExpectedSource
 });
 
 /**
@@ -2426,6 +2445,18 @@ export const zResearchPreviewApiResearchPreviewGetQuery = z.object({
  * Successful Response
  */
 export const zResearchPreviewApiResearchPreviewGetResponse = z.record(z.string(), z.unknown());
+
+export const zCaptureApiResearchSnapshotsPostBody = zSaveRequest;
+
+export const zSnapshotApiResearchSnapshotsSnapshotIdGetPath = z.object({
+    snapshot_id: z.string()
+});
+
+export const zTrackRecordApiResearchTrackRecordGetQuery = z.object({
+    snapshot_id: z.string().regex(/^[a-f0-9]{64}$/).nullish()
+});
+
+export const zCaptureApiResearchTrackRecordCapturePostBody = zSaveRequest;
 
 export const zScoreSingleApiRookiesScorePostBody = zProspectRequest;
 
