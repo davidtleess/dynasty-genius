@@ -60,7 +60,11 @@ function BoardPage() {
         ) : null}
       </header>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+      <div
+        className="sticky z-10 mt-4 flex flex-wrap items-center gap-2 py-2"
+        style={{ top: 0, background: "var(--background)" }}
+        data-dg-owned="board-controls"
+      >
         <label className="label-caps flex items-center gap-2">
           Scope
           <select

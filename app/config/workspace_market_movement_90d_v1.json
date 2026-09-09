@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "plan_id": "workspace-market-movement-90d-v1",
+  "status": "declared_not_graded",
+  "supersedes_nothing": "The archived workspace-production-2026-v1 declaration is unchanged. Its market_movement block remains not_registered_for_grading. This is a separate, additive registration.",
+  "purpose": "Test one ordinal hypothesis about relative market movement. This establishes no price forecast, no trade return and no decision edge.",
+  "hypothesis": "Players Dynasty Genius ranks higher than FantasyCalc subsequently experience greater relative FantasyCalc price increases than players it ranks lower.",
+  "claim_limits": "Ordinal association only. Not a forecast of any FantasyCalc value, not a trade return, not a lineup gain, not a demonstrated edge. A higher standalone correlation than the comparator is not proof of incremental information conditional on momentum, nor of causality, nor of profitable trading.",
+  "enrollment": {
+    "t0": "The new enrollment's actual UTC time. Never a legacy snapshot saved_at.",
+    "start_capture_rule": "The selected reading's complete FantasyCalc start capture must be at or before T0 and no more than 24 hours old; otherwise the market stream is input_unavailable and a fresh verified reading is required. Market rows inside an archived reading are never silently swapped.",
+    "forecast_identity": "Report hash, target, producer bindings and per-season numeric values. A changed market date alone is not a new forecast identity.",
+    "primacy": "The first eligible enrollment of a forecast identity under this plan is primary. Later saves and overlapping registrations are descriptive and are never independent replications.",
+    "frozen_together": "Declaration, snapshot reference, full initial common ranked cohort, all exclusions, capture configuration, start prices, tie-aware ranks and trailing momentum input are frozen in one act."
+  },
+  "endpoints": {
+    "primary": { "label": "90-day", "offset_days": 90, "window_days": 3 },
+    "descriptive": { "label": "30-day", "offset_days": 30, "window_days": 3 },
+    "selection": "First complete compatible capture whose source as_of falls inside [T0+offset, T0+offset+window]. Ties on exact timestamp break by stable content hash, never by the resulting performance. No nearest-outside-window fallback. Before the window opens the state is awaiting_capture; after it closes with no capture the state is input_unavailable.",
+    "capture_stores": "Read only. This plan enables no scheduler and no collection job."
+  },
+  "predictor": {
+    "definition": "gap = midpoint(market_rank) - midpoint(our_rank), using rank midpoints for true intervals.",
+    "sign": "Positive means Dynasty Genius ranks the player higher than the market.",
+    "ties": "Zero-floor tied players are retained at their midrank. Alphabetical order never breaks a tie and never becomes a prediction.",
+    "population": "Ranks are computed on the same eligible population, preserving the original league and market settings."
+  },
+  "outcome": {
+    "raw_movement": "For start price P0 > 0 and numeric end price P1 >= 0, raw movement is P1/P0 - 1.",
+    "published_zero_end": "A published end price of zero is -100 percent.",
+    "missing_end": "An absent or non-numeric end price is unknown, never a loss.",
+    "start_zero": "A start price of zero is retained in the cohort but excluded from percentage-return calculation, with its own count.",
+    "no_epsilon": "No arbitrary epsilon and no logarithm of zero.",
+    "market_adjustment": "Subtract the median raw movement of the frozen initial common cohort members holding valid start and end prices. This is an available-case denominator, reported as such, and is not a survivor-free total market index.",
+    "absence_meaning": "An absent row may be called absent from a complete capture. It is never proven career exit."
+  },
+  "comparator": {
+    "definition": "Frozen trailing 30-day price momentum from the latest complete compatible capture at or before T0-30 days, at most 3 days earlier, with a positive price at both points.",
+    "unavailable_rule": "If historical capture lineage is absent, the gap-only association stays descriptive and the baseline comparison is unavailable. It is never backfilled after the endpoint arrives and then called frozen."
+  },
+  "statistic": {
+    "primary": "Equal-position mean Spearman correlation of gap versus adjusted movement, minus the equal-position mean Spearman correlation of trailing momentum versus that SAME outcome on the SAME players.",
+    "reported": "Both correlations and the paired difference are always shown.",
+    "eligibility": "Each position requires at least 10 eligible players and non-constant predictor and outcome. Otherwise the aggregate is insufficient and valid position figures remain descriptive.",
+    "degenerate": "All-same movement gives an undefined correlation, never zero. A market-wide doubling gives zero adjusted movement and therefore no rank evidence."
+  },
+  "uncertainty": {
+    "method": "Paired player bootstrap within position, 10000 resamples, fixed seed 205. Correlations and their difference are recomputed on every resample.",
+    "seed": 205,
+    "resamples": 10000,
+    "minimum_valid_resamples": 9500,
+    "interval": "Two-sided percentile 95 percent.",
+    "limitation": "Player bootstrap intervals do not fully account for team-wide shocks. One enrolled cohort is not a repeatable edge."
+  },
+  "decision_rule": {
+    "favorable_association": "The gap-correlation interval lies wholly above zero.",
+    "outperforms_comparator": "Additionally, the paired-difference interval lies wholly above zero.",
+    "symmetry": "Negative and inconclusive results are displayed under the same rules."
+  },
+  "missing_endpoint_sensitivity": "Separately assign missing or absent endpoint players a hypothetical end price of zero, keeping their original status labelled missing and never modifying primary data. Recompute for initial-cohort members whose baseline was available. Show the result regardless of direction, never as observed losses. This is a declared scenario, not a bound on all possible missing outcomes.",
+  "coverage_rule": "With incomplete capture-wide coverage, no primary grade is produced at all.",
+  "revision_rule": "Any amendment creates a new plan version and retains this declaration. Never tune a declared evaluation after inspecting its outcomes without identifying the result as exploratory."
+}

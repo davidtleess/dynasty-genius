@@ -1,0 +1,5 @@
+{
+  "_comment": "DG-206 market_plan. Stored as its own bytes; its sha256 becomes market.plan_sha256.",
+  "plan": "workspace-market-movement-90d-v1", "horizon_days": 90,
+  "configuration": {"league": "12-team superflex", "scoring": "full PPR", "te_premium": 0.0}
+}

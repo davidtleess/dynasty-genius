@@ -31,3 +31,14 @@ test("router search keeps plain numeric player IDs and reads older quoted links"
     compare: "19",
   });
 });
+
+test("saved reading survives the global URL parser and serializer", async () => {
+  const search = await import("../src/lib/dg/search.ts");
+  const snapshot = "a".repeat(64);
+  const state = { snapshot, player: "11565", compare: "19" };
+  assert.deepEqual(search.parsePlayerSearch(search.stringifyPlayerSearch(state)), state);
+  assert.deepEqual(search.parsePlayerSearch("?snapshot=invalid&player=19"), {
+    player: "19",
+    snapshot: "invalid",
+  });
+});

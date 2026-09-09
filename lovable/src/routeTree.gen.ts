@@ -14,6 +14,8 @@ import { Route as BoardRouteImport } from './routes/board'
 import { Route as LeagueRouteImport } from './routes/league'
 import { Route as TrackRecordRouteImport } from './routes/track-record'
 import { Route as TradesRouteImport } from './routes/trades'
+import { Route as ApiPrivateTrackRecordIndexRouteImport } from './routes/api/private/track-record/index'
+import { Route as ApiPrivateTrackRecordCaptureRouteImport } from './routes/api/private/track-record/capture'
 import { Route as ApiPublicHooksRefreshRouteImport } from './routes/api/public/hooks/refresh'
 
 const IndexRoute = IndexRouteImport.update({
@@ -41,6 +43,18 @@ const TradesRoute = TradesRouteImport.update({
   path: '/trades',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPrivateTrackRecordIndexRoute =
+  ApiPrivateTrackRecordIndexRouteImport.update({
+    id: '/api/private/track-record/',
+    path: '/api/private/track-record/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPrivateTrackRecordCaptureRoute =
+  ApiPrivateTrackRecordCaptureRouteImport.update({
+    id: '/api/private/track-record/capture',
+    path: '/api/private/track-record/capture',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksRefreshRoute = ApiPublicHooksRefreshRouteImport.update({
   id: '/api/public/hooks/refresh',
   path: '/api/public/hooks/refresh',
@@ -53,7 +67,9 @@ export interface FileRoutesByFullPath {
   '/league': typeof LeagueRoute
   '/track-record': typeof TrackRecordRoute
   '/trades': typeof TradesRoute
+  '/api/private/track-record/capture': typeof ApiPrivateTrackRecordCaptureRoute
   '/api/public/hooks/refresh': typeof ApiPublicHooksRefreshRoute
+  '/api/private/track-record/': typeof ApiPrivateTrackRecordIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -61,7 +77,9 @@ export interface FileRoutesByTo {
   '/league': typeof LeagueRoute
   '/track-record': typeof TrackRecordRoute
   '/trades': typeof TradesRoute
+  '/api/private/track-record/capture': typeof ApiPrivateTrackRecordCaptureRoute
   '/api/public/hooks/refresh': typeof ApiPublicHooksRefreshRoute
+  '/api/private/track-record': typeof ApiPrivateTrackRecordIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -70,7 +88,9 @@ export interface FileRoutesById {
   '/league': typeof LeagueRoute
   '/track-record': typeof TrackRecordRoute
   '/trades': typeof TradesRoute
+  '/api/private/track-record/capture': typeof ApiPrivateTrackRecordCaptureRoute
   '/api/public/hooks/refresh': typeof ApiPublicHooksRefreshRoute
+  '/api/private/track-record/': typeof ApiPrivateTrackRecordIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -80,7 +100,9 @@ export interface FileRouteTypes {
     | '/league'
     | '/track-record'
     | '/trades'
+    | '/api/private/track-record/capture'
     | '/api/public/hooks/refresh'
+    | '/api/private/track-record/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -88,7 +110,9 @@ export interface FileRouteTypes {
     | '/league'
     | '/track-record'
     | '/trades'
+    | '/api/private/track-record/capture'
     | '/api/public/hooks/refresh'
+    | '/api/private/track-record'
   id:
     | '__root__'
     | '/'
@@ -96,7 +120,9 @@ export interface FileRouteTypes {
     | '/league'
     | '/track-record'
     | '/trades'
+    | '/api/private/track-record/capture'
     | '/api/public/hooks/refresh'
+    | '/api/private/track-record/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -105,7 +131,9 @@ export interface RootRouteChildren {
   LeagueRoute: typeof LeagueRoute
   TrackRecordRoute: typeof TrackRecordRoute
   TradesRoute: typeof TradesRoute
+  ApiPrivateTrackRecordCaptureRoute: typeof ApiPrivateTrackRecordCaptureRoute
   ApiPublicHooksRefreshRoute: typeof ApiPublicHooksRefreshRoute
+  ApiPrivateTrackRecordIndexRoute: typeof ApiPrivateTrackRecordIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -145,6 +173,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TradesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/private/track-record/': {
+      id: '/api/private/track-record/'
+      path: '/api/private/track-record'
+      fullPath: '/api/private/track-record/'
+      preLoaderRoute: typeof ApiPrivateTrackRecordIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/private/track-record/capture': {
+      id: '/api/private/track-record/capture'
+      path: '/api/private/track-record/capture'
+      fullPath: '/api/private/track-record/capture'
+      preLoaderRoute: typeof ApiPrivateTrackRecordCaptureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/refresh': {
       id: '/api/public/hooks/refresh'
       path: '/api/public/hooks/refresh'
@@ -161,7 +203,9 @@ const rootRouteChildren: RootRouteChildren = {
   LeagueRoute: LeagueRoute,
   TrackRecordRoute: TrackRecordRoute,
   TradesRoute: TradesRoute,
+  ApiPrivateTrackRecordCaptureRoute: ApiPrivateTrackRecordCaptureRoute,
   ApiPublicHooksRefreshRoute: ApiPublicHooksRefreshRoute,
+  ApiPrivateTrackRecordIndexRoute: ApiPrivateTrackRecordIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

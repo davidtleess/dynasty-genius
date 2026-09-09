@@ -14,8 +14,9 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 
+import { closePlayerSearch, clearComparisonSearch, savedDate } from "@/lib/dg/polish";
 import { say } from "@/lib/dg/copy";
-import { forecastLabels, gapLabel, rankLabel, type BoardRow } from "@/lib/dg/backend";
+import { forecastLabels, gapLabel, rankLabel, pointsLabel, type BoardRow } from "@/lib/dg/backend";
 import { playerQuery } from "@/lib/dg/queries";
 import { AdvantageCell, GapCell, Headshot, PointsCell, PriceCell, RankPair } from "./Cells";
 import { CohortChart } from "./CohortChart";
@@ -51,9 +52,8 @@ export function PlayerDrawer() {
     };
   }, [isOpen]);
 
-  const close = () => navigate({ to: ".", search: () => ({}) });
-  const clearCompare = () =>
-    navigate({ to: ".", search: () => (playerId ? { player: playerId } : {}) });
+  const close = () => navigate({ to: ".", search: closePlayerSearch });
+  const clearCompare = () => navigate({ to: ".", search: clearComparisonSearch });
   const chooseCompare = (id: string) =>
     navigate({ to: ".", search: (prev: Record<string, unknown>) => ({ ...prev, compare: id }) });
 
@@ -64,21 +64,8 @@ export function PlayerDrawer() {
   return (
     <dialog
       ref={dialogRef}
-      className="dg-drawer border-l bg-[var(--surface)] p-5"
+      className="dg-drawer dg-player-sheet bg-[var(--surface)] p-5"
       aria-label={row ? `${row.full_name}, player detail` : "Player detail"}
-      style={{
-        marginLeft: "auto",
-        marginRight: 0,
-        marginTop: 0,
-        marginBottom: 0,
-        height: "100%",
-        maxHeight: "100%",
-        width: "100%",
-        maxWidth: 560,
-        overflow: "auto",
-        border: 0,
-        borderLeft: "1px solid var(--hairline)",
-      }}
       onCancel={(event) => {
         event.preventDefault();
         close();
@@ -103,7 +90,12 @@ export function PlayerDrawer() {
                       {row.team ? ` · ${row.team}` : ""}
                       {row.status ? ` · ${say(row.status)}` : ""}
                     </p>
-                    <p className="label-caps mt-0.5">{row.ownership}</p>
+                    <p className="label-caps mt-0.5">{row.ownership} · Current board reading</p>
+                    {data ? (
+                      <p className="label-caps mt-0.5">
+                        Our values {savedDate(data.snapshot.forecast_date)}
+                      </p>
+                    ) : null}
                   </>
                 ) : null}
               </div>
@@ -140,10 +132,10 @@ export function PlayerDrawer() {
                 <Panel label="Rank difference">
                   <GapCell row={row} />
                 </Panel>
-                <Panel label="Our advantage">
+                <Panel label="Our five-year advantage · points">
                   <AdvantageCell row={row} />
                 </Panel>
-                <Panel label="Market price">
+                <Panel label="FantasyCalc price">
                   <PriceCell row={row} />
                 </Panel>
                 <Panel label={labels.current}>
@@ -163,6 +155,7 @@ export function PlayerDrawer() {
               ) : null}
 
               <CohortChart ours={row.our_rank} market={row.market_rank} />
+              <SeasonOutlook row={row} />
 
               {compareId === null ? null : other.isError ? (
                 <p role="alert" className="mt-5 text-sm text-[var(--ink-dim)]">
@@ -394,6 +387,30 @@ function Comparison({
           </div>
         ))}
       </div>
+    </section>
+  );
+}
+
+/** Annual values come from the saved player forecast, never a curve fitted to the total. */
+function SeasonOutlook({ row }: { row: BoardRow }) {
+  if (!row.seasons.length) return null;
+  return (
+    <section className="mt-5" aria-label="Season forecasts">
+      <h3 className="text-[14px] font-semibold">His projected seasons</h3>
+      <p className="mt-1 text-[12px] text-[var(--ink-dim)]">
+        Projected points in each named season{row.starting_estimate ? " · starting estimate" : ""}.
+      </p>
+      <dl className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
+        {row.seasons.map((season) => (
+          <div key={season.season} className="rounded border p-2">
+            <dt className="text-[12px] text-[var(--ink-dim)]">{season.season}</dt>
+            <dd className="num mt-1 text-[16px] font-semibold" style={{ color: "var(--ours)" }}>
+              {season.points === null ? "—" : pointsLabel(season.points)}
+            </dd>
+            {season.points === null ? <span className="text-[11px]">No forecast</span> : null}
+          </div>
+        ))}
+      </dl>
     </section>
   );
 }

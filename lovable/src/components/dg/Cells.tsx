@@ -23,30 +23,45 @@ import {
   type RankInterval,
 } from "@/lib/dg/backend";
 
-/** Points above replacement over five seasons — our unit. Never a price. */
-export function AdvantageCell({ row }: { row: BoardRow }) {
+/**
+ * Points above replacement over five seasons — our unit. Never a price.
+ *
+ * `compact` drops the trailing unit because a table states it once in the header; every standalone
+ * use, the drawer included, keeps it. The unit never disappears from the screen, it only stops
+ * repeating on every row.
+ */
+export function AdvantageCell({ row, compact = false }: { row: BoardRow; compact?: boolean }) {
   // A player can carry a forecast and still carry no valuation, so this says only what is absent.
   // The reason belongs in the drawer, at length; a board cell has room for the fact alone.
   if (row.projected_advantage == null) return <span className="label-caps">No valuation</span>;
   return (
     <span className="num text-[13px]" style={{ color: "var(--ours)" }}>
       {row.model_zero_tie ? "0 · floor" : row.projected_advantage.toFixed(1)}
-      <span className="label-caps ml-1" style={{ color: "var(--ink-faint)" }}>
-        pts over replacement
-      </span>
+      {compact ? null : (
+        <span className="label-caps ml-1" style={{ color: "var(--ink-faint)" }}>
+          pts over replacement
+        </span>
+      )}
     </span>
   );
 }
 
-/** A FantasyCalc price. A different unit from ours, and labelled as one. */
-export function PriceCell({ row }: { row: BoardRow }) {
+/**
+ * A FantasyCalc price. A different unit from ours, and labelled as one.
+ *
+ * It is a number on FantasyCalc's own scale, not money, so it never carries a currency mark and is
+ * never differenced against our points.
+ */
+export function PriceCell({ row, compact = false }: { row: BoardRow; compact?: boolean }) {
   if (row.market_value == null) return <span className="label-caps">Not priced</span>;
   return (
     <span className="num text-[13px]" style={{ color: "var(--market)" }}>
       {Math.round(row.market_value).toLocaleString()}
-      <span className="label-caps ml-1" style={{ color: "var(--ink-faint)" }}>
-        FantasyCalc price
-      </span>
+      {compact ? null : (
+        <span className="label-caps ml-1" style={{ color: "var(--ink-faint)" }}>
+          FantasyCalc price
+        </span>
+      )}
     </span>
   );
 }
@@ -88,17 +103,21 @@ export function GapCell({ row }: { row: BoardRow }) {
 export function PointsCell({
   value,
   startingEstimate = false,
+  compact = false,
 }: {
   value: number | null;
   startingEstimate?: boolean;
+  compact?: boolean;
 }) {
   if (value == null) return <span className="label-caps">No forecast</span>;
   return (
     <span className="num text-[13px]" style={{ color: "var(--foreground)" }}>
       {pointsLabel(value)}
+      {/* A starting estimate is a qualification, not a unit, so it survives compact mode. It is
+          marked with a dot rather than the full phrase where the row has no width for it. */}
       {startingEstimate ? (
         <span className="label-caps ml-1" style={{ color: "var(--ink-faint)" }}>
-          starting estimate
+          {compact ? "est" : "starting estimate"}
         </span>
       ) : null}
     </span>

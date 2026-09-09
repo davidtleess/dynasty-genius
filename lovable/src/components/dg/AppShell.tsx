@@ -1,93 +1,81 @@
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 import { LEAGUE } from "@/lib/dg/league";
-import { healthQuery, searchQuery } from "@/lib/dg/queries";
+import { healthQuery } from "@/lib/dg/queries";
 import { PlayerDrawer } from "./PlayerDrawer";
+import { PlayerPalette } from "./PlayerPalette";
+import { savedDate } from "@/lib/dg/polish";
+import "./polish.css";
 
 const NAV = [
   { to: "/", label: "Roster" },
   { to: "/board", label: "Value board" },
   { to: "/league", label: "League" },
-  { to: "/trades", label: "Trades" },
+  { to: "/trades", label: "Compare" },
   { to: "/track-record", label: "Track record" },
 ] as const;
 
-function PlayerSearch() {
-  const [term, setTerm] = useState("");
-  const navigate = useNavigate();
-  const { data } = useQuery(searchQuery(term));
-  return (
-    <div className="relative">
-      <input
-        value={term}
-        onChange={(e) => setTerm(e.target.value)}
-        aria-label="Find a player"
-        placeholder="Find a player…"
-        className="w-full rounded-md border bg-[var(--input)] px-3 py-2 text-sm outline-none placeholder:text-[var(--ink-faint)] focus:border-[var(--ring)]"
-      />
-      {!!data?.length && term.trim().length >= 2 && (
-        <ul className="absolute z-30 mt-1 max-h-72 w-full overflow-auto rounded-md border bg-[var(--popover)] shadow-xl">
-          {data.map((p) => (
-            <li key={p.player_id}>
-              <button
-                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-[var(--accent)]"
-                onClick={() => {
-                  setTerm("");
-                  navigate({ to: ".", search: () => ({ player: p.player_id }) });
-                }}
-              >
-                <span>{p.full_name}</span>
-                <span className="label-caps">
-                  {p.position ?? "—"}
-                  {p.team ? ` · ${p.team}` : ""}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function HealthLine() {
+function SavedReading() {
   const { data, error, isPending } = useQuery(healthQuery);
   return (
-    <div className="border-t px-4 py-3">
-      <span className="label-caps">Saved research snapshot</span>
+    <div className="relative">
+      <details className="dg-source-disclosure">
+        <summary>
+          {error ? "Reading unavailable" : isPending ? "Loading reading…" : "Current board"}
+          <span aria-hidden="true">⌄</span>
+        </summary>
+        <div className="dg-source-panel text-sm">
+          <p className="font-semibold">Current board reading</p>
+          {data ? (
+            <>
+              <dl className="mt-3 space-y-2">
+                <div>
+                  <dt className="text-[var(--ink-dim)]">Our forecasts</dt>
+                  <dd>{savedDate(data.snapshot.forecast_date)}</dd>
+                </div>
+                <div>
+                  <dt className="text-[var(--ink-dim)]">FantasyCalc prices</dt>
+                  <dd>{savedDate(data.snapshot.market_as_of)}</dd>
+                </div>
+                <div>
+                  <dt className="text-[var(--ink-dim)]">League ownership</dt>
+                  <dd>{savedDate(data.snapshot.ownership_as_of)}</dd>
+                </div>
+              </dl>
+              <p className="mt-3">
+                Both ranks use the same {data.coverage.common_players} players.
+              </p>
+              <p className="mt-2 text-[var(--ink-dim)]">
+                These board values stay fixed until you reload. It does not show live changes.
+              </p>
+              <details className="mt-3">
+                <summary className="cursor-pointer">How the numbers compare</summary>
+                <p className="mt-2">{data.basis.summary}</p>
+                <p className="mt-2">{data.basis.scoring_note}</p>
+                <p className="mt-2">{data.basis.market_proxy_note}</p>
+              </details>
+            </>
+          ) : (
+            <p className="mt-2">
+              {error ? "Saved data could not load. Reload to try again." : "Loading saved data…"}
+            </p>
+          )}
+          <button
+            type="button"
+            className="mt-4 min-h-11 rounded border px-3"
+            onClick={() => window.location.reload()}
+          >
+            Reload saved reading
+          </button>
+        </div>
+      </details>
       {error ? (
         <p role="alert" className="mt-1 text-sm">
-          Our saved data could not be loaded. Reload to try again.
+          Saved data could not load.
         </p>
-      ) : isPending ? (
-        <p className="mt-1 text-sm">Loading saved data…</p>
-      ) : (
-        <>
-          <p className="mt-1 text-[12px] text-[var(--ink-dim)]">
-            Forecasts {data?.snapshot.forecast_date}. Market{" "}
-            {data?.snapshot.market_as_of.slice(0, 10)}. Rosters{" "}
-            {data?.snapshot.ownership_as_of.slice(0, 10)}.
-          </p>
-          <p className="mt-1 text-[11px] text-[var(--ink-dim)]">
-            {data?.coverage.common_players} players in both rank lists.
-          </p>
-          <details className="mt-2 text-[12px]">
-            <summary className="cursor-pointer">How these numbers compare</summary>
-            <p className="mt-2">{data?.basis.summary}</p>
-            <p className="mt-2">{data?.basis.scoring_note}</p>
-            <p className="mt-2">{data?.basis.market_proxy_note}</p>
-          </details>
-        </>
-      )}
-      <button
-        type="button"
-        className="mt-3 rounded border px-2 py-1 text-[12px]"
-        onClick={() => window.location.reload()}
-      >
-        Reload saved snapshot
-      </button>
+      ) : null}
     </div>
   );
 }
@@ -105,9 +93,6 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
           <div className="px-4 py-5">
             <p className="text-[15px] font-bold tracking-tight">Dynasty Genius</p>
             <p className="label-caps mt-1">{LEAGUE.myTeamName}</p>
-          </div>
-          <div className="px-4 pb-4">
-            <PlayerSearch />
           </div>
           <nav className="px-2">
             {NAV.map((item) => {
@@ -129,21 +114,27 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
             })}
           </nav>
         </div>
-        <HealthLine />
+        <p className="px-4 py-5 text-[12px] text-[var(--ink-dim)]">
+          Your valuations.
+          <br />
+          The market beside them.
+        </p>
       </aside>
 
       <main className="min-w-0 flex-1 pb-20 md:pb-0">
-        <header className="sticky top-0 z-20 border-b bg-[var(--background)]/95 px-4 py-3 backdrop-blur md:px-8">
-          <h1 className="text-[19px] font-bold">{title}</h1>
-          <p className="label-caps mt-0.5">{LEAGUE.format} · Saved research</p>
-          <div className="mt-3 md:hidden">
-            <PlayerSearch />
+        <header className="sticky top-0 z-20 border-b bg-[var(--background)] px-4 py-3 md:px-8">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-[22px] font-bold tracking-tight">{title}</h1>
+              <p className="mt-0.5 text-[12px] text-[var(--ink-dim)]">{LEAGUE.format}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <PlayerPalette />
+              <SavedReading />
+            </div>
           </div>
         </header>
         <div className="px-4 py-5 md:px-8">{children}</div>
-        <div className="md:hidden">
-          <HealthLine />
-        </div>
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 z-30 flex border-t bg-[var(--rail)] md:hidden">

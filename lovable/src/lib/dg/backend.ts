@@ -166,6 +166,13 @@ export function readBundle(value: unknown): DgBundle {
   );
   const b = value as unknown as DgBundle;
   requireThat(
+    Array.isArray(b.basis.years) &&
+      b.basis.years.length > 0 &&
+      b.basis.years.every((year) => Number.isInteger(year)) &&
+      new Set(b.basis.years).size === b.basis.years.length,
+    "invalid forecast years",
+  );
+  requireThat(
     typeof b.generated_at === "string" && Number.isFinite(Date.parse(b.generated_at)),
     "export time missing",
   );
@@ -259,11 +266,27 @@ export function readBundle(value: unknown): DgBundle {
       row.population !== "default" || (!row.owned_now && row.roster_id === null),
       "owned player marked available",
     );
-  for (const row of [...forecasts.roster, ...forecasts.available])
+  for (const row of [...forecasts.roster, ...forecasts.available]) {
     requireThat(
       finiteOrMissing(row.now_points) && finiteOrMissing(row.future_points),
       "invalid forecast",
     );
+    requireThat(
+      Array.isArray(row.seasons) &&
+        row.seasons.every(
+          (entry) =>
+            object(entry) &&
+            Number.isInteger(entry.season) &&
+            b.basis.years.includes(entry.season) &&
+            finiteOrMissing(entry.points),
+        ),
+      "invalid annual forecast",
+    );
+    requireThat(
+      new Set(row.seasons.map((entry) => entry.season)).size === row.seasons.length,
+      "duplicate annual forecast year",
+    );
+  }
   return b;
 }
 export function boardRows(bundle: DgBundle): BoardRow[] {
