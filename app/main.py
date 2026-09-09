@@ -29,6 +29,7 @@ from app.api.routes import (
     trade_market,
     trust_surface,
     workspace_snapshots,
+    workspace_track_record,
 )
 from app.services.headshot_assets import mount_headshots
 
@@ -64,6 +65,7 @@ app.include_router(research_preview.router, prefix="/api")
 app.include_router(research_available.router, prefix="/api")
 app.include_router(research_market_ranks.router, prefix="/api")
 app.include_router(workspace_snapshots.router, prefix="/api")
+app.include_router(workspace_track_record.router, prefix="/api")
 
 
 # Player photos mount before the broader frontend assets route.

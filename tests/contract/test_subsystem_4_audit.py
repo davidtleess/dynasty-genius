@@ -150,6 +150,9 @@ S3_INVIOLATE_SHA256 = {
 # This EXTENDS the authorized set only; the exact-set allowlist semantics are preserved
 # (any other new, unlisted eval file still fails this audit).
 AUTHORIZED_EVAL_FILES = {
+    # DG205/DG207, authorized September 9: separate production and market evaluations.
+    # This extends the exact module list; model/training isolation checks remain intact.
+    "workspace_track_record.py",
     "__init__.py",
     "backtest_artifact.py",
     "backtest_harness.py",

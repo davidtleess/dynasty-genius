@@ -1,0 +1,106 @@
+.dg-search-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.dg-search-trigger kbd {
+  margin-left: 12px;
+  color: var(--ink-dim);
+}
+.dg-search-dialog {
+  position: fixed;
+  margin: 12vh auto auto;
+  padding: 0;
+  width: min(560px, calc(100% - 24px));
+  max-height: 80dvh;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--foreground);
+}
+.dg-search-dialog::backdrop,
+.dg-player-sheet::backdrop {
+  background: color-mix(in srgb, var(--background) 72%, transparent);
+}
+.dg-drawer.dg-player-sheet {
+  margin: 0 0 0 auto;
+  height: 100dvh;
+  max-height: 100dvh;
+  width: min(620px, 100%);
+  max-width: 100%;
+  overflow: auto;
+  border: 0;
+  border-left: 1px solid var(--hairline);
+}
+.dg-player-sheet[open] {
+  animation: dg-sheet-in 180ms ease-out;
+}
+@keyframes dg-sheet-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+.dg-source-disclosure summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.dg-source-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  width: min(350px, calc(100vw - 32px));
+  max-height: 65dvh;
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--foreground) 10%, transparent);
+}
+@media (max-width: 767px) {
+  .dg-drawer.dg-player-sheet {
+    margin: 6dvh 0 0;
+    width: 100%;
+    height: 94dvh;
+    max-height: 94dvh;
+    border-left: 0;
+    border-top: 1px solid var(--hairline);
+    border-radius: 16px 16px 0 0;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+  .dg-player-sheet[open] {
+    animation-name: dg-sheet-up;
+  }
+  @keyframes dg-sheet-up {
+    from {
+      transform: translateY(24px);
+      opacity: 0.6;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dg-player-sheet[open] {
+    animation: none;
+  }
+}

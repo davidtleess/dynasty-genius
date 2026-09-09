@@ -1,0 +1,25 @@
+{
+  "_comment": "DG-206 baseline_source receipt — the EXACT keys capture_from_paths requires. Synthetic values. The real DG179 manifest carries no TargetSpec and no positions column, so both travel here, in the receipt, and are frozen with the inputs.",
+  "role": "prior_season_outcomes",
+  "kind": "dg179_league_season_outcomes_v1",
+  "csv_sha256": "199a48beb96a25f5dad50758b3f72b40a5d7d0cf2000f7cdaf2f411873c6ecb8",
+  "manifest_sha256": "d3812d0d56b50971e98552fed4f791d3132eeffa7c242601e7c609285863ba18",
+  "target": {
+    "_comment": "compared FIELD BY FIELD with the archived forecast target; labels_through is deliberately excluded from that comparison",
+    "scope": "REG", "scoring": "PPR_nflverse_default", "window": "championship_week17",
+    "exposure": "stat_record_weeks_in_window", "event": "appearance", "clock": "per_season",
+    "quantity": "season_points", "labels_through": 2025
+  },
+  "prior_season": 2025,
+  "admitted_seasons": [2001, 2025],
+  "coverage_status": "qualified_research_game_complete_identified_rows",
+  "league_scoring_exact": false,
+  "positions": {
+    "_comment": "source player id -> position, for EVERY verified prior participant, not just survivors. Root freezes the convention (raw statistical position, not current fantasy eligibility).",
+    "00-0031234": "QB"
+  },
+  "captured_at": "2026-09-09T09:40:00Z",
+  "source_as_of": "2026-09-06T19:48:31.846375+00:00",
+  "source_available_at": null,
+  "source_revision": "dg179-20260906T194819Z"
+}

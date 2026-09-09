@@ -7,6 +7,7 @@
 //
 // The long producer notes sit inside a disclosure. They are true and worth having one press away,
 // but a wall of them under every player is the "data-science console" register the product moved off.
+import { savedDate } from "@/lib/dg/polish";
 import type { BoardRow, DgBundle } from "@/lib/dg/backend";
 
 export function ReceiptSheet({
@@ -49,8 +50,8 @@ export function ReceiptSheet({
       </details>
 
       <p className="label-caps mt-4" style={{ color: "var(--ink-faint)" }}>
-        Saved snapshot · our values {snapshot.forecast_date} · market prices{" "}
-        {snapshot.market_as_of.slice(0, 10)} · ownership {snapshot.ownership_as_of.slice(0, 10)}
+        Saved snapshot · our values {savedDate(snapshot.forecast_date)} · market prices{" "}
+        {savedDate(snapshot.market_as_of)} · ownership {savedDate(snapshot.ownership_as_of)}
       </p>
     </section>
   );

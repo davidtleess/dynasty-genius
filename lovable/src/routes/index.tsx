@@ -38,6 +38,9 @@ function RosterPage() {
   const filtered = roster.filter((r) => position === "all" || r.position === position);
   const paired = roster.filter((r) => r.comparison.direction !== "unavailable").length;
   const positions = [...new Set(roster.map((r) => r.position).filter(Boolean))].sort();
+  const composition = positions.map(
+    (position) => [position, roster.filter((r) => r.position === position).length] as const,
+  );
 
   return (
     <AppShell title="Your roster">
@@ -47,6 +50,11 @@ function RosterPage() {
             <p className="mt-1 text-sm text-[var(--ink-dim)]">
               {roster.length} players. {paired} carry both our rank and a market rank, among the{" "}
               {bundle.coverage.common_players} players who carry both numbers.
+            </p>
+            {/* Counted from the roster on screen, never a fixed shape. A position with nobody in it
+                is simply absent rather than shown as a zero. */}
+            <p className="label-caps mt-1">
+              {composition.map(([position, count]) => `${count} ${position}`).join(" · ")}
             </p>
             <p className="label-caps mt-1">
               Saved reading · our values {bundle.snapshot.forecast_date} · market prices{" "}
@@ -60,7 +68,13 @@ function RosterPage() {
         </p>
       </header>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+      {/* Sticky so the position controls stay reachable down a long roster. The existing 44px
+          targets are unchanged; nothing here shrinks a tap target. */}
+      <div
+        className="sticky z-10 mt-4 flex flex-wrap items-center gap-2 py-2"
+        style={{ top: 0, background: "var(--background)" }}
+        data-dg-owned="board-controls"
+      >
         <label className="label-caps flex items-center gap-2">
           Position
           <select

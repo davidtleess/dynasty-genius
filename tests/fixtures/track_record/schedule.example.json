@@ -1,0 +1,8 @@
+{
+  "_comment": "DG-206 schedule_source. Kickoffs must carry an explicit UTC offset: the preserved 2026 CSV has no timezone and no finalized column, so those must be supplied with source-backed semantics rather than assumed.",
+  "role": "schedule", "season": 2026, "source_sha256": "<sha256 of the schedule bytes>",
+  "captured_at": "2026-09-09T09:40:00Z", "source_as_of": "2026-09-01T00:00:00Z",
+  "source_available_at": "2026-09-01T00:00:00Z", "source_revision": "<publisher revision>",
+  "games": [{"game_id": "2026_01_A_B", "reg": true, "week": 1,
+             "kickoff_at": "2026-09-10T00:20:00+00:00", "finalized": false}]
+}

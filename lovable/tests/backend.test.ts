@@ -272,3 +272,38 @@ test("small signed forecasts remain distinct from an exact zero", () => {
   assert.equal(pointsLabel(-0.00004), "-<0.0001");
   assert.equal(pointsLabel(112.0066), "112.0");
 });
+
+test("annual forecasts reject corrupt entries while preserving missing, negative and zero values", () => {
+  for (const seasons of [
+    undefined,
+    null,
+    {},
+    [null],
+    [{ season: 2026 }],
+    [{ season: 2026, points: NaN }],
+    [{ season: 2026, points: Infinity }],
+    [{ season: "2026", points: 1 }],
+    [{ season: 2099, points: 1 }],
+    [
+      { season: 2026, points: 1 },
+      { season: 2026, points: 2 },
+    ],
+  ]) {
+    const b = fixture();
+    (b.payloads.comparison.roster[0] as { seasons: unknown }).seasons = seasons;
+    assert.throws(() => readBundle(b), /annual forecast/);
+  }
+  for (const years of [[], [2026, 2026], ["2026"], null]) {
+    const b = fixture();
+    (b.basis as { years: unknown }).years = years;
+    assert.throws(() => readBundle(b), /forecast years/);
+  }
+  const b = fixture();
+  const valid = [
+    { season: 2026, points: 0 },
+    { season: 2027, points: -0.035 },
+    { season: 2028, points: null },
+  ];
+  (b.payloads.comparison.roster[0] as { seasons: unknown }).seasons = valid;
+  assert.deepEqual(boardRows(readBundle(b))[0].seasons, valid);
+});
