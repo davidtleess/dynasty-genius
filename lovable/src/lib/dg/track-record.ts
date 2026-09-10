@@ -11,6 +11,8 @@
  *   · a saved reading and an enrolled evaluation are separate outcomes of one deliberate save.
  */
 import { queryOptions } from "@tanstack/react-query";
+import { hostedSaveCapability, selectHostedReading, ReleaseError } from "./release.ts";
+import { hosted, readAsset, release } from "./releaseSource.ts";
 
 export class TrackRecordError extends Error {}
 
@@ -401,9 +403,44 @@ export function saveEnablement(
   return { enabled: true, reason: "" };
 }
 
+/**
+ * A hosted refusal is a known outcome, so it must reach the reader as one.
+ *
+ * The screen renders `TrackRecordError` and nothing else, so a `ReleaseError` thrown by the transport
+ * or by the pinned-reading check would arrive as an unrecognised failure and be shown as "the request
+ * did not complete" — a generic transport story told about a deliberate, understood refusal. That is
+ * the worse of the two messages and the less true one.
+ *
+ * The wording is what the manager gets, so it says what happened in football terms and stops there:
+ * hashes, byte counts and asset paths belong in the console, not on the page.
+ */
+async function hostedRefusalsInPlainWords<T>(work: () => Promise<T> | T): Promise<T> {
+  try {
+    return await work();
+  } catch (error) {
+    if (!(error instanceof ReleaseError)) throw error;
+    const technical = error.message;
+    if (technical.includes("does not carry the reading"))
+      throw new TrackRecordError(
+        "That saved reading is not part of this published set. Choose one from the list.",
+      );
+    if (technical.includes("does not belong to this release"))
+      throw new TrackRecordError(
+        "This page was showing a reading from a different publication, so it has not been displayed.",
+      );
+    throw new TrackRecordError(
+      "This published reading could not be confirmed, so it has not been shown. Reload to try again.",
+    );
+  }
+}
+
 // --- queries --------------------------------------------------------------------------------------
 
 async function get(path: string): Promise<unknown> {
+  // Hosted reads one published, hash-checked document. The local bridge below is untouched and is not
+  // reachable from a hosted build: there is no host to answer it, and asking would turn a deliberate
+  // read-only publication into a 404 rendered as an archive failure.
+  if (hosted) return readAsset("track-record.json");
   const response = await fetch(path, { headers: { accept: "application/json" } });
   if (!response.ok) {
     const detail = await response.json().catch(() => null);
@@ -425,7 +462,16 @@ export function trackRecordQuery(snapshotId: string | null) {
         throw new TrackRecordError(
           "This saved-reading link is invalid. Choose a saved reading from Track record.",
         );
-      const view = readTrackRecordView(await get(path));
+      const view = readTrackRecordView(await hostedRefusalsInPlainWords(() => get(path)));
+      if (hosted) {
+        // The reading must belong to this release, and a pinned link this release does not carry is
+        // refused rather than answered with the newest. Saving is closed after the reading validates,
+        // not before: a refusal must read as a refusal, never as "saving is off".
+        await hostedRefusalsInPlainWords(async () =>
+          selectHostedReading(view, await release(), snapshotId),
+        );
+        return { ...view, save_capability: hostedSaveCapability() };
+      }
       if (snapshotId !== null && view.selected?.snapshot_id !== snapshotId)
         throw new TrackRecordError(
           "The archive returned a different saved reading. It has not been substituted for your selection.",
@@ -438,6 +484,10 @@ export function trackRecordQuery(snapshotId: string | null) {
 }
 
 export async function saveBoardReading(expected: SixSourceFields): Promise<CaptureResult> {
+  // Unreachable through the UI in hosted mode, because the capability above is already disabled. It
+  // refuses here anyway: a POST to a host that has no bridge would surface as a transport error, and
+  // "the network failed" is a different and worse claim than "this reading is published and fixed".
+  if (hosted) throw new TrackRecordError(hostedSaveCapability().reason);
   const response = await fetch("/api/private/track-record/capture", {
     method: "POST",
     headers: { "content-type": "application/json", accept: "application/json" },

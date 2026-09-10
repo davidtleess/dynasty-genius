@@ -7,14 +7,22 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { views, captureResults } from "./fixtures/track-record-views.ts";
-import {
+import { pinLocal } from "./helpers/releaseConfig.ts";
+
+// LOCAL MODE, pinned. Every mock in this file answers the local bridge at `/api/private/...`. Under a
+// hosted config the client reads a published document instead, so those mocks describe a request the
+// code no longer makes: the query would fetch the release manifest over the real network and fail on
+// transport, while the assertions here would appear to be about parsing. Hosted behaviour is covered
+// in trackRecordHosted.test.ts, which is a separate file because the module cache is per process.
+pinLocal();
+const {
   readTrackRecordView,
   readCaptureResult,
   saveEnablement,
   boardSourceFromBundle,
   SOURCE_FIELDS,
   TrackRecordError,
-} from "../src/lib/dg/track-record.ts";
+} = await import("../src/lib/dg/track-record.ts");
 
 const clone = (value: unknown) => JSON.parse(JSON.stringify(value));
 

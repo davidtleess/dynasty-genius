@@ -1,19 +1,25 @@
 import { queryOptions } from "@tanstack/react-query";
 import { alternativesFor, boardRows, readBundle, type DgBundle } from "./backend";
+import { hosted, readAsset } from "./releaseSource.ts";
 export type { BoardRow } from "./backend";
 export type Scope = "mine" | "league" | "universe" | "available";
 
 // One snapshot per page load: every view shares the same immutable response.
 // Reload is explicit because this preview intentionally represents a saved research snapshot.
+// Hosted reads the published object, hash-checked before it is parsed; local reads the file the
+// preview serves. There is no path from one to the other: a fallback would mean the screen could show
+// a different capture than the one it names, with nothing on the page saying so.
 let snapshotRequest: Promise<DgBundle> | undefined;
 function snapshot(): Promise<DgBundle> {
   if (!snapshotRequest)
-    snapshotRequest = fetch("/data/dg-bundle.json", { cache: "no-store" })
-      .then((response) => {
-        if (!response.ok) throw new Error("The saved DG snapshot could not be loaded.");
-        return response.json();
-      })
-      .then(readBundle);
+    snapshotRequest = (
+      hosted
+        ? readAsset("dg-bundle.json")
+        : fetch("/data/dg-bundle.json", { cache: "no-store" }).then((response) => {
+            if (!response.ok) throw new Error("The saved DG snapshot could not be loaded.");
+            return response.json();
+          })
+    ).then(readBundle);
   return snapshotRequest;
 }
 const saved = {

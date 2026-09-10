@@ -121,7 +121,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
         </p>
       </aside>
 
-      <main className="min-w-0 flex-1 pb-20 md:pb-0">
+      <main className="min-w-0 flex-1 pb-32 md:pb-0">
         <header className="sticky top-0 z-20 border-b bg-[var(--background)] px-4 py-3 md:px-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -137,7 +137,17 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
         <div className="px-4 py-5 md:px-8">{children}</div>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-30 flex border-t bg-[var(--rail)] md:hidden">
+      {/*
+        The Lovable badge is fixed at bottom 12px, right 12px, 145×24, at z-index 1000000 — measured on
+        the published app at 320 and 390 wide. It lands on top of the last two tabs and, being above
+        everything, takes their taps. The badge is the platform's and stays; what changes is that the
+        nav no longer puts anything under it.
+
+        The reserve is padding inside the nav rather than lifting the nav off the bottom, so the rail's
+        background still runs to the edge of the screen and the badge sits on it. Lifting the nav would
+        leave a strip of scrolled content showing beneath it.
+      */}
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex border-t bg-[var(--rail)] pb-12 md:hidden">
         {NAV.map((item) => {
           const active = pathname === item.to;
           return (
