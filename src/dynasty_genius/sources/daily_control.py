@@ -219,9 +219,19 @@ def build_manifest() -> list[ManifestEntry]:
             last_good_marker="app/data/nflverse_usage/export/nflverse_usage.ready.json",
             controller_owned=True,
             note="One runner covering all 13 streams bound by the canonical adapter's "
-                 "build_streams(); nothing scheduled it before. The stream names are "
-                 "deliberately NOT repeated here: contract tests cordon those symbols "
-                 "to the adapter so a stray reference cannot become a consumer.",
+                 "build_streams(). Scheduling: the 06:15 LaunchAgent "
+                 "com.davidleess.dynasty-nflverse-usage-capture owns the daily run, "
+                 "and the catch-up guard kicks an occurrence the machine slept "
+                 "through. Since DG-216 the guard also drives --retry-only "
+                 "re-checks for partitions the capture declares still due, so a "
+                 "late seasonal feed is re-examined without failing the pipeline. "
+                 "The earlier 'nothing scheduled it before' was true when this "
+                 "entry was written and is not true now. controller_owned records "
+                 "membership in the retired DG-048 controller's manifest, not a "
+                 "live scheduler — that controller is not resurrected here. The "
+                 "stream names are deliberately NOT repeated: contract tests cordon "
+                 "those symbols to the adapter so a stray reference cannot become a "
+                 "consumer.",
         ),
         ManifestEntry(
             source="sleeper_transactions",

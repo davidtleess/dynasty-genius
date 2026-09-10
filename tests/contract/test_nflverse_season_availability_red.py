@@ -174,6 +174,25 @@ def test_the_run_marker_records_the_run_as_ok_with_the_skip(
 # --------------------------------------------------------------------------
 
 
+def _partition(status, stream, season):
+    return {(p["stream"], p["season"]): p for p in status["partitions"]}[(stream, season)]
+
+
+def _assert_real_error(status, stream, season, fragment):
+    """DG-215: an unclassified failure no longer raises — isolating it is the point, so the other
+    partitions still land. The property these tests exist for is UNCHANGED and asserted here: it must
+    never be recorded as "not yet available", it must never be retryable, and the run must not be
+    healthy. Only the shape of the report moved."""
+    from src.dynasty_genius.nflverse_usage import capture_is_healthy
+
+    part = _partition(status, stream, season)
+    assert part["state"] == "error", f"{stream} {season} was not recorded as a real error"
+    assert part.get("retryable") is not True, "an unclassified failure must never be auto-retried"
+    assert part.get("reason") != "not_yet_available"
+    assert fragment in part.get("detail", "")
+    assert not capture_is_healthy(status), "a lost partition was reported as a healthy run"
+
+
 def test_a_value_error_that_names_no_bound_still_fails_the_run(
     tmp_path, harness, identity
 ) -> None:
@@ -184,8 +203,8 @@ def test_a_value_error_that_names_no_bound_still_fails_the_run(
             raise ValueError("connection reset by peer")
         return harness(spec, season)
 
-    with pytest.raises(Exception, match="connection reset by peer"):
-        _run(tmp_path, harness, identity, seasons=[2025, 2026], fetch=fetch)
+    status = _run(tmp_path, harness, identity, seasons=[2025, 2026], fetch=fetch)
+    _assert_real_error(status, "ngs_passing", 2026, "connection reset by peer")
 
 
 def test_a_season_BELOW_the_sources_bound_still_fails_the_run(
@@ -198,8 +217,8 @@ def test_a_season_BELOW_the_sources_bound_still_fails_the_run(
             raise ValueError(UNPUBLISHED)
         return harness(spec, season)
 
-    with pytest.raises(Exception, match="Season must be between"):
-        _run(tmp_path, harness, identity, seasons=[2011, 2025], fetch=fetch)
+    status = _run(tmp_path, harness, identity, seasons=[2011, 2025], fetch=fetch)
+    _assert_real_error(status, "ngs_passing", 2011, "Season must be between")
 
 
 def test_a_non_value_error_from_the_source_still_fails_the_run(
@@ -212,5 +231,5 @@ def test_a_non_value_error_from_the_source_still_fails_the_run(
             raise RuntimeError(UNPUBLISHED)
         return harness(spec, season)
 
-    with pytest.raises(Exception):
-        _run(tmp_path, harness, identity, seasons=[2025, 2026], fetch=fetch)
+    status = _run(tmp_path, harness, identity, seasons=[2025, 2026], fetch=fetch)
+    _assert_real_error(status, "ngs_passing", 2026, "")

@@ -53,6 +53,7 @@ Shape facts measured from the live source (2026-07-30), each of which the code m
 
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
 import numbers
@@ -61,9 +62,10 @@ import re
 import shutil
 import sqlite3
 import tempfile
+import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
@@ -2434,38 +2436,80 @@ def _to_records(frame: Any) -> list[dict[str, Any]]:
 
 @contextmanager
 def _exclusive_capture_lock(db_path: Path):
-    """One writer per STORE. E4 (Codex, reproduced): `run_usage_capture` had no
-    lock at all, so two captures could interleave their per-season commits and one
-    could export rows partly written by the other under its own run_id.
+    """One writer per STORE, and a writer that DIES must not take the store with it.
 
-    R2-E4 (Codex, reproduced): the first fix keyed the lock to `raw_root`, but
-    `db_path` and `raw_root` are INDEPENDENT arguments — two calls against the same
-    SQLite store with different raw roots took two different locks and could still
-    interleave that one store, contradicting the "one writer per store" claim this
-    docstring makes. The lock is therefore keyed to the canonical DB path, which is
-    the thing actually being protected.
+    E4 (Codex, reproduced): `run_usage_capture` had no lock at all, so two captures could
+    interleave their per-season commits and one could export rows partly written by the other.
 
-    The lock spans the whole transaction: start marker, every DB write, the export,
-    and the terminal marker. A second capture REFUSES by name and touches neither
-    the first run's store nor its ready marker.
+    R2-E4 (Codex): keying the lock to `raw_root` was wrong because `db_path` and `raw_root` are
+    independent; the lock belongs to the thing being protected, which is the store.
+
+    DG-215 (root must-fix, reviewer M2). The previous shape was `O_CREAT|O_EXCL` plus an unlink in
+    `finally`, and it had two defects that only matter once DG-216 invokes a retry every fifteen
+    minutes:
+
+    * **A SIGKILL, an OOM kill or a reboot left the file behind**, and then every later capture
+      refused by name forever. A once-a-day annoyance becomes a permanent wedge under a guard.
+    * **The docstring claimed the "canonical DB path" but the code never resolved it**, so two
+      symlink aliases took two different locks over one sqlite file — R2-E4 reachable by another
+      route.
+
+    Both are fixed by an ADVISORY lock (`flock`) held on a persistent inode:
+
+    * ownership is the kernel's, so it is released when the process dies, however it dies. There
+      is no TTL, no stale-file heuristic, and nothing to clean up by hand.
+    * the path is `.resolve()`d first, so every alias of one store contends for one inode.
+    * **the lock file is never unlinked.** Unlinking under waiters splits the inode: the departing
+      holder removes the file, a waiter creates a fresh one, and two processes then hold locks on
+      two different inodes while each believes it excludes the other. An empty file is a small
+      price for an exclusion that is actually true.
+
+    A second capture still REFUSES BY NAME rather than blocking, so the existing reentrancy
+    contract and its tests are unchanged.
     """
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
+    # Resolve the WHOLE path, after the parent exists so a not-yet-created store still resolves.
+    # Resolving only `parent / name` canonicalises the directory but follows no symlink on the FILE
+    # itself, so `real/usage.db` and a `link.db -> real/usage.db` beside it took two different locks
+    # over one store — the same R2-E4 failure the resolve was added to prevent, one component along.
+    db_path = db_path.resolve()
     lock_path = db_path.with_name(f".{db_path.name}.capture.lock")
+
+    descriptor = os.open(lock_path, os.O_CREAT | os.O_RDWR)
     try:
-        descriptor = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-    except FileExistsError as exc:
-        raise UsageCaptureError(
-            f"nflverse_capture_lock_held: {lock_path} exists; another capture may be "
-            "running. A concurrent capture is refused rather than allowed to "
-            "interleave stream-season commits."
-        ) from exc
-    try:
-        os.write(descriptor, b"nflverse_usage_capture\n")
-        os.close(descriptor)
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as exc:
+            raise UsageCaptureError(
+                f"nflverse_capture_lock_held: {lock_path} is held by another capture. A "
+                "concurrent capture is refused rather than allowed to interleave stream-season "
+                "commits."
+            ) from exc
+        # Diagnostics only. Ownership is the flock, never these bytes — a reader must not decide
+        # anything from them, because a killed holder leaves them behind while the kernel has
+        # already released the lock.
+        try:
+            os.ftruncate(descriptor, 0)
+            os.write(
+                descriptor,
+                json.dumps(
+                    {
+                        "pid": os.getpid(),
+                        "held_since": datetime.now(timezone.utc).isoformat(),
+                        "note": "advisory flock; these bytes are diagnostic, not ownership",
+                    }
+                ).encode("utf-8"),
+            )
+        except OSError:
+            pass
         yield
     finally:
-        lock_path.unlink(missing_ok=True)
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+        finally:
+            os.close(descriptor)
+        # Deliberately NOT unlinked. See the docstring: removing it under waiters splits the inode.
 
 
 def export_ready_marker_path(export_root: Path = DEFAULT_EXPORT_ROOT) -> Path:
@@ -2532,6 +2576,7 @@ def publish_export(
     run_id: str,
     captured_at: str,
     export_root: Path = DEFAULT_EXPORT_ROOT,
+    partitions: Sequence[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Publish the export, removing a PARTIAL run directory if it fails.
 
@@ -2550,7 +2595,8 @@ def publish_export(
     preexisting = run_dir.exists()
     try:
         return _publish_export_unguarded(
-            store, specs, run_id=run_id, captured_at=captured_at, export_root=export_root
+            store, specs, run_id=run_id, captured_at=captured_at, export_root=export_root,
+            partitions=partitions,
         )
     except BaseException as original:
         if not preexisting and run_dir.exists():
@@ -2576,6 +2622,7 @@ def _publish_export_unguarded(
     run_id: str,
     captured_at: str,
     export_root: Path = DEFAULT_EXPORT_ROOT,
+    partitions: Sequence[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Publish the DERIVED last-good export: Parquet projections + identity artifact.
 
@@ -2773,6 +2820,49 @@ def _publish_export_unguarded(
         "unresolved_by_status": by_status,
         "seasons": sorted({str(c["season"]) for c in store.captures()}),
     }
+    # M7: the ready marker is documented as the consumer's entry point, so PARTIAL READINESS has to
+    # reach it. Under DG-215 a run can legitimately publish while one partition is still waiting,
+    # and a consumer that cannot see which partitions those are would read the export as uniformly
+    # fresh. Each entry carries the time the DATA was observed, which for a reused partition is when
+    # it was last actually fetched — never this run's capture time (M4).
+    if partitions is not None:
+        manifest["partition_readiness"] = [
+            {
+                "partition": record.get("partition"),
+                "stream": record.get("stream"),
+                "season": record.get("season"),
+                "state": record.get("state"),
+                "reason": record.get("reason"),
+                "data_observed_at": record.get("data_observed_at"),
+                # Two different questions, kept apart on purpose. `fresh_this_run` is "these rows
+                # were stored by this run". `checked_this_run` is "this run went to the source and
+                # confirmed what we hold". An unchanged partition is the case where they differ, and
+                # collapsing them would make "verified identical" indistinguishable from "nobody
+                # looked at it" — which is the whole reason the check receipt exists.
+                # Both conditions. State alone would carry an "updated" forward from an earlier
+                # run and call an untouched partition fresh during a later retry.
+                "fresh_this_run": bool(record.get("checked_this_run"))
+                and record.get("state") in {"ok", "updated"},
+                "checked_this_run": bool(record.get("checked_this_run")),
+            }
+            for record in partitions
+        ]
+        # `ready` answers "is every input partition present?", NOT "was this artifact written
+        # coherently". Those are different questions and conflating them is how a consumer reads a
+        # complete-looking manifest that is missing a stream. A partition that is merely WAITING
+        # still makes this False — the capture itself stays healthy, because waiting is the designed
+        # behaviour, but the export must not claim inputs it does not have.
+        manifest["ready"] = not any(
+            # `interrupted` counts: an untouched crashed partition sitting beside a narrower
+            # successful retry must not let the export call itself ready.
+            record.get("state") in {"error", "pending", "interrupted"}
+            for record in partitions
+        )
+        manifest["ready_means"] = (
+            "every input partition is present; a waiting or failed partition makes this false. "
+            "It does not describe whether the export files were written coherently — the manifest "
+            "hashes and the ready-marker ordering answer that."
+        )
     _atomic_write_json(run_dir / "manifest.json", manifest)
 
     # THE COMMIT POINT — written last, atomically. Until this lands, the previous
@@ -2911,8 +3001,23 @@ def nextgen_export_provenance(
         "source": "nflverse_usage_export",
         "available": True,
         "run_id": manifest.get("run_id"),
-        "captured_at_is": "fetch_time",
+        "captured_at_is": "export_publish_time",
         "captured_at": manifest.get("captured_at"),
+        # M4. `captured_at` is when the EXPORT was published, and labelling it the fetch time for
+        # every stream claimed freshness for rows that were reused rather than refetched. The
+        # per-partition observation below is the honest answer, and where a partition is absent from
+        # it the honest answer is that we do not know rather than "now".
+        "data_observed_at": {
+            str(record.get("partition")): record.get("data_observed_at")
+            for record in (manifest.get("partition_readiness") or [])
+            if str(record.get("stream", "")).startswith("ngs_")
+        },
+        "partitions_not_fresh_this_run": [
+            record.get("partition")
+            for record in (manifest.get("partition_readiness") or [])
+            if str(record.get("stream", "")).startswith("ngs_")
+            and not record.get("fresh_this_run")
+        ],
         "upstream_publish_time": "UNAVAILABLE",
         "seasons": manifest.get("seasons"),
         "schema_version": manifest.get("schema_version"),
@@ -2969,6 +3074,935 @@ def capture_seasonal_stream(
     )
 
 
+# ==================================================================================================
+# DG-215 — partial capture, truthful partition state, and resumable waiting.
+#
+# David, 2026-09-10: "What if snap counts take a longer time... we check if we have the data we
+# ingest what we don't have only and then we continue. We don't need to fail the pipeline."
+#
+# The design rule underneath everything here: WAITING IS A POSITIVE OBSERVATION. A partition is only
+# allowed to wait when we have evidence that the data is not published yet. An exception's type and
+# an exception's text never license waiting, because both are brittle in both directions — a message
+# can look like an absence during a real outage, and a real absence can arrive worded some new way.
+# Everything we cannot evidence stays a visible, nonzero error.
+# ==================================================================================================
+
+RETRY_SCHEMA_VERSION = "capture.retry.v1"
+
+#: How long a waiting partition rests before it is due again. The guard (DG-216) applies its own
+#: hourly floor on top; whichever is later wins.
+RETRY_INTERVAL = timedelta(hours=1)
+
+#: The CLOSED vocabulary of accepted waiting policies. `retryable: true` is derived from membership
+#: in this set and from nowhere else. Adding to it is a deliberate act with a test, which is the
+#: point: it makes "we started retrying something new" impossible to do by accident.
+WAIT_REASONS: frozenset[str] = frozenset(
+    {
+        "not_yet_available",             # the loader itself declared the season out of range
+        "upstream_release_absent",       # evidenced: release reachable, this asset absent
+        "upstream_empty_current_season", # evidenced: a real response carrying no rows yet
+    }
+)
+
+#: Every reason this capture can emit, so a consumer can be written against a closed set. Two are not
+#: waiting states: a revision check describes an AVAILABLE partition, and an interruption describes
+#: one that was never classified at all.
+ALL_REASONS: frozenset[str] = WAIT_REASONS | {
+    "current_season_revision_check",
+    "attempt_interrupted",
+    "capture_failed",
+    "before_min_season",
+}
+
+#: Structural, permanent, and never retried. The source does not go back that far and never will.
+STRUCTURAL_SKIPS: frozenset[str] = frozenset({"before_min_season"})
+
+#: The recheck policy, and it is NOT a waiting state.
+#:
+#: Root's scope correction, and it is the same bug one week later: waiting-only retries fix the FIRST
+#: publication of a season's file. Once `snap_counts_2026.parquet` exists carrying week 1, an
+#: unchanged check marks the partition ready and clears the queue — so when week 2 lands late, at
+#: 09:30 on a Tuesday, nothing looks again until tomorrow's daily run. That is David's problem
+#: recurring in a file that already exists.
+#:
+#: So a SUCCESSFUL current-season seasonal partition is also due hourly. It stays data-available with
+#: whatever coverage it has: it is never relabelled pending or missing, and this is emphatically not
+#: a claim that every completed game is covered — season-level source coverage is all we observe. An
+#: unchanged recheck writes no raw revision and rewrites no facts.
+CURRENT_SEASON_RECHECK = "current_season_revision_check"
+
+#: A fetch that was killed before it could report anything.
+#:
+#: This state only ever SURVIVES when the process died: the terminal record replaces it on every
+#: ordinary path. It is retryable because an interruption is not evidence of anything — the partition
+#: was never classified, so treating it as a real error would strand it until the next daily run,
+#: which is the delay this ticket exists to remove. The hourly floor still applies, because the
+#: attempt was stamped before the fetch began.
+ATTEMPT_INTERRUPTED = "attempt_interrupted"
+
+#: Archives are excluded. A completed season's corrections arrive on the ordinary daily run; hourly
+#: rechecks of 2023 would be pure cost.
+_RECHECKABLE_STATES: frozenset[str] = frozenset({"ok", "updated", "unchanged"})
+
+
+def partition_key(stream: str, season: int | None) -> str:
+    """The identifier DG-216's guard ledgers against. Stable and parseable both ways."""
+    return f"{stream}:{season}"
+
+
+def _identity_fingerprint(identity: "IdentityIndex") -> str:
+    """A digest of the governed bridge as it stands right now.
+
+    M3 (reviewer Claude54331): the reuse key has to carry this. A crosswalk revision changes how the
+    SAME raw bytes resolve to players, so keying reuse on payload content alone would skip
+    normalisation on the one morning the resolution actually changed.
+    """
+    hasher = hashlib.sha256()
+    for pfr, gsis in sorted(identity.pfr_to_gsis.items()):
+        hasher.update(f"{pfr}>{gsis}\n".encode("utf-8"))
+    # MEMBERSHIP, not cardinality. Hashing `len(gsis_ids)` would be blind to a swap that removes one
+    # id and adds another — the crosswalk revision most likely to change how rows resolve while
+    # leaving every count identical.
+    hasher.update(b"gsis:")
+    for gsis in sorted(identity.gsis_ids):
+        hasher.update(f"{gsis},".encode("utf-8"))
+    hasher.update(b"\nconflicts:")
+    for pfr in sorted(identity.pfr_conflicts):
+        hasher.update(f"{pfr},".encode("utf-8"))
+    return hasher.hexdigest()
+
+
+def _raw_content_digest(records: Sequence[Mapping[str, Any]]) -> str:
+    """Content identity of what the source just handed us, before any parsing."""
+    return hashlib.sha256(
+        json.dumps(records, sort_keys=True, default=str, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def _reuse_receipt_path(raw_root: Path, stream: str, season: int) -> Path:
+    # `_reuse/reuse-<stream>-<season>.json`, deliberately NOT `<stream>_<season>.json`: raw
+    # envelopes are globbed as `**/<stream>_*.json`, and a receipt sitting under that pattern would
+    # be read as an envelope missing every envelope field.
+    return Path(raw_root) / "_reuse" / f"reuse-{stream}-{season}.json"
+
+
+def _read_reuse_receipt(raw_root: Path, stream: str, season: int) -> dict[str, Any]:
+    path = _reuse_receipt_path(raw_root, stream, season)
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def default_release_inventory(stream: str, season: int) -> dict[str, Any]:
+    """Ask the SOURCE what it actually publishes. Injected everywhere, so tests never open a socket.
+
+    This is the evidence half of the classifier. It answers three things and nothing else: does the
+    release exist, what assets does it carry, and what would this season's asset be called. It does
+    not interpret; the caller decides.
+
+    Any failure here PROPAGATES. That is deliberate and it is the safety argument: an inventory we
+    could not read is not evidence of absence, so a rate limit, an auth failure or an outage can
+    never be mistaken for "not published yet".
+    """
+    import requests  # local: the module stays importable offline
+
+    url = f"https://api.github.com/repos/nflverse/nflverse-data/releases/tags/{stream}"
+    response = requests.get(url, timeout=30, headers={"Accept": "application/vnd.github+json"})
+    response.raise_for_status()
+    payload = response.json()
+    return {
+        "tag_exists": True,
+        "assets": [asset.get("name") for asset in payload.get("assets") or []],
+        "expected_asset": f"{stream}_{season}.parquet",
+        "source_url": url,
+    }
+
+
+_RELEASE_ASSET = re.compile(r"^(?P<stream>.+)_(?P<season>\d{4})\.parquet$")
+
+
+def _is_declared_asset_404(exc: BaseException, spec: "StreamSpec", season: int) -> bool:
+    """Did THIS failure name a 404 for THIS stream-season's declared canonical asset?
+
+    This reads the exception, which the reviewer rightly warned against, so note precisely what it is
+    allowed to do: it can only REMOVE candidates for waiting, never grant it. Waiting still requires
+    the inventory to positively show the asset absent with the historical pattern intact. Trigger and
+    evidence, two independent conditions, both necessary.
+
+    Without this narrowing a PermissionError, a 401 or a 500 raised while the current season's asset
+    also happened to be unpublished would classify as waiting: the inventory proof would hold, but it
+    would be proof about a different question than the one that actually failed.
+    """
+    message = str(exc)
+    if "404" not in message:
+        return False
+    return (
+        f"{spec.name}_{season}.parquet" in message
+        and "nflverse-data/releases/download" in message
+    )
+
+
+def _release_absence_evidence(
+    spec: "StreamSpec",
+    season: int,
+    *,
+    release_inventory: Callable[[str, int], Mapping[str, Any]] | None,
+    today: date,
+) -> dict[str, Any] | None:
+    """Is this season's asset merely unpublished? Answered from the inventory, never the exception.
+
+    All four must hold, and the reviewer's five counterexamples each fail one of them:
+
+    1. the season is the CURRENT league season      (a past season absent = data going missing)
+    2. the release tag is reachable and exists      (unreachable/auth/rate-limit = a real error)
+    3. this season's expected asset is NOT listed   (listed = the failure was something else)
+    4. prior seasons ARE listed under the same name (gone = the dataset was renamed or withdrawn)
+
+    Returns the evidence on a yes, and None on every no. None means "not licensed to wait".
+    """
+    if release_inventory is None:
+        return None
+    if season != current_league_season(today):
+        return None
+    inventory = release_inventory(spec.name, season)  # a raise here is fatal, by design
+    if not inventory.get("tag_exists"):
+        return None
+    assets = {name for name in (inventory.get("assets") or ()) if isinstance(name, str)}
+    expected = inventory.get("expected_asset") or f"{spec.name}_{season}.parquet"
+    if expected in assets:
+        return None
+    prior: list[int] = []
+    for name in assets:
+        match = _RELEASE_ASSET.match(name)
+        if match and match.group("stream") == spec.name:
+            year = int(match.group("season"))
+            if year < season:
+                prior.append(year)
+    if not prior:
+        return None
+    return {
+        "expected_asset": expected,
+        "prior_seasons_present": sorted(prior)[-3:],
+        "inventory_source": inventory.get("source_url"),
+    }
+
+
+def _observed_seasons(records: Sequence[Mapping[str, Any]]) -> set[int]:
+    """The seasons the payload SAYS it contains, where it says so at all.
+
+    Root: a 2025-labelled payload returned for a 2026 request must never become 2026-ready. Streams
+    on the daily/snapshot axis carry no season column and are not judged here — absence of the
+    column means "this axis does not make that claim", not "the claim failed".
+    """
+    seasons: set[int] = set()
+    for row in records:
+        if not isinstance(row, Mapping):
+            # A malformed row is not this function's error to raise. `normalize_rows` owns the
+            # record-type boundary and refuses with a defined message; crashing here would replace
+            # that named refusal with an AttributeError from a readiness check.
+            continue
+        value = row.get("season")
+        if value is None:
+            continue
+        try:
+            seasons.add(int(value))
+        except (TypeError, ValueError):
+            continue
+    return seasons
+
+
+
+def _stored_capture(
+    store: "UsageStore | None", spec: "StreamSpec", season: int
+) -> dict[str, Any] | None:
+    """This partition's row in the capture ledger, or None. Fails closed if the store is unreadable."""
+    if store is None:
+        return None
+    try:
+        for capture in store.captures():
+            if (
+                capture.get("stream") == spec.name
+                and str(capture.get("season")) == str(season)
+                and capture.get("status") != "failed"
+            ):
+                return capture
+    except Exception as exc:  # noqa: BLE001
+        raise UsageCaptureError(
+            f"could not read the capture ledger for {spec.name} {season}; refusing to classify "
+            f"this partition without it ({type(exc).__name__}: {exc})"
+        ) from exc
+    return None
+
+
+def _stored_rows(store: "UsageStore | None", spec: "StreamSpec", season: int) -> int:
+    """How many rows we already hold for this stream-season, from the store rather than a marker.
+
+    Asked of the store on purpose: a marker can be lost or hand-edited, and the question "would
+    calling this 'waiting' throw away data we have?" must be answered by the data.
+    """
+    # Fails CLOSED via _stored_capture: an unreadable store must never masquerade as "we hold
+    # nothing", which is exactly the evidence needed to call a withdrawal a late arrival.
+    capture = _stored_capture(store, spec, season)
+    return int((capture or {}).get("rows_total") or 0)
+
+
+
+def _partition_record(
+    spec: "StreamSpec",
+    season: int | None,
+    *,
+    state: str,
+    reason: str | None,
+    prior: Mapping[str, Mapping[str, Any]],
+    now: datetime,
+    attempt_id: str | None = None,
+    **extra: Any,
+) -> dict[str, Any]:
+    """One partition's truth, carried forward across runs.
+
+    `attempt`, `first_pending_at` and `data_observed_at` are inherited from the previous marker so a
+    partition that has been waiting since Tuesday still says so. A run that only touches some
+    partitions must not reset the ones it did not look at — that is root's "retry-only must not
+    clobber the original status with a subset ok".
+    """
+    key = partition_key(spec.name, season)
+    was = dict(prior.get(key) or {})
+    waiting = reason in WAIT_REASONS
+    record: dict[str, Any] = {
+        "partition": key,
+        "stream": spec.name,
+        "season": season,
+        "capture_axis": spec.capture_axis,
+        "state": state,
+        "checked_at": now.isoformat(),
+    }
+    if reason is not None:
+        record["reason"] = reason
+    if state in _RECHECKABLE_STATES and extra.get("recheckable"):
+        # Data-available AND due again later. Both facts are true at once, which is why the recheck
+        # is expressed as its own reason rather than by pretending the partition is waiting.
+        record["reason"] = CURRENT_SEASON_RECHECK
+        record["recheck"] = True
+        record["attempt"] = int(was.get("attempt") or 0) + 1
+        record["attempt_id"] = attempt_id or uuid.uuid4().hex
+        record["last_attempt_at"] = now.isoformat()
+        record["next_retry_at"] = (now + RETRY_INTERVAL).isoformat()
+    if state == "pending":
+        record["retryable"] = bool(waiting)
+        record["attempt"] = int(was.get("attempt") or 0) + 1
+        record["attempt_id"] = attempt_id or uuid.uuid4().hex
+        record["last_attempt_at"] = now.isoformat()
+        record["first_pending_at"] = was.get("first_pending_at") or now.isoformat()
+        record["next_retry_at"] = (now + RETRY_INTERVAL).isoformat()
+    elif state == "error":
+        # Explicitly false, never merely absent. DG-216 reads membership in `due`, but a reader of
+        # the receipt should not have to infer this one.
+        record["retryable"] = False
+        record["attempt"] = int(was.get("attempt") or 0) + 1
+        record["last_attempt_at"] = now.isoformat()
+    # A partition that is not currently holding data must not inherit a data timestamp; one that is
+    # keeps the time the data was actually observed, never the time of this run.
+    if state in {"ok", "updated"}:
+        record["data_observed_at"] = (extra.pop("observed_at", None) or now).isoformat()
+    elif state == "unchanged":
+        record["data_observed_at"] = was.get("data_observed_at")
+    else:
+        record["data_observed_at"] = was.get("data_observed_at")
+    # (A) Reviewer Claude54331. `recheckable` arriving through **extra and being read with .get
+    # means a future write site that omits or misspells it produces a record that says `ok`, says
+    # data_available, and is simply never rechecked until tomorrow — green tests, healthy receipt,
+    # silently back to David's original problem. So the omission is refused rather than tolerated.
+    #
+    # ⛔ AND THE RULE THAT MUST NOT BE "IMPROVED" AWAY: `recheckable` is derived from the SEASON,
+    # never from the observation. The obvious future optimisation — stop rechecking once the data
+    # looks complete — reintroduces this exact bug one revision later, because nothing here can tell
+    # a complete week from a partial one. A file that changed but is still missing half the league's
+    # week 2 must ingest AND stay due. Judging completeness is not in scope and must not become so.
+    if (
+        state in _RECHECKABLE_STATES
+        and record.get("capture_axis") != "snapshot"
+        and season is not None
+        and season == current_league_season(now.date())
+        and not extra.get("recheckable")
+        and not extra.get("recheck_opt_out")
+    ):
+        raise UsageCaptureError(
+            f"{spec.name} {season} is a current-season partition recorded as {state} without a "
+            "recheck decision; pass recheckable=... or recheck_opt_out=... explicitly"
+        )
+    # (B) popped, not left beside `recheck`: two fields for one fact can disagree in a receipt.
+    extra.pop("recheckable", None)
+    extra.pop("recheck_opt_out", None)
+    record.update(extra)
+    return record
+
+
+def _attempt_started_record(
+    spec: "StreamSpec", season: int | None, *, prior: Mapping[str, Mapping[str, Any]], now: datetime
+) -> dict[str, Any]:
+    """Stamp the attempt BEFORE the fetch, so a kill mid-fetch cannot buy a free extra attempt.
+
+    Root's condition for DG-216's approval, and it is a real hole in the obvious design. The guard
+    records its ledger entry only after the child returns. If both the capture and the guard die
+    mid-fetch, the guard's ledger is lost and the canonical `last_attempt_at` still holds the
+    PREVIOUS attempt's time — so the partition reads as due again immediately and the hourly floor
+    is silently skipped. Persisting the attempt at its start, under the capture lock, is what makes
+    the floor survive death.
+
+    The prior classification is carried through untouched: this records that an attempt began, not
+    what it found.
+    """
+    key = partition_key(spec.name, season)
+    was = dict(prior.get(key) or {})
+    return {
+        **was,
+        "partition": key,
+        "stream": spec.name,
+        "season": season,
+        "capture_axis": spec.capture_axis,
+        # Deliberately its own state rather than inheriting the prior one. "Pending" would claim we
+        # observed something we never got to observe.
+        "state": "interrupted",
+        "reason": ATTEMPT_INTERRUPTED,
+        "retryable": True,
+        "attempt": int(was.get("attempt") or 0) + 1,
+        "attempt_id": uuid.uuid4().hex,
+        "last_attempt_at": now.isoformat(),
+        "next_retry_at": (now + RETRY_INTERVAL).isoformat(),
+        "attempt_in_progress": True,
+    }
+
+
+
+def _capture_one_season(
+    *, spec, season, fetch, identity, store, raw_root, started_at, results, partitions,
+    prior, now_fn, release_inventory, reuse_key, checkpoint=None,
+) -> None:
+    """Capture ONE stream-season, and never let its outcome decide another partition's fate.
+
+    Every exit from this function appends exactly one partition record. The states are:
+
+    * ``unchanged`` — the source returned content we already hold, under an unchanged projection and
+      an unchanged identity bridge, so normalisation and the store rewrite are skipped and a check
+      receipt is written instead. "Unchanged" and "never looked" must not be indistinguishable.
+    * ``updated`` / ``ok`` — new or corrected content was stored.
+    * ``pending`` — evidenced waiting. Retryable.
+    * ``error`` — anything else. Visible, nonzero, never retried automatically.
+    """
+    now = now_fn()
+    today = now.date()
+
+    # Persist the attempt before going anywhere near the network. Everything after this point can
+    # die without giving the next run a free attempt.
+    started = _attempt_started_record(spec, season, prior=prior, now=now)
+    partitions.append(started)
+    if checkpoint is not None:
+        checkpoint()
+    # One fetch is ONE attempt: the terminal record below reuses this id rather than minting a
+    # second, so a guard ledgering (partition, attempt_id) sees one attempt and not two.
+    attempt_id = started["attempt_id"]
+
+    try:
+        records = fetch(spec, season)
+    except ValueError as exc:
+        # The loader validated the season itself and refused. This path predates DG-215 and stays.
+        bound = _unpublished_season_bound(exc, season)
+        if bound is not None:
+            results.append(
+                {"stream": spec.name, "season": season, "skipped": "not_yet_available",
+                 "source_bound": bound}
+            )
+            partitions.append(
+                _partition_record(spec, season, state="pending", reason="not_yet_available",
+                                  prior=prior, now=now, attempt_id=attempt_id, source_bound=bound)
+            )
+            return
+        _record_partition_error(spec, season, exc, results, partitions, prior, now, store, started_at, attempt_id)
+        return
+    except Exception as exc:  # noqa: BLE001 — every failure is classified, none is swallowed
+        # THE EXCEPTION DOES NOT DECIDE ANYTHING. It only tells us the fetch failed; the inventory
+        # tells us whether the data exists yet. Classify on the second.
+        if not _is_declared_asset_404(exc, spec, season):
+            # Whatever went wrong, it was not "this season's declared asset is missing". An
+            # inventory proof here would answer a question nobody asked.
+            _record_partition_error(
+                spec, season, exc, results, partitions, prior, now, store, started_at, attempt_id
+            )
+            return
+        try:
+            evidence = _release_absence_evidence(
+                spec, season, release_inventory=release_inventory, today=today
+            )
+        except Exception as probe_failure:  # noqa: BLE001
+            # We could not obtain evidence, so we are not licensed to wait. Fail closed and say
+            # which failure we are reporting: the original one, with the probe named beside it.
+            _record_partition_error(
+                spec, season, exc, results, partitions, prior, now, store, started_at, attempt_id,
+                inventory_probe_error=f"{type(probe_failure).__name__}: {probe_failure}",
+            )
+            return
+        if evidence is None:
+            _record_partition_error(
+                spec, season, exc, results, partitions, prior, now, store, started_at, attempt_id
+            )
+            return
+        if _stored_rows(store, spec, season):
+            # We HELD this partition and now the asset is gone. That is not "not published yet" —
+            # something was withdrawn. The stored rows stand untouched, and this is a real error so
+            # a human sees it; calling it waiting would quietly retry a disappearance every hour.
+            _record_partition_error(
+                spec, season,
+                UsageCaptureError(
+                    f"{spec.name} {season} is absent from the release but we already hold rows for "
+                    "it; refusing to record this as waiting"
+                ),
+                results, partitions, prior, now, store, started_at, attempt_id,
+                previously_stored=True, evidence=evidence,
+            )
+            return
+        results.append(
+            {"stream": spec.name, "season": season, "skipped": "upstream_release_absent",
+             "evidence": evidence}
+        )
+        partitions.append(
+            _partition_record(
+                spec, season, state="pending", reason="upstream_release_absent",
+                prior=prior, now=now, attempt_id=attempt_id, evidence=evidence,
+                detail=f"{type(exc).__name__}: {exc}",
+            )
+        )
+        return
+
+    records = list(records)
+    # Stamped only now that the source has actually answered. `now` above is when we STARTED, and
+    # calling that the observation time would date the data earlier than it was seen.
+    observed_at = now_fn()
+
+    # ---- M1: the empty-response guard sits HERE, before apply_season ----------------------------
+    # `apply_season` runs `DELETE FROM <table> WHERE season_ingested = ?` and re-inserts. Handing it
+    # an empty list deletes the season and inserts nothing. The guard must therefore be reached
+    # BEFORE the call, not defended inside it.
+    if not records:
+        held = _stored_rows(store, spec, season)
+        if held:
+            # THE case M1 is about: `apply_season` would delete these rows and insert nothing.
+            # Refused before the call, never defended inside it.
+            _record_partition_error(
+                spec, season,
+                UsageCaptureError(
+                    f"{spec.name} {season} returned no rows while {held} are already stored; "
+                    "refusing to replace stored rows with nothing"
+                ),
+                results, partitions, prior, now, store, started_at, attempt_id, held_rows=held,
+            )
+            return
+        if season == current_league_season(today):
+            # M5''. Nothing held, current season, a real response carrying nothing yet: the games
+            # have not been played or published. Waiting, and asserting no coverage.
+            results.append(
+                {"stream": spec.name, "season": season, "skipped": "upstream_empty_current_season"}
+            )
+            partitions.append(
+                _partition_record(
+                    spec, season, state="pending", reason="upstream_empty_current_season",
+                    prior=prior, now=now, attempt_id=attempt_id, asserted_game_coverage=False,
+                )
+            )
+            return
+        # An empty result for a completed season we hold nothing for is a legitimate, legible zero
+        # — the standing contract is that an all-empty capture SUCCEEDS while recording an explicit
+        # zero per stream. It falls through to the normal path, where deleting nothing and inserting
+        # nothing is exactly right.
+
+    # ---- a partition may only be marked ready on evidence about THAT partition ------------------
+    observed = _observed_seasons(records)
+    if observed and season not in observed:
+        _record_partition_error(
+            spec, season,
+            UsageCaptureError(
+                f"{spec.name} {season} returned rows labelled {sorted(observed)}; refusing to store "
+                f"another season's rows as {season}"
+            ),
+            results, partitions, prior, now, store, started_at, attempt_id,
+        )
+        return
+
+    # ---- unchanged content costs nothing, but must still prove it was checked -------------------
+    raw_digest = _raw_content_digest(records)
+    receipt = _read_reuse_receipt(raw_root, spec.name, season)
+    # Reuse is a claim that the STORE already holds exactly this content. The sidecar alone cannot
+    # support that claim: an emptied or replaced database, or a raw snapshot deleted from disk,
+    # would leave a matching receipt describing rows that are no longer there. So the receipt must
+    # agree with the raw file on disk AND the store must actually hold rows for this partition.
+    prior_raw = Path(receipt["raw_snapshot"]) if receipt.get("raw_snapshot") else None
+    stored = _stored_capture(store, spec, season)
+    reusable = (
+        receipt.get("raw_content_sha256") == raw_digest
+        and receipt.get("reuse_key") == reuse_key
+        and prior_raw is not None
+        and prior_raw.is_file()
+        and hashlib.sha256(prior_raw.read_bytes()).hexdigest() == receipt.get("raw_sha256")
+        # Bound to the STORE's own transactional digest, not merely to a nonzero row count. An
+        # equal row count over different content — an older or replaced database sitting under a
+        # newer sidecar — must reprocess, and `content_hash` already covers projection and coverage
+        # because `apply_season` computes it. Ledger coherence is the existing contract; this reuses
+        # it rather than inventing a second integrity scheme.
+        and stored is not None
+        and stored.get("content_hash")
+        and stored.get("content_hash") == receipt.get("store_content_hash")
+    )
+    if reusable:
+        _write_reuse_receipt(
+            raw_root, spec.name, season, {**receipt, "checked_at": now.isoformat()},
+        )
+        results.append(
+            # `raw_sha256` is the raw FILE hash on every path, fresh or reused. Carrying a content
+            # digest under that name on one path and a file hash on the other is how a consumer ends
+            # up comparing two different quantities and calling them equal.
+            {"stream": spec.name, "season": season, "applied": "unchanged",
+             "raw_snapshot": receipt.get("raw_snapshot"), "raw_sha256": receipt.get("raw_sha256"),
+             "raw_content_sha256": raw_digest, "reused": True}
+        )
+        partitions.append(
+            _partition_record(
+                spec, season, state="unchanged", reason=None, prior=prior, now=now, attempt_id=attempt_id,
+                recheckable=season == current_league_season(today), raw_revision_reused=True, raw_sha256=receipt.get("raw_sha256"),
+                raw_content_sha256=raw_digest,
+            )
+        )
+        return
+
+    # ---- WHERE THE ISOLATION ENDS, stated rather than left to be discovered --------------------
+    #
+    # F2 (reviewer Claude54331), and it was a real hole: the isolation originally wrapped only the
+    # fetch, so a malformed column in an early stream propagated to the outer handler and re-raised,
+    # costing every later stream its run. That is the 06:15 harm reached through a bad column
+    # instead of a missing file, and from David's side the two are indistinguishable — a source
+    # problem in one stream took his whole day's ingestion either way.
+    #
+    # So the boundary is drawn by WHAT KIND OF PROBLEM IT IS, not by where it happens to be raised:
+    #
+    #   * the raw write and normalisation are SOURCE-DATA problems — a changed schema, an
+    #     unparseable row, a column that disappeared. Exactly what this ticket covers. Isolated to
+    #     their own partition; every other stream still runs.
+    #   * `store.apply_season` failures stay FATAL, deliberately. A store error means the database
+    #     may be in an unknown state mid-transaction, and continuing to write other partitions into
+    #     a store we no longer understand is worse than stopping. That is not a source problem and
+    #     it is not what this ticket set out to isolate.
+    try:
+        raw_path = write_raw_snapshot(
+            records,
+            stream=spec.name,
+            season=season,
+            # The moment the source actually answered, not when the RUN began. `started_at` can
+            # precede retrieval by minutes on a long run, so a raw header stamped with it would
+            # predate the fetch it describes and misstate cutoff eligibility — while the sidecar
+            # beside it said something different. The run's own start stays in the run metadata.
+            captured_at=observed_at.isoformat(),
+            raw_root=raw_root,
+        )
+        rows, coverage = normalize_rows(records, spec=spec, season=season, identity=identity)
+    except Exception as exc:  # noqa: BLE001 — classified, never swallowed
+        _record_partition_error(
+            spec, season, exc, results, partitions, prior, now, store, started_at, attempt_id,
+            stage="normalize",
+        )
+        return
+    applied = store.apply_season(
+        spec, season=season, rows=rows, coverage=coverage, ingested_at=started_at,
+    )
+    raw_sha256 = hashlib.sha256(raw_path.read_bytes()).hexdigest()
+    _write_reuse_receipt(
+        raw_root, spec.name, season,
+        {"raw_content_sha256": raw_digest, "raw_sha256": raw_sha256, "reuse_key": reuse_key,
+         "checked_at": now.isoformat(), "raw_snapshot": str(raw_path),
+         "store_content_hash": (_stored_capture(store, spec, season) or {}).get("content_hash"),
+         "data_observed_at": observed_at.isoformat()},
+    )
+    results.append(
+        {
+            "stream": spec.name,
+            "season": season,
+            "applied": applied,
+            "raw_snapshot": str(raw_path),
+            # The reduced per-stream gate requires "raw snapshot + manifest/hash". Recording only
+            # the path meant the export hashes proved the PARSED projection but never the PRE-PARSE
+            # bytes, so a replay could not show that what we parsed is what we fetched.
+            "raw_sha256": raw_sha256,
+            "coverage": coverage,
+        }
+    )
+    partitions.append(
+        _partition_record(
+            spec, season, state="unchanged" if applied == "unchanged" else "updated",
+            reason=None, prior=prior, now=now, attempt_id=attempt_id, observed_at=observed_at,
+            recheckable=season == current_league_season(today),
+            raw_content_sha256=raw_digest, raw_sha256=raw_sha256, rows_stored=len(rows),
+        )
+    )
+
+
+def _write_reuse_receipt(raw_root: Path, stream: str, season: int, payload: Mapping[str, Any]) -> None:
+    _atomic_write_json(_reuse_receipt_path(raw_root, stream, season), dict(payload))
+
+
+def _record_partition_error(
+    spec, season, exc, results, partitions, prior, now, store, started_at, attempt_id=None, **extra
+) -> None:
+    """A real failure: recorded against its own partition, and fatal to nothing else.
+
+    It still makes the RUN unhealthy — see `capture_is_healthy`. Continuing past it buys the other
+    fourteen partitions, not a green light.
+
+    Reached for FETCH failures and for SOURCE-DATA failures (raw write, normalisation). NOT reached
+    for `store.apply_season` failures, which stay fatal on purpose: see the boundary note in
+    `_capture_one_season`. The docstring used to promise "fatal to nothing else" while that was true
+    of the fetch path only, which is the gap the reviewer measured.
+    """
+    reason = f"{type(exc).__name__}: {exc}"
+    if store is not None and season is not None:
+        store.record_failure(spec.name, season, reason, started_at)
+    results.append(
+        {"stream": spec.name, "season": season, "failed": reason, **extra}
+    )
+    partitions.append(
+        _partition_record(spec, season, state="error", reason="capture_failed", prior=prior,
+                          now=now, attempt_id=attempt_id, detail=reason, **extra)
+    )
+
+
+
+def _read_marker(marker: Path) -> dict[str, Any]:
+    try:
+        return json.loads(Path(marker).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def read_prior_partitions(marker: Path) -> dict[str, dict[str, Any]]:
+    """The previous run's partition truth, or nothing. A missing/unreadable marker is a fresh start."""
+    try:
+        payload = json.loads(Path(marker).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return {
+        str(record.get("partition")): dict(record)
+        for record in payload.get("partitions") or []
+        if isinstance(record, Mapping) and record.get("partition")
+    }
+
+
+def _aware(stamp: Any) -> datetime | None:
+    """Parse an aware UTC stamp, or None. A naive stamp is REJECTED, not assumed to be UTC.
+
+    Agreed with DG-216: identical bytes must not grade differently on two machines because
+    `.timestamp()` read a naive stamp in the local zone.
+    """
+    if not isinstance(stamp, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(stamp)
+    except ValueError:
+        return None
+    return parsed if parsed.utcoffset() is not None else None
+
+
+def unusable_attempt_stamp(record: Mapping[str, Any]) -> str | None:
+    """Why this partition's own retry time cannot be trusted, or None.
+
+    (D) Reviewer Claude54331: DG-216 reports an unusable stamp with a reason, but from the capture
+    side `partition_is_due` merely returned False, so someone running the CLI directly saw a
+    partition quietly not due with no indication why. Same condition, now visible from both ends.
+    """
+    if record.get("state") in {"pending", "interrupted"} and record.get("retryable") is not True:
+        return None
+    raw = record.get("last_attempt_at")
+    if raw is None:
+        return "no attempt has been stamped yet; the next ordinary capture writes one"
+    parsed = _aware(raw)
+    if parsed is None:
+        return (
+            f"last_attempt_at {raw!r} is unreadable or carries no UTC offset; the capture owns this "
+            "field and its next ordinary write corrects it"
+        )
+    return None
+
+
+def partition_is_due(record: Mapping[str, Any], *, now: datetime) -> bool:
+    """Is this waiting partition allowed to be attempted again yet?
+
+    The canonical answer lives HERE, in the capture, not in the guard's ledger. A guard that loses
+    its ledger must not thereby win an immediate retry of everything, and a malformed or
+    future-dated stamp must never grant one either (independent review of DG-216, findings 2 and 3).
+
+    Unreadable or absent `last_attempt_at` is treated as NOT due rather than due: the daily capture
+    re-attempts it anyway and rewrites the stamp, so the failure mode is one delayed retry rather
+    than a hot loop against a partition whose state we cannot read.
+    """
+    pending = (
+        record.get("state") in {"pending", "interrupted"} and record.get("retryable") is True
+    )
+    recheck = record.get("state") in _RECHECKABLE_STATES and record.get("recheck") is True
+    if not (pending or recheck):
+        return False
+    last = _aware(record.get("last_attempt_at"))
+    if last is None:
+        return False
+    if last > now:
+        # Clock skew or a corrupted stamp. It does not become due until its own stated time has
+        # actually passed; it cannot be a licence to retry right now.
+        return False
+    floor = last + RETRY_INTERVAL
+    explicit = _aware(record.get("next_retry_at"))
+    # max(), never a replacement: an explicit next_retry_at may DELAY a partition but can never
+    # waive the hourly floor, or a receipt carrying an early stamp would authorise a hot loop.
+    due_at = max(floor, explicit) if explicit is not None else floor
+    return now >= due_at
+
+
+def build_retry_block(
+    partitions: Sequence[Mapping[str, Any]], *, now: datetime
+) -> dict[str, Any] | None:
+    """The additive `retry` object DG-216's guard reads. Absent when nothing is waiting.
+
+    `due` carries ONLY retryable partitions. A deterministic failure is visible as `state: error`
+    in `partitions` and never appears here, so the guard cannot be handed something it would loop on.
+    """
+    waiting = [
+        record
+        for record in partitions
+        if (record.get("state") in {"pending", "interrupted"} and record.get("retryable") is True)
+        or (record.get("state") in _RECHECKABLE_STATES and record.get("recheck") is True)
+    ]
+    if not waiting:
+        return None
+    next_times = [
+        _aware(record.get("next_retry_at")) or (_aware(record.get("last_attempt_at")) or now)
+        + RETRY_INTERVAL
+        for record in waiting
+    ]
+    return {
+        "schema_version": RETRY_SCHEMA_VERSION,
+        "next_retry_at": min(next_times).isoformat(),
+        "in_flight": None,
+        "due": [
+            {
+                "partition": record["partition"],
+                "stream": record["stream"],
+                "season": record["season"],
+                "reason": record.get("reason"),
+                # (C) DERIVED, not hardcoded True. A literal here is true by construction from the
+                # filter above and therefore can never report a regression in that filter.
+                "retryable": record.get("retryable") is True or record.get("recheck") is True,
+                # Membership in `due` says "check this again", never "this has no data". A recheck
+                # entry describes a partition that IS available; the guard must not infer readiness
+                # from this list either way.
+                "state": record.get("state"),
+                "data_available": record.get("state") in _RECHECKABLE_STATES,
+                "attempt": record.get("attempt", 1),
+                "attempt_id": record.get("attempt_id"),
+                "last_attempt_at": record.get("last_attempt_at"),
+                "next_retry_at": record.get("next_retry_at"),
+                "due_now": partition_is_due(record, now=now),
+            }
+            for record in waiting
+        ],
+    }
+
+
+def capture_is_healthy(status: Mapping[str, Any]) -> bool:
+    """0 = healthy, 1 = anything else. SR-09's dependency edges read this as a boolean.
+
+    **A recorded wait is HEALTHY and must stay that way.** Until nflverse publishes 2026, streams
+    are skipped every morning — the designed behaviour SR-06 landed, not a fault. Counting a wait as
+    failure would exit non-zero every day until week 1, poisoning SR-09's dependency edges and
+    SR-11's alert from the day they land, and an alert that is wrong every morning is one nobody
+    reads by September.
+
+    DG-215 changed the premise this function used to rest on. It previously read "`status == ok` IS
+    sufficient, because a stream that fails raises out of run_usage_capture". Failures no longer
+    raise — they are isolated so the other partitions can land — so `ok` alone would now return True
+    for a run that lost a partition to a real error. Any partition in `error` makes the run
+    unhealthy, whatever the top-level status says.
+    """
+    if status.get("status") not in {"ok", "degraded"}:
+        return False
+    if any(record.get("state") == "error" for record in status.get("partitions") or []):
+        return False
+    return status.get("status") == "ok"
+
+
+def _note_unusable_stamps(
+    status: dict[str, Any], partitions: Sequence[Mapping[str, Any]]
+) -> None:
+    """Surface partitions whose own retry time cannot be read, with the reason.
+
+    (D) Reviewer Claude54331. `partition_is_due` simply returns False for these, so from outside the
+    partition is quietly not due and nothing says why — and "nothing was due" is precisely what an
+    unreadable stamp looks like. DG-216 reports the same condition; this is the capture's own end of
+    it, so a direct CLI run is not the blind one.
+
+    ⚠ I previously reported this as delivered when only the helper existed and nothing called it.
+    That is worse than the gap it was meant to close: a function whose name reads like the fix, with
+    no consumer, so anyone grepping for it concludes the work is done. The two call sites above are
+    the fix; this note is here so it does not quietly lose them again.
+    """
+    unusable = [
+        {"partition": record.get("partition"), "stream": record.get("stream"),
+         "season": record.get("season"), "reason": reason}
+        for record in partitions
+        for reason in [unusable_attempt_stamp(record)]
+        if reason is not None
+    ]
+    if unusable:
+        status["unusable_attempt_stamps"] = unusable
+
+
+
+def run_usage_retry(
+    *,
+    specs: Sequence[StreamSpec] | None = None,
+    identity: IdentityIndex | None = None,
+    db_path: Path = DEFAULT_DB_PATH,
+    raw_root: Path = DEFAULT_RAW_ROOT,
+    export_root: Path | None = None,
+    fetch: Callable[[StreamSpec, int], Sequence[Mapping[str, Any]]] | None = None,
+    release_inventory: Callable[[str, int], Mapping[str, Any]] | None = None,
+    now_fn: Callable[[], datetime] | None = None,
+    only: Sequence[str] | None = None,
+) -> dict[str, Any]:
+    """Check only the partitions that are waiting AND due. Nothing else is fetched.
+
+    A thin wrapper on purpose. It passes the FULL spec list and lets the selection do the narrowing,
+    because `publish_export` publishes the members of the spec list it is given: narrowing the specs
+    here would republish an export containing only the retried stream and silently drop every other
+    stream's parquet from the consumer's view. The fix for "fetch less" is not "declare less".
+
+    What the selection guarantees, all of it decided inside the capture lock:
+
+    * **Plan before fetch.** A partition that is not due costs no network call at all.
+    * **Snapshot-axis streams are excluded by the selection**, not by a flag a caller could forget.
+    * **The receipt is never narrowed.** Partitions not looked at keep their previous state and
+      timestamps, so the marker is always the whole truth.
+    * **A caller's list narrows and never widens.** `only` is intersected with what is
+      independently eligible, so a stale guard cannot drive this and a direct run still has a floor.
+    """
+    return run_usage_capture(
+        seasons=(),
+        specs=specs,
+        identity=identity,
+        db_path=db_path,
+        raw_root=raw_root,
+        export_root=export_root,
+        fetch=fetch,
+        release_inventory=release_inventory,
+        now_fn=now_fn,
+        only=only,
+        retry_only=True,
+    )
+
+
 def run_usage_capture(
     *,
     seasons: Sequence[int],
@@ -2978,6 +4012,10 @@ def run_usage_capture(
     raw_root: Path = DEFAULT_RAW_ROOT,
     export_root: Path | None = None,
     fetch: Callable[[StreamSpec, int], Sequence[Mapping[str, Any]]] | None = None,
+    release_inventory: Callable[[str, int], Mapping[str, Any]] | None = None,
+    now_fn: Callable[[], datetime] | None = None,
+    only: Sequence[str] | None = None,
+    retry_only: bool = False,
 ) -> dict[str, Any]:
     """Start marker -> per stream-season fetch -> raw snapshot -> normalize -> store -> marker.
 
@@ -2985,9 +4023,11 @@ def run_usage_capture(
     ``status=running`` rather than the previous run's ``status=ok``. A stream-season that raises
     writes ``status=failed`` naming the stream, the season and the stage, then re-raises.
     """
-    started_at = datetime.now(timezone.utc).isoformat()
+    now_fn = now_fn or (lambda: datetime.now(timezone.utc))
+    started_at = now_fn().isoformat()
     run_id = f"nflverse-usage-{''.join(ch for ch in started_at if ch.isalnum())}"
     marker = status_marker_path(raw_root)
+    requested = set(only) if only is not None else None
     specs = tuple(specs if specs is not None else build_streams())
     seasons = [int(s) for s in seasons]
 
@@ -3013,29 +4053,150 @@ def run_usage_capture(
     # export, and the terminal marker — so a second capture cannot interleave its
     # per-season commits with this one's (E4).
     with _exclusive_capture_lock(Path(db_path)):
-        _atomic_write_json(marker, {**base, "status": "running"})
+        # Read, decide and record the decision INSIDE the lock. Deciding outside it is the
+        # double-invocation defect the independent review reproduced on the guard: two callers both
+        # plan the same attempt, and serialising the action afterwards does not unplan either.
+        prior_partitions = read_prior_partitions(marker)
+        only = requested
+        if retry_only:
+            seasonal_names = {s.name for s in specs if s.capture_axis != "snapshot"}
+            now = now_fn()
+            eligible = {
+                key
+                for key, record in prior_partitions.items()
+                if record.get("stream") in seasonal_names and partition_is_due(record, now=now)
+            }
+            # INTERSECTION. A caller's list may narrow this set and may never widen it, so a stale
+            # or buggy guard cannot drive the capture and a direct run still has a floor.
+            only = eligible & requested if requested is not None else eligible
+            if not only:
+                payload = dict(prior_partitions and _read_marker(marker) or {})
+                payload["retry_checked_at"] = now.isoformat()
+                payload["retry_selected"] = []
+                # The no-due path needs this MORE than the ordinary one: "nothing was due" is
+                # exactly what an unreadable stamp looks like from outside.
+                _note_unusable_stamps(payload, list(prior_partitions.values()))
+                return payload
+            seasons = sorted({int(prior_partitions[key]["season"]) for key in only})
+            base["seasons"] = seasons
+        # The running marker carries the partition state forward, so a run killed mid-flight leaves
+        # its own resume metadata intact rather than erasing the record of what was waiting.
+        # F1 (reviewer Claude54331). `_checkpoint` was fixed; THIS write was not, and it is the one
+        # that stands during `IdentityIndex.from_governed_crosswalk()` and `UsageStore` construction
+        # — a real window, not a theoretical one. A death inside it left status=running with the
+        # partitions carried forward and NO retry key, which DG-216 reads as nothing due: exactly the
+        # bug this checkpointing exists to remove, through a narrower door. Built the same way the
+        # per-partition checkpoint builds it.
+        _carried = sorted(
+            prior_partitions.values(), key=lambda r: (r["stream"], str(r.get("season")))
+        )
+        _first = {**base, "status": "running", "partitions": _carried}
+        _first_retry = build_retry_block(_carried, now=now_fn())
+        if _first_retry is not None:
+            _first["retry"] = _first_retry
+        _atomic_write_json(marker, _first)
         return _run_locked_capture(
             base=base, marker=marker, specs=specs, seasons=seasons, fetch=fetch,
             identity=identity, db_path=db_path, raw_root=raw_root,
             export_dir=export_dir, run_id=run_id, started_at=started_at,
-            results=results,
+            results=results, release_inventory=release_inventory, now_fn=now_fn,
+            prior_partitions=prior_partitions, only=only,
         )
 
 
 def _run_locked_capture(
     *, base, marker, specs, seasons, fetch, identity, db_path, raw_root,
-    export_dir, run_id, started_at, results,
+    export_dir, run_id, started_at, results, release_inventory=None, now_fn=None,
+    prior_partitions=None, only=None,
 ) -> dict[str, Any]:
     """The capture body, run while the exclusive lock is held."""
     store: UsageStore | None = None
     stream_name = season = None
+    now_fn = now_fn or (lambda: datetime.now(timezone.utc))
+    prior_partitions = prior_partitions or {}
+    partitions: list[dict[str, Any]] = []
+
+    def _merged() -> list[dict[str, Any]]:
+        merged = dict(prior_partitions)
+        for record in partitions:
+            merged[record["partition"]] = record
+        return sorted(merged.values(), key=lambda r: (r["stream"], str(r.get("season"))))
+
+    def _settled() -> list[dict[str, Any]]:
+        """The merged state with any IN-FLIGHT attempt resolved to a real error.
+
+        Root's integration finding, and it inverts the meaning of the `interrupted` state if left
+        alone. Failures raised AFTER the fetch — a schema change caught by `normalize_rows`, a raw
+        write, a store apply — do not pass through the per-partition handler; they reach the outer
+        except. The start-of-attempt record would then survive as `interrupted`, `retryable: true`,
+        and a KNOWN, deterministic, reproducible parse error would be auto-retried every hour.
+
+        So a caught exception settles the partition that was in flight to `error` with
+        `retryable: false`. Every other partition keeps whatever it had, pending and rechecks
+        included. A real SIGKILL never runs this code at all, which is exactly why `interrupted`
+        still means what it says: the process died, and nothing classified the partition.
+        """
+        settled: list[dict[str, Any]] = []
+        for record in _merged():
+            if not record.get("attempt_in_progress"):
+                settled.append(record)
+                continue
+            settled.append(
+                {
+                    **record,
+                    "state": "error",
+                    "reason": "capture_failed",
+                    "retryable": False,
+                    "attempt_in_progress": False,
+                    "detail": record.get("detail")
+                    or "the capture failed after this partition's fetch returned",
+                }
+            )
+        return settled
+
+    def _checkpoint() -> None:
+        """Persist partition state and the retry queue after EVERY partition, not just at the end.
+
+        Root's hole: the running marker carried partitions but no `retry` block, and DG-216 reads a
+        missing `retry` key as "nothing due". A SIGKILL between discovering that snap_counts is
+        waiting and finishing the run would therefore hide the pending queue until the next daily
+        full run — the DB lock now recovers from death, but the resume metadata did not.
+
+        Checkpointing per partition also means a crash partway through cannot lose a pending state
+        that was discovered before it. The writes are atomic and there are a few dozen per run.
+        """
+        current = _merged()
+        payload = {**base, "status": "running", "partitions": current}
+        retry_block = build_retry_block(current, now=now_fn())
+        if retry_block is not None:
+            payload["retry"] = retry_block
+        _atomic_write_json(marker, payload)
 
     try:
         if identity is None:
             identity = IdentityIndex.from_governed_crosswalk()
         store = UsageStore(db_path, specs)
+        # The reuse key: identical raw bytes may still need reprocessing when the projection or the
+        # governed identity bridge has moved underneath them (M3).
+        # PER-SPEC. One key built from every spec would change the moment a retry narrowed the
+        # spec list, making unchanged partitions look changed and forcing a needless full rewrite.
+        identity_fingerprint = _identity_fingerprint(identity)
+        reuse_key = {
+            spec.name: hashlib.sha256(
+                "|".join(
+                    [SCHEMA_VERSION, identity_fingerprint, _projection_fingerprint(spec)]
+                ).encode("utf-8")
+            ).hexdigest()
+            for spec in specs
+        }
 
         for spec in specs:
+            if spec.capture_axis == "snapshot" and only is not None:
+                # A narrowed run never recaptures the snapshot axis. It accumulates point-in-time on
+                # its own schedule, so a second observation inside a retry would corrupt that axis
+                # rather than repair it. Excluded by the selection, not by a flag a caller could
+                # forget to pass.
+                continue
             if spec.capture_axis == "snapshot":
                 # EXACTLY ONE no-arguments call per RUN, regardless of how many seasons the
                 # run requests. The source has no season axis; passing one raises.
@@ -3083,13 +4244,28 @@ def _run_locked_capture(
                         "coverage": coverage,
                     }
                 )
+                # Snapshot streams get a partition record too, so export readiness and the marker
+                # describe the whole capture rather than only its seasonal half. They are never
+                # `recheckable`: the snapshot axis accumulates point-in-time on its own schedule and
+                # an hourly re-observation would corrupt that axis rather than repair it.
+                partitions.append(
+                    _partition_record(
+                        spec, None, state="updated", reason=None, prior=prior_partitions,
+                        now=now_fn(), observed_at=_aware(observed_at) or now_fn(),
+                        snapshot_id=snapshot_id, rows_stored=len(rows),
+                    )
+                )
+                _checkpoint()
                 continue
 
             for season in seasons:
                 stream_name = spec.name
+                if only is not None and partition_key(spec.name, season) not in only:
+                    continue
                 if spec.min_season is not None and season < spec.min_season:
                     # Recorded, not silently omitted: a reader of the results must be able to
                     # tell "this source does not go back that far" from "we forgot to fetch it".
+                    # Structural and permanent — never an hourly retry.
                     results.append(
                         {
                             "stream": spec.name,
@@ -3098,56 +4274,21 @@ def _run_locked_capture(
                             "min_season": spec.min_season,
                         }
                     )
-                    continue
-                try:
-                    records = fetch(spec, season)
-                except ValueError as exc:
-                    # Recorded, not silently omitted — the same rule as `before_min_season`
-                    # directly above: a reader must be able to tell "the source has not
-                    # published this season yet" from "we forgot to fetch it".
-                    bound = _unpublished_season_bound(exc, season)
-                    if bound is None:
-                        raise
-                    results.append(
-                        {
-                            "stream": spec.name,
-                            "season": season,
-                            "skipped": "not_yet_available",
-                            "source_bound": bound,
-                        }
+                    partitions.append(
+                        _partition_record(
+                            spec, season, state="excluded", reason="before_min_season",
+                            prior=prior_partitions, now=now_fn(),
+                        )
                     )
                     continue
-                raw_path = write_raw_snapshot(
-                    records,
-                    stream=spec.name,
-                    season=season,
-                    captured_at=started_at,
-                    raw_root=raw_root,
+                _capture_one_season(
+                    spec=spec, season=season, fetch=fetch, identity=identity, store=store,
+                    raw_root=raw_root, started_at=started_at, results=results,
+                    partitions=partitions, prior=prior_partitions, now_fn=now_fn,
+                    release_inventory=release_inventory, reuse_key=reuse_key[spec.name],
+                    checkpoint=_checkpoint,
                 )
-                rows, coverage = normalize_rows(
-                    records, spec=spec, season=season, identity=identity
-                )
-                applied = store.apply_season(
-                    spec,
-                    season=season,
-                    rows=rows,
-                    coverage=coverage,
-                    ingested_at=started_at,
-                )
-                results.append(
-                    {
-                        "stream": spec.name,
-                        "season": season,
-                        "applied": applied,
-                        "raw_snapshot": str(raw_path),
-                        # The reduced per-stream gate requires "raw snapshot + manifest/hash".
-                        # Recording only the path meant the export hashes proved the PARSED
-                        # projection but never the PRE-PARSE bytes, so a replay could not show
-                        # that what we parsed is what we fetched.
-                        "raw_sha256": hashlib.sha256(raw_path.read_bytes()).hexdigest(),
-                        "coverage": coverage,
-                    }
-                )
+                _checkpoint()
 
         # DERIVED EXPORT — inside the transaction on purpose. E2 (Codex,
         # reproduced): publishing after the except block meant an export failure
@@ -3156,9 +4297,15 @@ def _run_locked_capture(
         # not, and silence is never success. The export is part of the capture, so
         # its failure fails the run by name.
         stream_name, season = None, None
+        merged_for_export = dict(prior_partitions)
+        for record in partitions:
+            merged_for_export[record["partition"]] = {**record, "checked_this_run": True}
         export_manifest = publish_export(
             store, specs, run_id=run_id, captured_at=started_at,
             export_root=export_dir,
+            partitions=sorted(
+                merged_for_export.values(), key=lambda r: (r["stream"], str(r.get("season")))
+            ),
         )
     except Exception as exc:
         failed_axis = next(
@@ -3200,15 +4347,30 @@ def _run_locked_capture(
                     for r in results
                     if not r.get("skipped")
                 ],
-                "finished_at": datetime.now(timezone.utc).isoformat(),
+                # A source error must not erase what else was waiting. Real errors keep their own
+                # classification; the pending queue simply survives beside them, so a guard reading
+                # a failed marker still knows what is due.
+                "partitions": _settled(),
+                **(
+                    {"retry": build_retry_block(_settled(), now=now_fn())}
+                    if build_retry_block(_settled(), now=now_fn()) is not None
+                    else {}
+                ),
+                "finished_at": now_fn().isoformat(),
             },
         )
         raise
 
+    # Untouched partitions keep their previous truth. A run that looked at three partitions must
+    # not publish a receipt implying the other twelve were re-verified (root; reviewer M8).
+    all_partitions = _merged()
+    degraded = [p for p in all_partitions if p.get("state") == "error"]
+
     status = {
         **base,
-        "status": "ok",
-        "finished_at": datetime.now(timezone.utc).isoformat(),
+        "status": "degraded" if degraded else "ok",
+        "partitions": all_partitions,
+        "finished_at": now_fn().isoformat(),
         "db_path": str(db_path),
         "export": {
             "run_id": export_manifest["run_id"],
@@ -3229,6 +4391,10 @@ def _run_locked_capture(
             "pfr_conflict_ids": sorted(identity.pfr_conflicts),
         },
     }
+    retry = build_retry_block(all_partitions, now=now_fn())
+    if retry is not None:
+        status["retry"] = retry
+    _note_unusable_stamps(status, all_partitions)
     _atomic_write_json(marker, status)
     return status
 

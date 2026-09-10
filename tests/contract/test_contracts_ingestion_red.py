@@ -1210,25 +1210,36 @@ def test_a_snapshot_failure_records_partition_context_and_prior_capture(
             return [dict(r) for r in rows]
         raise RuntimeError("induced seasonal failure after the snapshot succeeded")
 
-    with pytest.raises(Exception):
-        mod.run_usage_capture(
-            seasons=[2025], specs=(_spec(), mod.NGS_PASSING), identity=identity,
-            db_path=tmp_path / "u.db", raw_root=tmp_path / "rt", fetch=fetch,
-        )
+    status = mod.run_usage_capture(
+        seasons=[2025], specs=(_spec(), mod.NGS_PASSING), identity=identity,
+        db_path=tmp_path / "u.db", raw_root=tmp_path / "rt", fetch=fetch,
+    )
+    assert not mod.capture_is_healthy(status)
 
     marker = _json.loads(mod.status_marker_path(tmp_path / "rt").read_text())
-    assert marker["status"] == "failed"
-    assert marker["failed_stream"] == "ngs_passing"
-    assert marker["failed_stage"] == "capture"
+    # DG-215: a seasonal failure is isolated rather than raised, so the marker reports `degraded`
+    # and names the partition. The property this test protects is unchanged — the snapshot that
+    # succeeded BEFORE the failure must still be recorded, and it is, in the partition list which
+    # can now carry both outcomes of one run instead of only the fatal one.
+    assert marker["status"] == "degraded"
+    partitions = {(p["stream"], p["season"]): p for p in marker["partitions"]}
+    assert partitions[("ngs_passing", 2025)]["state"] == "error"
+    assert "induced seasonal failure" in partitions[("ngs_passing", 2025)]["detail"]
 
-    captured = marker.get("captured_before_failure") or []
-    assert captured, "the snapshot succeeded before the failure but was not recorded"
-    snapshot_entries = [c for c in captured if c.get("stream") == STREAM]
-    assert len(snapshot_entries) == 1, f"expected one snapshot entry, got {captured}"
+    snapshot_entries = [
+        p for p in marker["partitions"]
+        if p["stream"] == STREAM and p.get("capture_axis") == "snapshot"
+    ]
+    assert len(snapshot_entries) == 1, (
+        f"the snapshot succeeded before the failure but was not recorded: {marker['partitions']}"
+    )
     entry = snapshot_entries[0]
     assert entry["capture_axis"] == "snapshot"
     assert entry["snapshot_id"]
-    assert entry["observed_at"]
+    # Named `data_observed_at` on a partition record: the one field every partition carries for
+    # "when was this data actually seen", which is what export provenance reads. Same value and
+    # same property as the old `observed_at` on the pre-DG-215 `captured_before_failure` entry.
+    assert entry["data_observed_at"]
     assert entry.get("season") in (None, ""), (
         "a snapshot entry must not carry a season partition"
     )
