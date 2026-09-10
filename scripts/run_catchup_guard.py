@@ -24,6 +24,7 @@ import os
 import subprocess
 import sys
 import time
+from dataclasses import replace
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -32,10 +33,15 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from src.dynasty_genius.catchup_guard import (  # noqa: E402
+    LOCK_WEDGE_THRESHOLD,
     GuardState,
+    RetryLedger,
     atomic_write_json,
     build_specs,
+    invoke_retry,
     load_config,
+    load_retry_jobs,
+    plan_retries,
     read_receipt_ts,
     run_once,
 )
@@ -48,6 +54,9 @@ STATUS_PATH = REPO_ROOT / "app/data/ops/catchup_guard_status_latest.json"
 # must exceed the widest plan_kicks lookback (weekly = 7 days), or a pruned
 # ledger entry lets an already-kicked occurrence re-kick
 STATE_KEEP = timedelta(days=8)
+RETRY_LEDGER_PATH = REPO_ROOT / "app/data/ops/catchup_guard_retry_ledger.json"
+# long enough that an attempt is never re-invoked because its record aged out
+RETRY_LEDGER_KEEP = timedelta(days=14)
 WAIT_POLL_MAX_SECONDS = 10
 WAIT_CAP_SECONDS = 1800
 SPAWN_WAIT_SECONDS = 10
@@ -101,6 +110,92 @@ def _wait_for_exit(label: str) -> None:
             return
         time.sleep(delay)
         delay = min(delay * 2, WAIT_POLL_MAX_SECONDS)
+
+
+def _run_feed_retries(*, now, tz, receipts, dry_run: bool) -> dict:
+    """Ask the capture to re-check partitions it says are still due.
+
+    A delayed upstream feed is not a missed launchd occurrence: nobody failed
+    to run, the data is simply not published yet. Only explicitly configured
+    labels take part, and the capture owner — never this guard — decides what
+    is retryable.
+
+    Everything here sits behind the same --dry-run gate as the status write. A
+    dry run that could spawn a capture has stopped being read-only.
+    """
+    jobs = load_retry_jobs(CONFIG_PATH, receipts)
+    outcomes: list[dict] = []
+    failures: list[dict] = []
+    refusals: list[dict] = []
+    dropped: list[dict] = []
+    unusable: list[dict] = []
+    interrupted: list[dict] = []
+    wedged: list[str] = []
+    if not jobs:
+        return {
+            "outcomes": outcomes, "failures": failures, "refusals": refusals,
+            "dropped": dropped, "unusable": unusable, "wedged": wedged,
+            "interrupted": interrupted,
+        }
+
+    ledger = RetryLedger.load(RETRY_LEDGER_PATH)
+    for job in jobs:
+        absolute = REPO_ROOT / job.receipt_path
+        job = replace(job, receipt_path=str(absolute), lock_path=str(REPO_ROOT / job.lock_path))
+        plan = plan_retries(now=now, job=job, ledger=ledger)
+        if plan.refusal:
+            refusals.append({"label": job.label, "reason": plan.refusal})
+        if plan.dropped:
+            dropped.append({"label": job.label, "partitions": plan.dropped})
+        if plan.unusable:
+            unusable.append({"label": job.label, "entries": plan.unusable})
+        if plan.interrupted:
+            interrupted.append({"label": job.label, "reason": plan.interrupted})
+        outcome = invoke_retry(
+            job=job,
+            plan=plan,
+            run=lambda command: subprocess.run(
+                list(command), cwd=str(REPO_ROOT)
+            ).returncode,
+            now=now,
+            ledger=ledger,
+            dry_run=dry_run,
+            reload=None if dry_run else (lambda: RetryLedger.load(RETRY_LEDGER_PATH)),
+            persist=None
+            if dry_run
+            else (
+                lambda live: live.save(
+                    RETRY_LEDGER_PATH,
+                    now=datetime.now(tz=tz),
+                    keep=RETRY_LEDGER_KEEP,
+                )
+            ),
+        )
+        record = {
+            "label": outcome.label,
+            "state": outcome.state,
+            "exit_code": outcome.exit_code,
+            "partitions": outcome.partitions,
+            "note": outcome.note,
+            "waiting_until": plan.waiting_until.isoformat() if plan.waiting_until else None,
+            "in_flight": plan.in_flight,
+        }
+        if outcome.state != "skipped" or outcome.partitions or plan.waiting_until:
+            outcomes.append(record)
+        if outcome.state == "failed":
+            failures.append(record)
+        if ledger.lock_wedged(job.label, now=now, threshold=LOCK_WEDGE_THRESHOLD):
+            # the capture's lock has refused continuously for an hour: that is
+            # a wedged lock, not patience, and it needs a human rather than
+            # another tick
+            wedged.append(job.label)
+    if not dry_run:
+        ledger.save(RETRY_LEDGER_PATH, now=now, keep=RETRY_LEDGER_KEEP)
+    return {
+        "outcomes": outcomes, "failures": failures, "refusals": refusals,
+        "dropped": dropped, "unusable": unusable, "wedged": wedged,
+        "interrupted": interrupted,
+    }
 
 
 def main() -> int:
@@ -159,7 +254,17 @@ def main() -> int:
             ),
         )
 
-    degraded = bool(report["kick_failures"]) or bool(unconfigured)
+    retries = _run_feed_retries(now=now, tz=tz, receipts=receipts, dry_run=args.dry_run)
+
+    degraded = (
+        bool(report["kick_failures"])
+        or bool(unconfigured)
+        or bool(retries["failures"])
+        or bool(retries["wedged"])
+        or bool(retries["refusals"])
+        or bool(retries["dropped"])
+        or bool(retries["interrupted"])
+    )
     status = {
         "generated_at": now.isoformat(),
         "dry_run": args.dry_run,
@@ -169,10 +274,18 @@ def main() -> int:
         "unguarded": unguarded,
         "kicked": report["kicked"],
         "kick_failures": report["kick_failures"],
+        "feed_retries": retries,
     }
     if not args.dry_run:
         atomic_write_json(STATUS_PATH, status)
-    if report["kicked"] or report["kick_failures"] or unconfigured or args.dry_run:
+    if (
+        report["kicked"]
+        or report["kick_failures"]
+        or unconfigured
+        or args.dry_run
+        or retries["outcomes"]
+        or degraded
+    ):
         print(json.dumps(status, indent=1, sort_keys=True))
     return 0
 

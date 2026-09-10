@@ -560,8 +560,16 @@ def test_a_wrong_record_type_refuses_with_the_defined_boundary_error(
     def bad_fetch(spec, season):
         return ["not a mapping", 42]
 
-    with pytest.raises(mod.UsageCaptureError, match="record"):
-        _run(tmp_path, bad_fetch, identity)
+    # DG-215: isolated per partition rather than raised. The property is unchanged and still
+    # pinned — the module's OWN boundary exception with a deterministic reason naming the offending
+    # shape, not an incidental AttributeError. It now appears as the partition's recorded detail.
+    status = _run(tmp_path, bad_fetch, identity)
+    assert not mod.capture_is_healthy(status)
+    failed = [p for p in status["partitions"] if p["state"] == "error"]
+    assert failed, "a wrong record type was not recorded against any partition"
+    for part in failed:
+        assert "UsageCaptureError" in part["detail"], part["detail"]
+        assert "record" in part["detail"], part["detail"]
 
 
 def test_a_non_finite_metric_refuses(fixture_payload, identity) -> None:
@@ -731,18 +739,41 @@ def test_a_capture_stage_failure_preserves_the_prior_ready_marker_and_files(
     export_root = raw_root / "export"
     marker = mod.export_ready_marker_path(export_root)
     before_marker = marker.read_bytes()
-    before_files = {p: p.read_bytes() for p in sorted(export_root.rglob("*")) if p.is_file()}
+    # The ready marker is a mutable POINTER by design — it is the commit point that advances to the
+    # newest good vintage. Only the immutable run directories are compared byte-for-byte, which is
+    # where the real protection lives: a published vintage's files must never change or vanish.
+    before_files = {
+        p: p.read_bytes()
+        for p in sorted(export_root.rglob("*"))
+        if p.is_file() and p != marker
+    }
 
     def failing_fetch(spec, season):
         if spec.name == "pfr_def":
             raise RuntimeError("induced upstream failure")
         return harness(spec, season)
 
-    with pytest.raises(Exception):
-        _run(tmp_path, failing_fetch, identity, db_path=db_path, raw_root=raw_root)
+    from src.dynasty_genius.nflverse_usage import capture_is_healthy
 
-    assert marker.read_bytes() == before_marker
-    after_files = {p: p.read_bytes() for p in sorted(export_root.rglob("*")) if p.is_file()}
+    status = _run(tmp_path, failing_fetch, identity, db_path=db_path, raw_root=raw_root)
+    assert not capture_is_healthy(status)
+
+    # DG-215 changes ONE of this test's two assertions and keeps the other, which is the important
+    # one. The marker now DOES advance: a single stream failing must no longer freeze every healthy
+    # stream out of the consumer's view, and the export declares per-partition readiness so the
+    # failure is visible rather than hidden behind a stale vintage.
+    #
+    # What is unchanged, and is the protection this test really carries: a previously published file
+    # is never overwritten or removed. Run directories are immutable, so every prior byte survives.
+    assert json.loads(marker.read_text())["ready"] is False, (
+        "a run that lost a stream published an export claiming to be ready"
+    )
+    assert marker.read_bytes() != before_marker
+    after_files = {
+        p: p.read_bytes()
+        for p in sorted(export_root.rglob("*"))
+        if p.is_file() and p != marker
+    }
     for path, blob in before_files.items():
         assert path in after_files, f"a previously published file vanished: {path}"
         assert after_files[path] == blob, f"a published file changed bytes: {path}"
@@ -761,7 +792,14 @@ def test_an_export_stage_failure_preserves_the_prior_ready_marker_and_files(
     export_root = raw_root / "export"
     marker = mod.export_ready_marker_path(export_root)
     before_marker = marker.read_bytes()
-    before_files = {p: p.read_bytes() for p in sorted(export_root.rglob("*")) if p.is_file()}
+    # The ready marker is a mutable POINTER by design — it is the commit point that advances to the
+    # newest good vintage. Only the immutable run directories are compared byte-for-byte, which is
+    # where the real protection lives: a published vintage's files must never change or vanish.
+    before_files = {
+        p: p.read_bytes()
+        for p in sorted(export_root.rglob("*"))
+        if p.is_file() and p != marker
+    }
 
     # S3: replacing `publish_export` wholesale meant NO export work ran, so the ordering
     # contract — "the ready marker is written LAST, after every Parquet for the run has
@@ -790,7 +828,11 @@ def test_an_export_stage_failure_preserves_the_prior_ready_marker_and_files(
         "bypassed and the ordering contract was not exercised"
     )
     assert marker.read_bytes() == before_marker, "the prior ready marker changed"
-    after_files = {p: p.read_bytes() for p in sorted(export_root.rglob("*")) if p.is_file()}
+    after_files = {
+        p: p.read_bytes()
+        for p in sorted(export_root.rglob("*"))
+        if p.is_file() and p != marker
+    }
     for path, blob in before_files.items():
         assert path in after_files, f"a previously published file vanished: {path}"
         assert after_files[path] == blob, f"a published file changed bytes: {path}"

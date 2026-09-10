@@ -316,31 +316,62 @@ def test_a_failed_stream_does_not_leave_the_previous_success_standing(
             raise RuntimeError("nflverse 503")
         return harness(spec, season)
 
-    with pytest.raises(Exception):
-        _run(tmp_path, harness, identity, fetch=exploding)
+    # DG-215 changed HOW this is reported, not whether it is. A stream failure no longer raises —
+    # isolating it is the whole point, so the other streams still land — but the run must still be
+    # impossible to mistake for the previous success.
+    from src.dynasty_genius.nflverse_usage import capture_is_healthy
+
+    status = _run(tmp_path, harness, identity, fetch=exploding)
+    assert not capture_is_healthy(status)
 
     after = json.loads(marker.read_text())
-    assert after["status"] == "failed", "a failed run must not inherit the prior ok"
-    assert after["failed_stream"] == "ngs_rushing"
-    assert after["failed_season"] == 2025
-    assert "nflverse 503" in after["reason"]
-    assert [c["stream"] for c in after["captured_before_failure"]] == ["ngs_passing"]
+    assert after["status"] == "degraded", "a run that lost a stream must not read as ok"
+    failed = [p for p in after["partitions"] if p["state"] == "error"]
+    assert [(p["stream"], p["season"]) for p in failed] == [("ngs_rushing", 2025)]
+    assert "nflverse 503" in failed[0]["detail"]
+    # ...and the streams that were fine are still recorded as fine, which is the new behaviour.
+    assert any(p["stream"] == "ngs_passing" and p["state"] != "error" for p in after["partitions"])
 
 
 def test_a_failed_stream_season_is_recorded_in_the_store(tmp_path, harness, identity) -> None:
+    # DG-215: the failure is isolated rather than raised, but it is still recorded in the store by
+    # name. `record_failure` is called on exactly the same path it always was.
     def exploding(spec: StreamSpec, season: int):
         if spec.name == "ngs_rushing":
             raise RuntimeError("nflverse 503")
         return harness(spec, season)
 
-    with pytest.raises(Exception):
-        _run(tmp_path, harness, identity, fetch=exploding)
+    _run(tmp_path, harness, identity, fetch=exploding)
 
     captures = {c["stream"]: c for c in UsageStore(tmp_path / "usage.db", SPECS).captures()}
     assert captures["ngs_passing"]["status"] == "ok"
     assert captures["ngs_rushing"]["status"] == "failed"
     assert "nflverse 503" in captures["ngs_rushing"]["failure_reason"]
-    assert "ngs_receiving" not in captures, "a stream never reached must not appear as captured"
+    # DG-215 CHANGES THE OUTCOME HERE, and the change is the ticket: `ngs_receiving` is declared
+    # after the stream that failed, and it now runs instead of being skipped by the re-raise. That
+    # is the fourteen-partitions-lost harm from the 06:15 run, removed.
+    assert captures["ngs_receiving"]["status"] == "ok"
+
+
+def test_a_stream_never_reached_still_does_not_appear_as_captured(tmp_path, harness, identity) -> None:
+    """The protection from the assertion DG-215 had to change, kept and proved another way.
+
+    The old test established "a stream never reached must not appear as captured" using a stream that
+    was skipped by a re-raise. Nothing is skipped by a re-raise any more, so the property is proved
+    with a genuinely unreached stream instead: a narrowed run. Removing the assertion because its
+    original cause is gone would trade a protection for nothing.
+    """
+    from src.dynasty_genius.nflverse_usage import run_usage_capture
+
+    db = tmp_path / "usage.db"
+    run_usage_capture(
+        seasons=[2025], specs=SPECS, identity=identity, db_path=db,
+        raw_root=tmp_path / "runtime", fetch=harness, only=["ngs_passing:2025"],
+    )
+    captures = {c["stream"] for c in UsageStore(db, SPECS).captures()}
+    assert "ngs_passing" in captures
+    assert "ngs_receiving" not in captures, "a stream never reached appeared as captured"
+    assert "snap_counts" not in captures
 
 
 def test_a_start_record_is_written_before_any_fetch(tmp_path, harness, identity) -> None:
@@ -363,8 +394,15 @@ def test_the_raw_snapshot_is_written_before_parsing(tmp_path, harness, identity)
             return [{"season": 2025, "week": 1}]  # real key, missing every metric
         return harness(spec, season)
 
-    with pytest.raises(UsageCaptureError):
-        _run(tmp_path, harness, identity, fetch=bad_shape)
+    # DG-215: a parse failure is a SOURCE-DATA problem, so it is isolated to its own partition
+    # rather than raised — a bad column in one stream must not cost the others their run. The
+    # property this test carries is untouched: the raw payload survives the parse failure.
+    from src.dynasty_genius.nflverse_usage import capture_is_healthy
+
+    status = _run(tmp_path, harness, identity, fetch=bad_shape)
+    assert not capture_is_healthy(status)
+    failed = [p for p in status["partitions"] if p["state"] == "error"]
+    assert [(p["stream"], p["season"]) for p in failed] == [("ngs_rushing", 2025)]
 
     snapshots = sorted((tmp_path / "runtime" / "raw").glob("ngs_rushing_2025_*.json"))
     assert snapshots, "the raw payload was lost when parsing failed"
@@ -438,14 +476,19 @@ def test_the_run_marker_is_what_reports_the_failing_attempt(tmp_path, harness, i
             raise RuntimeError("nflverse 503")
         return harness(spec, season)
 
-    with pytest.raises(Exception):
-        _run(tmp_path, harness, identity, fetch=exploding)
+    _run(tmp_path, harness, identity, fetch=exploding)
 
+    # Same property, and it is if anything stricter: the marker must name the failing partition
+    # precisely, because the store holds only successes. DG-215 moves that naming from three
+    # top-level fields to the partition record, which can also carry the partitions that succeeded.
     after = json.loads(marker.read_text())
-    assert after["status"] == "failed"
-    assert after["failed_stream"] == "ngs_rushing"
-    assert after["failed_season"] == 2025
-    assert "nflverse 503" in after["reason"]
+    assert after["status"] == "degraded"
+    failed = [p for p in after["partitions"] if p["state"] == "error"]
+    assert len(failed) == 1
+    assert failed[0]["stream"] == "ngs_rushing"
+    assert failed[0]["season"] == 2025
+    assert "nflverse 503" in failed[0]["detail"]
+    assert failed[0]["retryable"] is False, "a 503 must never be auto-retried by the guard"
 
 
 # --------------------------------------------------------------------------
@@ -491,11 +534,27 @@ def test_a_failed_capture_leaves_the_previous_export_untouched(
             raise RuntimeError("nflverse 503")
         return harness(spec, season)
 
-    with pytest.raises(Exception):
-        _run(tmp_path, harness, identity, fetch=exploding)
+    # DG-215 SUPERSEDES the old assertion here, deliberately, and this is the one behaviour change
+    # a reviewer should look at hardest.
+    #
+    # The old rule was: one stream fails, publish nothing, the consumer keeps the previous vintage.
+    # That is precisely the 9 AM failure David asked us to remove — a late snap count froze fourteen
+    # healthy partitions. The export now publishes, and the obligation moves to TELLING THE TRUTH
+    # about it: the ready marker declares per-partition readiness, so a consumer can see exactly
+    # which partitions are fresh and which are not, instead of being handed a uniformly-fresh-looking
+    # export or nothing at all.
+    _run(tmp_path, harness, identity, fetch=exploding)
 
     after = read_last_good_export(export_root)
-    assert after == before, "a failed capture advanced or damaged the last-good export"
+    assert after["run_id"] != before["run_id"], "the healthy streams never reached consumers"
+    assert after["ready"] is False, "a partial export must not present itself as complete"
+    readiness = {p["partition"]: p for p in after["partition_readiness"]}
+    assert readiness["ngs_rushing:2025"]["state"] == "error"
+    assert readiness["ngs_rushing:2025"]["fresh_this_run"] is False
+    # `unchanged` — the source was checked this run and confirmed identical, so the rows are not
+    # newly stored but they were verified. A consumer must be able to tell that from "not looked at".
+    assert readiness["ngs_passing:2025"]["checked_this_run"] is True
+    assert readiness["ngs_passing:2025"]["state"] in {"ok", "updated", "unchanged"}
 
 
 def test_the_identity_artifact_covers_every_stream_not_just_one(
@@ -672,10 +731,14 @@ def test_e4_the_lock_is_released_after_a_failure(tmp_path, harness, identity) ->
     def exploding(spec: StreamSpec, season: int):
         raise RuntimeError("nflverse 503")
 
-    with pytest.raises(Exception):
-        _run(tmp_path, harness, identity, fetch=exploding)
-    assert not (tmp_path / "runtime" / "capture.lock").exists()
-    # and a later capture succeeds
+    # DG-215: the lock is an advisory flock on a persistent inode, so the FILE is expected to
+    # survive — unlinking it under waiters splits the inode and breaks the exclusion it exists to
+    # provide. The property that matters was never "the file is gone"; it is that a later capture
+    # can acquire the lock. That is asserted directly.
+    from src.dynasty_genius.nflverse_usage import capture_is_healthy
+
+    failed = _run(tmp_path, harness, identity, fetch=exploding)
+    assert not capture_is_healthy(failed)
     assert _run(tmp_path, harness, identity)["status"] == "ok"
 
 
