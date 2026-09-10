@@ -154,24 +154,28 @@ export function initials(fullName: string): string {
 }
 
 /**
- * Every row carries a headshot URL, so an absent URL is not the case that happens. The one that does
- * is a URL that 404s or times out, which renders as a broken image unless the error is caught.
+ * Two ways a face is absent, and both end at initials.
+ *
+ * Locally every row carries a URL and the case that happens is one that 404s or times out, which
+ * renders as a broken image unless the error is caught. In hosted mode a player the release does not
+ * carry has no URL at all, so there is nothing to request: asking anyway would spend a round trip to
+ * be told what the manifest already said.
  */
 export function Headshot({ row, size = 28 }: { row: BoardRow; size?: number }) {
   const [failed, setFailed] = useState(false);
-  const showInitials = failed || !row.headshot_url;
+  const url = failed ? null : row.headshot_url;
   return (
     <span
       className="inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full"
       style={{ width: size, height: size, background: "var(--hairline)" }}
     >
-      {showInitials ? (
+      {url === null ? (
         <span className="label-caps" style={{ color: "var(--ink-dim)" }}>
           {initials(row.full_name)}
         </span>
       ) : (
         <img
-          src={row.headshot_url}
+          src={url}
           alt=""
           width={size}
           height={size}

@@ -1,4 +1,7 @@
 /** Read-only consumer of the accepted DG snapshot. No scoring or market calibration. */
+import { headshotUrl } from "./release.ts";
+import { releaseNow } from "./releaseSource.ts";
+
 export type RankInterval = { start: number; end: number; total: number };
 export type Gap = {
   direction: "higher" | "lower" | "same" | "overlap" | "unavailable";
@@ -99,7 +102,7 @@ export type BoardRow = {
   full_name: string;
   position: string | null;
   team: string | null;
-  headshot_url: string;
+  headshot_url: string | null;
   our_rank: RankInterval | null;
   market_rank: RankInterval | null;
   model_rank_all: RankInterval | null;
@@ -309,7 +312,9 @@ export function boardRows(bundle: DgBundle): BoardRow[] {
       full_name: r?.name ?? f?.name ?? a?.name ?? "Player unavailable",
       position: r?.position ?? f?.position ?? a?.league_position ?? null,
       team: r?.team ?? f?.team ?? a?.nfl_team ?? null,
-      headshot_url: `/assets/headshots/${encodeURIComponent(id)}.jpg`,
+      // Hosted: a player the release does not carry gets no url, so the card falls back to initials
+      // without a request that would 404. Local: the path the preview has always served.
+      headshot_url: headshotUrl(releaseNow(), id),
       our_rank: r?.our_rank ?? null,
       market_rank: r?.market_rank ?? null,
       model_rank_all: r?.model_rank_all ?? null,
