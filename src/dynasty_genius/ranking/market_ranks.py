@@ -6,6 +6,8 @@ import hashlib
 import json
 import math
 from collections import Counter
+from datetime import date as calendar_date
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -96,7 +98,22 @@ def build_market_ranks(report: dict, market: dict, snapshot: dict) -> dict:
         raise SourceError("Incomplete comparison source") from exc
 
 
-def _build(report: dict, market: dict, snapshot: dict) -> dict:
+def build_forward_market_ranks(report: dict, market: dict, snapshot: dict) -> dict:
+    """Explicit research pairing of a frozen forecast with a later market capture.
+
+    Ownership and football assumptions remain those of the original forecast. This
+    creates a new reading; callers must never replace an archived market or date.
+    The ordinary same-day reader retains its stricter temporal contract.
+    This factory enforces date ordering, not enrollment freshness or endpoint
+    windows; the tracker and declared evaluator enforce those bounds separately.
+    """
+    try:
+        return _build(report, market, snapshot, forward_market=True)
+    except (KeyError, TypeError, IndexError, AttributeError) as exc:
+        raise SourceError("Incomplete forward comparison source") from exc
+
+
+def _build(report: dict, market: dict, snapshot: dict, *, forward_market=False) -> dict:
     league = snapshot["league"]
     scoring = league["scoring_settings"]
     settings = market["settings"]
@@ -145,13 +162,28 @@ def _build(report: dict, market: dict, snapshot: dict) -> dict:
         "Unexpected forecast target",
     )
     date = report["forecast_date"]
-    require(
-        date
-        == market["snapshot_date"]
-        == snapshot["captured_at"][:10]
-        == market["retrieved_at"][:10],
-        "Comparison source dates differ",
-    )
+    if forward_market:
+        try:
+            forecast_day = calendar_date.fromisoformat(date)
+            market_day = calendar_date.fromisoformat(market["snapshot_date"])
+            observed = datetime.fromisoformat(market["retrieved_at"].replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise SourceError("Invalid forward comparison date") from exc
+        require(
+            observed.tzinfo is not None
+            and date == snapshot["captured_at"][:10]
+            and market_day == observed.astimezone(timezone.utc).date()
+            and market_day >= forecast_day,
+            "Forward comparison source dates differ or precede forecast",
+        )
+    else:
+        require(
+            date
+            == market["snapshot_date"]
+            == snapshot["captured_at"][:10]
+            == market["retrieved_at"][:10],
+            "Comparison source dates differ",
+        )
     require(str(league["season"]) == date[:4], "League season differs from forecast")
     board = report[report["comparable_views"]["h5"]]
     require(
@@ -241,14 +273,21 @@ def _build(report: dict, market: dict, snapshot: dict) -> dict:
     )
     for key in ("source", "snapshot_date", "settings_hash", "retrieved_at"):
         require(capture[key] == market[key], "Market capture metadata differs")
-    assets = indexed(market["entries"], "sleeper_id")
+    raw_assets = market["entries"]
+    # Preserve and attest the entire raw capture. Only resolved identities can
+    # participate in a player comparison; no synthetic player IDs are invented.
+    assets = indexed(
+        [e for e in raw_assets if e.get("sleeper_id")] if forward_market else raw_assets,
+        "sleeper_id",
+    )
     require(
-        len({e["player_key"] for e in assets.values()}) == len(assets),
+        len({e["player_key"] for e in raw_assets}) == len(raw_assets),
         "Duplicate market key",
     )
-    for entry in assets.values():
+    for entry in raw_assets:
         require(
-            entry["position"] in POSITIONS | {"PICK"}, "Unexpected market asset type"
+            entry["position"] in POSITIONS | {"PICK"} | ({"UNK"} if forward_market else set()),
+            "Unexpected market asset type",
         )
         require(number(entry["value"]) and entry["value"] >= 0, "Invalid market value")
         require(
@@ -270,24 +309,27 @@ def _build(report: dict, market: dict, snapshot: dict) -> dict:
             "Market row metadata differs",
         )
     require(
-        capture["joinable_rows_written"]
-        == len(assets)
-        == capture["raw_entries_written"],
+        capture["joinable_rows_written"] == len(assets)
+        and capture["raw_entries_written"] == len(raw_assets),
         "Market capture count differs",
     )
     require(
         digest(
             {
                 "sigs": sorted(
-                    e["player_key"] + ":" + e["payload_hash"] for e in assets.values()
+                    e["player_key"] + ":" + e["payload_hash"] for e in raw_assets
                 )
             }
         )
         == capture["store_hash"],
         "Market store hash mismatch",
     )
-    prices = {sid: e for sid, e in assets.items() if e["position"] in POSITIONS}
-    common = models.keys() & prices.keys()
+    prices = {
+        sid: e for sid, e in assets.items()
+        if e["position"] in POSITIONS or (forward_market and e["position"] == "UNK")
+    }
+    unresolved = {sid for sid, e in prices.items() if e["position"] == "UNK"}
+    common = (models.keys() & prices.keys()) - unresolved
     require(bool(common), "No comparable players")
     require(
         all(models[s]["position"] == prices[s]["position"] for s in common),
@@ -304,7 +346,9 @@ def _build(report: dict, market: dict, snapshot: dict) -> dict:
             None
             if sid in common
             else (
-                "No saved FantasyCalc price for this player."
+                "FantasyCalc position is unresolved; the price is retained but excluded from the paired ranking."
+                if sid in unresolved
+                else "No saved FantasyCalc price for this player."
                 if price is None
                 else "No accepted five-year valuation. Starting estimates on other pages are not included in this ranking."
             )
@@ -370,11 +414,13 @@ def _build(report: dict, market: dict, snapshot: dict) -> dict:
         coverage=dict(
             model_players=len(models),
             market_players=len(prices),
-            market_picks=len(assets) - len(prices),
+            market_picks=sum(e["position"] == "PICK" for e in raw_assets),
             common_players=len(common),
             total_players=len(rows),
             roster_players=len(owned),
             roster_common_players=len(owned & common),
+            **({"market_unresolved_positions": len(unresolved),
+                "market_unresolved_identities": len(raw_assets) - len(assets)} if forward_market else {}),
         ),
         rows=rows,
     )
